@@ -15,6 +15,7 @@ const roomRoutes = require('./routes/rooms');
 const shiftRoutes = require('./routes/shifts');
 const assignmentRoutes = require('./routes/assignments');
 const timetableRoutes = require('./routes/timetable');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/shifts', shiftRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/timetable', timetableRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
