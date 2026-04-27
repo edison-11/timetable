@@ -1,0 +1,96 @@
+const pool = require('../config/database');
+
+class Timetable {
+  static async create(timetableData) {
+    const { title, description, user_id, days, start_time, end_time, subject } = timetableData;
+    
+    const [result] = await pool.execute(
+      'INSERT INTO timetables (title, description, user_id, days, start_time, end_time, subject) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [title, description, user_id, JSON.stringify(days), start_time, end_time, subject]
+    );
+    
+    return result.insertId;
+  }
+
+  static async getAll() {
+    const [rows] = await pool.execute(`
+      SELECT t.*, u.username as created_by 
+      FROM timetables t 
+      LEFT JOIN users u ON t.user_id = u.id 
+      ORDER BY t.created_at DESC
+    `);
+    
+    return rows.map(row => ({
+      ...row,
+      days: JSON.parse(row.days)
+    }));
+  }
+
+  static async getById(id) {
+    const [rows] = await pool.execute(`
+      SELECT t.*, u.username as created_by 
+      FROM timetables t 
+      LEFT JOIN users u ON t.user_id = u.id 
+      WHERE t.id = ?
+    `, [id]);
+    
+    if (rows.length === 0) return null;
+    
+    return {
+      ...rows[0],
+      days: JSON.parse(rows[0].days)
+    };
+  }
+
+  static async getByUserId(user_id) {
+    const [rows] = await pool.execute(`
+      SELECT t.*, u.username as created_by 
+      FROM timetables t 
+      LEFT JOIN users u ON t.user_id = u.id 
+      WHERE t.user_id = ? 
+      ORDER BY t.created_at DESC
+    `, [user_id]);
+    
+    return rows.map(row => ({
+      ...row,
+      days: JSON.parse(row.days)
+    }));
+  }
+
+  static async update(id, timetableData) {
+    const { title, description, days, start_time, end_time, subject } = timetableData;
+    
+    await pool.execute(
+      'UPDATE timetables SET title = ?, description = ?, days = ?, start_time = ?, end_time = ?, subject = ? WHERE id = ?',
+      [title, description, JSON.stringify(days), start_time, end_time, subject, id]
+    );
+  }
+
+  static async delete(id) {
+    await pool.execute('DELETE FROM timetables WHERE id = ?', [id]);
+  }
+
+  static async getConflicts(user_id, days, start_time, end_time, exclude_id = null) {
+    let query = `
+      SELECT * FROM timetables 
+      WHERE user_id = ? 
+      AND JSON_CONTAINS(days, ?)
+      AND (
+        (start_time < ? AND end_time > ?) 
+        OR (start_time < ? AND end_time > ?)
+        OR (start_time >= ? AND end_time <= ?)
+      )
+    `;
+    let params = [user_id, JSON.stringify(days[0]), start_time, start_time, end_time, end_time, start_time, end_time];
+    
+    if (exclude_id) {
+      query += ' AND id != ?';
+      params.push(exclude_id);
+    }
+    
+    const [rows] = await pool.execute(query, params);
+    return rows;
+  }
+}
+
+module.exports = Timetable;

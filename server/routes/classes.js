@@ -1,0 +1,161 @@
+const express = require('express');
+const { body, validationResult } = require('express-validator');
+const Class = require('../models/Class');
+const { auth } = require('../middleware/auth');
+
+const router = express.Router();
+
+// Create class
+router.post('/', auth, [
+  body('class_name').trim().notEmpty().withMessage('Class name is required'),
+  body('level').trim().notEmpty().withMessage('Level is required'),
+  body('academic_year').trim().notEmpty().withMessage('Academic year is required'),
+  body('shift_id').optional().isInt(),
+  body('dos_id').optional().isInt(),
+  body('section_id').optional().isInt()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { class_name, level, academic_year, shift_id, dos_id, section_id } = req.body;
+
+    const classId = await Class.create({ class_name, level, academic_year, shift_id, dos_id, section_id });
+    const classData = await Class.findById(classId);
+
+    res.status(201).json({
+      message: 'Class created successfully',
+      class: classData
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all classes
+router.get('/', auth, async (req, res) => {
+  try {
+    const classes = await Class.getAll();
+    res.json({ classes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get class by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const classData = await Class.findById(req.params.id);
+    if (!classData) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+    res.json({ class: classData });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get classes by level
+router.get('/level/:level', auth, async (req, res) => {
+  try {
+    const classes = await Class.getByLevel(req.params.level);
+    res.json({ classes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get classes by section
+router.get('/section/:section_id', auth, async (req, res) => {
+  try {
+    const classes = await Class.getBySection(req.params.section_id);
+    res.json({ classes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get classes by academic year
+router.get('/year/:academic_year', auth, async (req, res) => {
+  try {
+    const classes = await Class.getByAcademicYear(req.params.academic_year);
+    res.json({ classes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get classes by teacher
+router.get('/teacher/:teacher_id', auth, async (req, res) => {
+  try {
+    const classes = await Class.getClassesByTeacher(req.params.teacher_id);
+    res.json({ classes });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update class
+router.put('/:id', auth, [
+  body('class_name').optional().trim().notEmpty(),
+  body('level').optional().trim().notEmpty(),
+  body('academic_year').optional().trim().notEmpty(),
+  body('shift_id').optional().isInt(),
+  body('dos_id').optional().isInt(),
+  body('section_id').optional().isInt()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { class_name, level, academic_year, shift_id, dos_id, section_id } = req.body;
+    const updateData = {};
+    
+    if (class_name) updateData.class_name = class_name;
+    if (level) updateData.level = level;
+    if (academic_year) updateData.academic_year = academic_year;
+    if (shift_id !== undefined) updateData.shift_id = shift_id;
+    if (dos_id !== undefined) updateData.dos_id = dos_id;
+    if (section_id !== undefined) updateData.section_id = section_id;
+
+    await Class.update(req.params.id, updateData);
+    const updatedClass = await Class.findById(req.params.id);
+
+    res.json({
+      message: 'Class updated successfully',
+      class: updatedClass
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete class
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const classData = await Class.findById(req.params.id);
+    if (!classData) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    await Class.delete(req.params.id);
+    res.json({ message: 'Class deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;
