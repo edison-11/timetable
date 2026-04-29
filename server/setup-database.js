@@ -14,11 +14,12 @@ async function setupDatabase() {
     console.log('Connected to MySQL server');
 
     // Create database if not exists
-    await connection.execute('CREATE DATABASE IF NOT EXISTS timetable_system');
-    console.log('Database "timetable_system" created or already exists');
+    const databaseName = process.env.DB_NAME || 'timetable_system';
+    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\``);
+    console.log(`Database "${databaseName}" created or already exists`);
 
     // Switch to the database
-    await connection.query('USE timetable_system');
+    await connection.query(`USE \`${databaseName}\``);
 
     // Read and execute SQL file
     const sqlFile = path.join(__dirname, 'database.sql');

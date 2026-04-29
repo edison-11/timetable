@@ -3,12 +3,12 @@ const bcrypt = require('bcryptjs');
 
 class Teacher {
   static async create(teacherData) {
-    const { name, email, password, status = 'active', date_joined } = teacherData;
+    const { name, email, password, department = 'SSOD', status = 'active', date_joined } = teacherData;
     const hashedPassword = await bcrypt.hash(password, 10);
     
     const [result] = await pool.execute(
-      'INSERT INTO teacher (name, email, password, status, date_joined) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, status, date_joined || new Date()]
+      'INSERT INTO teacher (name, email, password, department, status, date_joined) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, email, hashedPassword, department, status, date_joined || new Date()]
     );
     
     return result.insertId;
@@ -24,7 +24,7 @@ class Teacher {
 
   static async findById(id) {
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, status, date_joined, created_at FROM teacher WHERE teacher_id = ?',
+      'SELECT teacher_id, name, email, department, status, date_joined, created_at FROM teacher WHERE teacher_id = ?',
       [id]
     );
     return rows[0];
@@ -36,24 +36,57 @@ class Teacher {
 
   static async getAll() {
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, status, date_joined, created_at FROM teacher ORDER BY created_at DESC'
+      'SELECT teacher_id, name, email, department, status, date_joined, created_at FROM teacher ORDER BY created_at DESC'
     );
     return rows;
   }
 
   static async getByStatus(status) {
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, status, date_joined, created_at FROM teacher WHERE status = ? ORDER BY name',
+      'SELECT teacher_id, name, email, department, status, date_joined, created_at FROM teacher WHERE status = ? ORDER BY name',
       [status]
     );
     return rows;
   }
 
   static async update(id, teacherData) {
-    const { name, email, status, date_joined } = teacherData;
+    const { name, email, password, department, status, date_joined } = teacherData;
+    
+    // Build dynamic update query
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (name !== undefined) {
+      updateFields.push('name = ?');
+      updateValues.push(name);
+    }
+    if (email !== undefined) {
+      updateFields.push('email = ?');
+      updateValues.push(email);
+    }
+    if (department !== undefined) {
+      updateFields.push('department = ?');
+      updateValues.push(department);
+    }
+    if (password !== undefined) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push('password = ?');
+      updateValues.push(hashedPassword);
+    }
+    if (status !== undefined) {
+      updateFields.push('status = ?');
+      updateValues.push(status);
+    }
+    if (date_joined !== undefined) {
+      updateFields.push('date_joined = ?');
+      updateValues.push(date_joined);
+    }
+    
+    updateValues.push(id);
+    
     await pool.execute(
-      'UPDATE teacher SET name = ?, email = ?, status = ?, date_joined = ? WHERE teacher_id = ?',
-      [name, email, status, date_joined, id]
+      `UPDATE teacher SET ${updateFields.join(', ')} WHERE teacher_id = ?`,
+      updateValues
     );
   }
 
@@ -63,7 +96,7 @@ class Teacher {
 
   static async getActiveTeachers() {
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email FROM teacher WHERE status = "active" ORDER BY name'
+      'SELECT teacher_id, name, email, department FROM teacher WHERE status = "active" ORDER BY department, name'
     );
     return rows;
   }

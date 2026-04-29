@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS teacher (
   name VARCHAR(100) NOT NULL,
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
+  department VARCHAR(50) NOT NULL DEFAULT 'SSOD',
   status ENUM('active', 'inactive', 'on_leave') DEFAULT 'active',
   date_joined DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -37,6 +38,7 @@ CREATE TABLE IF NOT EXISTS teacher (
 CREATE TABLE IF NOT EXISTS module (
   module_id INT AUTO_INCREMENT PRIMARY KEY,
   module_name VARCHAR(255) NOT NULL,
+  department VARCHAR(50) NOT NULL DEFAULT 'SSOD',
   hours_per_year INT NOT NULL,
   description TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -69,11 +71,13 @@ CREATE TABLE IF NOT EXISTS class (
   class_name VARCHAR(100) NOT NULL,
   level VARCHAR(20) NOT NULL,
   academic_year VARCHAR(20) NOT NULL,
+  class_teacher_id INT,
   shift_id INT,
   dos_id INT,
   section_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (class_teacher_id) REFERENCES teacher(teacher_id) ON DELETE SET NULL,
   FOREIGN KEY (shift_id) REFERENCES shift(shift_id) ON DELETE SET NULL,
   FOREIGN KEY (dos_id) REFERENCES dos(dos_id) ON DELETE SET NULL,
   FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE SET NULL
@@ -167,14 +171,14 @@ CREATE INDEX idx_comment_teacher ON timetable_comment(teacher_id);
 INSERT INTO dos (name, email, password) VALUES 
 ('Dr. Smith', 'dos@school.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi');
 
-INSERT INTO teacher (name, email, password, status, date_joined) VALUES 
-('John Doe', 'john@school.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'active', '2023-01-15'),
-('Jane Smith', 'jane@school.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'active', '2023-02-20');
+INSERT INTO teacher (name, email, password, department, status, date_joined) VALUES 
+('John Doe', 'john@school.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'SSOD', 'active', '2023-01-15'),
+('Jane Smith', 'jane@school.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'ELT', 'active', '2023-02-20');
 
-INSERT INTO module (module_name, hours_per_year, description) VALUES 
-('Mathematics', 120, 'Basic mathematics course'),
-('Physics', 100, 'Introduction to physics'),
-('Chemistry', 80, 'Chemistry fundamentals');
+INSERT INTO module (module_name, department, hours_per_year, description) VALUES 
+('Mathematics', 'S1', 120, 'Basic mathematics course'),
+('Physics', 'S2', 100, 'Introduction to physics'),
+('Chemistry', 'SSOD', 80, 'Chemistry fundamentals');
 
 INSERT INTO shift (shift_name, start_time, end_time) VALUES 
 ('Morning', '08:00:00', '12:00:00'),
@@ -193,11 +197,11 @@ INSERT INTO room (room_name, room_type, capacity) VALUES
 ('Room 201', 'Classroom', 35),
 ('Lab 301', 'Computer Lab', 40);
 
-INSERT INTO class (class_name, level, academic_year, shift_id, dos_id, section_id) VALUES 
-('10A', 'Grade 10', '2024-2025', 1, 1, 1),
-('10B', 'Grade 10', '2024-2025', 1, 1, 2),
-('11A', 'Grade 11', '2024-2025', 2, 1, 3),
-('11B', 'Grade 11', '2024-2025', 2, 1, 4);
+INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id) VALUES 
+('10A', 'Grade 10', '2024-2025', 1, 1, 1, 1),
+('10B', 'Grade 10', '2024-2025', 2, 1, 1, 2),
+('11A', 'Grade 11', '2024-2025', NULL, 2, 1, 3),
+('11B', 'Grade 11', '2024-2025', NULL, 2, 1, 4);
 
 INSERT INTO break_time (shift_id, break_name, start_time, end_time) VALUES 
 (1, 'Morning Break', '10:00:00', '10:15:00'),

@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const Teacher = require('../models/Teacher');
 const { auth } = require('../middleware/auth');
+const { adminAuth } = require('../middleware/adminAuth');
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.post('/register', [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('department').optional().trim().notEmpty().withMessage('Department cannot be empty'),
   body('status').optional().isIn(['active', 'inactive', 'on_leave'])
 ], async (req, res) => {
   try {
@@ -23,14 +25,14 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, status = 'active', date_joined } = req.body;
+    const { name, email, password, department = 'SSOD', status = 'pending', date_joined } = req.body;
 
     const existingTeacher = await Teacher.findByEmail(email);
     if (existingTeacher) {
       return res.status(400).json({ message: 'Teacher already exists' });
     }
 
-    const teacherId = await Teacher.create({ name, email, password, status, date_joined });
+    const teacherId = await Teacher.create({ name, email, password, department, status, date_joined });
     const teacher = await Teacher.findById(teacherId);
 
     const token = generateToken(teacherId);
@@ -78,6 +80,7 @@ router.post('/login', [
         id: teacher.teacher_id,
         name: teacher.name,
         email: teacher.email,
+        department: teacher.department,
         status: teacher.status
       }
     });
@@ -149,6 +152,8 @@ router.get('/:id', auth, async (req, res) => {
 router.put('/:id', auth, [
   body('name').optional().trim().notEmpty(),
   body('email').optional().isEmail().normalizeEmail(),
+  body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('department').optional().trim().notEmpty(),
   body('status').optional().isIn(['active', 'inactive', 'on_leave']),
   body('date_joined').optional().isDate()
 ], async (req, res) => {
@@ -158,11 +163,13 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, status, date_joined } = req.body;
+    const { name, email, password, department, status, date_joined } = req.body;
     const updateData = {};
     
     if (name) updateData.name = name;
     if (email) updateData.email = email;
+    if (password) updateData.password = password;
+    if (department) updateData.department = department;
     if (status) updateData.status = status;
     if (date_joined) updateData.date_joined = date_joined;
 
@@ -189,6 +196,103 @@ router.delete('/:id', auth, async (req, res) => {
 
     await Teacher.delete(req.params.id);
     res.json({ message: 'Teacher deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get pending teachers (temporary test without auth)
+router.get('/pending-test', async (req, res) => {
+  try {
+    const pendingTeachers = await Teacher.getByStatus('pending');
+    res.json({ pendingTeachers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get pending teachers
+router.get('/pending', async (req, res) => {
+  try {
+    const pendingTeachers = await Teacher.getByStatus('pending');
+    res.json({ pendingTeachers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Approve teacher (test without auth)
+router.put('/:id/approve-test', async (req, res) => {
+  try {
+    const teacher = await Teacher.findById(req.params.id);
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    if (teacher.status !== 'pending') {
+      return res.status(400).json({ message: 'Teacher is not pending approval' });
+    }
+
+    await Teacher.update(req.params.id, { status: 'active' });
+    const updatedTeacher = await Teacher.findById(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Teacher approved successfully',
+      teacher: updatedTeacher
+    });
+  } catch (error) {
+    console.error('Error approving teacher:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Approve teacher
+router.put('/:id/approve', adminAuth, async (req, res) => {
+  try {
+    const teacher = await Teacher.findById(req.params.id);
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    if (teacher.status !== 'pending') {
+      return res.status(400).json({ message: 'Teacher is not pending approval' });
+    }
+
+    await Teacher.update(req.params.id, { status: 'active' });
+    const updatedTeacher = await Teacher.findById(req.params.id);
+
+    res.json({
+      success: true,
+      message: 'Teacher approved successfully',
+      teacher: updatedTeacher
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Reject teacher (delete)
+router.delete('/:id/reject', adminAuth, async (req, res) => {
+  try {
+    const teacher = await Teacher.findById(req.params.id);
+    if (!teacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+
+    if (teacher.status !== 'pending') {
+      return res.status(400).json({ message: 'Teacher is not pending approval' });
+    }
+
+    await Teacher.delete(req.params.id);
+    res.json({
+      success: true,
+      message: 'Teacher rejected and removed successfully'
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

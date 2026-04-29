@@ -2,11 +2,11 @@ const pool = require('../config/database');
 
 class Module {
   static async create(moduleData) {
-    const { module_name, hours_per_year, description } = moduleData;
+    const { module_name, department = 'SSOD', hours_per_year, description } = moduleData;
     
     const [result] = await pool.execute(
-      'INSERT INTO module (module_name, hours_per_year, description) VALUES (?, ?, ?)',
-      [module_name, hours_per_year, description]
+      'INSERT INTO module (module_name, department, hours_per_year, description) VALUES (?, ?, ?, ?)',
+      [module_name, department, hours_per_year, description]
     );
     
     return result.insertId;
@@ -14,7 +14,7 @@ class Module {
 
   static async getAll() {
     const [rows] = await pool.execute(
-      'SELECT * FROM module ORDER BY module_name'
+      'SELECT * FROM module ORDER BY department, module_name'
     );
     return rows;
   }
@@ -28,10 +28,19 @@ class Module {
   }
 
   static async update(id, moduleData) {
-    const { module_name, hours_per_year, description } = moduleData;
+    const currentModule = await this.findById(id);
+    if (!currentModule) {
+      return;
+    }
+
+    const module_name = moduleData.module_name ?? currentModule.module_name;
+    const department = moduleData.department ?? currentModule.department;
+    const hours_per_year = moduleData.hours_per_year ?? currentModule.hours_per_year;
+    const description = moduleData.description ?? currentModule.description;
+
     await pool.execute(
-      'UPDATE module SET module_name = ?, hours_per_year = ?, description = ? WHERE module_id = ?',
-      [module_name, hours_per_year, description, id]
+      'UPDATE module SET module_name = ?, department = ?, hours_per_year = ?, description = ? WHERE module_id = ?',
+      [module_name, department, hours_per_year, description, id]
     );
   }
 

@@ -10,6 +10,7 @@ router.post('/', auth, [
   body('class_name').trim().notEmpty().withMessage('Class name is required'),
   body('level').trim().notEmpty().withMessage('Level is required'),
   body('academic_year').trim().notEmpty().withMessage('Academic year is required'),
+  body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).isInt(),
   body('shift_id').optional().isInt(),
   body('dos_id').optional().isInt(),
   body('section_id').optional().isInt()
@@ -20,9 +21,9 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_name, level, academic_year, shift_id, dos_id, section_id } = req.body;
+    const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
 
-    const classId = await Class.create({ class_name, level, academic_year, shift_id, dos_id, section_id });
+    const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id });
     const classData = await Class.findById(classId);
 
     res.status(201).json({
@@ -40,20 +41,6 @@ router.get('/', auth, async (req, res) => {
   try {
     const classes = await Class.getAll();
     res.json({ classes });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get class by ID
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const classData = await Class.findById(req.params.id);
-    if (!classData) {
-      return res.status(404).json({ message: 'Class not found' });
-    }
-    res.json({ class: classData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -104,14 +91,29 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
   }
 });
 
+// Get class by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const classData = await Class.findById(req.params.id);
+    if (!classData) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+    res.json({ class: classData });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Update class
 router.put('/:id', auth, [
   body('class_name').optional().trim().notEmpty(),
   body('level').optional().trim().notEmpty(),
   body('academic_year').optional().trim().notEmpty(),
-  body('shift_id').optional().isInt(),
-  body('dos_id').optional().isInt(),
-  body('section_id').optional().isInt()
+  body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('shift_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('dos_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('section_id').optional({ nullable: true, checkFalsy: true }).isInt()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -119,12 +121,13 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_name, level, academic_year, shift_id, dos_id, section_id } = req.body;
+    const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
     const updateData = {};
     
     if (class_name) updateData.class_name = class_name;
     if (level) updateData.level = level;
     if (academic_year) updateData.academic_year = academic_year;
+    if (class_teacher_id !== undefined) updateData.class_teacher_id = class_teacher_id || null;
     if (shift_id !== undefined) updateData.shift_id = shift_id;
     if (dos_id !== undefined) updateData.dos_id = dos_id;
     if (section_id !== undefined) updateData.section_id = section_id;

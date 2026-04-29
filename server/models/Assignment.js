@@ -16,6 +16,7 @@ class Assignment {
     const [rows] = await pool.execute(`
       SELECT a.*, 
              t.name as teacher_name,
+             t.department as teacher_department,
              m.module_name,
              c.class_name,
              c.level
@@ -32,6 +33,7 @@ class Assignment {
     const [rows] = await pool.execute(`
       SELECT a.*, 
              t.name as teacher_name,
+             t.department as teacher_department,
              m.module_name,
              c.class_name,
              c.level
@@ -48,6 +50,7 @@ class Assignment {
     const [rows] = await pool.execute(`
       SELECT a.*, 
              t.name as teacher_name,
+             t.department as teacher_department,
              m.module_name,
              c.class_name,
              c.level
@@ -65,6 +68,7 @@ class Assignment {
     const [rows] = await pool.execute(`
       SELECT a.*, 
              t.name as teacher_name,
+             t.department as teacher_department,
              m.module_name,
              c.class_name,
              c.level
@@ -82,6 +86,7 @@ class Assignment {
     const [rows] = await pool.execute(`
       SELECT a.*, 
              t.name as teacher_name,
+             t.department as teacher_department,
              m.module_name,
              c.class_name,
              c.level
@@ -99,6 +104,7 @@ class Assignment {
     const [rows] = await pool.execute(`
       SELECT a.*, 
              t.name as teacher_name,
+             t.department as teacher_department,
              m.module_name,
              c.class_name,
              c.level
