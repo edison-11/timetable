@@ -9,7 +9,8 @@ const router = express.Router();
 router.post('/', auth, [
   body('shift_name').trim().notEmpty().withMessage('Shift name is required'),
   body('start_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
-  body('end_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)')
+  body('end_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
+  body('teacher_changeover_minutes').optional().isInt({ min: 0 }).withMessage('Teacher changeover minutes must be 0 or more')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -17,9 +18,9 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { shift_name, start_time, end_time } = req.body;
+    const { shift_name, start_time, end_time, teacher_changeover_minutes } = req.body;
 
-    const shiftId = await Shift.create({ shift_name, start_time, end_time });
+    const shiftId = await Shift.create({ shift_name, start_time, end_time, teacher_changeover_minutes });
     const shift = await Shift.findById(shiftId);
 
     res.status(201).json({
@@ -86,7 +87,8 @@ router.get('/:id/with-breaks', auth, async (req, res) => {
 router.put('/:id', auth, [
   body('shift_name').optional().trim().notEmpty(),
   body('start_time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  body('end_time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+  body('end_time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
+  body('teacher_changeover_minutes').optional().isInt({ min: 0 }).withMessage('Teacher changeover minutes must be 0 or more')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -94,12 +96,13 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { shift_name, start_time, end_time } = req.body;
+    const { shift_name, start_time, end_time, teacher_changeover_minutes } = req.body;
     const updateData = {};
     
     if (shift_name) updateData.shift_name = shift_name;
     if (start_time) updateData.start_time = start_time;
     if (end_time) updateData.end_time = end_time;
+    if (teacher_changeover_minutes !== undefined) updateData.teacher_changeover_minutes = teacher_changeover_minutes;
 
     await Shift.update(req.params.id, updateData);
     const updatedShift = await Shift.findById(req.params.id);

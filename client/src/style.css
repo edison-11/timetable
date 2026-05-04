@@ -5,6 +5,64 @@
 body {
   background-color: #f8f9fa;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+/* Fix text alignment and spacing */
+.text-center {
+  text-align: center !important;
+}
+
+.text-start {
+  text-align: left !important;
+}
+
+.text-end {
+  text-align: right !important;
+}
+
+/* Fix container spacing */
+.container-fluid {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+/* Fix card spacing */
+.card-custom {
+  margin-bottom: 1rem;
+}
+
+/* Fix table responsiveness */
+.table-responsive {
+  overflow-x: auto;
+}
+
+/* Fix modal spacing */
+.modal-body {
+  padding: 1.5rem !important;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem !important;
+}
+
+/* Fix form spacing */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Fix button spacing */
+.btn {
+  margin-right: 0.5rem;
+}
+
+.btn:last-child {
+  margin-right: 0;
 }
 
 /* Custom button styles */
@@ -153,6 +211,7 @@ body {
 .header-custom {
   background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
   color: white;
+  padding: 1rem 0;
 }
 
 /* Sidebar styles */
@@ -160,6 +219,111 @@ body {
   background-color: #f9fafb;
   min-height: 100vh;
   border-right: 1px solid #e5e7eb;
+  padding: 1rem;
+}
+
+/* Fix main content layout */
+main {
+  padding: 2rem !important;
+  flex: 1;
+}
+
+/* Fix card layout */
+.card-custom {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Fix table layout */
+.table-custom {
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.table-custom thead {
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table-custom th {
+  font-weight: 600;
+  color: #374151;
+  padding: 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table-custom td {
+  padding: 1rem;
+  vertical-align: middle;
+}
+
+.table-custom tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Fix responsive design */
+@media (max-width: 768px) {
+  .sidebar-custom {
+    width: 100% !important;
+    min-height: auto;
+  }
+  
+  main {
+    padding: 1rem !important;
+  }
+  
+  .card-custom {
+    padding: 1rem;
+  }
+  
+  .table-custom {
+    font-size: 0.875rem;
+  }
+  
+  .table-custom th,
+  .table-custom td {
+    padding: 0.5rem;
+  }
+}
+
+/* Fix button alignment */
+.d-flex {
+  display: flex !important;
+}
+
+.justify-content-between {
+  justify-content: space-between !important;
+}
+
+.align-items-center {
+  align-items: center !important;
+}
+
+/* Fix modal layout */
+.modal-dialog {
+  max-width: 800px;
+  margin: 1.75rem auto;
+}
+
+.modal-content {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1.5rem;
+}
+
+.modal-title {
+  font-weight: 600;
+  color: #1f2937;
 }
 
 /* Table styles */
@@ -180,6 +344,62 @@ body {
 
 .table-custom tbody tr:hover {
   background-color: #f8fafc;
+}
+
+.timetable-grid th,
+.timetable-grid td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.timetable-grid thead th {
+  background: #06245c;
+  color: #ffffff;
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  letter-spacing: 0;
+}
+
+.timetable-grid td {
+  min-width: 150px;
+}
+
+.timetable-grid th:first-child,
+.timetable-grid td:first-child {
+  min-width: 96px;
+  width: 96px;
+}
+
+.timetable-grid th:nth-child(2),
+.timetable-grid td:nth-child(2) {
+  min-width: 150px;
+  width: 150px;
+  text-align: center;
+}
+
+.timetable-break-row td {
+  font-weight: 600;
+}
+
+.timetable-break-morning td {
+  background-color: #e8f4de;
+  color: #0f3d16;
+}
+
+.timetable-break-lunch td {
+  background-color: #fff0bd;
+  color: #5a3a00;
+}
+
+.timetable-break-evening td {
+  background-color: #dceafa;
+  color: #06245c;
+}
+
+.timetable-break-default td {
+  background-color: #f1f5f9;
+  color: #334155;
 }
 
 /* Custom animations */

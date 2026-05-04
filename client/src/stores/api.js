@@ -11,8 +11,15 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
-    if (authStore.token) {
-      config.headers.Authorization = `Bearer ${authStore.token}`
+    let token = authStore.token
+    
+    // If no token in store, check localStorage for teacher token
+    if (!token) {
+      token = localStorage.getItem('token')
+    }
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
@@ -28,9 +35,19 @@ api.interceptors.response.use(
     const authStore = useAuthStore()
     
     if (error.response?.status === 401) {
-      authStore.logout()
-      // Redirect to login
-      window.location.href = '/login'
+      const userType = localStorage.getItem('userType')
+      
+      if (userType === 'teacher') {
+        // Clear teacher auth data
+        localStorage.removeItem('token')
+        localStorage.removeItem('teacher')
+        localStorage.removeItem('userType')
+        window.location.href = '/teacher/login'
+      } else {
+        // Clear admin auth data
+        authStore.logout()
+        window.location.href = '/login'
+      }
     }
     
     return Promise.reject(error)

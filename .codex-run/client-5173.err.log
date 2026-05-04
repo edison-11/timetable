@@ -1,0 +1,92 @@
+(node:13284) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/classes:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/teachers/active:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/modules:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/assignments:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/timetable:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/settings/timetable:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:09:48 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/shifts:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:29:31 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/classes:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:29:31 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/settings/timetable:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:29:31 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/teachers/active:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:29:31 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/modules:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:29:31 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/assignments:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:29:31 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/timetable:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)
+[2m11:45:38 AM[22m [31m[1m[vite][22m[39m [31mInternal server error: Invalid end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/edison.GDF/Desktop/timetable_ms/client/src/views/Shifts.vue[39m:151:21
+[33m  149|    </div>
+  150|  </template>
+  151|                      </div>
+     |                       ^
+  152|                      <div class="d-flex justify-content-between border-bottom py-2">
+  153|                        <span class="text-muted">Teacher changeover</span>[39m
+      at createCompilerError (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3014:5)
+      at Object.onclosetag (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2391:9)
+      at Tokenizer.stateInClosingTagName (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3053:13)
+      at Object.parse (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:86:43)
+      at handleHotUpdate (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2167:26)
+[2m11:48:15 AM[22m [31m[1m[vite][22m[39m [31mInternal server error: Invalid end tag.[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/edison.GDF/Desktop/timetable_ms/client/src/views/Shifts.vue[39m:151:21
+[33m  149|    </div>
+  150|  </template>
+  151|                      </div>
+     |                       ^
+  152|                      <div class="d-flex justify-content-between border-bottom py-2">
+  153|                        <span class="text-muted">Teacher changeover</span>[39m
+      at createCompilerError (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1378:17)
+      at emitError (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3014:5)
+      at Object.onclosetag (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:2391:9)
+      at Tokenizer.stateInClosingTagName (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:799:16)
+      at Tokenizer.parse (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:1157:16)
+      at Object.baseParse (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-core\dist\compiler-core.cjs.js:3053:13)
+      at Object.parse (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-dom\dist\compiler-dom.cjs.js:910:23)
+      at Object.parse$1 [as parse] (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:1824:24)
+      at createDescriptor (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:86:43)
+      at handleHotUpdate (C:\Users\edison.GDF\Desktop\timetable_ms\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2167:26)

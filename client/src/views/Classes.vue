@@ -3,7 +3,7 @@
     <header class="header-custom">
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">C</div>
+          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">🏫</div>
           <h1 class="h2 mb-0">Classes Management</h1>
         </div>
         <div class="d-flex align-items-center gap-3">
@@ -141,13 +141,6 @@
                       </select>
                     </div>
                     <div class="col-md-6">
-                      <label for="classShift" class="form-label">Shift</label>
-                      <select id="classShift" v-model.number="classForm.shift_id" class="form-select">
-                        <option value="">No shift</option>
-                        <option v-for="shift in shifts" :key="shift.shift_id" :value="shift.shift_id">{{ shift.shift_name }}</option>
-                      </select>
-                    </div>
-                    <div class="col-md-6">
                       <label for="classSection" class="form-label">Section</label>
                       <select id="classSection" v-model.number="classForm.section_id" class="form-select">
                         <option value="">No section</option>
@@ -190,16 +183,14 @@ import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
 
 const navigation = [
-  { name: 'Dashboard', path: '/dashboard', icon: 'D' },
-  { name: 'Teachers', path: '/teachers', icon: 'T' },
-  { name: 'Modules', path: '/modules', icon: 'M' },
-  { name: 'Classes', path: '/classes', icon: 'C' },
-  { name: 'Sections', path: '/sections', icon: 'S' },
-  { name: 'Rooms', path: '/rooms', icon: 'R' },
-  { name: 'Shifts', path: '/shifts', icon: 'H' },
-  { name: 'Assignments', path: '/assignments', icon: 'A' },
-  { name: 'Bus Routes', path: '/bus-routes', icon: 'BR' },
-  { name: 'Timetable', path: '/timetable', icon: 'TT' }
+  { name: 'Dashboard', path: '/dashboard', icon: '📊' },
+  { name: 'Teachers', path: '/teachers', icon: '👥' },
+  { name: 'Modules', path: '/modules', icon: '📚' },
+  { name: 'Classes', path: '/classes', icon: '🏫' },
+  { name: 'Sections', path: '/sections', icon: '🏛️' },
+  { name: 'Shifts', path: '/shifts', icon: '⏰' },
+  { name: 'Assignments', path: '/assignments', icon: '📋' },
+  { name: 'Timetable', path: '/timetable', icon: '📅' }
 ]
 
 const classes = ref([])
@@ -302,9 +293,19 @@ const validateForm = () => {
   errors.value = {}
   formMessage.value = ''
 
-  if (!classForm.value.class_name.trim()) errors.value.class_name = 'Class name is required'
+  const trimmedClassName = classForm.value.class_name.trim()
+  if (!trimmedClassName) errors.value.class_name = 'Class name is required'
   if (!classForm.value.level.trim()) errors.value.level = 'Level is required'
   if (!classForm.value.academic_year.trim()) errors.value.academic_year = 'Academic year is required'
+
+  const duplicateClass = classes.value.find((classItem) => {
+    return classItem.class_name?.trim().toLowerCase() === trimmedClassName.toLowerCase() &&
+      (!isEditing.value || classItem.class_id !== classForm.value.class_id)
+  })
+
+  if (duplicateClass) {
+    errors.value.class_name = 'A class with this name already exists'
+  }
 
   return Object.keys(errors.value).length === 0
 }

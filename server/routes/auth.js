@@ -6,9 +6,43 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production';
+
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
 };
+
+// Create admin user (for initial setup)
+router.post('/create-admin', async (req, res) => {
+  try {
+    const { username, email, password } = req.body;
+    
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'Username, email, and password are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Create admin user
+    const userId = await User.create({ username, email, password, role: 'admin' });
+    const user = await User.findById(userId);
+
+    const token = generateToken(userId);
+
+    res.status(201).json({
+      message: 'Admin user created successfully',
+      token,
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Register user
 router.post('/register', [
@@ -59,21 +93,6 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    // Temporary bypass for testing - remove in production
-    if (email === 'test@example.com' && password === 'password123') {
-      const token = generateToken(1);
-      return res.json({
-        message: 'Login successful',
-        token,
-        user: {
-          id: 1,
-          username: 'testuser',
-          email: 'test@example.com',
-          role: 'admin'
-        }
-      });
-    }
-
     const user = await User.findByEmail(email);
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -82,6 +101,10 @@ router.post('/login', [
     const isMatch = await User.comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
     }
 
     const token = generateToken(user.id);

@@ -17,7 +17,7 @@ const router = createRouter({
     {
       path: '/dashboard',
       name: 'Dashboard',
-      component: () => import('@/views/Dashboard_Final.vue'),
+      component: () => import('@/views/Dashboard_Fixed.vue'),
       meta: { requiresAuth: true }
     },
     {
@@ -45,12 +45,6 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/rooms',
-      name: 'Rooms',
-      component: () => import('@/views/Rooms.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
       path: '/shifts',
       name: 'Shifts',
       component: () => import('@/views/Shifts.vue'),
@@ -60,12 +54,6 @@ const router = createRouter({
       path: '/assignments',
       name: 'Assignments',
       component: () => import('@/views/Assignments.vue'),
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/bus-routes',
-      name: 'BusRoutes',
-      component: () => import('@/views/BusRoutes.vue'),
       meta: { requiresAuth: true }
     },
     {
@@ -79,18 +67,56 @@ const router = createRouter({
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/teacher/register',
+      name: 'TeacherRegister',
+      component: () => import('@/views/TeacherRegister.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
+      path: '/teacher/login',
+      name: 'TeacherLogin',
+      component: () => import('@/views/TeacherLogin.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
+      path: '/teacher/dashboard',
+      name: 'TeacherDashboard',
+      component: () => import('@/views/TeacherDashboard.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/under-timetable',
+      name: 'UnderTimetable',
+      component: () => import('@/views/UnderTimetable.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+  const token = localStorage.getItem('token')
+  const needsAuthCheck = token && (to.meta.requiresAuth || to.meta.requiresTeacherAuth || to.meta.requiresGuest)
+
+  if (needsAuthCheck && !authStore.user) {
+    await authStore.checkAuth()
+  }
+
+  if (to.meta.requiresTeacherAuth && !authStore.isTeacherAuthenticated) {
+    next('/teacher/login')
+  } else if (to.meta.requiresAuth && !authStore.isAdminAuthenticated) {
     next('/login')
-  } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
-    next('/dashboard')
+  } else if (to.meta.requiresGuest) {
+    if (authStore.isTeacherAuthenticated) {
+      next('/teacher/dashboard')
+    } else if (authStore.isAdminAuthenticated) {
+      next('/dashboard')
+    } else {
+      next()
+    }
   } else {
     next()
   }

@@ -2,6 +2,22 @@
   <div class="min-vh-100">
     <!-- Header -->
     <header class="header-custom">
+      <!-- Notifications -->
+      <div v-if="showNotifications" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div class="card-custom" style="max-width: 400px;">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">🔔 New Teacher Registration</h6>
+              <button @click="showNotifications = false" class="btn-close">&times;</button>
+            </div>
+            <div v-for="notification in notifications.slice(0, 3)" :key="notification.id" class="alert alert-success mb-2">
+              <strong>{{ notification.title }}</strong>
+              <p class="mb-0">{{ notification.message }}</p>
+              <small class="text-muted">{{ formatTime(notification.timestamp) }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
           <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">
@@ -11,8 +27,29 @@
         </div>
         <div class="d-flex align-items-center gap-3">
           <span class="text-light opacity-75">Welcome, Admin</span>
-          <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
-            A
+          <div class="dropdown">
+            <button 
+              class="btn btn-link text-light text-decoration-none d-flex align-items-center gap-2 p-1" 
+              type="button" 
+              id="adminDropdown" 
+              data-bs-toggle="dropdown" 
+              aria-expanded="false"
+            >
+              <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
+                A
+              </div>
+              <i class="bi bi-chevron-down"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+              <li><h6 class="dropdown-header">Admin Account</h6></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item" href="#" @click="handleLogout">
+                  <i class="bi bi-box-arrow-right me-2"></i>
+                  Logout
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -270,9 +307,30 @@
                   <td class="fw-medium">{{ teacher.name }}</td>
                   <td>{{ teacher.email }}</td>
                   <td>
-                    <span :class="getStatusClass(teacher.status)" class="status-badge">
-                      {{ teacher.status }}
-                    </span>
+                    <span class="badge" :class="teacher.status === 'active' ? 'bg-success' : 'bg-warning'">
+                    {{ teacher.status }}
+                  </span>
+                  <div class="btn-group ms-2">
+                    <button 
+                      v-if="teacher.status === 'pending'" 
+                      @click="approveTeacher(teacher)"
+                      class="btn btn-sm btn-success"
+                    >
+                      Approve
+                    </button>
+                    <button 
+                      @click="editTeacher(teacher)"
+                      class="btn btn-sm btn-primary"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      @click="deleteTeacher(teacher)"
+                      class="btn btn-sm btn-danger"
+                    >
+                      Delete
+                    </button>
+                  </div>
                   </td>
                   <td>{{ formatDate(teacher.date_joined) }}</td>
                   <td>
@@ -525,10 +583,8 @@ const navigation = [
   { name: 'Modules', path: '/modules', icon: '📚' },
   { name: 'Classes', path: '/classes', icon: '🏫' },
   { name: 'Sections', path: '/sections', icon: '🏛️' },
-  { name: 'Rooms', path: '/rooms', icon: '🏠' },
   { name: 'Shifts', path: '/shifts', icon: '⏰' },
   { name: 'Assignments', path: '/assignments', icon: '📋' },
-  { name: 'Bus Routes', path: '/bus-routes', icon: '🚌' },
   { name: 'Timetable', path: '/timetable', icon: '📅' },
   { name: 'Settings', path: '/settings', icon: '⚙️' }
 ]
@@ -565,13 +621,43 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const formatTime = (timestamp) => {
+  if (!timestamp) return 'N/A'
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+const approveTeacher = async (teacher) => {
+  try {
+    const response = await api.put(`/teachers/${teacher.teacher_id}/approve`, { status: 'active' })
+    
+    if (response.data.success) {
+      // Update teacher status in list
+      const index = teachers.value.findIndex(t => t.teacher_id === teacher.teacher_id)
+      if (index !== -1) {
+        teachers.value[index].status = 'active'
+      }
+      
+      showSuccessMessage(`Teacher ${teacher.name} approved successfully!`)
+      addNotification({
+        type: 'info',
+        title: 'Teacher Approved',
+        message: `${teacher.name} has been approved and can now access the system.`,
+        teacher: teacher
+      })
+    }
+  } catch (error) {
+    console.error('Error approving teacher:', error)
+    showErrorMessage('Failed to approve teacher. Please try again.')
+  }
+}
+
 const handleAction = (action) => {
   console.log('Action clicked:', action.action)
   // Handle different actions here
 }
 
 // Teacher form data
-const showTeacherForm = ref(false)
+const showTeacherForm = ref(true)
 const newTeacher = ref({
   name: '',
   email: '',
@@ -588,6 +674,10 @@ const sortField = ref('name')
 const sortDirection = ref('asc')
 const editingTeacher = ref(null)
 const showTeacherSearch = ref(false)
+
+// Notification system
+const notifications = ref([])
+const showNotifications = ref(false)
 
 // File upload data
 const showFileUpload = ref(false)
@@ -660,6 +750,14 @@ const handleQuickAddTeacher = async () => {
       
       // Show success message
       showSuccessMessage('Teacher added successfully!')
+      
+      // Add notification for admin approval
+      addNotification({
+        type: 'success',
+        title: 'New Teacher Registration',
+        message: `${newTeacher.value.name} has registered and needs admin approval.`,
+        teacher: response.data.teacher
+      })
     }
   } catch (error) {
     console.error('Error adding teacher:', error)
@@ -974,6 +1072,39 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+// Notification functions
+const addNotification = (notification) => {
+  notifications.value.unshift({
+    id: Date.now(),
+    ...notification,
+    timestamp: new Date().toISOString()
+  })
+  showNotifications.value = true
+  
+  // Auto-hide notifications after 5 seconds
+  setTimeout(() => {
+    showNotifications.value = false
+  }, 5000)
+}
+
+const removeNotification = (id) => {
+  notifications.value = notifications.value.filter(n => n.id !== id)
+}
+
+const handleLogout = () => {
+  // Clear admin auth data
+  const authStore = useAuthStore()
+  authStore.logout()
+  
+  // Clear localStorage
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('userType')
+  
+  // Redirect to login page
+  router.push('/login')
+}
+
 const loadDashboardData = async () => {
   try {
     // Load teachers
@@ -1004,6 +1135,8 @@ const loadDashboardData = async () => {
 }
 
 onMounted(() => {
+  console.log('Dashboard_Fixed.vue mounted successfully')
   loadDashboardData()
 })
 </script>
+

@@ -406,10 +406,8 @@ const navigation = [
   { name: 'Modules', path: '/modules', icon: '📚' },
   { name: 'Classes', path: '/classes', icon: '🏫' },
   { name: 'Sections', path: '/sections', icon: '🏛️' },
-  { name: 'Rooms', path: '/rooms', icon: '🏠' },
   { name: 'Shifts', path: '/shifts', icon: '⏰' },
   { name: 'Assignments', path: '/assignments', icon: '📋' },
-  { name: 'Bus Routes', path: '/bus-routes', icon: '🚌' },
   { name: 'Timetable', path: '/timetable', icon: '📅' },
   { name: 'Settings', path: '/settings', icon: '⚙️' }
 ]

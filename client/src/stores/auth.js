@@ -4,14 +4,18 @@ import axios from 'axios'
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: localStorage.getItem('token') || null,
+    token: null,
+    userType: null,
     loading: false,
     error: null
   }),
 
   getters: {
     isAuthenticated: (state) => !!state.token,
-    currentUser: (state) => state.user
+    isAdminAuthenticated: (state) => !!state.token && state.userType === 'admin' && state.user?.role === 'admin',
+    isTeacherAuthenticated: (state) => !!state.token && state.userType === 'teacher',
+    currentUser: (state) => state.user,
+    currentUserType: (state) => state.userType
   },
 
   actions: {
@@ -20,16 +24,39 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        const response = await axios.post('/api/auth/login', credentials)
-        const { token, user } = response.data
+        let response
+        let loginType = 'admin'
+
+        try {
+          response = await axios.post('/api/auth/login', credentials)
+        } catch (error) {
+          // If admin login fails, try teacher login
+          if (error.response?.status === 401 || error.response?.status === 403) {
+            response = await axios.post('/api/teacher-auth/login', credentials)
+            loginType = 'teacher'
+          } else {
+            throw error
+          }
+        }
+
+        const { token } = response.data
+        const user = loginType === 'teacher' ? response.data.teacher : response.data.user
         
         this.token = token
         this.user = user
+        this.userType = loginType
         
         localStorage.setItem('token', token)
+        localStorage.setItem('userType', loginType)
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+        if (loginType === 'teacher') {
+          localStorage.setItem('teacher', JSON.stringify(user))
+        } else {
+          localStorage.removeItem('teacher')
+        }
         
-        return { success: true }
+        return { success: true, userType: loginType }
       } catch (error) {
         this.error = error.response?.data?.message || 'Login failed'
         return { success: false, error: this.error }
@@ -48,8 +75,10 @@ export const useAuthStore = defineStore('auth', {
         
         this.token = token
         this.user = user
+        this.userType = 'admin'
         
         localStorage.setItem('token', token)
+        localStorage.setItem('userType', 'admin')
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
         return { success: true }
@@ -64,21 +93,52 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.user = null
       this.token = null
+      this.userType = null
       this.error = null
       
       localStorage.removeItem('token')
+      localStorage.removeItem('userType')
+      localStorage.removeItem('teacher')
       delete axios.defaults.headers.common['Authorization']
     },
 
     async checkAuth() {
-      if (!this.token) return
-      
+      const token = this.token || localStorage.getItem('token')
+      const userType = this.userType || localStorage.getItem('userType') || 'admin'
+
+      if (!token) {
+        this.logout()
+        return false
+      }
+
+      this.token = token
+      this.userType = userType
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
       try {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${this.token}`
-        // You could add a token validation endpoint here
-        // For now, we'll assume the token is valid
+        if (userType === 'teacher') {
+          const response = await axios.get('/api/teacher-auth/me')
+          this.user = response.data.teacher
+          localStorage.setItem('userType', 'teacher')
+          return true
+        }
+
+        const response = await axios.get('/api/auth/me')
+        const user = response.data.user
+
+        if (user?.role !== 'admin') {
+          this.logout()
+          return false
+        }
+
+        this.user = user
+        this.userType = 'admin'
+        localStorage.setItem('userType', 'admin')
+        localStorage.removeItem('teacher')
+        return true
       } catch (error) {
         this.logout()
+        return false
       }
     }
   }

@@ -70,7 +70,7 @@
               <select id="assignmentClass" v-model.number="newAssignment.class_id" class="form-select" required :class="{ 'is-invalid': errors.class_id }">
                 <option value="">Select class</option>
                 <option v-for="classItem in classes" :key="classItem.class_id" :value="classItem.class_id">
-                  {{ classItem.class_name }} - {{ classItem.level }}
+                  {{ classItem.class_name }} - {{ classItem.level }} - {{ classItem.shift_name || 'No shift' }}
                 </option>
               </select>
               <div class="invalid-feedback" v-if="errors.class_id">{{ errors.class_id }}</div>
@@ -119,6 +119,7 @@
                   <th>Department</th>
                   <th>Module</th>
                   <th>Class</th>
+                  <th>Shift</th>
                   <th>Academic Year</th>
                   <th>Term</th>
                   <th>Actions</th>
@@ -130,6 +131,7 @@
                   <td><span class="badge bg-primary">{{ assignment.teacher_department || 'SSOD' }}</span></td>
                   <td>{{ assignment.module_name }}</td>
                   <td>{{ assignment.class_name }}</td>
+                  <td>{{ assignment.shift_name || 'No shift' }}</td>
                   <td>{{ assignment.academic_year }}</td>
                   <td>{{ assignment.term }}</td>
                   <td>
@@ -137,7 +139,7 @@
                   </td>
                 </tr>
                 <tr v-if="!filteredAssignments.length">
-                  <td colspan="7" class="text-center text-muted py-4">No assignments found</td>
+                  <td colspan="8" class="text-center text-muted py-4">No assignments found</td>
                 </tr>
               </tbody>
             </table>
@@ -153,16 +155,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import api from '@/stores/api'
 
 const navigation = [
-  { name: 'Dashboard', path: '/dashboard', icon: 'D' },
-  { name: 'Teachers', path: '/teachers', icon: 'T' },
-  { name: 'Modules', path: '/modules', icon: 'M' },
-  { name: 'Classes', path: '/classes', icon: 'C' },
-  { name: 'Sections', path: '/sections', icon: 'S' },
-  { name: 'Rooms', path: '/rooms', icon: 'R' },
-  { name: 'Shifts', path: '/shifts', icon: 'H' },
-  { name: 'Assignments', path: '/assignments', icon: 'A' },
-  { name: 'Bus Routes', path: '/bus-routes', icon: 'BR' },
-  { name: 'Timetable', path: '/timetable', icon: 'TT' }
+  { name: 'Dashboard', path: '/dashboard', icon: '📊' },
+  { name: 'Teachers', path: '/teachers', icon: '👥' },
+  { name: 'Modules', path: '/modules', icon: '📚' },
+  { name: 'Classes', path: '/classes', icon: '🏫' },
+  { name: 'Sections', path: '/sections', icon: '🏛️' },
+  { name: 'Shifts', path: '/shifts', icon: '⏰' },
+  { name: 'Assignments', path: '/assignments', icon: '📋' },
+  { name: 'Timetable', path: '/timetable', icon: '📅' }
 ]
 
 const teachers = ref([])
@@ -202,6 +202,7 @@ const filteredAssignments = computed(() => {
       department.toLowerCase().includes(query) ||
       assignment.module_name?.toLowerCase().includes(query) ||
       assignment.class_name?.toLowerCase().includes(query) ||
+      assignment.shift_name?.toLowerCase().includes(query) ||
       assignment.academic_year?.toLowerCase().includes(query) ||
       assignment.term?.toLowerCase().includes(query)
   })

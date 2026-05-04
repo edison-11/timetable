@@ -227,6 +227,10 @@ class TimetableEntry {
     await pool.execute('DELETE FROM timetable WHERE timetable_id = ?', [id]);
   }
 
+  static async deleteByClass(class_id) {
+    await pool.execute('DELETE FROM timetable WHERE class_id = ?', [class_id]);
+  }
+
   static async getWeeklySchedule(class_id) {
     const [rows] = await pool.execute(`
       SELECT t.*, 

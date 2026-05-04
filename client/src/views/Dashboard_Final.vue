@@ -2,6 +2,22 @@
   <div class="min-vh-100">
     <!-- Header -->
     <header class="header-custom">
+      <!-- Notifications -->
+      <div v-if="showNotifications" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div class="card-custom" style="max-width: 400px;">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">🔔 New Teacher Registration</h6>
+              <button @click="showNotifications = false" class="btn-close">&times;</button>
+            </div>
+            <div v-for="notification in notifications.slice(0, 3)" :key="notification.id" class="alert alert-success mb-2">
+              <strong>{{ notification.title }}</strong>
+              <p class="mb-0">{{ notification.message }}</p>
+              <small class="text-muted">{{ formatTime(notification.timestamp) }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
           <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">
@@ -11,9 +27,14 @@
         </div>
         <div class="d-flex align-items-center gap-3">
           <span class="text-light opacity-75">Welcome, Admin</span>
-          <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
-            A
-          </div>
+          <button 
+            @click="handleLogout"
+            class="btn btn-outline-light btn-sm"
+            title="Logout"
+          >
+            <i class="bi bi-box-arrow-right me-1"></i>
+            Logout
+          </button>
         </div>
       </div>
     </header>
@@ -483,6 +504,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/stores/api'
+import { useAuthStore } from '@/stores/auth'
 import { Modal, Toast } from 'bootstrap'
 const router = useRouter()
 const route = useRoute()
@@ -493,11 +515,10 @@ const navigation = [
   { name: 'Modules', path: '/modules', icon: '📚' },
   { name: 'Classes', path: '/classes', icon: '🏫' },
   { name: 'Sections', path: '/sections', icon: '🏛️' },
-  { name: 'Rooms', path: '/rooms', icon: '🏠' },
   { name: 'Shifts', path: '/shifts', icon: '⏰' },
   { name: 'Assignments', path: '/assignments', icon: '📋' },
-  { name: 'Bus Routes', path: '/bus-routes', icon: '🚌' },
   { name: 'Timetable', path: '/timetable', icon: '📅' },
+  { name: 'Under Timetable', path: '/under-timetable', icon: '📋' },
   { name: 'Settings', path: '/settings', icon: '⚙️' }
 ]
 
@@ -539,6 +560,33 @@ const getStatusClass = (status) => {
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString()
+}
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return 'N/A'
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+// Notification system
+const notifications = ref([])
+const showNotifications = ref(false)
+
+const addNotification = (notification) => {
+  notifications.value.unshift({
+    id: Date.now(),
+    ...notification,
+    timestamp: new Date().toISOString()
+  })
+  showNotifications.value = true
+  
+  // Auto-hide notifications after 5 seconds
+  setTimeout(() => {
+    showNotifications.value = false
+  }, 5000)
+}
+
+const removeNotification = (id) => {
+  notifications.value = notifications.value.filter(n => n.id !== id)
 }
 
 const handleAction = (action) => {
@@ -661,6 +709,14 @@ const handleQuickAddTeacher = async () => {
       
       // Show success message
       showSuccessMessage('Teacher added successfully!')
+      
+      // Add notification for admin approval
+      addNotification({
+        type: 'success',
+        title: 'New Teacher Registration',
+        message: `${response.data.teacher.name} has registered and needs admin approval.`,
+        teacher: response.data.teacher
+      })
     }
   } catch (error) {
     console.error('Error adding teacher:', error)
@@ -926,12 +982,22 @@ const loadDashboardData = async () => {
     const classesResponse = await api.get('/classes')
     stats.value.classes = classesResponse.data.classes?.length || 0
 
-    // Calculate sessions (example calculation)
-    stats.value.sessions = stats.value.classes * 20 // Assuming 20 sessions per class
+    // Load timetable entries for actual session count
+    const timetableResponse = await api.get('/timetable')
+    stats.value.sessions = timetableResponse.data.timetables?.length || 0
 
   } catch (error) {
     console.error('Error loading dashboard data:', error)
   }
+}
+
+const handleLogout = () => {
+  // Clear admin auth data using auth store
+  const authStore = useAuthStore()
+  authStore.logout()
+  
+  // Redirect to login page
+  router.push('/login')
 }
 
 onMounted(() => {

@@ -6,7 +6,7 @@
           📅
         </div>
         <h1 class="h3 fw-bold text-dark">Timetable Management</h1>
-        <p class="text-muted mt-2">Sign in to your admin dashboard</p>
+        <p class="text-muted mt-2">Sign in as admin or teacher</p>
       </div>
 
       <form @submit.prevent="handleLogin" class="px-4 pb-4">
@@ -55,9 +55,9 @@
       <div class="text-center px-4 pb-4">
         <p class="small text-muted">
           Don't have an account?
-          <a href="#" class="text-primary fw-medium text-decoration-none">
-            Contact Administrator
-          </a>
+          <router-link to="/teacher/register" class="text-primary fw-medium text-decoration-none">
+            Register as a teacher
+          </router-link>
         </p>
       </div>
     </div>
@@ -73,8 +73,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const form = ref({
-  email: 'test@example.com',
-  password: 'password123'
+  email: '',
+  password: ''
 })
 
 const loading = ref(false)
@@ -87,11 +87,15 @@ const handleLogin = async () => {
   const result = await authStore.login(form.value)
   
   if (result.success) {
-    await router.push('/dashboard')
+    if (result.userType === 'teacher') {
+      await router.push('/teacher/dashboard')
+    } else {
+      await router.push('/dashboard')
+    }
   } else {
     error.value = result.error
   }
-  
+
   loading.value = false
 }
 </script>

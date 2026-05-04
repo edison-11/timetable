@@ -14,7 +14,7 @@ class Class {
 
   static async getAll() {
     const [rows] = await pool.execute(`
-      SELECT c.*, s.shift_name, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
+      SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
       FROM class c
       LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id
       LEFT JOIN shift s ON c.shift_id = s.shift_id
@@ -25,9 +25,25 @@ class Class {
     return rows;
   }
 
+  static async findByName(class_name) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?)',
+      [class_name]
+    );
+    return rows[0];
+  }
+
+  static async findByNameExcludingId(class_name, id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?) AND class_id <> ?',
+      [class_name, id]
+    );
+    return rows[0];
+  }
+
   static async findById(id) {
     const [rows] = await pool.execute(`
-      SELECT c.*, s.shift_name, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
+      SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
       FROM class c
       LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id
       LEFT JOIN shift s ON c.shift_id = s.shift_id
@@ -89,10 +105,18 @@ class Class {
     const class_name = classData.class_name ?? currentClass.class_name;
     const level = classData.level ?? currentClass.level;
     const academic_year = classData.academic_year ?? currentClass.academic_year;
-    const class_teacher_id = classData.class_teacher_id ?? currentClass.class_teacher_id;
-    const shift_id = classData.shift_id ?? currentClass.shift_id;
-    const dos_id = classData.dos_id ?? currentClass.dos_id;
-    const section_id = classData.section_id ?? currentClass.section_id;
+    const class_teacher_id = Object.prototype.hasOwnProperty.call(classData, 'class_teacher_id')
+      ? classData.class_teacher_id
+      : currentClass.class_teacher_id;
+    const shift_id = Object.prototype.hasOwnProperty.call(classData, 'shift_id')
+      ? classData.shift_id
+      : currentClass.shift_id;
+    const dos_id = Object.prototype.hasOwnProperty.call(classData, 'dos_id')
+      ? classData.dos_id
+      : currentClass.dos_id;
+    const section_id = Object.prototype.hasOwnProperty.call(classData, 'section_id')
+      ? classData.section_id
+      : currentClass.section_id;
 
     await pool.execute(
       'UPDATE class SET class_name = ?, level = ?, academic_year = ?, class_teacher_id = ?, shift_id = ?, dos_id = ?, section_id = ? WHERE class_id = ?',

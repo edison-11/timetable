@@ -136,6 +136,14 @@ CREATE TABLE IF NOT EXISTS break_time (
   FOREIGN KEY (shift_id) REFERENCES shift(shift_id) ON DELETE CASCADE
 );
 
+-- System settings table
+CREATE TABLE IF NOT EXISTS system_setting (
+  setting_key VARCHAR(100) PRIMARY KEY,
+  setting_value VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Timetable_Comment table
 CREATE TABLE IF NOT EXISTS timetable_comment (
   comment_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -208,3 +216,9 @@ INSERT INTO break_time (shift_id, break_name, start_time, end_time) VALUES
 (2, 'Afternoon Break', '15:00:00', '15:15:00'),
 (1, 'Lunch Break', '12:00:00', '13:00:00'),
 (2, 'Lunch Break', '17:00:00', '17:30:00');
+
+INSERT INTO system_setting (setting_key, setting_value) VALUES
+('teacher_changeover_minutes', '5'),
+('break_start_time', '10:00'),
+('break_end_time', '10:15'),
+('timetable_breaks', '[{"break_name":"Morning Break","start_time":"10:00","end_time":"10:15"},{"break_name":"Lunch Break","start_time":"12:00","end_time":"13:00"},{"break_name":"Afternoon Break","start_time":"15:00","end_time":"15:15"}]');

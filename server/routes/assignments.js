@@ -7,9 +7,9 @@ const router = express.Router();
 
 // Create assignment
 router.post('/', auth, [
-  body('teacher_id').isInt().withMessage('Valid teacher ID is required'),
-  body('module_id').isInt().withMessage('Valid module ID is required'),
-  body('class_id').isInt().withMessage('Valid class ID is required'),
+  body('teacher_id').toInt().isInt().withMessage('Valid teacher ID is required'),
+  body('module_id').toInt().isInt().withMessage('Valid module ID is required'),
+  body('class_id').toInt().isInt().withMessage('Valid class ID is required'),
   body('academic_year').trim().notEmpty().withMessage('Academic year is required'),
   body('term').trim().notEmpty().withMessage('Term is required')
 ], async (req, res) => {
@@ -111,9 +111,9 @@ router.get('/year/:academic_year', auth, async (req, res) => {
 
 // Update assignment
 router.put('/:id', auth, [
-  body('teacher_id').optional().isInt(),
-  body('module_id').optional().isInt(),
-  body('class_id').optional().isInt(),
+  body('teacher_id').optional().toInt().isInt(),
+  body('module_id').optional().toInt().isInt(),
+  body('class_id').optional().toInt().isInt(),
   body('academic_year').optional().trim().notEmpty(),
   body('term').optional().trim().notEmpty()
 ], async (req, res) => {

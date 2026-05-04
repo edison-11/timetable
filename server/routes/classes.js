@@ -10,10 +10,10 @@ router.post('/', auth, [
   body('class_name').trim().notEmpty().withMessage('Class name is required'),
   body('level').trim().notEmpty().withMessage('Level is required'),
   body('academic_year').trim().notEmpty().withMessage('Academic year is required'),
-  body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).isInt(),
-  body('shift_id').optional().isInt(),
-  body('dos_id').optional().isInt(),
-  body('section_id').optional().isInt()
+  body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('shift_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('dos_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('section_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -22,6 +22,11 @@ router.post('/', auth, [
     }
 
     const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
+
+    const existingClass = await Class.findByName(class_name);
+    if (existingClass) {
+      return res.status(400).json({ message: 'Class already exists' });
+    }
 
     const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id });
     const classData = await Class.findById(classId);
@@ -110,10 +115,10 @@ router.put('/:id', auth, [
   body('class_name').optional().trim().notEmpty(),
   body('level').optional().trim().notEmpty(),
   body('academic_year').optional().trim().notEmpty(),
-  body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).isInt(),
-  body('shift_id').optional({ nullable: true, checkFalsy: true }).isInt(),
-  body('dos_id').optional({ nullable: true, checkFalsy: true }).isInt(),
-  body('section_id').optional({ nullable: true, checkFalsy: true }).isInt()
+  body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('shift_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('dos_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('section_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -124,7 +129,13 @@ router.put('/:id', auth, [
     const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
     const updateData = {};
     
-    if (class_name) updateData.class_name = class_name;
+    if (class_name) {
+      const existingClass = await Class.findByNameExcludingId(class_name, req.params.id);
+      if (existingClass) {
+        return res.status(400).json({ message: 'Another class with this name already exists' });
+      }
+      updateData.class_name = class_name;
+    }
     if (level) updateData.level = level;
     if (academic_year) updateData.academic_year = academic_year;
     if (class_teacher_id !== undefined) updateData.class_teacher_id = class_teacher_id || null;
