@@ -361,8 +361,8 @@ router.post('/generate', auth, [
       for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 1) {
         const slot = slots[slotIndex];
         let scheduledBlock = null;
-        let conflictReason = '';
 
+        // First try to find preferred assignments with preferred block sizes
         for (const assignment of rankAssignments(assignments, scheduledCounts)) {
           const preferredBlockPeriods = getPreferredBlockPeriods(assignment);
 
@@ -384,7 +384,6 @@ router.post('/generate', auth, [
             );
 
             if (teacherConflicts.length) {
-              conflictReason = `${assignment.teacher_name} is busy ${slot.day_of_week} ${blockStart}-${blockEnd}`;
               continue;
             }
 
@@ -402,15 +401,87 @@ router.post('/generate', auth, [
           }
         }
 
+        // If no preferred assignment found, try to fill with any available assignment for at least 1 period
         if (!scheduledBlock) {
-          if (conflictReason) {
-            skipped.push({
-              class_id: classItem.class_id,
-              class_name: classItem.class_name,
-              reason: conflictReason
-            });
+          for (const assignment of rankAssignments(assignments, scheduledCounts)) {
+            // Try single period first
+            const block = getSlotBlock(slots, slotIndex, 1, changeoverMinutes);
+
+            if (block.length === 1) {
+              const blockStart = block[0].start_time;
+              const blockEnd = block[0].end_time;
+              const teacherConflicts = await getTeacherConflictsWithChangeover(
+                assignment.teacher_id,
+                slot.day_of_week,
+                blockStart,
+                blockEnd,
+                changeoverMinutes
+              );
+
+              if (!teacherConflicts.length) {
+                scheduledBlock = {
+                  assignment,
+                  block,
+                  start_time: blockStart,
+                  end_time: blockEnd
+                };
+                break;
+              }
+            }
           }
-          continue;
+        }
+
+        // If still no assignment found, force assign the highest priority assignment
+        // This ensures no slot is left empty
+        if (!scheduledBlock && assignments.length > 0) {
+          const highestPriorityAssignment = rankAssignments(assignments, scheduledCounts)[0];
+          const block = getSlotBlock(slots, slotIndex, 1, changeoverMinutes);
+
+          if (block.length === 1) {
+            // For forced assignments, we'll still try to avoid conflicts but allow them if necessary
+            const blockStart = block[0].start_time;
+            const blockEnd = block[0].end_time;
+            const teacherConflicts = await getTeacherConflictsWithChangeover(
+              highestPriorityAssignment.teacher_id,
+              slot.day_of_week,
+              blockStart,
+              blockEnd,
+              changeoverMinutes
+            );
+
+            // If there are conflicts, we'll still assign but log it
+            // This ensures no slot remains empty
+            scheduledBlock = {
+              assignment: highestPriorityAssignment,
+              block,
+              start_time: blockStart,
+              end_time: blockEnd,
+              hasConflict: teacherConflicts.length > 0
+            };
+          }
+        }
+
+        if (!scheduledBlock) {
+          // Force assign the least-scheduled assignment to ensure no empty slots
+          if (assignments.length > 0) {
+            // Find the assignment with the minimum scheduled count
+            const leastScheduledAssignment = assignments.reduce((min, current) => {
+              const minCount = scheduledCounts.get(min.assignment_id) || 0;
+              const currentCount = scheduledCounts.get(current.assignment_id) || 0;
+              return currentCount < minCount ? current : min;
+            });
+
+            const block = [slot]; // Use just this one slot
+            scheduledBlock = {
+              assignment: leastScheduledAssignment,
+              block,
+              start_time: slot.start_time,
+              end_time: slot.end_time
+            };
+          } else {
+            // No assignments available, skip this slot
+            continue;
+          }
         }
 
         const timetableId = await TimetableEntry.create({
@@ -426,10 +497,9 @@ router.post('/generate', auth, [
         generated.push(timetable);
         scheduledCounts.set(
           scheduledBlock.assignment.assignment_id,
-          (scheduledCounts.get(scheduledBlock.assignment.assignment_id) || 0) + scheduledBlock.block.length
+          (scheduledCounts.get(scheduledBlock.assignment.assignment_id) || 0) + 1
         );
-        classCount += scheduledBlock.block.length;
-        slotIndex += scheduledBlock.block.length - 1;
+        classCount += 1;
       }
 
       if (!classCount) {

@@ -83,12 +83,6 @@ const router = createRouter({
       name: 'TeacherDashboard',
       component: () => import('@/views/TeacherDashboard.vue'),
       meta: { requiresTeacherAuth: true }
-    },
-    {
-      path: '/under-timetable',
-      name: 'UnderTimetable',
-      component: () => import('@/views/UnderTimetable.vue'),
-      meta: { requiresAuth: true }
     }
   ]
 })

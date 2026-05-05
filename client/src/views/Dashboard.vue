@@ -2,6 +2,22 @@
   <div class="min-vh-100">
     <!-- Header -->
     <header class="header-custom">
+      <!-- Notifications -->
+      <div v-if="showNotifications" class="position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div class="card-custom" style="max-width: 400px;">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">🔔 New Teacher Registration</h6>
+              <button @click="showNotifications = false" class="btn-close">&times;</button>
+            </div>
+            <div v-for="notification in notifications.slice(0, 3)" :key="notification.id" class="alert alert-success mb-2">
+              <strong>{{ notification.title }}</strong>
+              <p class="mb-0">{{ notification.message }}</p>
+              <small class="text-muted">{{ formatTime(notification.timestamp) }}</small>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
           <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">
@@ -11,8 +27,29 @@
         </div>
         <div class="d-flex align-items-center gap-3">
           <span class="text-light opacity-75">Welcome, Admin</span>
-          <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
-            A
+          <div class="dropdown">
+            <button 
+              class="btn btn-link text-light text-decoration-none d-flex align-items-center gap-2 p-1" 
+              type="button" 
+              id="adminDropdown" 
+              data-bs-toggle="dropdown" 
+              aria-expanded="false"
+            >
+              <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
+                A
+              </div>
+              <i class="bi bi-chevron-down"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+              <li><h6 class="dropdown-header">Admin Account</h6></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <a class="dropdown-item" href="#" @click="handleLogout">
+                  <i class="bi bi-box-arrow-right me-2"></i>
+                  Logout
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -23,14 +60,15 @@
       <nav class="sidebar-custom" style="width: 250px;">
         <div class="p-3">
           <router-link 
-            v-for="item in navigation" 
-            :key="item.name"
-            :to="item.path"
+            v-for="item in navigation?.filter(Boolean)" 
+            :key="item?.name"
+            :to="item?.path"
             class="nav-item-custom d-block mb-2"
-            :class="{ 'active': route.path === item.path }"
+            :class="{ 'active': route.path === item?.path }"
+            @click="handleNavClick(item)"
           >
-            <span class="fs-5">{{ item.icon }}</span>
-            <span>{{ item.name }}</span>
+            <span class="fs-5">{{ item?.icon }}</span>
+            <span>{{ item?.name }}</span>
           </router-link>
         </div>
       </nav>
@@ -349,42 +387,78 @@
                 </tr>
               </tbody>
             </table>
-            
-            <!-- No Results Message -->
-            <div v-if="filteredTeachers.length === 0" class="text-center py-5">
-              <div class="alert alert-info" role="alert">
-                <i class="bi bi-info-circle me-2"></i>
-                No teachers found matching your search criteria.
+          </div>
+        </div>
+
+        <!-- Recent Modules -->
+        <div class="card-custom mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h4 fw-semibold text-dark">Recent Modules</h2>
+            <div class="d-flex gap-2">
+              <router-link to="/modules" class="btn btn-outline-primary">View All Modules</router-link>
+              <button class="btn btn-success btn-sm" @click="exportDashboardData">
+                <i class="bi bi-download me-1"></i>
+                Export Data
+              </button>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div v-for="module in recentModules" :key="module.module_id" class="col-12 col-md-6 col-lg-4">
+              <div class="module-card">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h5 class="fw-semibold mb-1">{{ module.module_name }}</h5>
+                    <p class="text-muted small mb-2">{{ module.department || 'General' }}</p>
+                    <div class="d-flex gap-2">
+                      <span class="badge bg-primary">{{ module.credits || 3 }} credits</span>
+                      <span class="badge bg-secondary">{{ module.semester || 'Fall' }}</span>
+                    </div>
+                  </div>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" @click="editModule(module)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" @click="deleteModule(module)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Recent Modules Table -->
-        <div class="card-custom">
+        <!-- File Logs -->
+        <div class="card-custom mb-4">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h4 fw-semibold text-dark">Recent Modules</h2>
-            <router-link to="/modules" class="btn btn-primary-custom">Add Module</router-link>
+            <h2 class="h4 fw-semibold text-dark">Recent File Uploads</h2>
+            <router-link to="/uploads" class="btn btn-outline-primary">View All Files</router-link>
           </div>
-          
+
           <div class="table-responsive">
-            <table class="table table-custom">
+            <table class="table table-sm">
               <thead>
                 <tr>
-                  <th>Module Name</th>
-                  <th>Hours/Year</th>
-                  <th>Description</th>
-                  <th>Actions</th>
+                  <th>File Name</th>
+                  <th>Type</th>
+                  <th>Size</th>
+                  <th>Upload Date</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="module in recentModules" :key="module.module_id">
-                  <td>{{ module.module_name }}</td>
-                  <td>{{ module.hours_per_year }}</td>
-                  <td>{{ module.description }}</td>
+                <tr v-for="log in fileLogs.slice(0, 5)" :key="log.id" class="align-middle">
+                  <td class="fw-medium">{{ log.filename }}</td>
                   <td>
-                    <button class="btn btn-warning-custom btn-sm me-2">Edit</button>
-                    <button class="btn btn-danger-custom btn-sm">Delete</button>
+                    <span class="badge bg-info">{{ log.file_type }}</span>
+                  </td>
+                  <td>{{ formatFileSize(log.file_size) }}</td>
+                  <td>{{ formatDate(log.upload_date) }}</td>
+                  <td>
+                    <span :class="log.status === 'success' ? 'text-success' : 'text-danger'" class="fw-semibold">
+                      {{ log.status }}
+                    </span>
                   </td>
                 </tr>
               </tbody>
@@ -400,11 +474,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/stores/api'
-import axios from 'axios'
+import { useAuthStore } from '@/stores/auth'
 import { Modal, Toast } from 'bootstrap'
+
 const router = useRouter()
 const route = useRoute()
+const authStore = useAuthStore()
 
+// Navigation
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊' },
   { name: 'Teachers', path: '/teachers', icon: '👥' },
@@ -414,16 +491,11 @@ const navigation = [
   { name: 'Shifts', path: '/shifts', icon: '⏰' },
   { name: 'Assignments', path: '/assignments', icon: '📋' },
   { name: 'Timetable', path: '/timetable', icon: '📅' },
-  { name: 'Settings', path: '/settings', icon: '⚙️' }
+  { name: 'Under Timetable', path: '/under-timetable', icon: '📋' }
 ]
 
-const quickActions = [
-  { title: 'Add Teacher', description: 'Register new teacher', icon: '➕', action: 'add-teacher' },
-  { title: 'Create Timetable', description: 'Generate schedule', icon: '📋', action: 'create-timetable' },
-  { title: 'View Reports', description: 'Analytics & insights', icon: '📊', action: 'view-reports' },
-  { title: 'Export Data', description: 'Download reports', icon: '📤', action: 'export-data' }
-]
-
+// State
+const loading = ref(false)
 const stats = ref({
   teachers: 0,
   modules: 0,
@@ -435,15 +507,87 @@ const teachers = ref([])
 const recentTeachers = ref([])
 const recentModules = ref([])
 const pendingTeachers = ref([])
-const showPendingTeachers = ref(true)
+const fileLogs = ref([])
 
-const getStatusClass = (status) => {
-  switch (status) {
-    case 'active': return 'status-active'
-    case 'inactive': return 'status-inactive'
-    case 'pending': return 'status-pending'
-    default: return 'status-pending'
+// UI State
+const showTeacherForm = ref(true)
+const showPendingTeachers = ref(false)
+const showTeacherSearch = ref(false)
+const showNewTeacherPassword = ref(false)
+
+// Search and Filter
+const teacherSearchQuery = ref('')
+const teacherStatusFilter = ref('')
+const sortField = ref('name')
+const sortDirection = ref('asc')
+
+// New Teacher Form
+const newTeacher = ref({
+  name: '',
+  email: '',
+  password: '',
+  status: 'active'
+})
+
+const errors = ref({})
+
+// Notification system
+const notifications = ref([])
+const showNotifications = ref(false)
+
+// Quick Actions
+const quickActions = [
+  { title: 'Add Teacher', description: 'Register a new teacher', icon: '👤', path: '/teachers' },
+  { title: 'Create Module', description: 'Add a new module', icon: '📚', path: '/modules' },
+  { title: 'Generate Timetable', description: 'Create class schedules', icon: '📅', path: '/timetable' },
+  { title: 'View Reports', description: 'System analytics', icon: '📊', path: '/reports' }
+]
+
+// Computed Properties
+const filteredTeachers = computed(() => {
+  let filtered = teachers.value
+
+  // Apply search filter
+  if (teacherSearchQuery.value) {
+    const query = teacherSearchQuery.value.toLowerCase()
+    filtered = filtered.filter(teacher => 
+      teacher.name.toLowerCase().includes(query) ||
+      teacher.email.toLowerCase().includes(query)
+    )
   }
+
+  // Apply status filter
+  if (teacherStatusFilter.value) {
+    filtered = filtered.filter(teacher => teacher.status === teacherStatusFilter.value)
+  }
+
+  // Apply sorting
+  return filtered.sort((a, b) => {
+    let aVal = a[sortField.value]
+    let bVal = b[sortField.value]
+
+    if (sortField.value === 'date_joined') {
+      aVal = new Date(aVal)
+      bVal = new Date(bVal)
+    }
+
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase()
+      bVal = bVal.toLowerCase()
+    }
+
+    if (sortDirection.value === 'asc') {
+      return aVal > bVal ? 1 : -1
+    } else {
+      return aVal < bVal ? 1 : -1
+    }
+  })
+})
+
+// Helper Functions
+const formatTime = (timestamp) => {
+  if (!timestamp) return 'N/A'
+  return new Date(timestamp).toLocaleTimeString()
 }
 
 const formatDate = (dateString) => {
@@ -451,200 +595,56 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
-const handleAction = (action) => {
-  console.log('Action clicked:', action.action)
-  // Handle different actions here
+const formatFileSize = (bytes) => {
+  if (!bytes) return 'N/A'
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
 }
 
-// Teacher form data
-const showTeacherForm = ref(false)
-const showNewTeacherPassword = ref(false)
-const newTeacher = ref({
-  name: '',
-  email: '',
-  password: '',
-  status: 'active'
-})
-const loading = ref(false)
-const errors = ref({})
+const getStatusClass = (status) => {
+  const statusClasses = {
+    active: 'bg-success',
+    inactive: 'bg-secondary',
+    on_leave: 'bg-warning',
+    pending: 'bg-info'
+  }
+  return statusClasses[status] || 'bg-secondary'
+}
 
-// Teacher management data
-const teacherSearchQuery = ref('')
-const teacherStatusFilter = ref('')
-const sortField = ref('name')
-const sortDirection = ref('asc')
-const editingTeacher = ref(null)
-const showTeacherSearch = ref(false)
+// Notification Functions
+const addNotification = (notification) => {
+  notifications.value.unshift({
+    id: Date.now(),
+    ...notification,
+    timestamp: new Date().toISOString()
+  })
+  showNotifications.value = true
+  
+  // Auto-hide notifications after 5 seconds
+  setTimeout(() => {
+    showNotifications.value = false
+  }, 5000)
+}
 
+const removeNotification = (id) => {
+  notifications.value = notifications.value.filter(n => n.id !== id)
+}
+
+// UI Toggle Functions
 const toggleTeacherForm = () => {
   showTeacherForm.value = !showTeacherForm.value
-  // Reset form when opening
-  if (showTeacherForm.value) {
-    newTeacher.value = {
-      name: '',
-      email: '',
-      password: '',
-      status: 'active'
-    }
-    errors.value = {}
-  }
 }
 
-const validateTeacherForm = () => {
-  errors.value = {}
-  
-  if (!newTeacher.value.name.trim()) {
-    errors.value.name = 'Name is required'
-  }
-  
-  if (!newTeacher.value.email.trim()) {
-    errors.value.email = 'Email is required'
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newTeacher.value.email)) {
-    errors.value.email = 'Please enter a valid email address'
-  }
-  
-  if (!newTeacher.value.password.trim()) {
-    errors.value.password = 'Password is required'
-  } else if (newTeacher.value.password.length < 6) {
-    errors.value.password = 'Password must be at least 6 characters'
-  }
-  
-  return Object.keys(errors.value).length === 0
-}
-
-const handleQuickAddTeacher = async () => {
-  if (!validateTeacherForm()) {
-    return
-  }
-  
-  loading.value = true
-  errors.value = {}
-  
-  try {
-    const response = await api.post('/teachers/register', newTeacher.value)
-    
-    if (response.data.teacher) {
-      // Add to recent teachers list
-      recentTeachers.value.unshift(response.data.teacher)
-      stats.value.teachers = (stats.value.teachers || 0) + 1
-      
-      // Reset form
-      newTeacher.value = {
-        name: '',
-        email: '',
-        password: '',
-        status: 'active'
-      }
-      
-      // Hide form
-      showTeacherForm.value = false
-      
-      // Show success message
-      showSuccessMessage('Teacher added successfully!')
-    }
-  } catch (error) {
-    console.error('Error adding teacher:', error)
-    if (error.response?.data?.message) {
-      errors.value.email = error.response.data.message
-    } else {
-      showErrorMessage('Failed to add teacher. Please try again.')
-    }
-  } finally {
-    loading.value = false
-  }
-}
-
-const showSuccessMessage = (message) => {
-  // Create a toast notification
-  const toastHtml = `
-    <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          ${message}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  `
-  
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = toastHtml
-  document.body.appendChild(toastContainer)
-  
-  const toastElement = toastContainer.querySelector('.toast')
-  const toast = new Toast(toastElement)
-  toast.show()
-  
-  setTimeout(() => {
-    document.body.removeChild(toastContainer)
-  }, 5000)
-}
-
-const showErrorMessage = (message) => {
-  // Create an error toast notification
-  const toastHtml = `
-    <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          ${message}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-    </div>
-  `
-  
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = toastHtml
-  document.body.appendChild(toastContainer)
-  
-  const toastElement = toastContainer.querySelector('.toast')
-  const toast = new Toast(toastElement)
-  toast.show()
-  
-  setTimeout(() => {
-    document.body.removeChild(toastContainer)
-  }, 5000)
+const togglePendingTeachers = () => {
+  showPendingTeachers.value = !showPendingTeachers.value
 }
 
 const toggleTeacherSearch = () => {
   showTeacherSearch.value = !showTeacherSearch.value
-  teacherSearchQuery.value = ''
-  teacherStatusFilter.value = ''
 }
 
-const filteredTeachers = computed(() => {
-  let filtered = teachers.value.filter(teacher => {
-    const matchesSearch = !teacherSearchQuery.value || 
-      teacher.name.toLowerCase().includes(teacherSearchQuery.value.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(teacherSearchQuery.value.toLowerCase())
-    
-    const matchesStatus = !teacherStatusFilter.value || teacher.status === teacherStatusFilter.value
-    
-    return matchesSearch && matchesStatus
-  })
-
-  // Apply sorting
-  filtered.sort((a, b) => {
-    let aValue = a[sortField.value]
-    let bValue = b[sortField.value]
-    
-    if (sortField.value === 'date_joined') {
-      aValue = new Date(aValue)
-      bValue = new Date(bValue)
-    }
-    
-    if (sortDirection.value === 'asc') {
-      return aValue > bValue ? 1 : -1
-    } else {
-      return aValue < bValue ? 1 : -1
-    }
-  })
-
-  return filtered
-})
-
+// Sort Functions
 const sortBy = (field) => {
   if (sortField.value === field) {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
@@ -654,154 +654,137 @@ const sortBy = (field) => {
   }
 }
 
+// Search Functions
 const searchTeachers = () => {
-  // This function can be used to trigger a search
+  // Search is handled by computed property
   console.log('Searching teachers...')
 }
 
-const togglePendingTeachers = () => {
-  showPendingTeachers.value = !showPendingTeachers.value
-}
-
-const approveTeacher = async (teacher) => {
-  if (!confirm(`Are you sure you want to approve ${teacher.name}?`)) {
-    return
-  }
-  
-  try {
-    const response = await api.put(`/teachers/${teacher.teacher_id}/approve`)
-    
-    if (response.data.success) {
-      // Remove from pending list
-      pendingTeachers.value = pendingTeachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
-      
-      // Add to active teachers list
-      teachers.value.unshift(response.data.teacher)
-      
-      // Update stats
-      stats.value.teachers = teachers.value.length
-      
-      showSuccessMessage(`Teacher ${teacher.name} approved successfully!`)
-    }
-  } catch (error) {
-    console.error('Error approving teacher:', error)
-    showErrorMessage('Failed to approve teacher. Please try again.')
-  }
-}
-
-const rejectTeacher = async (teacher) => {
-  if (!confirm(`Are you sure you want to reject ${teacher.name}? This action cannot be undone.`)) {
-    return
-  }
-  
-  try {
-    await api.delete(`/teachers/${teacher.teacher_id}`)
-    
-    // Remove from pending list
-    pendingTeachers.value = pendingTeachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
-    
-    showErrorMessage(`Teacher ${teacher.name} rejected and removed.`)
-  } catch (error) {
-    console.error('Error rejecting teacher:', error)
-    showErrorMessage('Failed to reject teacher. Please try again.')
-  }
-}
-
-const viewTeacherDetails = (teacher) => {
-  // Show teacher details in a modal or alert
-  const details = `
-    Teacher Details:
-    Name: ${teacher.name}
-    Email: ${teacher.email}
-    Registration Date: ${formatDate(teacher.created_at)}
-    Status: ${teacher.status}
-  `
-  alert(details)
-}
-
-const openEditModal = (teacher) => {
-  editingTeacher.value = {
-    teacher_id: teacher.teacher_id,
-    name: teacher.name,
-    email: teacher.email,
-    password: '',
-    status: teacher.status,
-    date_joined: teacher.date_joined
-  }
+// Teacher Management Functions
+const validateTeacherForm = () => {
   errors.value = {}
-  
-  // Show the modal using Bootstrap
-  const modal = new Modal(document.getElementById('editTeacherModal'))
-  modal.show()
+
+  if (!newTeacher.value.name.trim()) {
+    errors.value.name = 'Name is required'
+  } else if (newTeacher.value.name.trim().length < 3) {
+    errors.value.name = 'Name must be at least 3 characters'
+  }
+
+  if (!newTeacher.value.email.trim()) {
+    errors.value.email = 'Email is required'
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newTeacher.value.email)) {
+    errors.value.email = 'Please enter a valid email'
+  }
+
+  if (!newTeacher.value.password) {
+    errors.value.password = 'Password is required'
+  } else if (newTeacher.value.password.length < 6) {
+    errors.value.password = 'Password must be at least 6 characters'
+  }
+
+  return Object.keys(errors.value).length === 0
 }
 
-const handleUpdateTeacher = async () => {
-  if (!editingTeacher.value) return
-  
+const handleQuickAddTeacher = async () => {
+  if (!validateTeacherForm()) return
+
   loading.value = true
-  errors.value = {}
-  
+
   try {
-    const updateData = {
-      name: editingTeacher.value.name,
-      email: editingTeacher.value.email,
-      status: editingTeacher.value.status,
-      date_joined: editingTeacher.value.date_joined
-    }
-    
-    // Only include password if it's provided
-    if (editingTeacher.value.password) {
-      updateData.password = editingTeacher.value.password
-    }
-    
-    const response = await api.put(`/teachers/${editingTeacher.value.teacher_id}`, updateData)
+    const response = await api.post('/teachers', newTeacher.value)
     
     if (response.data.teacher) {
-      // Update teacher in the list
-      const index = teachers.value.findIndex(t => t.teacher_id === editingTeacher.value.teacher_id)
-      if (index !== -1) {
-        teachers.value[index] = response.data.teacher
+      teachers.value.unshift(response.data.teacher)
+      recentTeachers.value.unshift(response.data.teacher)
+      stats.value.teachers = teachers.value.length
+
+      // Reset form
+      newTeacher.value = {
+        name: '',
+        email: '',
+        password: '',
+        status: 'active'
       }
-      
-      // Update recent teachers if needed
-      const recentIndex = recentTeachers.value.findIndex(t => t.teacher_id === editingTeacher.value.teacher_id)
-      if (recentIndex !== -1) {
-        recentTeachers.value[recentIndex] = response.data.teacher
-      }
-      
-      // Close modal
-      const modal = Modal.getInstance(document.getElementById('editTeacherModal'))
-      modal.hide()
-      
-      // Reset editing teacher
-      editingTeacher.value = null
-      
-      showSuccessMessage('Teacher updated successfully!')
+
+      // Add notification for admin approval
+      addNotification({
+        type: 'success',
+        title: 'New Teacher Registration',
+        message: `${response.data.teacher.name} has registered and needs admin approval.`,
+        teacher: response.data.teacher
+      })
+
+      // Show success message
+      const toast = new Toast(document.createElement('div'))
+      toast.show()
     }
   } catch (error) {
-    console.error('Error updating teacher:', error)
-    if (error.response?.data?.message) {
-      errors.value.email = error.response.data.message
-    } else {
-      showErrorMessage('Failed to update teacher. Please try again.')
-    }
+    console.error('Error adding teacher:', error)
   } finally {
     loading.value = false
   }
 }
 
-const deleteTeacher = async (teacher) => {
-  if (!confirm(`Are you sure you want to delete ${teacher.name}? This action cannot be undone.`)) {
-    return
+const approveTeacher = async (teacher) => {
+  try {
+    await api.put(`/teachers/${teacher.teacher_id}/approve`)
+    
+    // Update teacher status
+    const index = pendingTeachers.value.findIndex(t => t.teacher_id === teacher.teacher_id)
+    if (index > -1) {
+      pendingTeachers.value.splice(index, 1)
+    }
+
+    // Update main teachers list
+    const teacherIndex = teachers.value.findIndex(t => t.teacher_id === teacher.teacher_id)
+    if (teacherIndex > -1) {
+      teachers.value[teacherIndex].status = 'active'
+    }
+
+    showSuccessMessage('Teacher approved successfully!')
+  } catch (error) {
+    console.error('Error approving teacher:', error)
+    showErrorMessage('Failed to approve teacher')
   }
-  
+}
+
+const rejectTeacher = async (teacher) => {
+  if (!confirm(`Are you sure you want to reject ${teacher.name}?`)) return
+
+  try {
+    await api.delete(`/teachers/${teacher.teacher_id}`)
+    
+    // Remove from pending teachers
+    pendingTeachers.value = pendingTeachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
+    
+    // Remove from main teachers list
+    teachers.value = teachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
+    
+    showSuccessMessage('Teacher rejected and removed successfully!')
+  } catch (error) {
+    console.error('Error rejecting teacher:', error)
+    showErrorMessage('Failed to reject teacher')
+  }
+}
+
+const viewTeacherDetails = (teacher) => {
+  // Implementation for viewing teacher details
+  console.log('View teacher details:', teacher)
+}
+
+const openEditModal = (teacher) => {
+  // Implementation for editing teacher
+  console.log('Edit teacher:', teacher)
+}
+
+const deleteTeacher = async (teacher) => {
+  if (!confirm(`Are you sure you want to delete ${teacher.name}?`)) return
+
   try {
     await api.delete(`/teachers/${teacher.teacher_id}`)
     
     // Remove teacher from the list
     teachers.value = teachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
-    
-    // Remove from recent teachers if present
     recentTeachers.value = recentTeachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
     
     // Update stats
@@ -810,10 +793,83 @@ const deleteTeacher = async (teacher) => {
     showSuccessMessage('Teacher deleted successfully!')
   } catch (error) {
     console.error('Error deleting teacher:', error)
-    showErrorMessage('Failed to delete teacher. Please try again.')
+    showErrorMessage('Failed to delete teacher')
   }
 }
 
+// Module Functions
+const editModule = (module) => {
+  console.log('Edit module:', module)
+}
+
+const deleteModule = async (module) => {
+  if (!confirm(`Are you sure you want to delete ${module.module_name}?`)) return
+
+  try {
+    await api.delete(`/modules/${module.module_id}`)
+    recentModules.value = recentModules.value.filter(item => item.module_id !== module.module_id)
+    stats.value.modules = Math.max((stats.value.modules || 1) - 1, 0)
+    showSuccessMessage('Module deleted successfully!')
+  } catch (error) {
+    console.error('Error deleting module:', error)
+    showErrorMessage('Failed to delete module')
+  }
+}
+
+// Export Function
+const exportDashboardData = () => {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    stats: stats.value,
+    teachers: teachers.value,
+    modules: recentModules.value
+  }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `dashboard-export-${new Date().toISOString().slice(0, 10)}.json`
+  link.click()
+  URL.revokeObjectURL(url)
+  showSuccessMessage('Dashboard data exported successfully!')
+}
+
+// Action Handler
+const handleAction = (action) => {
+  if (action.path) {
+    router.push(action.path)
+  }
+}
+
+// Navigation Handler
+const handleNavClick = (item) => {
+  console.log('Navigation clicked:', item)
+  if (item.path) {
+    router.push(item.path)
+  }
+}
+
+// Logout Function
+const handleLogout = () => {
+  authStore.logout()
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  localStorage.removeItem('userType')
+  router.push('/login')
+}
+
+// Message Functions
+const showSuccessMessage = (message) => {
+  // Implementation for showing success messages
+  console.log('Success:', message)
+}
+
+const showErrorMessage = (message) => {
+  // Implementation for showing error messages
+  console.log('Error:', message)
+}
+
+// Data Loading
 const loadDashboardData = async () => {
   try {
     // Load teachers
@@ -821,10 +877,6 @@ const loadDashboardData = async () => {
     teachers.value = teachersResponse.data.teachers || []
     recentTeachers.value = teachersResponse.data.teachers?.slice(0, 3) || []
     stats.value.teachers = teachersResponse.data.teachers?.length || 0
-
-    // Load pending teachers (without auth)
-    const pendingResponse = await axios.get('/api/pending/teachers')
-    pendingTeachers.value = pendingResponse.data.pendingTeachers || []
 
     // Load modules
     const modulesResponse = await api.get('/modules')
@@ -835,8 +887,13 @@ const loadDashboardData = async () => {
     const classesResponse = await api.get('/classes')
     stats.value.classes = classesResponse.data.classes?.length || 0
 
-    // Calculate sessions (example calculation)
-    stats.value.sessions = stats.value.classes * 20 // Assuming 20 sessions per class
+    // Load timetable entries for actual session count
+    const timetableResponse = await api.get('/timetable')
+    stats.value.sessions = timetableResponse.data.timetables?.length || 0
+
+    // Load file logs
+    const logsResponse = await api.get('/uploads')
+    fileLogs.value = logsResponse.data.logs || []
 
   } catch (error) {
     console.error('Error loading dashboard data:', error)
@@ -847,3 +904,180 @@ onMounted(() => {
   loadDashboardData()
 })
 </script>
+
+<style scoped>
+.header-custom {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.sidebar-custom {
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  min-height: calc(100vh - 80px);
+  padding: 1rem;
+}
+
+.nav-item-custom {
+  color: #495057;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-item-custom:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.nav-item-custom.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.card-custom {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  padding: 1.5rem;
+}
+
+.stat-card-custom {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.stat-card-custom:hover {
+  transform: translateY(-2px);
+}
+
+.stat-card-custom.success {
+  border-left: 4px solid #28a745;
+}
+
+.stat-card-custom.warning {
+  border-left: 4px solid #ffc107;
+}
+
+.stat-card-custom.danger {
+  border-left: 4px solid #dc3545;
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.quick-action-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.quick-action-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.module-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.module-card:hover {
+  transform: translateY(-1px);
+}
+
+.btn-primary-custom {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-custom:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+}
+
+.btn-warning-custom {
+  background: #ffc107;
+  border: none;
+  color: #212529;
+}
+
+.btn-danger-custom {
+  background: #dc3545;
+  border: none;
+  color: white;
+}
+
+.table-custom {
+  background: white;
+}
+
+.table-custom th {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+.text-decoration-none {
+  text-decoration: none;
+}
+
+.dropdown-menu {
+  border: 1px solid #dee2e6;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+</style>

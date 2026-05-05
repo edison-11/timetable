@@ -56,7 +56,30 @@ class Schedule {
     }
     
     const [rows] = await pool.execute(query, params);
-    return rows;
+    
+    // Filter out conflicts that fall within break times
+    const filteredRows = [];
+    for (const row of rows) {
+      const isBreakTime = await this.isTimeInBreakPeriod(start_time, end_time);
+      if (!isBreakTime) {
+        filteredRows.push(row);
+      }
+    }
+    
+    return filteredRows;
+  }
+
+  static async isTimeInBreakPeriod(start_time, end_time) {
+    const [rows] = await pool.execute(`
+      SELECT * FROM break_time 
+      WHERE (
+        (start_time < ? AND end_time > ?)
+        OR (start_time < ? AND end_time > ?)
+        OR (start_time >= ? AND end_time <= ?)
+      )
+    `, [end_time, start_time, end_time, start_time, end_time, start_time]);
+    
+    return rows.length > 0;
   }
 }
 

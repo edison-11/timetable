@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
+import api from './api'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -28,11 +28,11 @@ export const useAuthStore = defineStore('auth', {
         let loginType = 'admin'
 
         try {
-          response = await axios.post('/api/auth/login', credentials)
+          response = await api.post('/auth/login', credentials)
         } catch (error) {
           // If admin login fails, try teacher login
           if (error.response?.status === 401 || error.response?.status === 403) {
-            response = await axios.post('/api/teacher-auth/login', credentials)
+            response = await api.post('/teacher-auth/login', credentials)
             loginType = 'teacher'
           } else {
             throw error
@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', {
         
         localStorage.setItem('token', token)
         localStorage.setItem('userType', loginType)
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
         if (loginType === 'teacher') {
           localStorage.setItem('teacher', JSON.stringify(user))
@@ -70,7 +70,7 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        const response = await axios.post('/api/auth/register', userData)
+        const response = await api.post('/auth/register', userData)
         const { token, user } = response.data
         
         this.token = token
@@ -79,7 +79,7 @@ export const useAuthStore = defineStore('auth', {
         
         localStorage.setItem('token', token)
         localStorage.setItem('userType', 'admin')
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
         return { success: true }
       } catch (error) {
@@ -99,7 +99,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('token')
       localStorage.removeItem('userType')
       localStorage.removeItem('teacher')
-      delete axios.defaults.headers.common['Authorization']
+      delete api.defaults.headers.common['Authorization']
     },
 
     async updateProfile(profileData) {
@@ -108,10 +108,10 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const endpoint = this.userType === 'teacher'
-          ? '/api/teacher-auth/me'
-          : '/api/auth/me'
+          ? '/teacher-auth/me'
+          : '/auth/me'
         const token = this.token || localStorage.getItem('token')
-        const response = await axios.put(endpoint, profileData, {
+        const response = await api.put(endpoint, profileData, {
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         })
         const user = this.userType === 'teacher'
@@ -144,18 +144,18 @@ export const useAuthStore = defineStore('auth', {
 
       this.token = token
       this.userType = userType
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
       try {
         if (userType === 'teacher') {
-          const response = await axios.get('/api/teacher-auth/me')
+          const response = await api.get('/teacher-auth/me')
           this.user = response.data.teacher
           localStorage.setItem('userType', 'teacher')
           localStorage.setItem('teacher', JSON.stringify(this.user))
           return true
         }
 
-        const response = await axios.get('/api/auth/me')
+        const response = await api.get('/auth/me')
         const user = response.data.user
 
         if (user?.role !== 'admin') {

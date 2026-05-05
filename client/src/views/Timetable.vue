@@ -1,27 +1,34 @@
 <template>
   <div class="min-vh-100">
+    <!-- Header -->
     <header class="header-custom">
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">📅</div>
+          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">
+            📅
+          </div>
           <h1 class="h2 mb-0">Timetable Management</h1>
         </div>
         <div class="d-flex align-items-center gap-3">
-          <router-link to="/dashboard" class="text-light opacity-75 text-decoration-none">Dashboard</router-link>
-          <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">A</div>
+          <span class="text-light opacity-75">Welcome, Admin</span>
+          <router-link to="/dashboard" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>
+            Back to Dashboard
+          </router-link>
         </div>
       </div>
     </header>
 
     <div class="d-flex">
+      <!-- Sidebar -->
       <nav class="sidebar-custom" style="width: 250px;">
         <div class="p-3">
-          <router-link
-            v-for="item in navigation"
+          <router-link 
+            v-for="item in navigation" 
             :key="item.name"
             :to="item.path"
             class="nav-item-custom d-block mb-2"
-            :class="{ active: $route.path === item.path }"
+            :class="{ 'active': route.path === item.path }"
           >
             <span class="fs-5">{{ item.icon }}</span>
             <span>{{ item.name }}</span>
@@ -29,347 +36,249 @@
         </div>
       </nav>
 
+      <!-- Main Content -->
       <main class="flex-grow-1 p-4">
+        <!-- Assignment Form -->
         <div class="card-custom mb-4">
-          <div class="d-flex justify-content-between align-items-start mb-4">
-            <div>
-              <h2 class="h3 fw-semibold text-dark mb-1">Assign Module To Teacher</h2>
-              <p class="text-muted mb-0">Choose the teacher and module for a class before generating its timetable.</p>
-            </div>
-            <button class="btn btn-outline-secondary" :disabled="loadingSetup" @click="loadSetupData">Refresh</button>
-          </div>
-
-          <div v-if="assignmentMessage" class="alert alert-danger" role="alert">
-            {{ assignmentMessage }}
-          </div>
-
-          <form class="row g-3" @submit.prevent="addAssignment">
-            <div class="col-md-3">
-              <label for="setupClass" class="form-label">Class *</label>
-              <select id="setupClass" v-model.number="assignmentForm.class_id" class="form-select" required>
-                <option value="">Select class</option>
-                <option v-for="classItem in classes" :key="classItem.class_id" :value="classItem.class_id">
-                  {{ classItem.class_name }} - {{ classItem.level }} - {{ classItem.shift_name || 'No shift' }}
-                </option>
-              </select>
-            </div>
-
-            <div class="col-md-3">
-              <label for="setupTeacher" class="form-label">Teacher *</label>
-              <select id="setupTeacher" v-model.number="assignmentForm.teacher_id" class="form-select" required>
-                <option value="">Select teacher</option>
-                <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
-                  {{ teacher.name }} - {{ teacher.department || 'SSOD' }}
-                </option>
-              </select>
-            </div>
-
-            <div class="col-md-3">
-              <label for="setupModule" class="form-label">Module *</label>
-              <select id="setupModule" v-model.number="assignmentForm.module_id" class="form-select" required>
-                <option value="">Select module</option>
-                <option v-for="module in modules" :key="module.module_id" :value="module.module_id">
-                  {{ module.module_name }} - {{ module.department || 'SSOD' }}
-                </option>
-              </select>
-            </div>
-
-            <div class="col-md-2">
-              <label for="setupTerm" class="form-label">Term *</label>
-              <select id="setupTerm" v-model="assignmentForm.term" class="form-select" required>
-                <option value="">Select term</option>
-                <option value="Term 1">Term 1</option>
-                <option value="Term 2">Term 2</option>
-                <option value="Term 3">Term 3</option>
-              </select>
-            </div>
-
-            <div class="col-md-1 d-flex align-items-end">
-              <button type="submit" class="btn btn-primary-custom w-100" :disabled="savingAssignment">
-                Add
-              </button>
-            </div>
-
-            <div class="col-md-3">
-              <label for="setupYear" class="form-label">Academic Year *</label>
-              <input id="setupYear" v-model="assignmentForm.academic_year" class="form-control" required placeholder="2024-2025">
-            </div>
-          </form>
-
-          <div class="table-responsive mt-4">
-            <table class="table table-custom">
-              <thead>
-                <tr>
-                  <th>Class</th>
-                  <th>Module</th>
-                  <th>Teacher</th>
-                  <th>Shift</th>
-                  <th>Term</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="assignment in visibleAssignments" :key="assignment.assignment_id">
-                  <td>{{ assignment.class_name }}</td>
-                  <td>{{ assignment.module_name }}</td>
-                  <td>{{ assignment.teacher_name }}</td>
-                  <td>{{ assignment.shift_name || 'No shift' }}</td>
-                  <td>{{ assignment.term }}</td>
-                </tr>
-                <tr v-if="!visibleAssignments.length">
-                  <td colspan="5" class="text-center text-muted py-4">No teacher-module assignments yet</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="card-custom mb-4">
-          <div class="d-flex justify-content-between align-items-start mb-4">
-            <div>
-              <h2 class="h3 fw-semibold text-dark mb-1">Generate Timetable</h2>
-              <p class="text-muted mb-0">Generate one timetable per class. Classes with the same level stay separate.</p>
-            </div>
-            <span class="badge bg-primary fs-6">{{ timetableEntries.length }} entries</span>
-          </div>
-
-          <div class="row g-3 mb-4">
-            <div class="col-md-4">
-              <div class="border rounded p-3 h-100">
-                <div class="text-muted small">Teacher Changeover</div>
-                <div class="fw-semibold">{{ settings.teacher_changeover_minutes }} min</div>
-              </div>
-            </div>
-            <div class="col-md-8">
-              <div class="border rounded p-3 h-100">
-                <div class="text-muted small">{{ settings.break_period_rules.enabled ? 'Automatic Breaks' : 'Breaks Respected' }}</div>
-                <div class="d-flex flex-wrap gap-2 mt-1">
-                  <span v-for="breakTime in visibleBreaks" :key="`${breakTime.break_name}-${breakTime.start_time}`" class="badge bg-secondary">
-                    {{ breakTime.break_name }} {{ breakTime.start_time }}-{{ breakTime.end_time }}
-                  </span>
-                  <span v-if="!visibleBreaks.length" class="text-muted">No breaks set</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="formMessage" class="alert alert-danger" role="alert">
-            {{ formMessage }}
-          </div>
-
-          <form @submit.prevent="generateTimetable">
+          <div class="card-body">
+            <h2 class="h4 fw-semibold text-dark mb-4">Assign Module to Teacher</h2>
+            
             <div class="row g-3">
-              <div class="col-md-4">
+              <div class="col-md-3">
                 <label for="classSelect" class="form-label">Class</label>
-                <select id="classSelect" v-model="form.class_id" class="form-select">
-                  <option value="">All classes</option>
-                  <option v-for="classItem in classes" :key="classItem.class_id" :value="classItem.class_id">
-                    {{ classItem.class_name }} - {{ classItem.level }}
+                <select v-model="assignment.class_id" class="form-select" id="classSelect">
+                  <option value="">Select Class</option>
+                  <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">
+                    {{ cls.class_name }}
                   </option>
                 </select>
               </div>
-
-              <div class="col-md-2">
-                <label for="startTime" class="form-label">Day Start *</label>
-                <input id="startTime" v-model="form.start_time" type="time" class="form-control" required>
+              
+              <div class="col-md-3">
+                <label for="teacherSelect" class="form-label">Teacher</label>
+                <select v-model="assignment.teacher_id" class="form-select" id="teacherSelect">
+                  <option value="">Select Teacher</option>
+                  <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
+                    {{ teacher.name }}
+                  </option>
+                </select>
               </div>
-
-              <div class="col-md-2">
-                <label for="endTime" class="form-label">Day End *</label>
-                <input id="endTime" v-model="form.end_time" type="time" class="form-control" required>
+              
+              <div class="col-md-3">
+                <label for="moduleSelect" class="form-label">Module</label>
+                <select v-model="assignment.module_id" class="form-select" id="moduleSelect">
+                  <option value="">Select Module</option>
+                  <option v-for="module in modules" :key="module.module_id" :value="module.module_id">
+                    {{ module.module_name }}
+                  </option>
+                </select>
               </div>
-
-              <div class="col-md-2">
-                <label for="periodMinutes" class="form-label">Period Minutes *</label>
-                <input
-                  id="periodMinutes"
-                  v-model.number="form.period_minutes"
-                  type="number"
-                  min="1"
-                  step="1"
-                  class="form-control"
-                  required
-                >
-              </div>
-
-              <div class="col-md-2 d-flex align-items-end">
-                <div class="form-check mb-2">
-                  <input id="replaceExisting" v-model="form.replace_existing" class="form-check-input" type="checkbox">
-                  <label class="form-check-label" for="replaceExisting">Replace existing</label>
-                </div>
-              </div>
-            </div>
-
-            <div class="d-flex flex-wrap align-items-center gap-3 mt-4">
-              <div v-for="day in days" :key="day" class="form-check">
-                <input
-                  :id="`day-${day}`"
-                  v-model="form.days"
-                  class="form-check-input"
-                  type="checkbox"
-                  :value="day"
-                >
-                <label class="form-check-label" :for="`day-${day}`">{{ day }}</label>
+              
+              <div class="col-md-3">
+                <label for="termSelect" class="form-label">Term</label>
+                <select v-model="assignment.term" class="form-select" id="termSelect">
+                  <option value="">Select Term</option>
+                  <option value="Fall">Fall</option>
+                  <option value="Spring">Spring</option>
+                  <option value="Summer">Summer</option>
+                </select>
               </div>
             </div>
-
-            <div class="border rounded p-3 mt-4">
-              <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-                <div>
-                  <h3 class="h5 fw-semibold text-dark mb-1">Layout Rules</h3>
-                  <p class="text-muted small mb-0">Set how many periods happen before each break.</p>
-                </div>
-                <div class="form-check form-switch">
-                  <input id="layoutEnabled" v-model="layoutForm.enabled" class="form-check-input" type="checkbox">
-                  <label class="form-check-label" for="layoutEnabled">Use layout</label>
-                </div>
-              </div>
-
-              <div class="row g-3">
-                <div class="col-md-3">
-                  <label for="layoutMorningPeriods" class="form-label">Before Morning Break</label>
-                  <div class="input-group">
-                    <input id="layoutMorningPeriods" v-model.number="layoutForm.periods_before_morning_break" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">periods</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <label for="layoutMorningMinutes" class="form-label">Morning Break Length</label>
-                  <div class="input-group">
-                    <input id="layoutMorningMinutes" v-model.number="layoutForm.morning_break_minutes" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">min</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <label for="layoutLunchPeriods" class="form-label">Before Lunch Break</label>
-                  <div class="input-group">
-                    <input id="layoutLunchPeriods" v-model.number="layoutForm.periods_before_lunch" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">periods</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <label for="layoutLunchMinutes" class="form-label">Lunch Break Length</label>
-                  <div class="input-group">
-                    <input id="layoutLunchMinutes" v-model.number="layoutForm.lunch_break_minutes" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">min</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <label for="layoutEveningPeriods" class="form-label">Before Evening Break</label>
-                  <div class="input-group">
-                    <input id="layoutEveningPeriods" v-model.number="layoutForm.periods_before_afternoon_break" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">periods</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <label for="layoutEveningMinutes" class="form-label">Evening Break Length</label>
-                  <div class="input-group">
-                    <input id="layoutEveningMinutes" v-model.number="layoutForm.afternoon_break_minutes" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">min</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3">
-                  <label for="layoutPostEveningPeriods" class="form-label">Periods after Afternoon Break</label>
-                  <div class="input-group">
-                    <input id="layoutPostEveningPeriods" v-model.number="layoutForm.periods_after_afternoon_break" type="number" min="1" step="1" class="form-control" :disabled="!layoutForm.enabled">
-                    <span class="input-group-text">periods</span>
-                  </div>
-                </div>
-
-                <div class="col-md-3"></div>
-              </div>
-            </div>
-
-            <div class="d-flex justify-content-end gap-2 mt-4">
-              <button type="button" class="btn btn-outline-secondary" :disabled="savingLayout || generating" @click="applyReferenceTimetableLayout">
-                <span v-if="savingLayout">
-                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Applying...
-                </span>
-                <span v-else>Use 3-2-3 Layout</span>
-              </button>
-              <button type="submit" class="btn btn-primary-custom" :disabled="generating">
-                <span v-if="generating">
-                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Generating...
-                </span>
-                <span v-else>Generate Timetable</span>
-              </button>
-            </div>
-          </form>
-        </div>
-
-        <div v-if="skippedItems.length" class="alert alert-warning" role="alert">
-          <strong>Skipped:</strong>
-          <ul class="mb-0 mt-2">
-            <li v-for="(item, index) in skippedItems.slice(0, 8)" :key="index">
-              {{ item.class_name }}: {{ item.reason }}
-            </li>
-          </ul>
-        </div>
-
-        <div class="card-custom">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h3 fw-semibold text-dark mb-0">Generated Timetables</h2>
-            <button class="btn btn-outline-secondary" :disabled="loading" @click="loadTimetable">
-              Refresh
-            </button>
-          </div>
-
-          <div v-if="loading" class="text-center text-muted py-5">
-            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            Loading timetable...
-          </div>
-
-          <div v-else-if="!groupedTimetables.length" class="text-center text-muted py-5">
-            No timetable entries generated yet
-          </div>
-
-          <div v-else class="accordion" id="timetableAccordion">
-            <div v-for="group in groupedTimetables" :key="group.class_id" class="accordion-item">
-              <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" :data-bs-target="`#class-${group.class_id}`">
-                  {{ group.class_name }} - {{ group.level }} ({{ group.entries.length }} entries, {{ group.moduleCount }} modules)
+            
+            <div class="row mt-3">
+              <div class="col-12">
+                <button @click="addAssignment" class="btn btn-primary-custom" :disabled="loading">
+                  <span v-if="loading">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Adding...
+                  </span>
+                  <span v-else>Add Assignment</span>
                 </button>
-              </h2>
-              <div :id="`class-${group.class_id}`" class="accordion-collapse collapse" data-bs-parent="#timetableAccordion">
-                <div class="accordion-body">
-                  <div class="table-responsive">
-                    <table class="table table-custom timetable-grid">
-                      <thead>
-                        <tr>
-                          <th>Period</th>
-                          <th>Time</th>
-                          <th v-for="day in days" :key="day">{{ day }}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <template v-for="(row, rowIndex) in buildTimetableGridRows(group)" :key="rowIndex">
-                          <tr v-if="row.type === 'break'" class="text-center timetable-break-row" :class="row.breakClass">
-                            <td class="text-uppercase">{{ row.breakName }}</td>
-                            <td>{{ formatTimeRange(row.start_time, row.end_time) }}</td>
-                            <td :colspan="days.length">
-                              <strong>{{ row.breakName }}</strong>
-                            </td>
+              </div>
+            </div>
+            
+            <div v-if="assignmentMessage" class="alert alert-info mt-3">
+              {{ assignmentMessage }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Generate Timetable -->
+        <div class="card-custom mb-4">
+          <div class="card-body">
+            <h2 class="h4 fw-semibold text-dark mb-4">Generate Timetable</h2>
+            
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label for="classSelect" class="form-label">Class</label>
+                <select v-model="generateSettings.class_id" class="form-select" id="classSelect" @change="onClassChange">
+                  <option value="">All Classes</option>
+                  <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">
+                    {{ cls.class_name }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="col-md-3">
+                <label for="levelSelect" class="form-label">Level</label>
+                <select v-model="generateSettings.level" class="form-select" id="levelSelect" @change="onLevelChange">
+                  <option value="">All Levels</option>
+                  <option v-for="level in availableLevels" :key="level" :value="level">
+                    Level {{ level }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="col-md-3">
+                <label for="changeoverMinutes" class="form-label">Teacher Changeover (minutes)</label>
+                <input v-model.number="generateSettings.teacher_changeover_minutes" type="number" class="form-control" id="changeoverMinutes" min="0" max="60">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="replaceExisting" class="form-label">Replace Existing</label>
+                <div class="form-check">
+                  <input v-model="generateSettings.replace_existing" class="form-check-input" type="checkbox" id="replaceExisting">
+                  <label class="form-check-label" for="replaceExisting">
+                    Replace existing timetable entries
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row g-3 mt-1">
+              <div class="col-md-3">
+                <label for="startTime" class="form-label">Start Time</label>
+                <input v-model="generateSettings.start_time" type="time" class="form-control" id="startTime">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="endTime" class="form-label">End Time</label>
+                <input v-model="generateSettings.end_time" type="time" class="form-control" id="endTime">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="periodMinutes" class="form-label">Period (minutes)</label>
+                <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" id="periodMinutes" min="30" max="180">
+              </div>
+              
+              <div class="col-md-3">
+                <label class="form-label">Days to Generate</label>
+                <div class="d-flex gap-2 flex-wrap">
+                  <div v-for="day in days" :key="day" class="form-check">
+                    <input v-model="generateSettings.selected_days" :value="day" class="form-check-input" type="checkbox" :id="`day-${day}`">
+                    <label class="form-check-label" :for="`day-${day}`">{{ day }}</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row mt-3">
+              <div class="col-12">
+                <button @click="generateTimetable" class="btn btn-success" :disabled="loading">
+                  <span v-if="loading">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Generating...
+                  </span>
+                  <span v-else>Generate Timetable</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistics Display -->
+        <div v-if="groupedTimetables.length > 0" class="card-custom mb-4">
+          <div class="card-body">
+            <h2 class="h4 fw-semibold text-dark mb-4">Timetable Statistics</h2>
+            
+            <div class="row g-3">
+              <div class="col-md-3">
+                <div class="stat-card text-center">
+                  <div class="stat-number">{{ statistics.totalClasses }}</div>
+                  <div class="stat-label">Classes</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card text-center">
+                  <div class="stat-number">{{ statistics.totalTeachers }}</div>
+                  <div class="stat-label">Teachers</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card text-center">
+                  <div class="stat-number">{{ statistics.totalSessions }}</div>
+                  <div class="stat-label">Sessions</div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="stat-card text-center">
+                  <div class="stat-number">{{ statistics.weeksInTerm }}</div>
+                  <div class="stat-label">Weeks</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timetable Display -->
+        <div v-if="groupedTimetables.length > 0" class="card-custom">
+          <div class="card-body">
+            <h2 class="h4 fw-semibold text-dark mb-4">Generated Timetables</h2>
+            
+            <div class="accordion" id="timetableAccordion">
+              <div v-for="group in groupedTimetables" :key="group.class_id" class="accordion-item">
+                <h2 class="accordion-header">
+                  <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" :data-bs-target="`#class-${group.class_id}`" aria-expanded="false" :aria-controls="`class-${group.class_id}`">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                      <div>
+                        <strong>{{ group.class_name }}</strong>
+                        <div class="small text-muted">Level {{ group.level }}</div>
+                      </div>
+                      <span class="badge bg-primary">{{ group.entries.length }} entries</span>
+                    </div>
+                  </button>
+                </h2>
+                
+                <div :id="`class-${group.class_id}`" class="accordion-collapse collapse" data-bs-parent="#timetableAccordion">
+                  <div class="accordion-body">
+                    <div class="table-responsive">
+                      <table class="table table-bordered timetable-grid">
+                        <thead>
+                          <tr>
+                            <th class="text-center">Time</th>
+                            <th v-for="day in days" :key="day" class="text-center">{{ day }}</th>
                           </tr>
-                          <tr v-else>
-                            <td class="text-center fw-bold">{{ row.period }}</td>
-                            <td>{{ formatTimeRange(row.start_time, row.end_time) }}</td>
-                            <td v-for="day in days" :key="day">
-                              <div v-if="row.entriesByDay[day]">
-                                <div :class="['fw-semibold', row.entriesByDay[day].covered ? 'text-muted' : '']">{{ row.entriesByDay[day].module_name }}</div>
-                                <div class="text-muted small">{{ row.entriesByDay[day].teacher_name }}</div>
-                              </div>
-                            </td>
-                          </tr>
-                        </template>
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          <template v-for="(row, rowIndex) in buildTimetableGridRows(group)" :key="rowIndex">
+                            <tr v-if="row.type === 'break'" class="timetable-break-row text-center">
+                              <td class="fw-bold">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
+                              <td v-for="day in days" :key="day" class="text-center">
+                                <strong class="text-uppercase">{{ row.breakName }}</strong>
+                              </td>
+                            </tr>
+                            <tr v-else>
+                              <td class="fw-bold time-column">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
+                              <td v-for="day in days" :key="day" class="text-center module-cell">
+                                <div v-if="row.entriesByDay[day] && row.entriesByDay[day].module_name" class="module-content">
+                                  <div class="fw-semibold">
+                                    {{ row.entriesByDay[day].module_name }}
+                                  </div>
+                                  <div class="fw-normal text-muted small">
+                                    {{ row.entriesByDay[day].teacher_name }}
+                                  </div>
+                                </div>
+                                <div v-else class="module-content">
+                                  <div class="fw-semibold text-muted">
+                                    -
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          </template>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -383,8 +292,13 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import api from '@/stores/api'
 
+const router = useRouter()
+const route = useRoute()
+
+// Navigation
 const navigation = [
   { name: 'Dashboard', path: '/dashboard', icon: '📊' },
   { name: 'Teachers', path: '/teachers', icon: '👥' },
@@ -396,560 +310,523 @@ const navigation = [
   { name: 'Timetable', path: '/timetable', icon: '📅' }
 ]
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+// State
+const loading = ref(false)
 const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
-const assignments = ref([])
 const timetableEntries = ref([])
-const skippedItems = ref([])
-const loading = ref(false)
-const loadingSetup = ref(false)
-const generating = ref(false)
-const savingAssignment = ref(false)
-const savingLayout = ref(false)
-const formMessage = ref('')
 const assignmentMessage = ref('')
-const referenceBreakRules = {
-  enabled: true,
-  periods_before_morning_break: 3,
-  periods_before_lunch: 2,
-  periods_before_afternoon_break: 3,
-  periods_after_afternoon_break: 1,
-  morning_break_minutes: 30,
-  lunch_break_minutes: 45,
-  afternoon_break_minutes: 30
-}
-const settings = ref({
-  teacher_changeover_minutes: 5,
-  timetable_breaks: [],
-  break_period_rules: { ...referenceBreakRules, enabled: false }
-})
 
-const form = ref({
-  class_id: '',
-  start_time: '08:00',
-  end_time: '19:45',
-  period_minutes: 60,
-  replace_existing: true,
-  days: [...days]
-})
-
-const layoutForm = ref({ ...referenceBreakRules })
-
-const assignmentForm = ref({
+// Assignment form
+const assignment = ref({
   class_id: '',
   teacher_id: '',
   module_id: '',
-  academic_year: '2024-2025',
   term: ''
 })
 
-const dayOrder = days.reduce((order, day, index) => {
-  order[day] = index
-  return order
-}, {})
+// Generate settings
+const generateSettings = ref({
+  class_id: '',
+  level: '',
+  start_time: '08:00',
+  end_time: '19:00',
+  period_minutes: 60,
+  teacher_changeover_minutes: 5,
+  replace_existing: false,
+  selected_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+})
 
-const buildTimetableGridRows = (group) => {
-  const entriesByDay = new Map()
+// Days of week
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
-  group.entries.forEach((entry) => {
-    const dayEntries = entriesByDay.get(entry.day_of_week) || []
-    dayEntries.push({
-      ...entry,
-      start_time: normalizeTime(entry.start_time),
-      end_time: normalizeTime(entry.end_time)
-    })
-    entriesByDay.set(entry.day_of_week, dayEntries)
-  })
-
-  const sortedPeriods = buildDisplayPeriods()
-  const sortedBreaks = visibleBreaks.value
-    .map((breakTime) => ({
-      ...breakTime,
-      start_time: normalizeTime(breakTime.start_time),
-      end_time: normalizeTime(breakTime.end_time)
-    }))
-    .sort((a, b) => a.start_time.localeCompare(b.start_time))
-
-  const rows = []
-  let breakIndex = 0
-  let periodNumber = 1
-
-  sortedPeriods.forEach((period) => {
-    while (breakIndex < sortedBreaks.length && sortedBreaks[breakIndex].start_time <= period.start_time) {
-      const breakTime = sortedBreaks[breakIndex]
-      rows.push({
-        type: 'break',
-        breakName: breakTime.break_name,
-        breakClass: getBreakClass(breakTime.break_name),
-        start_time: breakTime.start_time,
-        end_time: breakTime.end_time
-      })
-      breakIndex += 1
+// Computed properties
+const availableLevels = computed(() => {
+  const levels = new Set()
+  classes.value.forEach(cls => {
+    if (cls.level) {
+      levels.add(cls.level)
     }
-
-    const rowEntriesByDay = {}
-    days.forEach((day) => {
-      const dayEntries = entriesByDay.get(day) || []
-      const periodStart = timeToMinutes(period.start_time)
-      const entry = dayEntries.find((item) => item.start_time === period.start_time)
-      const coveringEntry = dayEntries.find((item) => {
-        return timeToMinutes(item.start_time) < periodStart && timeToMinutes(item.end_time) > periodStart
-      })
-
-      rowEntriesByDay[day] = coveringEntry ? { covered: true, ...coveringEntry } : (entry || null)
-    })
-
-    rows.push({
-      type: 'period',
-      period: periodNumber,
-      start_time: period.start_time,
-      end_time: getDisplayPeriodEnd(period, rowEntriesByDay),
-      entriesByDay: rowEntriesByDay
-    })
-    periodNumber += 1
   })
+  return Array.from(levels).sort((a, b) => a - b)
+})
 
-  while (breakIndex < sortedBreaks.length) {
-    const breakTime = sortedBreaks[breakIndex]
-    rows.push({
-      type: 'break',
-      breakName: breakTime.break_name,
-      breakClass: getBreakClass(breakTime.break_name),
-      start_time: breakTime.start_time,
-      end_time: breakTime.end_time
-    })
-    breakIndex += 1
-  }
-
-  return rows
-}
-
-const getDisplayPeriodEnd = (period, rowEntriesByDay) => {
-  const entryEnds = Object.values(rowEntriesByDay)
-    .filter((entry) => entry && !entry.covered && entry.end_time)
-    .map((entry) => entry.end_time)
-
-  return entryEnds.length
-    ? entryEnds.sort((a, b) => timeToMinutes(b) - timeToMinutes(a))[0]
-    : period.end_time
-}
-
-const overlaps = (startA, endA, startB, endB) => {
-  return startA < endB && endA > startB
-}
-
-const buildDisplayPeriods = () => {
-  const dayStart = timeToMinutes(form.value.start_time)
-  const dayEnd = timeToMinutes(form.value.end_time)
-  const periodMinutes = positiveInteger(form.value.period_minutes, 60)
-  const changeoverMinutes = nonNegativeInteger(settings.value.teacher_changeover_minutes, 0)
-  const breaks = visibleBreaks.value
-  const periods = []
-  let cursor = dayStart
-  let teachingSinceLastChangeover = 0
-
-  while (cursor + periodMinutes <= dayEnd) {
-    const slotStart = cursor
-    const slotEnd = cursor + periodMinutes
-    const hitBreaks = breaks.filter((breakTime) => {
-      return overlaps(
-        slotStart,
-        slotEnd,
-        timeToMinutes(breakTime.start_time),
-        timeToMinutes(breakTime.end_time)
-      )
-    })
-
-    if (!hitBreaks.length) {
-      periods.push({
-        start_time: minutesToTime(slotStart),
-        end_time: minutesToTime(slotEnd)
-      })
-      teachingSinceLastChangeover += periodMinutes
-      cursor = slotEnd
-
-      if (changeoverMinutes > 0 && teachingSinceLastChangeover >= 60) {
-        cursor += changeoverMinutes
-        teachingSinceLastChangeover = 0
-      }
-    } else {
-      cursor = Math.max(...hitBreaks.map((breakTime) => timeToMinutes(breakTime.end_time)))
-      teachingSinceLastChangeover = 0
+const statistics = computed(() => {
+  const uniqueTeachers = new Set()
+  const uniqueClasses = new Set()
+  let totalSessions = 0
+  
+  timetableEntries.value.forEach(entry => {
+    if (entry.module_name && entry.module_name !== 'continue') {
+      if (entry.teacher_name) uniqueTeachers.add(entry.teacher_name)
+      if (entry.class_id) uniqueClasses.add(entry.class_id)
+      totalSessions++
     }
+  })
+  
+  return {
+    totalClasses: uniqueClasses.size,
+    totalTeachers: uniqueTeachers.size,
+    totalSessions: totalSessions,
+    weeksInTerm: 12 // Default academic term length
   }
-
-  return periods
-}
+})
 
 const groupedTimetables = computed(() => {
   const groups = new Map()
-
-  timetableEntries.value.forEach((entry) => {
-    if (!groups.has(entry.class_id)) {
-      groups.set(entry.class_id, {
-        class_id: entry.class_id,
-        class_name: entry.class_name,
-        level: entry.level,
-        entries: [],
-        moduleNames: new Set()
+  
+  timetableEntries.value.forEach(entry => {
+    // Filter out any entries with 'continue' in module_name
+    if (!entry.module_name || entry.module_name === 'continue') {
+      return
+    }
+    
+    const classId = entry.class_id
+    const className = entry.class_name
+    const classLevel = entry.level
+    
+    if (!groups.has(classId)) {
+      groups.set(classId, {
+        class_id: classId,
+        class_name: className,
+        level: classLevel,
+        entries: []
       })
     }
-
-    groups.get(entry.class_id).entries.push(entry)
-    groups.get(entry.class_id).moduleNames.add(entry.module_name)
+    
+    groups.get(classId).entries.push(entry)
   })
-
-  return Array.from(groups.values()).map((group) => ({
-    ...group,
-    moduleCount: group.moduleNames.size,
-    entries: group.entries.sort((a, b) => {
-      const dayDiff = (dayOrder[a.day_of_week] ?? 99) - (dayOrder[b.day_of_week] ?? 99)
-      if (dayDiff) return dayDiff
-      return normalizeTime(a.start_time).localeCompare(normalizeTime(b.start_time))
-    })
-  })).sort((a, b) => `${a.level}${a.class_name}`.localeCompare(`${b.level}${b.class_name}`))
+  
+  return Array.from(groups.values())
 })
 
-const visibleAssignments = computed(() => {
-  if (!form.value.class_id) return assignments.value.slice(0, 8)
-  return assignments.value.filter((assignment) => assignment.class_id === form.value.class_id)
-})
-
-const normalizeTime = (time) => {
-  return (time || '').toString().slice(0, 5)
-}
-
-const timeToMinutes = (time) => {
-  const [hours, minutes] = normalizeTime(time).split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-const minutesToTime = (minutes) => {
-  const normalized = ((minutes % 1440) + 1440) % 1440
-  const hours = String(Math.floor(normalized / 60)).padStart(2, '0')
-  const mins = String(normalized % 60).padStart(2, '0')
-  return `${hours}:${mins}`
-}
-
-const positiveInteger = (value, fallback) => {
-  const number = Number(value)
-  return Number.isInteger(number) && number > 0 ? number : fallback
-}
-
-const nonNegativeInteger = (value, fallback) => {
-  const number = Number(value)
-  return Number.isInteger(number) && number >= 0 ? number : fallback
-}
-
-const addPeriods = (startMinutes, periodCount) => {
-  const periodMinutes = positiveInteger(form.value.period_minutes, 60)
-  const changeoverMinutes = nonNegativeInteger(settings.value.teacher_changeover_minutes, 0)
-  const totalTeachingMinutes = periodCount * periodMinutes
-  const changeoverCount = changeoverMinutes > 0 ? Math.floor(totalTeachingMinutes / 60) : 0
-  return startMinutes + totalTeachingMinutes + (changeoverCount * changeoverMinutes)
-}
-
-const buildAutomaticBreaks = () => {
-  const rules = layoutForm.value.enabled ? layoutForm.value : (settings.value.break_period_rules || {})
-  const dayEnd = timeToMinutes(form.value.end_time)
-  let cursor = timeToMinutes(form.value.start_time)
-  const breaks = []
-  const segments = [
-    {
-      break_name: 'Morning Break',
-      periods: positiveInteger(rules.periods_before_morning_break, 3),
-      duration: positiveInteger(rules.morning_break_minutes, 30)
-    },
-    {
-      break_name: 'Lunch Break',
-      periods: positiveInteger(rules.periods_before_lunch, 2),
-      duration: positiveInteger(rules.lunch_break_minutes, 45)
-    },
-    {
-      break_name: 'Evening Break',
-      periods: positiveInteger(rules.periods_before_afternoon_break, 3),
-      duration: positiveInteger(rules.afternoon_break_minutes, 30)
-    }
-  ]
-
-  segments.forEach((segment) => {
-    const breakStart = addPeriods(cursor, segment.periods)
-    const breakEnd = breakStart + segment.duration
-    if (breakStart >= dayEnd || breakEnd >= dayEnd) return
-
-    breaks.push({
-      break_name: segment.break_name,
-      start_time: minutesToTime(breakStart),
-      end_time: minutesToTime(breakEnd)
-    })
-    cursor = breakEnd
-  })
-
-  return breaks
-}
-
-const visibleBreaks = computed(() => {
-  if (layoutForm.value.enabled || settings.value.break_period_rules?.enabled) {
-    return buildAutomaticBreaks()
-  }
-
-  return settings.value.timetable_breaks
-})
-
+// Methods
 const formatTime = (time) => {
-  const normalized = normalizeTime(time)
-  if (!normalized) return '-'
-
-  const [hours, minutes] = normalized.split(':').map(Number)
-  const displayHours = hours > 12 ? hours - 12 : hours
-  return `${displayHours}:${String(minutes).padStart(2, '0')}`
+  if (!time) return ''
+  return time.slice(0, 5)
 }
 
 const formatTimeRange = (startTime, endTime) => {
   return `${formatTime(startTime)} - ${formatTime(endTime)}`
 }
 
-const getBreakClass = (breakName) => {
-  const normalized = String(breakName || '').toLowerCase()
-  if (normalized.includes('morning')) return 'timetable-break-morning'
-  if (normalized.includes('lunch')) return 'timetable-break-lunch'
-  if (normalized.includes('evening') || normalized.includes('afternoon')) return 'timetable-break-evening'
-  return 'timetable-break-default'
-}
-
-const validateGenerateForm = () => {
-  formMessage.value = ''
-
-  if (!form.value.days.length) {
-    formMessage.value = 'Select at least one day.'
-    return false
-  }
-
-  if (!Number.isInteger(form.value.period_minutes) || form.value.period_minutes < 1) {
-    formMessage.value = 'Period minutes must be at least 1.'
-    return false
-  }
-
-  if (form.value.end_time <= form.value.start_time) {
-    formMessage.value = 'Day end must be after day start.'
-    return false
-  }
-
-  if (!validateLayoutForm()) {
-    return false
-  }
-
-  return true
-}
-
-const sanitizeLayoutRules = (rules) => {
-  return {
-    enabled: Boolean(rules.enabled),
-    periods_before_morning_break: positiveInteger(rules.periods_before_morning_break, 3),
-    periods_before_lunch: positiveInteger(rules.periods_before_lunch, 2),
-    periods_before_afternoon_break: positiveInteger(rules.periods_before_afternoon_break, 3),
-    periods_after_afternoon_break: positiveInteger(rules.periods_after_afternoon_break, 1),
-    morning_break_minutes: positiveInteger(rules.morning_break_minutes, 30),
-    lunch_break_minutes: positiveInteger(rules.lunch_break_minutes, 45),
-    afternoon_break_minutes: positiveInteger(rules.afternoon_break_minutes, 30)
-  }
-}
-
-const validateLayoutForm = () => {
-  if (!layoutForm.value.enabled) return true
-
-  const values = [
-    layoutForm.value.periods_before_morning_break,
-    layoutForm.value.periods_before_lunch,
-    layoutForm.value.periods_before_afternoon_break,
-    layoutForm.value.periods_after_afternoon_break,
-    layoutForm.value.morning_break_minutes,
-    layoutForm.value.lunch_break_minutes,
-    layoutForm.value.afternoon_break_minutes
-  ]
-
-  if (values.some((value) => !Number.isInteger(Number(value)) || Number(value) < 1)) {
-    formMessage.value = 'Layout values must be whole numbers of at least 1.'
-    return false
-  }
-
-  return true
-}
-
-const saveLayoutSettings = async () => {
-  const rules = sanitizeLayoutRules(layoutForm.value)
-  const response = await api.put('/settings/timetable', {
-    teacher_changeover_minutes: nonNegativeInteger(settings.value.teacher_changeover_minutes, 0),
-    break_period_rules: rules
-  })
-  const data = response.data.settings || {}
-  settings.value = {
-    teacher_changeover_minutes: data.teacher_changeover_minutes ?? settings.value.teacher_changeover_minutes,
-    timetable_breaks: Array.isArray(data.timetable_breaks) ? data.timetable_breaks : settings.value.timetable_breaks,
-    break_period_rules: {
-      ...rules,
-      ...(data.break_period_rules || {})
-    }
-  }
-  layoutForm.value = { ...settings.value.break_period_rules }
-}
-
-const generateTimetable = async () => {
-  if (!validateGenerateForm()) return
-
-  generating.value = true
-  skippedItems.value = []
-
+const addAssignment = async () => {
+  loading.value = true
+  assignmentMessage.value = ''
+  
   try {
-    if (layoutForm.value.enabled) {
-      await saveLayoutSettings()
+    await api.post('/assignments', assignment.value)
+    assignmentMessage.value = 'Assignment added successfully!'
+    
+    // Reset form
+    assignment.value = {
+      class_id: '',
+      teacher_id: '',
+      module_id: '',
+      term: ''
     }
-
-    const response = await api.post('/timetable/generate', {
-      class_id: form.value.class_id || null,
-      days: form.value.days,
-      start_time: form.value.start_time,
-      end_time: form.value.end_time,
-      period_minutes: form.value.period_minutes,
-      replace_existing: form.value.replace_existing
-    })
-
-    skippedItems.value = response.data.skipped || []
+    
+    // Reload data
+    await loadSetupData()
     await loadTimetable()
   } catch (error) {
-    console.error('Error generating timetable:', error)
-    formMessage.value = error.response?.data?.message || 'Failed to generate timetable.'
-  } finally {
-    generating.value = false
-  }
-}
-
-const applyReferenceTimetableLayout = async () => {
-  savingLayout.value = true
-  formMessage.value = ''
-
-  form.value = {
-    ...form.value,
-    start_time: '08:00',
-    end_time: '19:45',
-    period_minutes: 60,
-    days: [...days]
-  }
-
-  try {
-    const response = await api.put('/settings/timetable', {
-      teacher_changeover_minutes: 0,
-      break_period_rules: referenceBreakRules
-    })
-    const data = response.data.settings || {}
-    settings.value = {
-      teacher_changeover_minutes: data.teacher_changeover_minutes ?? 0,
-      timetable_breaks: Array.isArray(data.timetable_breaks) ? data.timetable_breaks : settings.value.timetable_breaks,
-      break_period_rules: {
-        ...referenceBreakRules,
-        ...(data.break_period_rules || {}),
-        enabled: true
-      }
-    }
-    layoutForm.value = { ...settings.value.break_period_rules }
-  } catch (error) {
-    console.error('Error applying timetable layout:', error)
-    settings.value = {
-      ...settings.value,
-      teacher_changeover_minutes: 0,
-      break_period_rules: { ...referenceBreakRules }
-    }
-    layoutForm.value = { ...referenceBreakRules }
-    formMessage.value = error.response?.data?.message || 'Layout applied locally, but saving settings failed.'
-  } finally {
-    savingLayout.value = false
-  }
-}
-
-const addAssignment = async () => {
-  assignmentMessage.value = ''
-  savingAssignment.value = true
-
-  try {
-    const response = await api.post('/assignments', assignmentForm.value)
-    if (response.data.assignment) {
-      assignments.value.unshift(response.data.assignment)
-      assignmentForm.value = {
-        class_id: assignmentForm.value.class_id,
-        teacher_id: '',
-        module_id: '',
-        academic_year: assignmentForm.value.academic_year,
-        term: assignmentForm.value.term
-      }
-    }
-  } catch (error) {
-    assignmentMessage.value = error.response?.data?.message || 'Failed to add teacher-module assignment.'
-  } finally {
-    savingAssignment.value = false
-  }
-}
-
-const loadClasses = async () => {
-  const response = await api.get('/classes')
-  classes.value = response.data.classes || []
-}
-
-const loadSetupData = async () => {
-  loadingSetup.value = true
-
-  try {
-    const [teachersResponse, modulesResponse, assignmentsResponse] = await Promise.all([
-      api.get('/teachers/active'),
-      api.get('/modules'),
-      api.get('/assignments')
-    ])
-
-    teachers.value = teachersResponse.data.teachers || []
-    modules.value = modulesResponse.data.modules || []
-    assignments.value = assignmentsResponse.data.assignments || []
-  } catch (error) {
-    assignmentMessage.value = error.response?.data?.message || 'Failed to load teacher-module setup data.'
-  } finally {
-    loadingSetup.value = false
-  }
-}
-
-const loadSettings = async () => {
-  const response = await api.get('/settings/timetable')
-  const data = response.data.settings || {}
-  settings.value = {
-    teacher_changeover_minutes: data.teacher_changeover_minutes ?? 5,
-    timetable_breaks: Array.isArray(data.timetable_breaks) ? data.timetable_breaks : [],
-    break_period_rules: {
-      ...settings.value.break_period_rules,
-      ...(data.break_period_rules || {}),
-      enabled: Boolean(data.break_period_rules?.enabled)
-    }
-  }
-  layoutForm.value = { ...settings.value.break_period_rules }
-}
-
-const loadTimetable = async () => {
-  loading.value = true
-
-  try {
-    const response = await api.get('/timetable')
-    timetableEntries.value = response.data.timetables || []
-  } catch (error) {
-    console.error('Error loading timetable:', error)
+    assignmentMessage.value = 'Error adding assignment: ' + (error.response?.data?.message || error.message)
   } finally {
     loading.value = false
   }
 }
 
-onMounted(async () => {
+const onClassChange = () => {
+  // When class is selected, clear level selection
+  generateSettings.value.level = ''
+}
+
+const onLevelChange = () => {
+  // When level is selected, clear class selection
+  generateSettings.value.class_id = ''
+}
+
+const generateTimetable = async () => {
+  loading.value = true
+  
+  try {
+    // Prepare request data with only the fields the backend expects
+    const requestData = {
+      class_id: generateSettings.value.class_id || null,
+      start_time: generateSettings.value.start_time,
+      end_time: generateSettings.value.end_time,
+      period_minutes: generateSettings.value.period_minutes,
+      days: generateSettings.value.selected_days,
+      replace_existing: generateSettings.value.replace_existing,
+      teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes
+    }
+    
+    const response = await api.post('/timetable/generate', requestData)
+    assignmentMessage.value = `Timetable generated successfully! ${response.data.generated || 0} entries created.`
+    
+    await loadTimetable()
+  } catch (error) {
+    console.error('Generation error:', error.response?.data)
+    assignmentMessage.value = 'Error generating timetable: ' + (error.response?.data?.message || error.message)
+  } finally {
+    loading.value = false
+  }
+}
+
+const buildTimetableGridRows = (group) => {
+  const entriesByDay = new Map()
+  
+  // Group entries by day
+  group.entries.forEach(entry => {
+    const dayEntries = entriesByDay.get(entry.day_of_week) || []
+    dayEntries.push({
+      ...entry,
+      start_time: entry.start_time.slice(0, 5),
+      end_time: entry.end_time.slice(0, 5)
+    })
+    entriesByDay.set(entry.day_of_week, dayEntries)
+  })
+  
+  // Create time slots
+  const timeSlots = []
+  const startTimes = ['08:00', '09:00', '10:00', '11:00', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:00']
+  
+  startTimes.forEach(startTime => {
+    const endTime = getNextTime(startTime)
+    timeSlots.push({
+      start_time: startTime,
+      end_time: endTime
+    })
+  })
+  
+  // Build rows
+  const rows = []
+  
+  timeSlots.forEach(slot => {
+    const rowEntriesByDay = {}
+    
+    days.forEach(day => {
+      const dayEntries = entriesByDay.get(day) || []
+      const entry = dayEntries.find(item => item.start_time === slot.start_time)
+      
+      if (entry) {
+        rowEntriesByDay[day] = entry
+      } else {
+        // Check if this time slot is covered by a previous entry that spans multiple periods
+        const coveringEntry = dayEntries.find(item => {
+          const itemStart = timeToMinutes(item.start_time)
+          const itemEnd = timeToMinutes(item.end_time)
+          const slotStart = timeToMinutes(slot.start_time)
+          const slotEnd = timeToMinutes(slot.end_time)
+          return itemStart < slotStart && itemEnd > slotStart
+        })
+        rowEntriesByDay[day] = coveringEntry || null
+      }
+    })
+    
+    // Check if it's a break time
+    const isBreak = slot.start_time === '11:00' || slot.start_time === '13:30' || slot.start_time === '17:30'
+    
+    if (isBreak) {
+      rows.push({
+        type: 'break',
+        breakName: slot.start_time === '11:00' ? 'BREAK' : slot.start_time === '13:30' ? 'LUNCH' : 'BREAK',
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        entriesByDay: {}
+      })
+    } else {
+      rows.push({
+        type: 'period',
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        entriesByDay: rowEntriesByDay
+      })
+    }
+  })
+  
+  return rows
+}
+
+const timeToMinutes = (time) => {
+  const [hours, minutes] = (time || '00:00').split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+const getNextTime = (currentTime) => {
+  const timeMap = {
+    '08:00': '09:00',
+    '09:00': '10:00',
+    '10:00': '11:00',
+    '11:00': '11:30',
+    '11:30': '12:30',
+    '12:30': '13:30',
+    '13:30': '14:30',
+    '14:30': '15:30',
+    '15:30': '16:30',
+    '16:30': '17:30',
+    '17:30': '18:00',
+    '18:00': '19:00'
+  }
+  return timeMap[currentTime] || '19:00'
+}
+
+// Data loading
+const loadClasses = async () => {
+  try {
+    const response = await api.get('/classes')
+    classes.value = response.data.classes || []
+  } catch (error) {
+    console.error('Error loading classes:', error)
+  }
+}
+
+const loadTeachers = async () => {
+  try {
+    const response = await api.get('/teachers')
+    teachers.value = response.data.teachers || []
+  } catch (error) {
+    console.error('Error loading teachers:', error)
+  }
+}
+
+const loadModules = async () => {
+  try {
+    const response = await api.get('/modules')
+    modules.value = response.data.modules || []
+  } catch (error) {
+    console.error('Error loading modules:', error)
+  }
+}
+
+const loadSetupData = async () => {
   await Promise.all([
     loadClasses(),
-    loadSetupData(),
-    loadSettings(),
-    loadTimetable()
+    loadTeachers(),
+    loadModules()
   ])
+}
+
+const loadTimetable = async () => {
+  try {
+    const response = await api.get('/timetable')
+    timetableEntries.value = response.data.timetables || []
+  } catch (error) {
+    console.error('Error loading timetable:', error)
+  }
+}
+
+onMounted(async () => {
+  await loadSetupData()
+  await loadTimetable()
 })
 </script>
+
+<style scoped>
+.header-custom {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.sidebar-custom {
+  background: #f8f9fa;
+  border-right: 1px solid #dee2e6;
+  min-height: calc(100vh - 80px);
+  padding: 1rem;
+}
+
+.nav-item-custom {
+  color: #495057;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-item-custom:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.nav-item-custom.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.card-custom {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  margin-bottom: 1rem;
+}
+
+.card-body {
+  padding: 1.5rem;
+}
+
+.btn-primary-custom {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.3s ease;
+}
+
+.btn-primary-custom:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+  transform: translateY(-1px);
+}
+
+.timetable-grid {
+  font-size: 0.875rem;
+  border-collapse: collapse;
+  width: 100%;
+  border: 2px solid #dee2e6;
+}
+
+.timetable-grid th {
+  background: #f8f9fa;
+  border: 2px solid #dee2e6;
+  padding: 0.75rem;
+  text-align: center;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #495057;
+}
+
+.timetable-grid td {
+  border: 2px solid #dee2e6;
+  padding: 0.75rem;
+  vertical-align: middle;
+  text-align: center;
+  white-space: nowrap;
+  min-width: 120px;
+  height: 50px;
+}
+
+.timetable-grid .time-column {
+  font-weight: bold;
+  background: #e9ecef !important;
+  min-width: 100px;
+  color: #495057;
+}
+
+.timetable-grid .module-cell {
+  background: #ffffff !important;
+  color: #212529;
+}
+
+.timetable-grid .module-content {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.timetable-break-row {
+  background: #fff3cd !important;
+}
+
+.timetable-break-row td {
+  font-style: italic;
+  color: #6c757d !important;
+  font-weight: bold;
+  background: #fff3cd !important;
+  text-transform: uppercase;
+}
+
+.accordion-button {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.accordion-button:hover {
+  background-color: #f8f9fa;
+}
+
+.accordion-collapse {
+  border: none;
+}
+
+/* Accordion button fixes */
+.accordion-button {
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  font-weight: 600;
+  color: #495057;
+  position: relative;
+}
+
+.accordion-button .w-100 {
+  width: 100%;
+}
+
+.accordion-button:not(.collapsed) {
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+.accordion-button:focus {
+  box-shadow: none;
+  border-color: rgba(0,0,0,.125);
+}
+
+.accordion-button::after {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-left: auto;
+  content: "";
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23212529'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  transition: transform .2s ease-in-out;
+}
+
+.accordion-button:not(.collapsed)::after {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%230c63e4'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+  transform: rotate(-180deg);
+}
+
+/* Statistics Cards */
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+</style>
