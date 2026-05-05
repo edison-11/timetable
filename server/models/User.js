@@ -2,6 +2,16 @@ const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 class User {
+  static async ensureProfilePhotoColumn() {
+    try {
+      await pool.execute('ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) NULL AFTER role');
+    } catch (error) {
+      if (error.code !== 'ER_DUP_FIELDNAME') {
+        throw error;
+      }
+    }
+  }
+
   static async create(userData) {
     const { username, email, password, role = 'student' } = userData;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -23,9 +33,19 @@ class User {
   }
 
   static async findById(id) {
+    await this.ensureProfilePhotoColumn();
+
     const [rows] = await pool.execute(
-      'SELECT id, username, email, role, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, role, profile_photo, created_at FROM users WHERE id = ?',
       [id]
+    );
+    return rows[0];
+  }
+
+  static async findByEmailExcludingId(email, id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM users WHERE email = ? AND id != ?',
+      [email, id]
     );
     return rows[0];
   }
@@ -35,8 +55,10 @@ class User {
   }
 
   static async getAll() {
+    await this.ensureProfilePhotoColumn();
+
     const [rows] = await pool.execute(
-      'SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC'
+      'SELECT id, username, email, role, profile_photo, created_at FROM users ORDER BY created_at DESC'
     );
     return rows;
   }
@@ -46,6 +68,46 @@ class User {
     await pool.execute(
       'UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?',
       [username, email, role, id]
+    );
+  }
+
+  static async updateProfile(id, userData) {
+    await this.ensureProfilePhotoColumn();
+
+    const { username, email, password, profile_photo } = userData;
+    const updateFields = [];
+    const updateValues = [];
+
+    if (username !== undefined) {
+      updateFields.push('username = ?');
+      updateValues.push(username);
+    }
+
+    if (email !== undefined) {
+      updateFields.push('email = ?');
+      updateValues.push(email);
+    }
+
+    if (password !== undefined && password !== '') {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateFields.push('password = ?');
+      updateValues.push(hashedPassword);
+    }
+
+    if (profile_photo !== undefined) {
+      updateFields.push('profile_photo = ?');
+      updateValues.push(profile_photo || null);
+    }
+
+    if (!updateFields.length) {
+      return;
+    }
+
+    updateValues.push(id);
+
+    await pool.execute(
+      `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues
     );
   }
 

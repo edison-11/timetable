@@ -2,11 +2,11 @@ const pool = require('../config/database');
 
 class TimetableEntry {
   static async create(timetableData) {
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id } = timetableData;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name } = timetableData;
     
     const [result] = await pool.execute(
-      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [class_id, assignment_id, day_of_week, start_time, end_time, room_id]
+      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name]
     );
     
     return result.insertId;
@@ -20,14 +20,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       ORDER BY t.day_of_week, t.start_time
     `);
@@ -42,14 +41,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE t.timetable_id = ?
     `, [id]);
@@ -64,14 +62,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE t.class_id = ?
       ORDER BY t.day_of_week, t.start_time
@@ -87,14 +84,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE a.teacher_id = ?
       ORDER BY t.day_of_week, t.start_time
@@ -110,14 +106,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE t.room_id = ?
       ORDER BY t.day_of_week, t.start_time
@@ -133,14 +128,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE t.day_of_week = ?
       ORDER BY t.start_time
@@ -239,14 +233,13 @@ class TimetableEntry {
              a.academic_year,
              a.term,
              tr.name as teacher_name,
-             m.module_name,
+             t.module_name,
              r.room_name,
              r.room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
-      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE t.class_id = ?
       ORDER BY FIELD(t.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), t.start_time

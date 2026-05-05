@@ -95,12 +95,12 @@ router.post('/login', [
 
     const user = await User.findByEmail(email);
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     const isMatch = await User.comparePassword(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
 
     if (user.role !== 'admin') {
@@ -116,7 +116,8 @@ router.post('/login', [
         id: user.id,
         username: user.username,
         email: user.email,
-        role: user.role
+        role: user.role,
+        profile_photo: user.profile_photo || null
       }
     });
   } catch (error) {
@@ -130,6 +131,54 @@ router.get('/me', auth, async (req, res) => {
   res.json({
     user: req.user
   });
+});
+
+router.put('/me', auth, [
+  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('password')
+    .optional({ checkFalsy: true })
+    .isLength({ min: 6 })
+    .withMessage('Password must be at least 6 characters'),
+  body('profile_photo')
+    .optional({ nullable: true })
+    .isString()
+    .withMessage('Profile photo must be a file path')
+], async (req, res) => {
+  try {
+    if (req.user.type === 'teacher') {
+      return res.status(403).json({ message: 'Admin account required' });
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username, email, password, profile_photo } = req.body;
+    const existingUser = await User.findByEmailExcludingId(email, req.user.id);
+
+    if (existingUser) {
+      return res.status(400).json({ message: 'Email already in use' });
+    }
+
+    await User.updateProfile(req.user.id, {
+      username,
+      email,
+      password,
+      profile_photo
+    });
+
+    const user = await User.findById(req.user.id);
+
+    res.json({
+      message: 'Profile updated successfully',
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Get all users (admin only)

@@ -142,12 +142,13 @@
                     </div>
                     <div class="col-md-6">
                       <label for="classSection" class="form-label">Section</label>
-                      <select id="classSection" v-model.number="classForm.section_id" class="form-select">
+                      <select id="classSection" v-model.number="classForm.section_id" class="form-select" :class="{ 'is-invalid': errors.section_id }">
                         <option value="">No section</option>
                         <option v-for="section in sections" :key="section.section_id" :value="section.section_id">
                           {{ section.section_name }} - {{ section.level }}
                         </option>
                       </select>
+                      <div class="invalid-feedback" v-if="errors.section_id">{{ errors.section_id }}</div>
                     </div>
                     <div class="col-md-6">
                       <label for="classDos" class="form-label">Director of Studies</label>
@@ -203,6 +204,7 @@ const levelFilter = ref('')
 const academicYearFilter = ref('')
 const teacherDepartmentFilter = ref('')
 const classTeacherDepartment = ref('')
+const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
 const isEditing = ref(false)
 const loading = ref(false)
 const errors = ref({})
@@ -223,7 +225,10 @@ const classForm = ref(emptyClassForm())
 
 const levelOptions = computed(() => uniqueSorted(classes.value.map(classItem => classItem.level)))
 const academicYearOptions = computed(() => uniqueSorted(classes.value.map(classItem => classItem.academic_year)))
-const teacherDepartments = computed(() => uniqueSorted(teachers.value.map(teacher => teacher.department || 'SSOD')))
+const teacherDepartments = computed(() => uniqueSorted([
+  ...commonDepartments,
+  ...teachers.value.map(teacher => teacher.department || 'SSOD')
+]))
 const levelSuggestions = computed(() => uniqueSorted(['Grade 10', 'Grade 11', 'Grade 12', ...classes.value.map(classItem => classItem.level)]))
 
 const filteredTeacherOptions = computed(() => {
@@ -298,13 +303,16 @@ const validateForm = () => {
   if (!classForm.value.level.trim()) errors.value.level = 'Level is required'
   if (!classForm.value.academic_year.trim()) errors.value.academic_year = 'Academic year is required'
 
-  const duplicateClass = classes.value.find((classItem) => {
-    return classItem.class_name?.trim().toLowerCase() === trimmedClassName.toLowerCase() &&
-      (!isEditing.value || classItem.class_id !== classForm.value.class_id)
-  })
+  // Check for duplicate section assignment (only if a section is selected)
+  if (classForm.value.section_id) {
+    const duplicateSection = classes.value.find((classItem) => {
+      return classItem.section_id === classForm.value.section_id &&
+        (!isEditing.value || classItem.class_id !== classForm.value.class_id)
+    })
 
-  if (duplicateClass) {
-    errors.value.class_name = 'A class with this name already exists'
+    if (duplicateSection) {
+      errors.value.section_id = 'This section is already assigned to another class'
+    }
   }
 
   return Object.keys(errors.value).length === 0

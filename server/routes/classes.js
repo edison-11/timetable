@@ -23,9 +23,12 @@ router.post('/', auth, [
 
     const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
 
-    const existingClass = await Class.findByName(class_name);
-    if (existingClass) {
-      return res.status(400).json({ message: 'Class already exists' });
+    // Check for duplicate section assignment if section_id is provided
+    if (section_id) {
+      const existingSectionClass = await Class.findBySectionId(section_id);
+      if (existingSectionClass) {
+        return res.status(400).json({ message: 'This section is already assigned to another class' });
+      }
     }
 
     const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id });
@@ -130,10 +133,6 @@ router.put('/:id', auth, [
     const updateData = {};
     
     if (class_name) {
-      const existingClass = await Class.findByNameExcludingId(class_name, req.params.id);
-      if (existingClass) {
-        return res.status(400).json({ message: 'Another class with this name already exists' });
-      }
       updateData.class_name = class_name;
     }
     if (level) updateData.level = level;
@@ -141,7 +140,16 @@ router.put('/:id', auth, [
     if (class_teacher_id !== undefined) updateData.class_teacher_id = class_teacher_id || null;
     if (shift_id !== undefined) updateData.shift_id = shift_id;
     if (dos_id !== undefined) updateData.dos_id = dos_id;
-    if (section_id !== undefined) updateData.section_id = section_id;
+    if (section_id !== undefined) {
+      // Check for duplicate section assignment if section_id is provided and not null
+      if (section_id) {
+        const existingSectionClass = await Class.findBySectionIdExcludingId(section_id, req.params.id);
+        if (existingSectionClass) {
+          return res.status(400).json({ message: 'This section is already assigned to another class' });
+        }
+      }
+      updateData.section_id = section_id;
+    }
 
     await Class.update(req.params.id, updateData);
     const updatedClass = await Class.findById(req.params.id);

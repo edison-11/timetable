@@ -41,6 +41,22 @@ class Class {
     return rows[0];
   }
 
+  static async findBySectionId(section_id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM class WHERE section_id = ?',
+      [section_id]
+    );
+    return rows[0];
+  }
+
+  static async findBySectionIdExcludingId(section_id, id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM class WHERE section_id = ? AND class_id <> ?',
+      [section_id, id]
+    );
+    return rows[0];
+  }
+
   static async findById(id) {
     const [rows] = await pool.execute(`
       SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department

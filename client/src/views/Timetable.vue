@@ -362,7 +362,7 @@
                             <td>{{ formatTimeRange(row.start_time, row.end_time) }}</td>
                             <td v-for="day in days" :key="day">
                               <div v-if="row.entriesByDay[day]">
-                                <div class="fw-semibold">{{ row.entriesByDay[day].module_name }}</div>
+                                <div :class="['fw-semibold', row.entriesByDay[day].covered ? 'text-muted' : '']">{{ row.entriesByDay[day].module_name }}</div>
                                 <div class="text-muted small">{{ row.entriesByDay[day].teacher_name }}</div>
                               </div>
                             </td>
@@ -451,11 +451,16 @@ const dayOrder = days.reduce((order, day, index) => {
 }, {})
 
 const buildTimetableGridRows = (group) => {
-  const entryMap = new Map()
+  const entriesByDay = new Map()
 
   group.entries.forEach((entry) => {
-    const timeKey = normalizeTime(entry.start_time)
-    entryMap.set(`${entry.day_of_week}|${timeKey}`, entry)
+    const dayEntries = entriesByDay.get(entry.day_of_week) || []
+    dayEntries.push({
+      ...entry,
+      start_time: normalizeTime(entry.start_time),
+      end_time: normalizeTime(entry.end_time)
+    })
+    entriesByDay.set(entry.day_of_week, dayEntries)
   })
 
   const sortedPeriods = buildDisplayPeriods()
@@ -484,17 +489,24 @@ const buildTimetableGridRows = (group) => {
       breakIndex += 1
     }
 
-    const entriesByDay = {}
+    const rowEntriesByDay = {}
     days.forEach((day) => {
-      entriesByDay[day] = entryMap.get(`${day}|${period.start_time}`) || null
+      const dayEntries = entriesByDay.get(day) || []
+      const periodStart = timeToMinutes(period.start_time)
+      const entry = dayEntries.find((item) => item.start_time === period.start_time)
+      const coveringEntry = dayEntries.find((item) => {
+        return timeToMinutes(item.start_time) < periodStart && timeToMinutes(item.end_time) > periodStart
+      })
+
+      rowEntriesByDay[day] = coveringEntry ? { covered: true, ...coveringEntry } : (entry || null)
     })
 
     rows.push({
       type: 'period',
       period: periodNumber,
       start_time: period.start_time,
-      end_time: period.end_time,
-      entriesByDay
+      end_time: getDisplayPeriodEnd(period, rowEntriesByDay),
+      entriesByDay: rowEntriesByDay
     })
     periodNumber += 1
   })
@@ -512,6 +524,16 @@ const buildTimetableGridRows = (group) => {
   }
 
   return rows
+}
+
+const getDisplayPeriodEnd = (period, rowEntriesByDay) => {
+  const entryEnds = Object.values(rowEntriesByDay)
+    .filter((entry) => entry && !entry.covered && entry.end_time)
+    .map((entry) => entry.end_time)
+
+  return entryEnds.length
+    ? entryEnds.sort((a, b) => timeToMinutes(b) - timeToMinutes(a))[0]
+    : period.end_time
 }
 
 const overlaps = (startA, endA, startB, endB) => {

@@ -36,39 +36,60 @@
 
         <div class="mb-3">
           <label for="department" class="form-label fw-medium">Department</label>
-          <select id="department" v-model="form.department" class="form-select form-select-lg">
-            <option value="SSOD">SSOD</option>
-            <option value="ELT">ELT</option>
-            <option value="S1">S1</option>
-            <option value="S2">S2</option>
+          <select id="department" v-model="form.department" class="form-select form-select-lg" required>
+            <option v-for="department in departmentOptions" :key="department" :value="department">
+              {{ department }}
+            </option>
             <option value="Other">Other</option>
           </select>
         </div>
 
-        <div class="mb-3">
-          <label for="password" class="form-label fw-medium">Password</label>
+        <div v-if="form.department === 'Other'" class="mb-3">
+          <label for="customDepartment" class="form-label fw-medium">Other Department</label>
           <input
-            id="password"
-            v-model="form.password"
-            type="password"
+            id="customDepartment"
+            v-model="form.customDepartment"
+            type="text"
             required
             class="form-control form-control-lg"
-            placeholder="••••••••"
-            minlength="6"
+            placeholder="Enter department"
           />
+        </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label fw-medium">Password</label>
+          <div class="input-group">
+            <input
+              id="password"
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              required
+              class="form-control form-control-lg"
+              placeholder="••••••••"
+              minlength="6"
+            />
+            <button type="button" class="btn btn-outline-secondary" @click="showPassword = !showPassword">
+              <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+            </button>
+          </div>
           <small class="text-muted">Must be at least 6 characters</small>
         </div>
 
         <div class="mb-3">
           <label for="confirmPassword" class="form-label fw-medium">Confirm Password</label>
-          <input
-            id="confirmPassword"
-            v-model="form.confirmPassword"
-            type="password"
-            required
-            class="form-control form-control-lg"
-            placeholder="••••••••"
-          />
+          <div class="input-group">
+            <input
+              id="confirmPassword"
+              v-model="form.confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              required
+              class="form-control form-control-lg"
+              placeholder="••••••••"
+            />
+            <button type="button" class="btn btn-outline-secondary" @click="showConfirmPassword = !showConfirmPassword">
+              <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+            </button>
+          </div>
         </div>
 
         <div v-if="error" class="alert alert-danger" role="alert">
@@ -103,14 +124,38 @@
 import { ref } from 'vue'
 import api from '@/stores/api'
 
+const departmentOptions = [
+  'Business',
+  'Software Development',
+  'Electrical',
+  'Electronics',
+  'Computer Science',
+  'Information Technology',
+  'Networking',
+  'Accounting',
+  'Finance',
+  'Marketing',
+  'Management',
+  'Hospitality',
+  'Tourism',
+  'Construction',
+  'Mechanical',
+  'Automotive',
+  'Agriculture',
+  'General Studies'
+]
+
 const form = ref({
   name: '',
   email: '',
-  department: 'SSOD',
+  department: 'Business',
+  customDepartment: '',
   password: '',
   confirmPassword: ''
 })
 
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
 const success = ref('')
@@ -129,6 +174,16 @@ const handleRegister = async () => {
     return
   }
 
+  const selectedDepartment = form.value.department === 'Other'
+    ? form.value.customDepartment.trim()
+    : form.value.department
+
+  if (!selectedDepartment) {
+    error.value = 'Department is required'
+    success.value = ''
+    return
+  }
+
   loading.value = true
   error.value = ''
   success.value = ''
@@ -137,7 +192,7 @@ const handleRegister = async () => {
     const response = await api.post('/teacher-auth/register', {
       name: form.value.name,
       email: form.value.email,
-      department: form.value.department,
+      department: selectedDepartment,
       password: form.value.password
     })
 
@@ -145,7 +200,8 @@ const handleRegister = async () => {
     form.value = {
       name: '',
       email: '',
-      department: 'SSOD',
+      department: 'Business',
+      customDepartment: '',
       password: '',
       confirmPassword: ''
     }

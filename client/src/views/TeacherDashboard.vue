@@ -7,22 +7,6 @@
           <span class="me-2">👨‍🏫</span>
           Teacher Portal
         </a>
-        
-        <div class="navbar-nav ms-auto">
-          <div class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-              <i class="bi bi-person-circle me-2"></i>
-              {{ teacher?.name || 'Teacher' }}
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end">
-              <li><h6 class="dropdown-header">{{ teacher?.email }}</h6></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="#" @click="handleLogout">
-                <i class="bi bi-box-arrow-right me-2"></i> Logout
-              </a></li>
-            </ul>
-          </div>
-        </div>
       </div>
     </nav>
 
@@ -137,12 +121,17 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import api from '@/stores/api'
+import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
+const authStore = useAuthStore()
 
-const teacher = ref(null)
+const storedTeacher = ref(null)
+const teacher = computed(() => {
+  return authStore.currentUserType === 'teacher' && authStore.currentUser
+    ? authStore.currentUser
+    : storedTeacher.value
+})
 const timetableEntries = ref([])
 const loading = ref(false)
 const error = ref('')
@@ -171,7 +160,7 @@ const formatTime = (time) => {
 const loadTeacherData = () => {
   const teacherData = localStorage.getItem('teacher')
   if (teacherData) {
-    teacher.value = JSON.parse(teacherData)
+    storedTeacher.value = JSON.parse(teacherData)
   }
 }
 
@@ -197,14 +186,6 @@ const loadTimetable = async () => {
 
 const refreshTimetable = () => {
   loadTimetable()
-}
-
-const handleLogout = () => {
-  localStorage.removeItem('token')
-  localStorage.removeItem('teacher')
-  localStorage.removeItem('userType')
-  delete api.defaults.headers.common['Authorization']
-  router.push('/teacher/login')
 }
 
 onMounted(() => {

@@ -60,14 +60,14 @@
       <nav class="sidebar-custom" style="width: 250px;">
         <div class="p-3">
           <router-link 
-            v-for="item in navigation" 
-            :key="item.name"
-            :to="item.path"
+            v-for="item in navigation?.filter(Boolean)" 
+            :key="item?.name"
+            :to="item?.path"
             class="nav-item-custom d-block mb-2"
-            :class="{ 'active': route.path === item.path }"
+            :class="{ 'active': route.path === item?.path }"
           >
-            <span class="fs-5">{{ item.icon }}</span>
-            <span>{{ item.name }}</span>
+            <span class="fs-5">{{ item?.icon }}</span>
+            <span>{{ item?.name }}</span>
           </router-link>
         </div>
       </nav>
@@ -181,15 +181,20 @@
             </div>
             <div class="col-md-6">
               <label for="quickTeacherPassword" class="form-label">Password *</label>
-              <input 
-                type="password" 
-                class="form-control" 
-                id="quickTeacherPassword" 
-                v-model="newTeacher.password"
-                required
-                placeholder="Minimum 6 characters"
-                :class="{ 'is-invalid': errors.password }"
-              >
+              <div class="input-group">
+                <input 
+                  :type="showNewTeacherPassword ? 'text' : 'password'" 
+                  class="form-control" 
+                  id="quickTeacherPassword" 
+                  v-model="newTeacher.password"
+                  required
+                  placeholder="Minimum 6 characters"
+                  :class="{ 'is-invalid': errors.password }"
+                >
+                <button type="button" class="btn btn-outline-secondary" @click="showNewTeacherPassword = !showNewTeacherPassword">
+                  {{ showNewTeacherPassword ? 'Hide' : 'Show' }}
+                </button>
+              </div>
               <div class="invalid-feedback" v-if="errors.password">
                 {{ errors.password }}
               </div>
@@ -303,7 +308,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="teacher in filteredTeachers" :key="teacher.teacher_id" class="align-middle">
+                <tr v-for="teacher in filteredTeachers" v-if="teacher" :key="teacher.teacher_id" class="align-middle">
                   <td class="fw-medium">{{ teacher.name }}</td>
                   <td>{{ teacher.email }}</td>
                   <td>
@@ -519,14 +524,19 @@
                     </div>
                     <div class="col-md-6">
                       <label for="editTeacherPassword" class="form-label">Password (leave blank to keep current)</label>
-                      <input 
-                        type="password" 
-                        class="form-control" 
-                        id="editTeacherPassword" 
-                        v-model="editingTeacher.password"
-                        placeholder="Enter new password or leave blank"
-                        :class="{ 'is-invalid': errors.password }"
-                      >
+                      <div class="input-group">
+                        <input 
+                          :type="showEditTeacherPassword ? 'text' : 'password'" 
+                          class="form-control" 
+                          id="editTeacherPassword" 
+                          v-model="editingTeacher.password"
+                          placeholder="Enter new password or leave blank"
+                          :class="{ 'is-invalid': errors.password }"
+                        >
+                        <button type="button" class="btn btn-outline-secondary" @click="showEditTeacherPassword = !showEditTeacherPassword">
+                          {{ showEditTeacherPassword ? 'Hide' : 'Show' }}
+                        </button>
+                      </div>
                       <div class="invalid-feedback" v-if="errors.password">
                         {{ errors.password }}
                       </div>
@@ -627,6 +637,7 @@ const formatTime = (timestamp) => {
 }
 
 const approveTeacher = async (teacher) => {
+  if (!teacher?.teacher_id) return
   try {
     const response = await api.put(`/teachers/${teacher.teacher_id}/approve`, { status: 'active' })
     
@@ -658,6 +669,8 @@ const handleAction = (action) => {
 
 // Teacher form data
 const showTeacherForm = ref(true)
+const showNewTeacherPassword = ref(false)
+const showEditTeacherPassword = ref(false)
 const newTeacher = ref({
   name: '',
   email: '',
@@ -702,17 +715,17 @@ const toggleTeacherForm = () => {
 const validateTeacherForm = () => {
   errors.value = {}
   
-  if (!newTeacher.value.name.trim()) {
+  if (!newTeacher.value?.name?.trim()) {
     errors.value.name = 'Name is required'
   }
   
-  if (!newTeacher.value.email.trim()) {
+  if (!newTeacher.value?.email?.trim()) {
     errors.value.email = 'Email is required'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newTeacher.value.email)) {
     errors.value.email = 'Please enter a valid email address'
   }
   
-  if (!newTeacher.value.password.trim()) {
+  if (!newTeacher.value?.password?.trim()) {
     errors.value.password = 'Password is required'
   } else if (newTeacher.value.password.length < 6) {
     errors.value.password = 'Password must be at least 6 characters'
@@ -833,9 +846,11 @@ const toggleTeacherSearch = () => {
 
 const filteredTeachers = computed(() => {
   let filtered = teachers.value.filter(teacher => {
+    if (!teacher) return false
+    
     const matchesSearch = !teacherSearchQuery.value || 
-      teacher.name.toLowerCase().includes(teacherSearchQuery.value.toLowerCase()) ||
-      teacher.email.toLowerCase().includes(teacherSearchQuery.value.toLowerCase())
+      teacher.name?.toLowerCase().includes(teacherSearchQuery.value.toLowerCase()) ||
+      teacher.email?.toLowerCase().includes(teacherSearchQuery.value.toLowerCase())
     
     const matchesStatus = !teacherStatusFilter.value || teacher.status === teacherStatusFilter.value
     
@@ -877,6 +892,7 @@ const searchTeachers = () => {
 }
 
 const openEditModal = (teacher) => {
+  if (!teacher?.teacher_id) return
   editingTeacher.value = {
     teacher_id: teacher.teacher_id,
     name: teacher.name,
@@ -948,6 +964,7 @@ const handleUpdateTeacher = async () => {
 }
 
 const deleteTeacher = async (teacher) => {
+  if (!teacher?.teacher_id) return
   if (!confirm(`Are you sure you want to delete ${teacher.name}? This action cannot be undone.`)) {
     return
   }
@@ -1139,4 +1156,3 @@ onMounted(() => {
   loadDashboardData()
 })
 </script>
-

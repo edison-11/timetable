@@ -28,6 +28,20 @@ const overlaps = (startA, endA, startB, endB) => {
   return startA < endB && endA > startB;
 };
 
+const getTeacherConflictsWithChangeover = async (teacherId, dayOfWeek, startTime, endTime, changeoverMinutes, excludeId = null) => {
+  const buffer = Math.max(Number(changeoverMinutes || 0), 0);
+  const bufferedStart = minutesToTime(timeToMinutes(startTime) - buffer);
+  const bufferedEnd = minutesToTime(timeToMinutes(endTime) + buffer);
+
+  return TimetableEntry.getTeacherConflicts(
+    teacherId,
+    dayOfWeek,
+    bufferedStart,
+    bufferedEnd,
+    excludeId
+  );
+};
+
 const buildSlots = ({ days, startTime, endTime, periodMinutes, changeoverMinutes, breaks }) => {
   const dayStart = timeToMinutes(startTime);
   const dayEnd = timeToMinutes(endTime);
@@ -135,7 +149,7 @@ const buildBreaksFromPeriodRules = ({ startTime, endTime, periodMinutes, changeo
   return calculatedBreaks;
 };
 
-const chooseAssignment = (assignments, scheduledCounts) => {
+const rankAssignments = (assignments, scheduledCounts) => {
   const totalHours = assignments.reduce((sum, assignment) => {
     return sum + Math.max(Number(assignment.hours_per_year || 1), 1);
   }, 0);
@@ -156,7 +170,45 @@ const chooseAssignment = (assignments, scheduledCounts) => {
         score: expectedShare - actualShare
       };
     })
-    .sort((a, b) => b.score - a.score)[0].assignment;
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.assignment);
+};
+
+const getPreferredBlockPeriods = (assignment) => {
+  const yearlyHours = Math.max(Number(assignment.hours_per_year || 1), 1);
+
+  if (yearlyHours >= 60) {
+    return 3;
+  }
+
+  if (yearlyHours >= 20) {
+    return 2;
+  }
+
+  return 1;
+};
+
+const getSlotBlock = (slots, startIndex, periodCount, changeoverMinutes) => {
+  const block = [slots[startIndex]];
+
+  for (let offset = 1; offset < periodCount; offset += 1) {
+    const previousSlot = block[block.length - 1];
+    const nextSlot = slots[startIndex + offset];
+
+    if (!nextSlot || nextSlot.day_of_week !== previousSlot.day_of_week) {
+      break;
+    }
+
+    const gapMinutes = timeToMinutes(nextSlot.start_time) - timeToMinutes(previousSlot.end_time);
+
+    if (gapMinutes < 0 || gapMinutes > Math.max(Number(changeoverMinutes || 0), 0)) {
+      break;
+    }
+
+    block.push(nextSlot);
+  }
+
+  return block;
 };
 
 // Create timetable entry
@@ -182,12 +234,23 @@ router.post('/', auth, [
       return res.status(400).json({ message: 'Class time conflict detected', conflicts: classConflicts });
     }
 
-    // Check teacher conflicts
+    const settings = await SystemSetting.getTimetableSettings();
+    const changeoverMinutes = Number(settings.teacher_changeover_minutes ?? 5);
+
+    // Check teacher conflicts, including the configured changeover buffer.
     const assignment = await require('../models/Assignment').findById(assignment_id);
+    const module_name = assignment ? assignment.module_name : null;
+
     if (assignment) {
-      const teacherConflicts = await TimetableEntry.getTeacherConflicts(assignment.teacher_id, day_of_week, start_time, end_time);
+      const teacherConflicts = await getTeacherConflictsWithChangeover(
+        assignment.teacher_id,
+        day_of_week,
+        start_time,
+        end_time,
+        changeoverMinutes
+      );
       if (teacherConflicts.length > 0) {
-        return res.status(400).json({ message: 'Teacher time conflict detected', conflicts: teacherConflicts });
+        return res.status(400).json({ message: 'Teacher time conflict or changeover conflict detected', conflicts: teacherConflicts });
       }
     }
 
@@ -199,7 +262,7 @@ router.post('/', auth, [
       }
     }
 
-    const timetableId = await TimetableEntry.create({ class_id, assignment_id, day_of_week, start_time, end_time, room_id });
+    const timetableId = await TimetableEntry.create({ class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name });
     const timetable = await TimetableEntry.findById(timetableId);
 
     res.status(201).json({
@@ -295,40 +358,78 @@ router.post('/generate', auth, [
       const scheduledCounts = new Map();
       let classCount = 0;
 
-      for (const slot of slots) {
-        const assignment = chooseAssignment(assignments, scheduledCounts);
+      for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 1) {
+        const slot = slots[slotIndex];
+        let scheduledBlock = null;
+        let conflictReason = '';
 
-        const teacherConflicts = await TimetableEntry.getTeacherConflicts(
-          assignment.teacher_id,
-          slot.day_of_week,
-          slot.start_time,
-          slot.end_time
-        );
+        for (const assignment of rankAssignments(assignments, scheduledCounts)) {
+          const preferredBlockPeriods = getPreferredBlockPeriods(assignment);
 
-        if (teacherConflicts.length) {
-          skipped.push({
-            class_id: classItem.class_id,
-            class_name: classItem.class_name,
-            reason: `${assignment.teacher_name} is busy ${slot.day_of_week} ${slot.start_time}-${slot.end_time}`
-          });
+          for (let blockPeriods = preferredBlockPeriods; blockPeriods >= 1; blockPeriods -= 1) {
+            const block = getSlotBlock(slots, slotIndex, blockPeriods, changeoverMinutes);
+
+            if (block.length !== blockPeriods) {
+              continue;
+            }
+
+            const blockStart = block[0].start_time;
+            const blockEnd = block[block.length - 1].end_time;
+            const teacherConflicts = await getTeacherConflictsWithChangeover(
+              assignment.teacher_id,
+              slot.day_of_week,
+              blockStart,
+              blockEnd,
+              changeoverMinutes
+            );
+
+            if (teacherConflicts.length) {
+              conflictReason = `${assignment.teacher_name} is busy ${slot.day_of_week} ${blockStart}-${blockEnd}`;
+              continue;
+            }
+
+            scheduledBlock = {
+              assignment,
+              block,
+              start_time: blockStart,
+              end_time: blockEnd
+            };
+            break;
+          }
+
+          if (scheduledBlock) {
+            break;
+          }
+        }
+
+        if (!scheduledBlock) {
+          if (conflictReason) {
+            skipped.push({
+              class_id: classItem.class_id,
+              class_name: classItem.class_name,
+              reason: conflictReason
+            });
+          }
           continue;
         }
 
         const timetableId = await TimetableEntry.create({
           class_id: classItem.class_id,
-          assignment_id: assignment.assignment_id,
+          assignment_id: scheduledBlock.assignment.assignment_id,
           day_of_week: slot.day_of_week,
-          start_time: slot.start_time,
-          end_time: slot.end_time,
-          room_id: null
+          start_time: scheduledBlock.start_time,
+          end_time: scheduledBlock.end_time,
+          room_id: null,
+          module_name: scheduledBlock.assignment.module_name
         });
         const timetable = await TimetableEntry.findById(timetableId);
         generated.push(timetable);
         scheduledCounts.set(
-          assignment.assignment_id,
-          (scheduledCounts.get(assignment.assignment_id) || 0) + 1
+          scheduledBlock.assignment.assignment_id,
+          (scheduledCounts.get(scheduledBlock.assignment.assignment_id) || 0) + scheduledBlock.block.length
         );
-        classCount += 1;
+        classCount += scheduledBlock.block.length;
+        slotIndex += scheduledBlock.block.length - 1;
       }
 
       if (!classCount) {
@@ -458,9 +559,18 @@ router.put('/:id', auth, [
       if (assignment_id) {
         const assignment = await require('../models/Assignment').findById(assignment_id);
         if (assignment) {
-          const teacherConflicts = await TimetableEntry.getTeacherConflicts(assignment.teacher_id, day_of_week, start_time, end_time, req.params.id);
+          const settings = await SystemSetting.getTimetableSettings();
+          const changeoverMinutes = Number(settings.teacher_changeover_minutes ?? 5);
+          const teacherConflicts = await getTeacherConflictsWithChangeover(
+            assignment.teacher_id,
+            day_of_week,
+            start_time,
+            end_time,
+            changeoverMinutes,
+            req.params.id
+          );
           if (teacherConflicts.length > 0) {
-            return res.status(400).json({ message: 'Teacher time conflict detected', conflicts: teacherConflicts });
+            return res.status(400).json({ message: 'Teacher time conflict or changeover conflict detected', conflicts: teacherConflicts });
           }
         }
       }

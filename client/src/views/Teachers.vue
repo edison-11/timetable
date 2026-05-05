@@ -150,14 +150,19 @@
                     </div>
                     <div class="col-md-6">
                       <label for="teacherPassword" class="form-label">Password *</label>
-                      <input 
-                        type="password" 
-                        class="form-control" 
-                        id="teacherPassword" 
-                        v-model="newTeacher.password"
-                        required
-                        placeholder="Minimum 6 characters"
-                      >
+                      <div class="input-group">
+                        <input 
+                          :type="showNewTeacherPassword ? 'text' : 'password'" 
+                          class="form-control" 
+                          id="teacherPassword" 
+                          v-model="newTeacher.password"
+                          required
+                          placeholder="Minimum 6 characters"
+                        >
+                        <button type="button" class="btn btn-outline-secondary" @click="showNewTeacherPassword = !showNewTeacherPassword">
+                          {{ showNewTeacherPassword ? 'Hide' : 'Show' }}
+                        </button>
+                      </div>
                       <div class="invalid-feedback" v-if="errors.password">
                         {{ errors.password }}
                       </div>
@@ -256,13 +261,18 @@
                     </div>
                     <div class="col-md-6">
                       <label for="editTeacherPassword" class="form-label">Password (leave blank to keep current)</label>
-                      <input 
-                        type="password" 
-                        class="form-control" 
-                        id="editTeacherPassword" 
-                        v-model="editingTeacher.password"
-                        placeholder="Enter new password or leave blank"
-                      >
+                      <div class="input-group">
+                        <input 
+                          :type="showEditTeacherPassword ? 'text' : 'password'" 
+                          class="form-control" 
+                          id="editTeacherPassword" 
+                          v-model="editingTeacher.password"
+                          placeholder="Enter new password or leave blank"
+                        >
+                        <button type="button" class="btn btn-outline-secondary" @click="showEditTeacherPassword = !showEditTeacherPassword">
+                          {{ showEditTeacherPassword ? 'Hide' : 'Show' }}
+                        </button>
+                      </div>
                       <div class="invalid-feedback" v-if="editErrors.password">
                         {{ editErrors.password }}
                       </div>
@@ -333,7 +343,9 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const departmentFilter = ref('')
 const showAddModal = ref(false)
-const commonDepartments = ['SSOD', 'ELT', 'S1', 'S2']
+const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
+const showNewTeacherPassword = ref(false)
+const showEditTeacherPassword = ref(false)
 
 // Edit functionality
 const editingTeacher = ref({
@@ -376,7 +388,7 @@ const filteredTeachers = computed(() => {
 
 const departmentOptions = computed(() => {
   const departments = teachers.value.map(teacher => teacher.department).filter(Boolean)
-  return [...new Set(departments)].sort((a, b) => a.localeCompare(b))
+  return [...new Set([...commonDepartments, ...departments])].sort((a, b) => a.localeCompare(b))
 })
 
 const departmentSuggestions = computed(() => {

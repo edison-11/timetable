@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   role ENUM('admin', 'teacher', 'student') DEFAULT 'student',
+  profile_photo VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS teacher (
   department VARCHAR(50) NOT NULL DEFAULT 'SSOD',
   status ENUM('active', 'inactive', 'on_leave') DEFAULT 'active',
   date_joined DATE,
+  profile_photo VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -117,6 +119,7 @@ CREATE TABLE IF NOT EXISTS timetable (
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   room_id INT,
+  module_name VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (class_id) REFERENCES class(class_id) ON DELETE CASCADE,

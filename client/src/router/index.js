@@ -11,13 +11,12 @@ const router = createRouter({
     {
       path: '/login',
       name: 'Login',
-      component: () => import('@/views/Login.vue'),
-      meta: { requiresGuest: true }
+      component: () => import('@/views/Login.vue')
     },
     {
       path: '/dashboard',
       name: 'Dashboard',
-      component: () => import('@/views/Dashboard_Fixed.vue'),
+      component: () => import('@/views/Dashboard.vue'),
       meta: { requiresAuth: true }
     },
     {
@@ -71,8 +70,7 @@ const router = createRouter({
     {
       path: '/teacher/register',
       name: 'TeacherRegister',
-      component: () => import('@/views/TeacherRegister.vue'),
-      meta: { requiresGuest: true }
+      component: () => import('@/views/TeacherRegister.vue')
     },
     {
       path: '/teacher/login',
@@ -96,26 +94,24 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const token = localStorage.getItem('token')
-  const needsAuthCheck = token && (to.meta.requiresAuth || to.meta.requiresTeacherAuth || to.meta.requiresGuest)
-
-  if (needsAuthCheck && !authStore.user) {
-    await authStore.checkAuth()
-  }
-
-  if (to.meta.requiresTeacherAuth && !authStore.isTeacherAuthenticated) {
+  const userType = localStorage.getItem('userType')
+  
+  // Simple authentication check
+  const isAuthenticated = !!token
+  const isTeacher = userType === 'teacher'
+  
+  if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
     next('/teacher/login')
-  } else if (to.meta.requiresAuth && !authStore.isAdminAuthenticated) {
+  } else if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
-  } else if (to.meta.requiresGuest) {
-    if (authStore.isTeacherAuthenticated) {
+  } else if (to.meta.requiresGuest && isAuthenticated) {
+    if (isTeacher) {
       next('/teacher/dashboard')
-    } else if (authStore.isAdminAuthenticated) {
-      next('/dashboard')
     } else {
-      next()
+      next('/dashboard')
     }
   } else {
     next()

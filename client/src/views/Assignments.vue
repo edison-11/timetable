@@ -170,6 +170,7 @@ const modules = ref([])
 const classes = ref([])
 const assignments = ref([])
 const selectedDepartment = ref('')
+const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
 const assignmentSearch = ref('')
 const loading = ref(false)
 const errors = ref({})
@@ -185,7 +186,7 @@ const newAssignment = ref({
 
 const teacherDepartments = computed(() => {
   const departments = teachers.value.map(teacher => teacher.department || 'SSOD')
-  return [...new Set(departments)].sort((a, b) => a.localeCompare(b))
+  return [...new Set([...commonDepartments, ...departments])].sort((a, b) => a.localeCompare(b))
 })
 
 const filteredTeachers = computed(() => {

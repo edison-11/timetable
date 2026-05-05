@@ -198,15 +198,20 @@
             </div>
             <div class="col-md-6">
               <label for="quickTeacherPassword" class="form-label">Password *</label>
-              <input 
-                type="password" 
-                class="form-control" 
-                id="quickTeacherPassword" 
-                v-model="newTeacher.password"
-                required
-                placeholder="Minimum 6 characters"
-                :class="{ 'is-invalid': errors.password }"
-              >
+              <div class="input-group">
+                <input 
+                  :type="showNewTeacherPassword ? 'text' : 'password'" 
+                  class="form-control" 
+                  id="quickTeacherPassword" 
+                  v-model="newTeacher.password"
+                  required
+                  placeholder="Minimum 6 characters"
+                  :class="{ 'is-invalid': errors.password }"
+                >
+                <button type="button" class="btn btn-outline-secondary" @click="showNewTeacherPassword = !showNewTeacherPassword">
+                  <i :class="showNewTeacherPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                </button>
+              </div>
               <div class="invalid-feedback" v-if="errors.password">
                 {{ errors.password }}
               </div>
@@ -453,6 +458,7 @@ const handleAction = (action) => {
 
 // Teacher form data
 const showTeacherForm = ref(false)
+const showNewTeacherPassword = ref(false)
 const newTeacher = ref({
   name: '',
   email: '',

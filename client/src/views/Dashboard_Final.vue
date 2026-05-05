@@ -166,15 +166,20 @@
             </div>
             <div class="col-md-6">
               <label for="quickTeacherPassword" class="form-label">Password *</label>
-              <input 
-                type="password" 
-                class="form-control" 
-                id="quickTeacherPassword" 
-                v-model="newTeacher.password"
-                required
-                placeholder="Minimum 6 characters"
-                :class="{ 'is-invalid': errors.password }"
-              >
+              <div class="input-group">
+                <input 
+                  :type="showNewTeacherPassword ? 'text' : 'password'" 
+                  class="form-control" 
+                  id="quickTeacherPassword" 
+                  v-model="newTeacher.password"
+                  required
+                  placeholder="Minimum 6 characters"
+                  :class="{ 'is-invalid': errors.password }"
+                >
+                <button type="button" class="btn btn-outline-secondary" @click="showNewTeacherPassword = !showNewTeacherPassword">
+                  {{ showNewTeacherPassword ? 'Hide' : 'Show' }}
+                </button>
+              </div>
               <div class="invalid-feedback" v-if="errors.password">
                 {{ errors.password }}
               </div>
@@ -450,7 +455,12 @@
                     </div>
                     <div class="col-md-6">
                       <label for="editTeacherPassword" class="form-label">Password</label>
-                      <input type="password" class="form-control" id="editTeacherPassword" v-model="editingTeacher.password" placeholder="Leave blank to keep current password" :class="{ 'is-invalid': errors.password }">
+                      <div class="input-group">
+                        <input :type="showEditTeacherPassword ? 'text' : 'password'" class="form-control" id="editTeacherPassword" v-model="editingTeacher.password" placeholder="Leave blank to keep current password" :class="{ 'is-invalid': errors.password }">
+                        <button type="button" class="btn btn-outline-secondary" @click="showEditTeacherPassword = !showEditTeacherPassword">
+                          {{ showEditTeacherPassword ? 'Hide' : 'Show' }}
+                        </button>
+                      </div>
                       <div class="invalid-feedback" v-if="errors.password">{{ errors.password }}</div>
                     </div>
                     <div class="col-md-6">
@@ -542,7 +552,9 @@ const recentModules = ref([])
 const showReports = ref(false)
 const teacherFormSection = ref(null)
 const teacherManagementSection = ref(null)
-const commonDepartments = ['SSOD', 'ELT', 'S1', 'S2']
+const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
+const showNewTeacherPassword = ref(false)
+const showEditTeacherPassword = ref(false)
 const teacherDepartmentSuggestions = computed(() => {
   const departments = teachers.value.map(teacher => teacher.department).filter(Boolean)
   return [...new Set([...commonDepartments, ...departments])].sort((a, b) => a.localeCompare(b))

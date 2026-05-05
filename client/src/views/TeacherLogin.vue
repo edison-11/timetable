@@ -24,14 +24,19 @@
 
         <div class="mb-3">
           <label for="password" class="form-label fw-medium">Password</label>
-          <input
-            id="password"
-            v-model="form.password"
-            type="password"
-            required
-            class="form-control form-control-lg"
-            placeholder="••••••••"
-          />
+          <div class="input-group">
+            <input
+              id="password"
+              v-model="form.password"
+              :type="showPassword ? 'text' : 'password'"
+              required
+              class="form-control form-control-lg"
+              placeholder="••••••••"
+            />
+            <button type="button" class="btn btn-outline-secondary" @click="showPassword = !showPassword">
+              <i :class="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+            </button>
+          </div>
         </div>
 
         <div v-if="error" class="alert alert-danger" role="alert">
@@ -78,6 +83,7 @@ const form = ref({
   password: ''
 })
 
+const showPassword = ref(false)
 const loading = ref(false)
 const error = ref('')
 

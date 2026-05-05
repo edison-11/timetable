@@ -102,6 +102,37 @@ export const useAuthStore = defineStore('auth', {
       delete axios.defaults.headers.common['Authorization']
     },
 
+    async updateProfile(profileData) {
+      this.loading = true
+      this.error = null
+
+      try {
+        const endpoint = this.userType === 'teacher'
+          ? '/api/teacher-auth/me'
+          : '/api/auth/me'
+        const token = this.token || localStorage.getItem('token')
+        const response = await axios.put(endpoint, profileData, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
+        const user = this.userType === 'teacher'
+          ? response.data.teacher
+          : response.data.user
+
+        this.user = user
+
+        if (this.userType === 'teacher') {
+          localStorage.setItem('teacher', JSON.stringify(user))
+        }
+
+        return { success: true, user }
+      } catch (error) {
+        this.error = error.response?.data?.errors?.[0]?.msg || error.response?.data?.message || 'Profile update failed'
+        return { success: false, error: this.error }
+      } finally {
+        this.loading = false
+      }
+    },
+
     async checkAuth() {
       const token = this.token || localStorage.getItem('token')
       const userType = this.userType || localStorage.getItem('userType') || 'admin'
@@ -120,6 +151,7 @@ export const useAuthStore = defineStore('auth', {
           const response = await axios.get('/api/teacher-auth/me')
           this.user = response.data.teacher
           localStorage.setItem('userType', 'teacher')
+          localStorage.setItem('teacher', JSON.stringify(this.user))
           return true
         }
 

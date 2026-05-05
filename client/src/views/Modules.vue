@@ -320,7 +320,7 @@ const navigation = [
 const modules = ref([])
 const searchQuery = ref('')
 const selectedDepartment = ref('')
-const commonDepartments = ['SSOD', 'ELT', 'S1', 'S2']
+const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
 
 // Form data
 const newModule = ref({
@@ -374,7 +374,7 @@ const departmentInputSuggestions = computed(() => {
 })
 
 const departmentFilterOptions = computed(() => {
-  return existingDepartments.value
+  return [...new Set([...commonDepartments, ...existingDepartments.value])]
 })
 
 const resetForm = () => {

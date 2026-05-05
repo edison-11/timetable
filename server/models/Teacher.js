@@ -2,6 +2,16 @@ const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 class Teacher {
+  static async ensureProfilePhotoColumn() {
+    try {
+      await pool.execute('ALTER TABLE teacher ADD COLUMN profile_photo VARCHAR(255) NULL AFTER date_joined');
+    } catch (error) {
+      if (error.code !== 'ER_DUP_FIELDNAME') {
+        throw error;
+      }
+    }
+  }
+
   static async create(teacherData) {
     const { name, email, password, department = 'SSOD', status = 'active', date_joined } = teacherData;
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -23,9 +33,19 @@ class Teacher {
   }
 
   static async findById(id) {
+    await this.ensureProfilePhotoColumn();
+
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, status, date_joined, created_at FROM teacher WHERE teacher_id = ?',
+      'SELECT teacher_id, name, email, department, status, date_joined, profile_photo, created_at FROM teacher WHERE teacher_id = ?',
       [id]
+    );
+    return rows[0];
+  }
+
+  static async findByEmailExcludingId(email, id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM teacher WHERE email = ? AND teacher_id != ?',
+      [email, id]
     );
     return rows[0];
   }
@@ -35,22 +55,28 @@ class Teacher {
   }
 
   static async getAll() {
+    await this.ensureProfilePhotoColumn();
+
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, status, date_joined, created_at FROM teacher ORDER BY created_at DESC'
+      'SELECT teacher_id, name, email, department, status, date_joined, profile_photo, created_at FROM teacher ORDER BY created_at DESC'
     );
     return rows;
   }
 
   static async getByStatus(status) {
+    await this.ensureProfilePhotoColumn();
+
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, status, date_joined, created_at FROM teacher WHERE status = ? ORDER BY name',
+      'SELECT teacher_id, name, email, department, status, date_joined, profile_photo, created_at FROM teacher WHERE status = ? ORDER BY name',
       [status]
     );
     return rows;
   }
 
   static async update(id, teacherData) {
-    const { name, email, password, department, status, date_joined } = teacherData;
+    await this.ensureProfilePhotoColumn();
+
+    const { name, email, password, department, status, date_joined, profile_photo } = teacherData;
     
     // Build dynamic update query
     const updateFields = [];
@@ -81,6 +107,10 @@ class Teacher {
       updateFields.push('date_joined = ?');
       updateValues.push(date_joined);
     }
+    if (profile_photo !== undefined) {
+      updateFields.push('profile_photo = ?');
+      updateValues.push(profile_photo || null);
+    }
     
     updateValues.push(id);
     
@@ -95,8 +125,10 @@ class Teacher {
   }
 
   static async getActiveTeachers() {
+    await this.ensureProfilePhotoColumn();
+
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department FROM teacher WHERE status = "active" ORDER BY department, name'
+      'SELECT teacher_id, name, email, department, profile_photo FROM teacher WHERE status = "active" ORDER BY department, name'
     );
     return rows;
   }
