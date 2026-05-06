@@ -1,12 +1,43 @@
 const pool = require('../config/database');
 
 class TimetableEntry {
+  static async ensureActivityColumns() {
+    if (this.activityColumnsReady) {
+      return;
+    }
+
+    const [columns] = await pool.execute('SHOW COLUMNS FROM timetable');
+    const columnNames = new Set(columns.map((column) => column.Field));
+    const assignmentColumn = columns.find((column) => column.Field === 'assignment_id');
+
+    if (assignmentColumn && assignmentColumn.Null === 'NO') {
+      await pool.execute('ALTER TABLE timetable MODIFY assignment_id INT NULL');
+    }
+
+    if (!columnNames.has('entry_type')) {
+      await pool.execute("ALTER TABLE timetable ADD COLUMN entry_type VARCHAR(20) NOT NULL DEFAULT 'lesson' AFTER module_name");
+    }
+
+    this.activityColumnsReady = true;
+  }
+
   static async create(timetableData) {
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name } = timetableData;
+    await this.ensureActivityColumns();
+
+    const {
+      class_id,
+      assignment_id,
+      day_of_week,
+      start_time,
+      end_time,
+      room_id,
+      module_name,
+      entry_type = 'lesson'
+    } = timetableData;
     
     const [result] = await pool.execute(
-      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name]
+      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type]
     );
     
     return result.insertId;

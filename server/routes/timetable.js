@@ -9,6 +9,7 @@ const { auth } = require('../middleware/auth');
 const router = express.Router();
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAY_ORDER = new Map(DAYS.map((day, index) => [day, index]));
 
 const normalizeTime = (time) => String(time || '').slice(0, 5);
 
@@ -26,6 +27,63 @@ const minutesToTime = (minutes) => {
 
 const overlaps = (startA, endA, startB, endB) => {
   return startA < endB && endA > startB;
+};
+
+const normalizeSharedActivities = (activities) => {
+  if (!Array.isArray(activities)) {
+    return [];
+  }
+
+  return activities
+    .map((activity) => ({
+      activity_name: String(activity.activity_name || '').trim(),
+      day_of_week: activity.day_of_week,
+      start_time: normalizeTime(activity.start_time),
+      end_time: normalizeTime(activity.end_time)
+    }))
+    .filter((activity) => {
+      return activity.activity_name
+        && DAYS.includes(activity.day_of_week)
+        && activity.start_time
+        && activity.end_time
+        && timeToMinutes(activity.end_time) > timeToMinutes(activity.start_time);
+    });
+};
+
+const buildGenerationItems = (slots, sharedActivities) => {
+  const lessonItems = slots
+    .filter((slot) => {
+      return !sharedActivities.some((activity) => {
+        return activity.day_of_week === slot.day_of_week
+          && overlaps(
+            timeToMinutes(slot.start_time),
+            timeToMinutes(slot.end_time),
+            timeToMinutes(activity.start_time),
+            timeToMinutes(activity.end_time)
+          );
+      });
+    })
+    .map((slot) => ({
+      type: 'lesson',
+      day_of_week: slot.day_of_week,
+      start_time: slot.start_time,
+      end_time: slot.end_time
+    }));
+
+  const activityItems = sharedActivities.map((activity) => ({
+    type: 'activity',
+    day_of_week: activity.day_of_week,
+    start_time: activity.start_time,
+    end_time: activity.end_time,
+    activity_name: activity.activity_name
+  }));
+
+  return [...lessonItems, ...activityItems].sort((a, b) => {
+    const dayDiff = (DAY_ORDER.get(a.day_of_week) ?? 99) - (DAY_ORDER.get(b.day_of_week) ?? 99);
+    if (dayDiff !== 0) return dayDiff;
+
+    return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
+  });
 };
 
 const getTeacherConflictsWithChangeover = async (teacherId, dayOfWeek, startTime, endTime, changeoverMinutes, excludeId = null) => {
@@ -174,43 +232,6 @@ const rankAssignments = (assignments, scheduledCounts) => {
     .map((item) => item.assignment);
 };
 
-const getPreferredBlockPeriods = (assignment) => {
-  const yearlyHours = Math.max(Number(assignment.hours_per_year || 1), 1);
-
-  if (yearlyHours >= 60) {
-    return 3;
-  }
-
-  if (yearlyHours >= 20) {
-    return 2;
-  }
-
-  return 1;
-};
-
-const getSlotBlock = (slots, startIndex, periodCount, changeoverMinutes) => {
-  const block = [slots[startIndex]];
-
-  for (let offset = 1; offset < periodCount; offset += 1) {
-    const previousSlot = block[block.length - 1];
-    const nextSlot = slots[startIndex + offset];
-
-    if (!nextSlot || nextSlot.day_of_week !== previousSlot.day_of_week) {
-      break;
-    }
-
-    const gapMinutes = timeToMinutes(nextSlot.start_time) - timeToMinutes(previousSlot.end_time);
-
-    if (gapMinutes < 0 || gapMinutes > Math.max(Number(changeoverMinutes || 0), 0)) {
-      break;
-    }
-
-    block.push(nextSlot);
-  }
-
-  return block;
-};
-
 // Create timetable entry
 router.post('/', auth, [
   body('class_id').isInt().withMessage('Valid class ID is required'),
@@ -278,11 +299,39 @@ router.post('/', auth, [
 // Generate timetable entries per class. Classes with the same level remain separate by class_id.
 router.post('/generate', auth, [
   body('class_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('level').optional({ nullable: true, checkFalsy: true }).isInt(),
   body('days').optional().isArray(),
   body('start_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
   body('end_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
   body('period_minutes').isInt({ min: 1 }).withMessage('Period minutes must be at least 1'),
-  body('replace_existing').optional().isBoolean()
+  body('replace_existing').optional().isBoolean(),
+  body('shared_activities')
+    .optional()
+    .isArray()
+    .withMessage('Shared activities must be a list')
+    .custom((activities) => {
+      const timePattern = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+      for (const activity of activities) {
+        if (!activity.activity_name || !String(activity.activity_name).trim()) {
+          throw new Error('Activity name is required');
+        }
+
+        if (!DAYS.includes(activity.day_of_week)) {
+          throw new Error('Activity day must be a valid weekday');
+        }
+
+        if (!timePattern.test(activity.start_time || '') || !timePattern.test(activity.end_time || '')) {
+          throw new Error('Activity times must use HH:MM format');
+        }
+
+        if (timeToMinutes(activity.end_time) <= timeToMinutes(activity.start_time)) {
+          throw new Error('Activity end time must be after start time');
+        }
+      }
+
+      return true;
+    })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -292,6 +341,7 @@ router.post('/generate', auth, [
 
     const {
       class_id,
+      level,
       start_time,
       end_time,
       period_minutes,
@@ -301,21 +351,39 @@ router.post('/generate', auth, [
     const days = Array.isArray(req.body.days) && req.body.days.length
       ? req.body.days.filter((day) => DAYS.includes(day))
       : DAYS;
+    const sharedActivities = normalizeSharedActivities(req.body.shared_activities);
 
     if (!days.length) {
       return res.status(400).json({ message: 'At least one valid day is required' });
+    }
+
+    const activitiesOutsideGeneratedDays = sharedActivities.filter((activity) => !days.includes(activity.day_of_week));
+    if (activitiesOutsideGeneratedDays.length) {
+      return res.status(400).json({ message: 'Shared activity day must be one of the selected generation days' });
     }
 
     if (timeToMinutes(end_time) <= timeToMinutes(start_time)) {
       return res.status(400).json({ message: 'End time must be after start time' });
     }
 
+    const activitiesOutsideGeneratedTime = sharedActivities.filter((activity) => {
+      return timeToMinutes(activity.start_time) < timeToMinutes(start_time)
+        || timeToMinutes(activity.end_time) > timeToMinutes(end_time);
+    });
+    if (activitiesOutsideGeneratedTime.length) {
+      return res.status(400).json({ message: 'Shared activity time must be inside the generated timetable hours' });
+    }
+
     const settings = await SystemSetting.getTimetableSettings();
     const breakPeriodRules = settings.break_period_rules || {};
+    const sharedChangeoverMinutes = Number(settings.teacher_changeover_minutes ?? 5);
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
-    const selectedClasses = allClasses.filter(Boolean);
+    const selectedClasses = allClasses
+      .filter(Boolean)
+      .filter((classItem) => !level || Number(classItem.level) === Number(level));
     const generated = [];
     const skipped = [];
+    const classEntryCounts = [];
 
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
@@ -333,8 +401,8 @@ router.post('/generate', auth, [
         await TimetableEntry.deleteByClass(classItem.class_id);
       }
 
-      // Use per-shift changeover minutes, fallback to global setting
-      const changeoverMinutes = Number(classItem.teacher_changeover_minutes ?? settings.teacher_changeover_minutes ?? 5);
+      // Use one shared changeover rule for every class so generation stays consistent across all timetables.
+      const changeoverMinutes = sharedChangeoverMinutes;
 
       const breaks = breakPeriodRules.enabled
         ? buildBreaksFromPeriodRules({
@@ -354,153 +422,83 @@ router.post('/generate', auth, [
         changeoverMinutes,
         breaks
       });
+      const generationItems = buildGenerationItems(slots, sharedActivities);
 
       const scheduledCounts = new Map();
       let classCount = 0;
 
-      for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 1) {
-        const slot = slots[slotIndex];
-        let scheduledBlock = null;
+      for (const item of generationItems) {
+        if (item.type === 'activity') {
+          const timetableId = await TimetableEntry.create({
+            class_id: classItem.class_id,
+            assignment_id: null,
+            day_of_week: item.day_of_week,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            room_id: null,
+            module_name: item.activity_name,
+            entry_type: 'activity'
+          });
+          const timetable = await TimetableEntry.findById(timetableId);
+          generated.push(timetable);
+          classCount += 1;
+          continue;
+        }
 
-        // First try to find preferred assignments with preferred block sizes
+        let scheduledAssignment = null;
+        let hasConflict = false;
+
         for (const assignment of rankAssignments(assignments, scheduledCounts)) {
-          const preferredBlockPeriods = getPreferredBlockPeriods(assignment);
+          const teacherConflicts = await getTeacherConflictsWithChangeover(
+            assignment.teacher_id,
+            item.day_of_week,
+            item.start_time,
+            item.end_time,
+            changeoverMinutes
+          );
 
-          for (let blockPeriods = preferredBlockPeriods; blockPeriods >= 1; blockPeriods -= 1) {
-            const block = getSlotBlock(slots, slotIndex, blockPeriods, changeoverMinutes);
-
-            if (block.length !== blockPeriods) {
-              continue;
-            }
-
-            const blockStart = block[0].start_time;
-            const blockEnd = block[block.length - 1].end_time;
-            const teacherConflicts = await getTeacherConflictsWithChangeover(
-              assignment.teacher_id,
-              slot.day_of_week,
-              blockStart,
-              blockEnd,
-              changeoverMinutes
-            );
-
-            if (teacherConflicts.length) {
-              continue;
-            }
-
-            scheduledBlock = {
-              assignment,
-              block,
-              start_time: blockStart,
-              end_time: blockEnd
-            };
-            break;
-          }
-
-          if (scheduledBlock) {
+          if (!teacherConflicts.length) {
+            scheduledAssignment = assignment;
+            hasConflict = false;
             break;
           }
         }
 
-        // If no preferred assignment found, try to fill with any available assignment for at least 1 period
-        if (!scheduledBlock) {
-          for (const assignment of rankAssignments(assignments, scheduledCounts)) {
-            // Try single period first
-            const block = getSlotBlock(slots, slotIndex, 1, changeoverMinutes);
+        if (!scheduledAssignment) {
+          scheduledAssignment = rankAssignments(assignments, scheduledCounts)[0];
+          hasConflict = true;
 
-            if (block.length === 1) {
-              const blockStart = block[0].start_time;
-              const blockEnd = block[0].end_time;
-              const teacherConflicts = await getTeacherConflictsWithChangeover(
-                assignment.teacher_id,
-                slot.day_of_week,
-                blockStart,
-                blockEnd,
-                changeoverMinutes
-              );
-
-              if (!teacherConflicts.length) {
-                scheduledBlock = {
-                  assignment,
-                  block,
-                  start_time: blockStart,
-                  end_time: blockEnd
-                };
-                break;
-              }
-            }
-          }
-        }
-
-        // If still no assignment found, force assign the highest priority assignment
-        // This ensures no slot is left empty
-        if (!scheduledBlock && assignments.length > 0) {
-          const highestPriorityAssignment = rankAssignments(assignments, scheduledCounts)[0];
-          const block = getSlotBlock(slots, slotIndex, 1, changeoverMinutes);
-
-          if (block.length === 1) {
-            // For forced assignments, we'll still try to avoid conflicts but allow them if necessary
-            const blockStart = block[0].start_time;
-            const blockEnd = block[0].end_time;
-            const teacherConflicts = await getTeacherConflictsWithChangeover(
-              highestPriorityAssignment.teacher_id,
-              slot.day_of_week,
-              blockStart,
-              blockEnd,
-              changeoverMinutes
-            );
-
-            // If there are conflicts, we'll still assign but log it
-            // This ensures no slot remains empty
-            scheduledBlock = {
-              assignment: highestPriorityAssignment,
-              block,
-              start_time: blockStart,
-              end_time: blockEnd,
-              hasConflict: teacherConflicts.length > 0
-            };
-          }
-        }
-
-        if (!scheduledBlock) {
-          // Force assign the least-scheduled assignment to ensure no empty slots
-          if (assignments.length > 0) {
-            // Find the assignment with the minimum scheduled count
-            const leastScheduledAssignment = assignments.reduce((min, current) => {
-              const minCount = scheduledCounts.get(min.assignment_id) || 0;
-              const currentCount = scheduledCounts.get(current.assignment_id) || 0;
-              return currentCount < minCount ? current : min;
-            });
-
-            const block = [slot]; // Use just this one slot
-            scheduledBlock = {
-              assignment: leastScheduledAssignment,
-              block,
-              start_time: slot.start_time,
-              end_time: slot.end_time
-            };
-          } else {
-            // No assignments available, skip this slot
+          if (!scheduledAssignment) {
             continue;
           }
         }
 
         const timetableId = await TimetableEntry.create({
           class_id: classItem.class_id,
-          assignment_id: scheduledBlock.assignment.assignment_id,
-          day_of_week: slot.day_of_week,
-          start_time: scheduledBlock.start_time,
-          end_time: scheduledBlock.end_time,
+          assignment_id: scheduledAssignment.assignment_id,
+          day_of_week: item.day_of_week,
+          start_time: item.start_time,
+          end_time: item.end_time,
           room_id: null,
-          module_name: scheduledBlock.assignment.module_name
+          module_name: scheduledAssignment.module_name,
+          entry_type: 'lesson'
         });
         const timetable = await TimetableEntry.findById(timetableId);
+        timetable.has_conflict = hasConflict;
         generated.push(timetable);
         scheduledCounts.set(
-          scheduledBlock.assignment.assignment_id,
-          (scheduledCounts.get(scheduledBlock.assignment.assignment_id) || 0) + 1
+          scheduledAssignment.assignment_id,
+          (scheduledCounts.get(scheduledAssignment.assignment_id) || 0) + 1
         );
         classCount += 1;
       }
+
+      classEntryCounts.push({
+        class_id: classItem.class_id,
+        class_name: classItem.class_name,
+        entries: classCount,
+        expected_entries: generationItems.length
+      });
 
       if (!classCount) {
         skipped.push({
@@ -513,7 +511,9 @@ router.post('/generate', auth, [
 
     res.status(201).json({
       message: 'Timetable generated successfully',
+      generated_count: generated.length,
       generated,
+      class_entry_counts: classEntryCounts,
       skipped
     });
   } catch (error) {

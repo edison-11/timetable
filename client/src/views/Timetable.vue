@@ -183,6 +183,45 @@
                 </button>
               </div>
             </div>
+
+            <div class="mt-4">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h3 class="h6 fw-semibold text-dark mb-0">Shared Activities</h3>
+                <button type="button" class="btn btn-outline-primary btn-sm" @click="addSharedActivity">
+                  Add Activity
+                </button>
+              </div>
+
+              <div v-if="!generateSettings.shared_activities.length" class="text-muted small mt-2">
+                No shared activities added.
+              </div>
+
+              <div v-for="(activity, index) in generateSettings.shared_activities" :key="index" class="row g-2 align-items-end mt-2">
+                <div class="col-md-3">
+                  <label class="form-label">Activity</label>
+                  <input v-model="activity.activity_name" type="text" class="form-control" placeholder="Assembly" required>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label">Day</label>
+                  <select v-model="activity.day_of_week" class="form-select" required>
+                    <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">Start</label>
+                  <input v-model="activity.start_time" type="time" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label">End</label>
+                  <input v-model="activity.end_time" type="time" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                  <button type="button" class="btn btn-outline-danger w-100" @click="removeSharedActivity(index)">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -230,7 +269,10 @@
                                   <div class="fw-semibold">
                                     {{ row.entriesByDay[day].module_name }}
                                   </div>
-                                  <div class="fw-normal text-muted small">
+                                  <div v-if="row.entriesByDay[day].entry_type === 'activity'" class="fw-normal text-primary small">
+                                    Shared activity
+                                  </div>
+                                  <div v-else class="fw-normal text-muted small">
                                     {{ row.entriesByDay[day].teacher_name }}
                                   </div>
                                 </div>
@@ -301,6 +343,7 @@ const generateSettings = ref({
   period_minutes: 60,
   teacher_changeover_minutes: 5,
   replace_existing: false,
+  shared_activities: [],
   selected_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 })
 
@@ -392,6 +435,19 @@ const onLevelChange = () => {
   generateSettings.value.class_id = ''
 }
 
+const addSharedActivity = () => {
+  generateSettings.value.shared_activities.push({
+    activity_name: 'Assembly',
+    day_of_week: generateSettings.value.selected_days[0] || 'Monday',
+    start_time: '10:00',
+    end_time: '11:00'
+  })
+}
+
+const removeSharedActivity = (index) => {
+  generateSettings.value.shared_activities.splice(index, 1)
+}
+
 const generateTimetable = async () => {
   loading.value = true
   
@@ -399,16 +455,24 @@ const generateTimetable = async () => {
     // Prepare request data with only the fields the backend expects
     const requestData = {
       class_id: generateSettings.value.class_id || null,
+      level: generateSettings.value.level || null,
       start_time: generateSettings.value.start_time,
       end_time: generateSettings.value.end_time,
       period_minutes: generateSettings.value.period_minutes,
       days: generateSettings.value.selected_days,
       replace_existing: generateSettings.value.replace_existing,
-      teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes
+      teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
+      shared_activities: generateSettings.value.shared_activities.map((activity) => ({
+        activity_name: activity.activity_name.trim(),
+        day_of_week: activity.day_of_week,
+        start_time: activity.start_time,
+        end_time: activity.end_time
+      }))
     }
     
     const response = await api.post('/timetable/generate', requestData)
-    assignmentMessage.value = `Timetable generated successfully! ${response.data.generated || 0} entries created.`
+    const generatedCount = response.data.generated_count ?? response.data.generated?.length ?? 0
+    assignmentMessage.value = `Timetable generated successfully! ${generatedCount} entries created.`
     
     await loadTimetable()
   } catch (error) {
@@ -434,15 +498,41 @@ const buildTimetableGridRows = (group) => {
   })
   
   // Create time slots
-  const timeSlots = []
+  const timeSlotMap = new Map()
   const startTimes = ['08:00', '09:00', '10:00', '11:00', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:00']
+  const generatedEntries = group.entries.map(entry => ({
+    start_time: entry.start_time.slice(0, 5),
+    end_time: entry.end_time.slice(0, 5)
+  }))
   
   startTimes.forEach(startTime => {
     const endTime = getNextTime(startTime)
-    timeSlots.push({
+    const isCoveredByGeneratedEntry = generatedEntries.some(entry => {
+      return timeToMinutes(entry.start_time) < timeToMinutes(endTime) &&
+        timeToMinutes(entry.end_time) > timeToMinutes(startTime)
+    })
+
+    if (isCoveredByGeneratedEntry) {
+      return
+    }
+
+    timeSlotMap.set(`${startTime}-${endTime}`, {
       start_time: startTime,
       end_time: endTime
     })
+  })
+
+  group.entries.forEach(entry => {
+    const startTime = entry.start_time.slice(0, 5)
+    const endTime = entry.end_time.slice(0, 5)
+    timeSlotMap.set(`${startTime}-${endTime}`, {
+      start_time: startTime,
+      end_time: endTime
+    })
+  })
+
+  const timeSlots = Array.from(timeSlotMap.values()).sort((a, b) => {
+    return timeToMinutes(a.start_time) - timeToMinutes(b.start_time)
   })
   
   // Build rows
@@ -472,8 +562,9 @@ const buildTimetableGridRows = (group) => {
     
     // Check if it's a break time
     const isBreak = slot.start_time === '11:00' || slot.start_time === '13:30' || slot.start_time === '17:30'
+    const hasAnyEntry = Object.values(rowEntriesByDay).some(Boolean)
     
-    if (isBreak) {
+    if (isBreak && !hasAnyEntry) {
       rows.push({
         type: 'break',
         breakName: slot.start_time === '11:00' ? 'BREAK' : slot.start_time === '13:30' ? 'LUNCH' : 'BREAK',

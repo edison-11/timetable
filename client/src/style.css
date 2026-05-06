@@ -137,6 +137,11 @@ body {
   overflow: hidden;
 }
 
+.stat-card-custom,
+.stat-card-custom * {
+  color: white !important;
+}
+
 .stat-card-custom::before {
   content: '';
   position: absolute;

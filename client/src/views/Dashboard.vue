@@ -85,7 +85,27 @@
               </div>
             </div>
           </div>
-          
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="stat-card-custom primary animate-pulse-slow">
+              <div class="position-relative z-1">
+                <div class="fs-2 fw-bold mb-1">{{ stats.activeTeachers }}</div>
+                <div class="small opacity-75">Active Teachers</div>
+                <div class="position-absolute top-0 end-0 fs-1 opacity-25">✅</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6 col-lg-3">
+            <div class="stat-card-custom info animate-pulse-slow">
+              <div class="position-relative z-1">
+                <div class="fs-2 fw-bold mb-1">{{ stats.pendingTeachers }}</div>
+                <div class="small opacity-75">Pending Teachers</div>
+                <div class="position-absolute top-0 end-0 fs-1 opacity-25">⏳</div>
+              </div>
+            </div>
+          </div>
+
           <div class="col-12 col-md-6 col-lg-3">
             <div class="stat-card-custom success animate-pulse-slow">
               <div class="position-relative z-1">
@@ -497,6 +517,8 @@ const navigation = [
 const loading = ref(false)
 const stats = ref({
   teachers: 0,
+  activeTeachers: 0,
+  pendingTeachers: 0,
   modules: 0,
   classes: 0,
   sessions: 0
@@ -714,6 +736,9 @@ const handleQuickAddTeacher = async () => {
         teacher: response.data.teacher
       })
 
+      // Refresh dashboard stats after add
+      await loadDashboardData()
+
       // Show success message
       const toast = new Toast(document.createElement('div'))
       toast.show()
@@ -742,6 +767,7 @@ const approveTeacher = async (teacher) => {
     }
 
     showSuccessMessage('Teacher approved successfully!')
+    await loadDashboardData()
   } catch (error) {
     console.error('Error approving teacher:', error)
     showErrorMessage('Failed to approve teacher')
@@ -761,6 +787,7 @@ const rejectTeacher = async (teacher) => {
     teachers.value = teachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
     
     showSuccessMessage('Teacher rejected and removed successfully!')
+    await loadDashboardData()
   } catch (error) {
     console.error('Error rejecting teacher:', error)
     showErrorMessage('Failed to reject teacher')
@@ -791,6 +818,7 @@ const deleteTeacher = async (teacher) => {
     stats.value.teachers = teachers.value.length
     
     showSuccessMessage('Teacher deleted successfully!')
+    await loadDashboardData()
   } catch (error) {
     console.error('Error deleting teacher:', error)
     showErrorMessage('Failed to delete teacher')
@@ -810,6 +838,7 @@ const deleteModule = async (module) => {
     recentModules.value = recentModules.value.filter(item => item.module_id !== module.module_id)
     stats.value.modules = Math.max((stats.value.modules || 1) - 1, 0)
     showSuccessMessage('Module deleted successfully!')
+    await loadDashboardData()
   } catch (error) {
     console.error('Error deleting module:', error)
     showErrorMessage('Failed to delete module')
@@ -867,9 +896,13 @@ const loadDashboardData = async () => {
   try {
     // Load teachers
     const teachersResponse = await api.get('/teachers')
-    teachers.value = teachersResponse.data.teachers || []
-    recentTeachers.value = teachersResponse.data.teachers?.slice(0, 3) || []
-    stats.value.teachers = teachersResponse.data.teachers?.length || 0
+    const teacherList = teachersResponse.data.teachers || []
+    teachers.value = teacherList
+    recentTeachers.value = teacherList.slice(0, 3)
+    pendingTeachers.value = teacherList.filter(t => t.status === 'pending')
+    stats.value.teachers = teacherList.length
+    stats.value.activeTeachers = teacherList.filter(t => t.status === 'active').length
+    stats.value.pendingTeachers = teacherList.filter(t => t.status === 'pending').length
 
     // Load modules
     const modulesResponse = await api.get('/modules')
@@ -943,13 +976,17 @@ onMounted(() => {
 }
 
 .stat-card-custom {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-radius: 0.75rem;
   position: relative;
   overflow: hidden;
   transition: transform 0.2s ease;
+}
+
+.stat-card-custom,
+.stat-card-custom * {
+  color: white !important;
 }
 
 .stat-card-custom:hover {
