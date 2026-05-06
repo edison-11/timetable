@@ -38,9 +38,17 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+const fs = require('fs');
+
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use(express.static(path.join(__dirname, '../client/dist')));
+
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+} else {
+  console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
+}
 
 // MySQL connection test
 const pool = require('./config/database');
@@ -75,7 +83,12 @@ app.get('/api/health', (req, res) => {
 
 // SPA fallback - serve index.html for client-side routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  const indexPath = path.join(clientDistPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend build not found. Run `npm install` and `npm run build` in the client folder.');
+  }
 });
 
 // Error handling middleware

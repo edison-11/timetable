@@ -65,7 +65,6 @@
             :to="item?.path"
             class="nav-item-custom d-block mb-2"
             :class="{ 'active': route.path === item?.path }"
-            @click="handleNavClick(item)"
           >
             <span class="fs-5">{{ item?.icon }}</span>
             <span>{{ item?.name }}</span>
@@ -561,8 +560,9 @@ const filteredTeachers = computed(() => {
     filtered = filtered.filter(teacher => teacher.status === teacherStatusFilter.value)
   }
 
-  // Apply sorting
-  return filtered.sort((a, b) => {
+  // Apply sorting without mutating the reactive source array
+  const sorted = [...filtered]
+  return sorted.sort((a, b) => {
     let aVal = a[sortField.value]
     let bVal = b[sortField.value]
 
@@ -841,13 +841,6 @@ const handleAction = (action) => {
   }
 }
 
-// Navigation Handler
-const handleNavClick = (item) => {
-  console.log('Navigation clicked:', item)
-  if (item.path) {
-    router.push(item.path)
-  }
-}
 
 // Logout Function
 const handleLogout = () => {
@@ -995,7 +988,6 @@ onMounted(() => {
   padding: 1.5rem;
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .quick-action-card:hover {

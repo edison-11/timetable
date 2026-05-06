@@ -186,40 +186,6 @@
           </div>
         </div>
 
-        <!-- Statistics Display -->
-        <div v-if="groupedTimetables.length > 0" class="card-custom mb-4">
-          <div class="card-body">
-            <h2 class="h4 fw-semibold text-dark mb-4">Timetable Statistics</h2>
-            
-            <div class="row g-3">
-              <div class="col-md-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number">{{ statistics.totalClasses }}</div>
-                  <div class="stat-label">Classes</div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number">{{ statistics.totalTeachers }}</div>
-                  <div class="stat-label">Teachers</div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number">{{ statistics.totalSessions }}</div>
-                  <div class="stat-label">Sessions</div>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="stat-card text-center">
-                  <div class="stat-number">{{ statistics.weeksInTerm }}</div>
-                  <div class="stat-label">Weeks</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Timetable Display -->
         <div v-if="groupedTimetables.length > 0" class="card-custom">
           <div class="card-body">
@@ -350,27 +316,6 @@ const availableLevels = computed(() => {
     }
   })
   return Array.from(levels).sort((a, b) => a - b)
-})
-
-const statistics = computed(() => {
-  const uniqueTeachers = new Set()
-  const uniqueClasses = new Set()
-  let totalSessions = 0
-  
-  timetableEntries.value.forEach(entry => {
-    if (entry.module_name && entry.module_name !== 'continue') {
-      if (entry.teacher_name) uniqueTeachers.add(entry.teacher_name)
-      if (entry.class_id) uniqueClasses.add(entry.class_id)
-      totalSessions++
-    }
-  })
-  
-  return {
-    totalClasses: uniqueClasses.size,
-    totalTeachers: uniqueTeachers.size,
-    totalSessions: totalSessions,
-    weeksInTerm: 12 // Default academic term length
-  }
 })
 
 const groupedTimetables = computed(() => {
@@ -802,31 +747,5 @@ onMounted(async () => {
   transform: rotate(-180deg);
 }
 
-/* Statistics Cards */
-.stat-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1.5rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
 
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-}
-
-.stat-number {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
 </style>
