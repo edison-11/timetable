@@ -165,7 +165,9 @@ const loadTeacherData = () => {
 }
 
 const loadTimetable = async () => {
-  if (!teacher.value?.teacher_id) {
+  const teacherId = teacher.value?.teacher_id || teacher.value?.id
+
+  if (!teacherId) {
     error.value = 'Teacher information not found'
     return
   }
@@ -174,7 +176,7 @@ const loadTimetable = async () => {
   error.value = ''
 
   try {
-    const response = await api.get(`/timetable/teacher/${teacher.value.teacher_id}`)
+    const response = await api.get(`/timetable/teacher/${teacherId}`)
     timetableEntries.value = response.data.timetables || []
   } catch (err) {
     console.error('Error loading timetable:', err)

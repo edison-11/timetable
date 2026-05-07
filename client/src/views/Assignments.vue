@@ -1,29 +1,19 @@
 <template>
-  <div class="min-vh-100">
+  <div class="min-vh-100 admin-page">
     <header class="header-custom">
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
           <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">A</div>
           <h1 class="h2 mb-0">Assignments Management</h1>
         </div>
-        <div class="d-flex align-items-center gap-3">
-          <router-link to="/dashboard" class="text-light opacity-75 text-decoration-none">Dashboard</router-link>
-          <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">A</div>
-        </div>
+        <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">A</div>
       </div>
     </header>
 
-    <div class="d-flex">
-      <nav class="sidebar-custom" style="width: 250px;">
-        <div class="p-3">
-          <router-link v-for="item in navigation" :key="item.name" :to="item.path" class="nav-item-custom d-block mb-2" :class="{ 'active': $route.path === item.path }">
-            <span class="fs-5">{{ item.icon }}</span>
-            <span>{{ item.name }}</span>
-          </router-link>
-        </div>
-      </nav>
+    <div class="d-flex admin-page-shell">
+      <AdminSidebar />
 
-      <main class="flex-grow-1 p-4">
+      <main class="flex-grow-1 p-4 admin-main">
         <div class="card-custom mb-4">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="h3 fw-semibold text-dark">Add Assignment</h2>
@@ -153,17 +143,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import api from '@/stores/api'
+import AdminSidebar from '@/components/AdminSidebar.vue'
 
-const navigation = [
-  { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-  { name: 'Teachers', path: '/teachers', icon: '👥' },
-  { name: 'Modules', path: '/modules', icon: '📚' },
-  { name: 'Classes', path: '/classes', icon: '🏫' },
-  { name: 'Sections', path: '/sections', icon: '🏛️' },
-  { name: 'Shifts', path: '/shifts', icon: '⏰' },
-  { name: 'Assignments', path: '/assignments', icon: '📋' },
-  { name: 'Timetable', path: '/timetable', icon: '📅' }
-]
 
 const teachers = ref([])
 const modules = ref([])
@@ -244,15 +225,26 @@ const handleAddAssignment = async () => {
         academic_year: newAssignment.value.academic_year,
         term: ''
       }
+      formMessage.value = ''
+      errors.value = {}
       alert('Assignment added successfully!')
     }
   } catch (error) {
-    if (error.response?.data?.errors?.length) {
-      errors.value = error.response.data.errors.reduce((fieldErrors, item) => {
-        if (item.path) fieldErrors[item.path] = item.msg
-        return fieldErrors
-      }, {})
-      formMessage.value = 'Please correct the highlighted fields.'
+    if (error.response?.status === 401) {
+      formMessage.value = 'Authentication required. Please login again.'
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 2000)
+    } else if (error.response?.status === 400) {
+      if (error.response?.data?.errors?.length) {
+        errors.value = error.response.data.errors.reduce((fieldErrors, item) => {
+          if (item.path) fieldErrors[item.path] = item.msg
+          return fieldErrors
+        }, {})
+        formMessage.value = 'Please correct the highlighted fields.'
+      } else {
+        formMessage.value = error.response?.data?.message || 'Validation failed. Please check all fields.'
+      }
     } else {
       formMessage.value = error.response?.data?.message || 'Failed to add assignment.'
     }

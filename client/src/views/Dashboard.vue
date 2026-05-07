@@ -1,5 +1,5 @@
 <template>
-  <div class="min-vh-100">
+  <div class="min-vh-100 admin-page">
     <!-- Header -->
     <header class="header-custom">
       <!-- Notifications -->
@@ -55,25 +55,12 @@
       </div>
     </header>
 
-    <div class="d-flex">
+    <div class="d-flex admin-page-shell">
       <!-- Sidebar -->
-      <nav class="sidebar-custom" style="width: 250px;">
-        <div class="p-3">
-          <router-link 
-            v-for="item in navigation?.filter(Boolean)" 
-            :key="item?.name"
-            :to="item?.path"
-            class="nav-item-custom d-block mb-2"
-            :class="{ 'active': route.path === item?.path }"
-          >
-            <span class="fs-5">{{ item?.icon }}</span>
-            <span>{{ item?.name }}</span>
-          </router-link>
-        </div>
-      </nav>
+      <AdminSidebar />
 
       <!-- Main Content -->
-      <main class="flex-grow-1 p-4">
+      <main class="flex-grow-1 p-4 admin-main" style="margin-left: 250px;">
         <!-- Stats Cards -->
         <div class="row g-4 mb-4">
           <div class="col-12 col-md-6 col-lg-3">
@@ -110,7 +97,7 @@
             <div class="stat-card-custom success animate-pulse-slow">
               <div class="position-relative z-1">
                 <div class="fs-2 fw-bold mb-1">{{ stats.modules }}</div>
-                <div class="small opacity-75">Active Modules</div>
+                <div class="small opacity-75">Active module_names</div>
                 <div class="position-absolute top-0 end-0 fs-1 opacity-25">📚</div>
               </div>
             </div>
@@ -409,12 +396,12 @@
           </div>
         </div>
 
-        <!-- Recent Modules -->
+        <!-- Recent module_names -->
         <div class="card-custom mb-4">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h4 fw-semibold text-dark">Recent Modules</h2>
+            <h2 class="h4 fw-semibold text-dark">Recent module_names</h2>
             <div class="d-flex gap-2">
-              <router-link to="/modules" class="btn btn-outline-primary">View All Modules</router-link>
+              <router-link to="/modules" class="btn btn-outline-primary">View All module_names</router-link>
               <button class="btn btn-success btn-sm" @click="exportDashboardData">
                 <i class="bi bi-download me-1"></i>
                 Export Data
@@ -423,22 +410,22 @@
           </div>
 
           <div class="row g-3">
-            <div v-for="module in recentModules" :key="module.module_id" class="col-12 col-md-6 col-lg-4">
+            <div v-for="module_name in recentModules" :key="module_name.module_id" class="col-12 col-md-6 col-lg-4">
               <div class="module-card">
                 <div class="d-flex justify-content-between align-items-start">
                   <div>
-                    <h5 class="fw-semibold mb-1">{{ module.module_name }}</h5>
-                    <p class="text-muted small mb-2">{{ module.department || 'General' }}</p>
+                    <h5 class="fw-semibold mb-1">{{ module_name.module_name }}</h5>
+                    <p class="text-muted small mb-2">{{ module_name.department || 'General' }}</p>
                     <div class="d-flex gap-2">
-                      <span class="badge bg-primary">{{ module.credits || 3 }} credits</span>
-                      <span class="badge bg-secondary">{{ module.semester || 'Fall' }}</span>
+                      <span class="badge bg-primary">{{ module_name.credits || 3 }} credits</span>
+                      <span class="badge bg-secondary">{{ module_name.semester || 'Fall' }}</span>
                     </div>
                   </div>
                   <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-primary" @click="editModule(module)">
+                    <button class="btn btn-outline-primary" @click="editModule(module_name)">
                       <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-outline-danger" @click="deleteModule(module)">
+                    <button class="btn btn-outline-danger" @click="deleteModule(module_name)">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
@@ -494,6 +481,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import AdminSidebar from '@/components/AdminSidebar.vue'
 import { Modal, Toast } from 'bootstrap'
 
 const router = useRouter()
@@ -501,17 +489,6 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // Navigation
-const navigation = [
-  { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-  { name: 'Teachers', path: '/teachers', icon: '👥' },
-  { name: 'Modules', path: '/modules', icon: '📚' },
-  { name: 'Classes', path: '/classes', icon: '🏫' },
-  { name: 'Sections', path: '/sections', icon: '🏛️' },
-  { name: 'Shifts', path: '/shifts', icon: '⏰' },
-  { name: 'Assignments', path: '/assignments', icon: '📋' },
-  { name: 'Timetable', path: '/timetable', icon: '📅' },
-  { name: 'Under Timetable', path: '/under-timetable', icon: '📋' }
-]
 
 // State
 const loading = ref(false)
@@ -559,9 +536,8 @@ const showNotifications = ref(false)
 // Quick Actions
 const quickActions = [
   { title: 'Add Teacher', description: 'Register a new teacher', icon: '👤', path: '/teachers' },
-  { title: 'Create Module', description: 'Add a new module', icon: '📚', path: '/modules' },
-  { title: 'Generate Timetable', description: 'Create class schedules', icon: '📅', path: '/timetable' },
-  { title: 'View Reports', description: 'System analytics', icon: '📊', path: '/reports' }
+  { title: 'Create module_name', description: 'Add a new module_name', icon: '📚', path: '/modules' },
+  { title: 'Generate Timetable', description: 'Create class schedules', icon: '📅', path: '/timetable' }
 ]
 
 // Computed Properties
@@ -826,22 +802,22 @@ const deleteTeacher = async (teacher) => {
 }
 
 // Module Functions
-const editModule = (module) => {
-  console.log('Edit module:', module)
+const editModule = (module_name) => {
+  console.log('Edit module_name:', module_name)
 }
 
-const deleteModule = async (module) => {
-  if (!confirm(`Are you sure you want to delete ${module.module_name}?`)) return
+const deleteModule = async (module_name) => {
+  if (!confirm(`Are you sure you want to delete ${module_name.module_name}?`)) return
 
   try {
-    await api.delete(`/modules/${module.module_id}`)
-    recentModules.value = recentModules.value.filter(item => item.module_id !== module.module_id)
+    await api.delete(`/modules/${module_name.module_id}`)
+    recentModules.value = recentModules.value.filter(item => item.module_id !== module_name.module_id)
     stats.value.modules = Math.max((stats.value.modules || 1) - 1, 0)
-    showSuccessMessage('Module deleted successfully!')
+    showSuccessMessage('module_name deleted successfully!')
     await loadDashboardData()
   } catch (error) {
-    console.error('Error deleting module:', error)
-    showErrorMessage('Failed to delete module')
+    console.error('Error deleting module_name:', error)
+    showErrorMessage('Failed to delete module_name')
   }
 }
 
@@ -933,16 +909,24 @@ onMounted(() => {
 
 <style scoped>
 .header-custom {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  min-height: var(--admin-header-height);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1rem;
-  border-radius: 0.5rem;
+  padding: 0;
+  border-radius: 0;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-custom {
   background: #f8f9fa;
   border-right: 1px solid #dee2e6;
-  min-height: calc(100vh - 80px);
   padding: 1rem;
 }
 

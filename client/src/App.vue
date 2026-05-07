@@ -19,14 +19,6 @@
           <div class="app-account-name">{{ displayName }}</div>
           <div class="app-account-meta">{{ accountMeta }}</div>
         </div>
-        <button
-          v-if="showDashboardLink"
-          type="button"
-          class="app-account-action"
-          @click="goToDashboard"
-        >
-          Dashboard
-        </button>
         <button type="button" class="app-account-action" @click="openProfileModal">
           Edit Profile
         </button>
@@ -310,21 +302,12 @@ const profileSubtitle = computed(() => {
     : 'Update your admin account details.'
 })
 
-const showDashboardLink = computed(() => {
-  return authStore.currentUserType !== 'teacher' && route.path !== '/dashboard'
-})
-
 const toggleAccountMenu = () => {
   accountMenuOpen.value = !accountMenuOpen.value
 }
 
 const closeAccountMenu = () => {
   accountMenuOpen.value = false
-}
-
-const goToDashboard = () => {
-  closeAccountMenu()
-  router.push('/dashboard')
 }
 
 const openProfileModal = () => {

@@ -255,9 +255,24 @@ body {
 
 /* Header styles */
 .header-custom {
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1rem 0;
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  height: var(--admin-header-height, 84px);
+  min-height: var(--admin-header-height, 84px);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 0.25rem 1rem rgba(31, 41, 55, 0.12);
+}
+
+.header-custom > .container-fluid {
+  min-height: 100%;
 }
 
 .header-custom > .container-fluid > .d-flex:last-child {
@@ -270,6 +285,54 @@ body {
   top: 1.25rem;
   right: 1.25rem;
   z-index: 1050;
+}
+
+.admin-page {
+  --admin-header-height: 136px;
+  --admin-sidebar-width: 250px;
+}
+
+.admin-page-shell {
+  margin-top: var(--admin-header-height);
+}
+
+.admin-sidebar {
+  width: var(--admin-sidebar-width);
+  position: fixed !important;
+  top: var(--admin-header-height);
+  bottom: 0;
+  overflow-y: auto;
+  padding-top: 0.5rem;
+}
+
+.admin-sidebar .p-3 > .nav-item-custom:first-child {
+  margin-top: 0 !important;
+  visibility: visible;
+  opacity: 1;
+}
+
+.admin-sidebar .p-3 > .nav-item-custom:nth-child(1),
+.admin-sidebar .p-3 > .nav-item-custom:nth-child(2) {
+  position: sticky;
+  z-index: 5;
+  background: #ffffff;
+}
+
+.admin-sidebar .p-3 > .nav-item-custom:nth-child(1) {
+  top: 0;
+}
+
+.admin-sidebar .p-3 > .nav-item-custom:nth-child(2) {
+  top: 56px;
+}
+
+.admin-sidebar .p-3 > .nav-item-custom:nth-child(1).active,
+.admin-sidebar .p-3 > .nav-item-custom:nth-child(2).active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+}
+
+.admin-main {
+  margin-left: var(--admin-sidebar-width);
 }
 
 .app-account-trigger {

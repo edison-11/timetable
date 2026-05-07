@@ -87,6 +87,7 @@ router.post('/login', [
         message: 'Login successful',
         token,
         teacher: {
+          teacher_id: 1,
           id: 1,
           name: 'Test Teacher',
           email: 'test@example.com',

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-vh-100">
+  <div class="min-vh-100 admin-page">
     <!-- Header -->
     <header class="header-custom">
       <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
@@ -9,35 +9,18 @@
           </div>
           <h1 class="h2 mb-0">Timetable Management</h1>
         </div>
-        <div class="d-flex align-items-center gap-3">
-          <span class="text-light opacity-75">Welcome, Admin</span>
-          <router-link to="/dashboard" class="btn btn-outline-light btn-sm">
-            <i class="bi bi-arrow-left me-1"></i>
-            Back to Dashboard
-          </router-link>
+        <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
+          A
         </div>
       </div>
     </header>
 
-    <div class="d-flex">
+    <div class="d-flex admin-page-shell">
       <!-- Sidebar -->
-      <nav class="sidebar-custom" style="width: 250px;">
-        <div class="p-3">
-          <router-link 
-            v-for="item in navigation" 
-            :key="item.name"
-            :to="item.path"
-            class="nav-item-custom d-block mb-2"
-            :class="{ 'active': route.path === item.path }"
-          >
-            <span class="fs-5">{{ item.icon }}</span>
-            <span>{{ item.name }}</span>
-          </router-link>
-        </div>
-      </nav>
+      <AdminSidebar />
 
       <!-- Main Content -->
-      <main class="flex-grow-1 p-4">
+      <main class="flex-grow-1 p-4 admin-main">
         <!-- Assignment Form -->
         <div class="card-custom mb-4">
           <div class="card-body">
@@ -147,13 +130,74 @@
             
             <div class="row g-3 mt-1">
               <div class="col-md-3">
-                <label for="startTime" class="form-label">Start Time</label>
-                <input v-model="generateSettings.start_time" type="time" class="form-control" id="startTime">
+                <label for="academicYear" class="form-label">Academic Year</label>
+                <select v-model="generateSettings.academic_year" class="form-select" id="academicYear">
+                  <option value="2024-2025">2024-2025</option>
+                  <option value="2025-2026">2025-2026</option>
+                  <option value="2026-2027">2026-2027</option>
+                </select>
               </div>
               
               <div class="col-md-3">
-                <label for="endTime" class="form-label">End Time</label>
-                <input v-model="generateSettings.end_time" type="time" class="form-control" id="endTime">
+                <label for="termSelect" class="form-label">Term</label>
+                <select v-model="generateSettings.term" class="form-select" id="termSelect">
+                  <option value="Fall">Fall</option>
+                  <option value="Spring">Spring</option>
+                  <option value="Summer">Summer</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="row g-3 mt-1">
+              <div class="col-md-3">
+                <label for="dailyStartTime" class="form-label">Daily Start Time</label>
+                <input v-model="generateSettings.start_time" type="time" class="form-control" id="dailyStartTime" placeholder="08:00">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="dailyEndTime" class="form-label">Daily End Time</label>
+                <input v-model="generateSettings.end_time" type="time" class="form-control" id="dailyEndTime" placeholder="17:30">
+              </div>
+            </div>
+            
+            <div class="row g-3 mt-1">
+              <div class="col-md-3">
+                <label for="beforeMorningBreak" class="form-label">Before Morning Break (periods)</label>
+                <input v-model.number="generateSettings.before_morning_break" type="number" class="form-control" id="beforeMorningBreak" min="1" max="6" placeholder="3">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="morningBreakLength" class="form-label">Morning Break Length (minutes)</label>
+                <input v-model.number="generateSettings.morning_break_length" type="number" class="form-control" id="morningBreakLength" min="5" max="60" placeholder="15">
+              </div>
+            </div>
+            
+            <div class="row g-3 mt-1">
+              <div class="col-md-3">
+                <label for="afterBreakPeriod" class="form-label">After Break Period (periods)</label>
+                <input v-model.number="generateSettings.after_break_period" type="number" class="form-control" id="afterBreakPeriod" min="1" max="6" placeholder="2">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="lunchLength" class="form-label">Lunch Length (minutes)</label>
+                <input v-model.number="generateSettings.lunch_length" type="number" class="form-control" id="lunchLength" min="15" max="120" placeholder="60">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="afterLunchPeriod" class="form-label">After Lunch Period (periods)</label>
+                <input v-model.number="generateSettings.after_lunch_period" type="number" class="form-control" id="afterLunchPeriod" min="1" max="6" placeholder="3">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="noonBreakLength" class="form-label">Noon Break Length (minutes)</label>
+                <input v-model.number="generateSettings.noon_break_length" type="number" class="form-control" id="noonBreakLength" min="5" max="60" placeholder="15">
+              </div>
+            </div>
+            
+            <div class="row g-3 mt-1">
+              <div class="col-md-3">
+                <label for="afterNoonBreakPeriod" class="form-label">After Noon Break Period (periods)</label>
+                <input v-model.number="generateSettings.after_noon_break_period" type="number" class="form-control" id="afterNoonBreakPeriod" min="1" max="6" placeholder="2">
               </div>
               
               <div class="col-md-3">
@@ -161,6 +205,23 @@
                 <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" id="periodMinutes" min="30" max="180">
               </div>
               
+              <div class="col-md-3">
+                <label for="changeoverMinutes" class="form-label">Teacher Changeover (minutes)</label>
+                <input v-model.number="generateSettings.teacher_changeover_minutes" type="number" class="form-control" id="changeoverMinutes" min="0" max="60">
+              </div>
+              
+              <div class="col-md-3">
+                <label for="replaceExisting" class="form-label">Replace Existing</label>
+                <div class="form-check">
+                  <input v-model="generateSettings.replace_existing" class="form-check-input" type="checkbox" id="replaceExisting">
+                  <label class="form-check-label" for="replaceExisting">
+                    Replace existing timetable entries
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row g-3 mt-1">
               <div class="col-md-3">
                 <label class="form-label">Days to Generate</label>
                 <div class="d-flex gap-2 flex-wrap">
@@ -302,21 +363,12 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import api from '@/stores/api'
+import AdminSidebar from '@/components/AdminSidebar.vue'
 
 const router = useRouter()
 const route = useRoute()
 
 // Navigation
-const navigation = [
-  { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-  { name: 'Teachers', path: '/teachers', icon: '👥' },
-  { name: 'Modules', path: '/modules', icon: '📚' },
-  { name: 'Classes', path: '/classes', icon: '🏫' },
-  { name: 'Sections', path: '/sections', icon: '🏛️' },
-  { name: 'Shifts', path: '/shifts', icon: '⏰' },
-  { name: 'Assignments', path: '/assignments', icon: '📋' },
-  { name: 'Timetable', path: '/timetable', icon: '📅' }
-]
 
 // State
 const loading = ref(false)
@@ -338,8 +390,17 @@ const assignment = ref({
 const generateSettings = ref({
   class_id: '',
   level: '',
-  start_time: '08:00',
-  end_time: '19:00',
+  academic_year: '2024-2025',
+  term: 'Fall',
+  start_time: '',
+  end_time: '',
+  before_morning_break: 3,
+  morning_break_length: 15,
+  after_break_period: 2,
+  lunch_length: 60,
+  after_lunch_period: 3,
+  noon_break_length: 15,
+  after_noon_break_period: 2,
   period_minutes: 60,
   teacher_changeover_minutes: 5,
   replace_existing: false,
@@ -358,7 +419,7 @@ const availableLevels = computed(() => {
       levels.add(cls.level)
     }
   })
-  return Array.from(levels).sort((a, b) => a - b)
+  return Array.from(levels).sort((a, b) => String(a).localeCompare(String(b), undefined, { numeric: true }))
 })
 
 const groupedTimetables = computed(() => {
@@ -397,6 +458,31 @@ const formatTime = (time) => {
 
 const formatTimeRange = (startTime, endTime) => {
   return `${formatTime(startTime)} - ${formatTime(endTime)}`
+}
+
+const convertTo24Hour = (time12h) => {
+  if (!time12h) return time12h
+  
+  // If already in 24-hour format (HH:MM), return as is
+  if (/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(time12h)) {
+    return time12h
+  }
+  
+  // Convert 12-hour format to 24-hour format
+  const [time, modifier] = time12h.split(' ')
+  let [hours, minutes] = time.split(':')
+  
+  if (hours.length === 1) {
+    hours = '0' + hours
+  }
+  
+  if (modifier === 'PM' && hours !== '12') {
+    hours = String(parseInt(hours, 10) + 12).padStart(2, '0')
+  } else if (modifier === 'AM' && hours === '12') {
+    hours = '00'
+  }
+  
+  return `${hours}:${minutes}`
 }
 
 const addAssignment = async () => {
@@ -448,16 +534,40 @@ const removeSharedActivity = (index) => {
   generateSettings.value.shared_activities.splice(index, 1)
 }
 
+const getApiErrorMessage = (error) => {
+  const data = error.response?.data
+
+  if (data?.message) {
+    return data.message
+  }
+
+  if (Array.isArray(data?.errors) && data.errors.length) {
+    return data.errors.map((item) => item.msg).filter(Boolean).join(', ')
+  }
+
+  return error.message
+}
+
 const generateTimetable = async () => {
   loading.value = true
+  assignmentMessage.value = ''
   
   try {
-    // Prepare request data with only the fields the backend expects
+    // Prepare request data with period settings
     const requestData = {
       class_id: generateSettings.value.class_id || null,
       level: generateSettings.value.level || null,
-      start_time: generateSettings.value.start_time,
-      end_time: generateSettings.value.end_time,
+      academic_year: generateSettings.value.academic_year,
+      term: generateSettings.value.term,
+      start_time: generateSettings.value.start_time ? generateSettings.value.start_time : null,
+      end_time: generateSettings.value.end_time ? generateSettings.value.end_time : null,
+      before_morning_break: generateSettings.value.before_morning_break,
+      morning_break_length: generateSettings.value.morning_break_length,
+      after_break_period: generateSettings.value.after_break_period,
+      lunch_length: generateSettings.value.lunch_length,
+      after_lunch_period: generateSettings.value.after_lunch_period,
+      noon_break_length: generateSettings.value.noon_break_length,
+      after_noon_break_period: generateSettings.value.after_noon_break_period,
       period_minutes: generateSettings.value.period_minutes,
       days: generateSettings.value.selected_days,
       replace_existing: generateSettings.value.replace_existing,
@@ -465,8 +575,8 @@ const generateTimetable = async () => {
       shared_activities: generateSettings.value.shared_activities.map((activity) => ({
         activity_name: activity.activity_name.trim(),
         day_of_week: activity.day_of_week,
-        start_time: activity.start_time,
-        end_time: activity.end_time
+        start_time: convertTo24Hour(activity.start_time),
+        end_time: convertTo24Hour(activity.end_time)
       }))
     }
     
@@ -477,10 +587,129 @@ const generateTimetable = async () => {
     await loadTimetable()
   } catch (error) {
     console.error('Generation error:', error.response?.data)
-    assignmentMessage.value = 'Error generating timetable: ' + (error.response?.data?.message || error.message)
+    assignmentMessage.value = 'Error generating timetable: ' + getApiErrorMessage(error)
   } finally {
     loading.value = false
   }
+}
+
+const generateInternalTimetableFormat = async () => {
+  try {
+    // Get all timetable data
+    const response = await api.get('/timetable')
+    const timetableData = response.data.timetables || []
+    
+    // Group by class and create internal admin layout format
+    const internalFormat = {}
+    
+    timetableData.forEach(entry => {
+      const classKey = `${entry.class_name}_${entry.level || 'General'}`
+      
+      if (!internalFormat[classKey]) {
+        internalFormat[classKey] = {
+          class_name: entry.class_name,
+          level: entry.level || 'General',
+          academic_year: entry.academic_year || '2024-2025',
+          term: entry.term || 'Fall',
+          layout_pattern: 'admin_fixed',
+          time_blocks: {
+            morning_session: {
+              duration_hours: 3,
+              break_after: true,
+              description: '3 hours before morning break'
+            },
+            after_morning_break: {
+              duration_hours: 2,
+              break_after: true,
+              description: '2 hours after morning break'
+            },
+            after_lunch: {
+              duration_hours: 3,
+              break_after: true,
+              description: '3 hours after lunch'
+            },
+            after_noon_break: {
+              duration_hours: 2,
+              break_after: false,
+              description: '2 hours after noon break'
+            }
+          },
+          daily_schedule: {}
+        }
+      }
+      
+      const dayKey = entry.day_of_week
+      if (!internalFormat[classKey].daily_schedule[dayKey]) {
+        internalFormat[classKey].daily_schedule[dayKey] = []
+      }
+      
+      // Categorize sessions by time blocks
+      const timeBlock = categorizeTimeBlock(entry.start_time, entry.end_time)
+      
+      internalFormat[classKey].daily_schedule[dayKey].push({
+        start_time: entry.start_time,
+        end_time: entry.end_time,
+        teacher_name: entry.teacher_name,
+        module_name: entry.module_name,
+        room: entry.room || 'TBA',
+        activity_type: entry.activity_type || 'Regular',
+        time_block: timeBlock
+      })
+    })
+    
+    // Export as JSON file
+    const blob = new Blob([JSON.stringify(internalFormat, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `admin_layout_timetable_${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    assignmentMessage.value += ' Admin layout timetable downloaded!'
+  } catch (error) {
+    console.error('Error generating internal format:', error)
+    assignmentMessage.value += ' Failed to generate admin layout format.'
+  }
+}
+
+const categorizeTimeBlock = (startTime, endTime) => {
+  const startHour = parseInt(startTime.split(':')[0])
+  
+  if (startHour >= 8 && startHour < 11) {
+    return 'morning_session' // 3 hours before morning break
+  } else if (startHour >= 11 && startHour < 13) {
+    return 'after_morning_break' // 2 hours after morning break
+  } else if (startHour >= 13 && startHour < 16) {
+    return 'after_lunch' // 3 hours after lunch
+  } else if (startHour >= 16 && startHour < 18) {
+    return 'after_noon_break' // 2 hours after noon break
+  }
+  
+  return 'other'
+}
+
+const getWeekNumber = (dayOfWeek) => {
+  const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+  const dayIndex = weekDays.indexOf(dayOfWeek)
+  
+  // 3-2-3-2 pattern: Week 1 (Mon-Wed), Week 2 (Thu-Fri), Week 3 (Mon-Tue), Week 4 (Wed-Thu), Week 5 (Fri-Mon)...
+  if (dayIndex <= 2) return 'Week 1'  // Mon, Tue, Wed
+  if (dayIndex <= 4) return 'Week 2'  // Thu, Fri
+  return 'Week 1' // Default
+}
+
+const getWeekPattern = (weekNumber) => {
+  const patterns = {
+    'Week 1': '3-2-3-2',
+    'Week 2': '3-2-3-2',
+    'Week 3': '3-2-3-2',
+    'Week 4': '3-2-3-2',
+    'Week 5': '3-2-3-2'
+  }
+  return patterns[weekNumber] || '3-2-3-2'
 }
 
 const buildTimetableGridRows = (group) => {
@@ -497,30 +726,7 @@ const buildTimetableGridRows = (group) => {
     entriesByDay.set(entry.day_of_week, dayEntries)
   })
   
-  // Create time slots
   const timeSlotMap = new Map()
-  const startTimes = ['08:00', '09:00', '10:00', '11:00', '11:30', '12:30', '13:30', '14:30', '15:30', '16:30', '17:30', '18:00']
-  const generatedEntries = group.entries.map(entry => ({
-    start_time: entry.start_time.slice(0, 5),
-    end_time: entry.end_time.slice(0, 5)
-  }))
-  
-  startTimes.forEach(startTime => {
-    const endTime = getNextTime(startTime)
-    const isCoveredByGeneratedEntry = generatedEntries.some(entry => {
-      return timeToMinutes(entry.start_time) < timeToMinutes(endTime) &&
-        timeToMinutes(entry.end_time) > timeToMinutes(startTime)
-    })
-
-    if (isCoveredByGeneratedEntry) {
-      return
-    }
-
-    timeSlotMap.set(`${startTime}-${endTime}`, {
-      start_time: startTime,
-      end_time: endTime
-    })
-  })
 
   group.entries.forEach(entry => {
     const startTime = entry.start_time.slice(0, 5)
@@ -543,34 +749,49 @@ const buildTimetableGridRows = (group) => {
     
     days.forEach(day => {
       const dayEntries = entriesByDay.get(day) || []
-      const entry = dayEntries.find(item => item.start_time === slot.start_time)
       
-      if (entry) {
-        rowEntriesByDay[day] = entry
-      } else {
+      // First try to find exact time match
+      let entry = dayEntries.find(item => item.start_time === slot.start_time)
+      
+      if (!entry) {
         // Check if this time slot is covered by a previous entry that spans multiple periods
-        const coveringEntry = dayEntries.find(item => {
+        entry = dayEntries.find(item => {
           const itemStart = timeToMinutes(item.start_time)
           const itemEnd = timeToMinutes(item.end_time)
           const slotStart = timeToMinutes(slot.start_time)
           const slotEnd = timeToMinutes(slot.end_time)
           return itemStart < slotStart && itemEnd > slotStart
         })
-        rowEntriesByDay[day] = coveringEntry || null
       }
+      
+      if (!entry) {
+        // Check if this time slot falls within an activity (activities can have custom times)
+        entry = dayEntries.find(item => {
+          const itemStart = timeToMinutes(item.start_time)
+          const itemEnd = timeToMinutes(item.end_time)
+          const slotStart = timeToMinutes(slot.start_time)
+          const slotEnd = timeToMinutes(slot.end_time)
+          // Entry overlaps with this time slot
+          return item.entry_type === 'activity' && 
+                 itemStart <= slotStart && 
+                 itemEnd >= slotEnd
+        })
+      }
+      
+      rowEntriesByDay[day] = entry || null
     })
     
-    // Check if it's a break time
-    const isBreak = slot.start_time === '11:00' || slot.start_time === '13:30' || slot.start_time === '17:30'
-    const hasAnyEntry = Object.values(rowEntriesByDay).some(Boolean)
+    const rowEntries = Object.values(rowEntriesByDay).filter(Boolean)
+    const isBreak = rowEntries.length > 0 && rowEntries.every(entry => entry.entry_type === 'break')
+    const breakEntry = rowEntries[0]
     
-    if (isBreak && !hasAnyEntry) {
+    if (isBreak) {
       rows.push({
         type: 'break',
-        breakName: slot.start_time === '11:00' ? 'BREAK' : slot.start_time === '13:30' ? 'LUNCH' : 'BREAK',
+        breakName: breakEntry.module_name || 'Break',
         start_time: slot.start_time,
         end_time: slot.end_time,
-        entriesByDay: {}
+        entriesByDay: rowEntriesByDay
       })
     } else {
       rows.push({
@@ -588,24 +809,6 @@ const buildTimetableGridRows = (group) => {
 const timeToMinutes = (time) => {
   const [hours, minutes] = (time || '00:00').split(':').map(Number)
   return hours * 60 + minutes
-}
-
-const getNextTime = (currentTime) => {
-  const timeMap = {
-    '08:00': '09:00',
-    '09:00': '10:00',
-    '10:00': '11:00',
-    '11:00': '11:30',
-    '11:30': '12:30',
-    '12:30': '13:30',
-    '13:30': '14:30',
-    '14:30': '15:30',
-    '15:30': '16:30',
-    '16:30': '17:30',
-    '17:30': '18:00',
-    '18:00': '19:00'
-  }
-  return timeMap[currentTime] || '19:00'
 }
 
 // Data loading
@@ -663,14 +866,11 @@ onMounted(async () => {
 .header-custom {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1rem;
-  border-radius: 0.5rem;
 }
 
 .sidebar-custom {
   background: #f8f9fa;
   border-right: 1px solid #dee2e6;
-  min-height: calc(100vh - 80px);
   padding: 1rem;
 }
 

@@ -110,7 +110,11 @@ const handleLogin = async () => {
     // Redirect to teacher dashboard
     router.push('/teacher/dashboard')
   } catch (err) {
-    error.value = err.response?.data?.message || 'Login failed'
+    if (!err.response) {
+      error.value = 'Cannot connect to the server. Please make sure the backend is running on port 5000.'
+    } else {
+      error.value = err.response?.data?.message || 'Login failed'
+    }
     console.error(err)
   } finally {
     loading.value = false

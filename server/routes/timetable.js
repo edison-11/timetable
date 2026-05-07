@@ -51,34 +51,45 @@ const normalizeSharedActivities = (activities) => {
 };
 
 const buildGenerationItems = (slots, sharedActivities) => {
-  const lessonItems = slots
-    .filter((slot) => {
-      return !sharedActivities.some((activity) => {
-        return activity.day_of_week === slot.day_of_week
-          && overlaps(
-            timeToMinutes(slot.start_time),
-            timeToMinutes(slot.end_time),
-            timeToMinutes(activity.start_time),
-            timeToMinutes(activity.end_time)
-          );
+  const items = [];
+
+  for (const slot of slots) {
+    // Check if this slot overlaps with any shared activity
+    const overlappingActivity = sharedActivities.find((activity) => {
+      return activity.day_of_week === slot.day_of_week
+        && overlaps(
+          timeToMinutes(slot.start_time),
+          timeToMinutes(slot.end_time),
+          timeToMinutes(activity.start_time),
+          timeToMinutes(activity.end_time)
+        );
+    });
+
+    if (overlappingActivity) {
+      // Replace the slot with the activity, but keep the slot's time
+      items.push({
+        type: 'activity',
+        day_of_week: slot.day_of_week,
+        start_time: slot.start_time,
+        end_time: slot.end_time,
+        activity_name: overlappingActivity.activity_name,
+        original_activity_time: {
+          start: overlappingActivity.start_time,
+          end: overlappingActivity.end_time
+        }
       });
-    })
-    .map((slot) => ({
-      type: 'lesson',
-      day_of_week: slot.day_of_week,
-      start_time: slot.start_time,
-      end_time: slot.end_time
-    }));
+    } else {
+      // Keep the slot as a lesson
+      items.push({
+        type: 'lesson',
+        day_of_week: slot.day_of_week,
+        start_time: slot.start_time,
+        end_time: slot.end_time
+      });
+    }
+  }
 
-  const activityItems = sharedActivities.map((activity) => ({
-    type: 'activity',
-    day_of_week: activity.day_of_week,
-    start_time: activity.start_time,
-    end_time: activity.end_time,
-    activity_name: activity.activity_name
-  }));
-
-  return [...lessonItems, ...activityItems].sort((a, b) => {
+  return items.sort((a, b) => {
     const dayDiff = (DAY_ORDER.get(a.day_of_week) ?? 99) - (DAY_ORDER.get(b.day_of_week) ?? 99);
     if (dayDiff !== 0) return dayDiff;
 
@@ -299,10 +310,10 @@ router.post('/', auth, [
 // Generate timetable entries per class. Classes with the same level remain separate by class_id.
 router.post('/generate', auth, [
   body('class_id').optional({ nullable: true, checkFalsy: true }).isInt(),
-  body('level').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('level').optional({ nullable: true, checkFalsy: true }).trim().notEmpty(),
   body('days').optional().isArray(),
-  body('start_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
-  body('end_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
+  body('start_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
+  body('end_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
   body('period_minutes').isInt({ min: 1 }).withMessage('Period minutes must be at least 1'),
   body('replace_existing').optional().isBoolean(),
   body('shared_activities')
@@ -344,7 +355,15 @@ router.post('/generate', auth, [
       level,
       start_time,
       end_time,
+      before_morning_break,
+      morning_break_length,
+      after_break_period,
+      lunch_length,
+      after_lunch_period,
+      noon_break_length,
+      after_noon_break_period,
       period_minutes,
+      teacher_changeover_minutes,
       replace_existing = true
     } = req.body;
 
@@ -357,33 +376,123 @@ router.post('/generate', auth, [
       return res.status(400).json({ message: 'At least one valid day is required' });
     }
 
+    // Calculate schedule from period and break length fields if start_time/end_time not provided
+    let calculatedStartTime = start_time;
+    let calculatedEndTime = end_time;
+    
+    if (!calculatedStartTime || !calculatedEndTime) {
+      // Default start time: 8:00 AM
+      calculatedStartTime = '08:00';
+      
+      // Calculate end time based on periods and breaks
+      const totalPeriods = Number(before_morning_break || 3) + Number(after_break_period || 2) + Number(after_lunch_period || 3) + Number(after_noon_break_period || 2);
+      const totalBreakMinutes = Number(morning_break_length || 15) + Number(lunch_length || 60) + Number(noon_break_length || 15);
+      const totalTeachingMinutes = totalPeriods * Number(period_minutes);
+      const totalMinutes = totalTeachingMinutes + totalBreakMinutes;
+      const endHour = 8 + Math.floor(totalMinutes / 60);
+      const endMinute = totalMinutes % 60;
+      calculatedEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    }
+
     const activitiesOutsideGeneratedDays = sharedActivities.filter((activity) => !days.includes(activity.day_of_week));
     if (activitiesOutsideGeneratedDays.length) {
       return res.status(400).json({ message: 'Shared activity day must be one of the selected generation days' });
     }
 
-    if (timeToMinutes(end_time) <= timeToMinutes(start_time)) {
+    if (timeToMinutes(calculatedEndTime) <= timeToMinutes(calculatedStartTime)) {
       return res.status(400).json({ message: 'End time must be after start time' });
-    }
-
-    const activitiesOutsideGeneratedTime = sharedActivities.filter((activity) => {
-      return timeToMinutes(activity.start_time) < timeToMinutes(start_time)
-        || timeToMinutes(activity.end_time) > timeToMinutes(end_time);
-    });
-    if (activitiesOutsideGeneratedTime.length) {
-      return res.status(400).json({ message: 'Shared activity time must be inside the generated timetable hours' });
     }
 
     const settings = await SystemSetting.getTimetableSettings();
     const breakPeriodRules = settings.break_period_rules || {};
-    const sharedChangeoverMinutes = Number(settings.teacher_changeover_minutes ?? 5);
+    const sharedChangeoverMinutes = Number(teacher_changeover_minutes || settings.teacher_changeover_minutes || 5);
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
+    const selectedLevel = level ? String(level).trim().toLowerCase() : '';
     const selectedClasses = allClasses
       .filter(Boolean)
-      .filter((classItem) => !level || Number(classItem.level) === Number(level));
+      .filter((classItem) => !selectedLevel || String(classItem.level || '').trim().toLowerCase() === selectedLevel);
     const generated = [];
     const skipped = [];
     const classEntryCounts = [];
+
+    // Build custom breaks and time slots from period and break length fields
+    const buildCustomSchedule = () => {
+      const schedule = [];
+      let currentMinutes = timeToMinutes(calculatedStartTime);
+      
+      // Before morning break periods
+      for (let i = 0; i < Number(before_morning_break || 3); i++) {
+        schedule.push({
+          type: 'period',
+          start_time: minutesToTime(currentMinutes),
+          end_time: minutesToTime(currentMinutes + Number(period_minutes))
+        });
+        currentMinutes += Number(period_minutes);
+        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
+      }
+      
+      // Morning break
+      schedule.push({
+        type: 'break',
+        break_name: 'Morning Break',
+        start_time: minutesToTime(currentMinutes),
+        end_time: minutesToTime(currentMinutes + Number(morning_break_length || 15))
+      });
+      currentMinutes += Number(morning_break_length || 15);
+      
+      // After break periods
+      for (let i = 0; i < Number(after_break_period || 2); i++) {
+        schedule.push({
+          type: 'period',
+          start_time: minutesToTime(currentMinutes),
+          end_time: minutesToTime(currentMinutes + Number(period_minutes))
+        });
+        currentMinutes += Number(period_minutes);
+        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
+      }
+      
+      // Lunch break
+      schedule.push({
+        type: 'break',
+        break_name: 'Lunch Break',
+        start_time: minutesToTime(currentMinutes),
+        end_time: minutesToTime(currentMinutes + Number(lunch_length || 60))
+      });
+      currentMinutes += Number(lunch_length || 60);
+      
+      // After lunch periods
+      for (let i = 0; i < Number(after_lunch_period || 3); i++) {
+        schedule.push({
+          type: 'period',
+          start_time: minutesToTime(currentMinutes),
+          end_time: minutesToTime(currentMinutes + Number(period_minutes))
+        });
+        currentMinutes += Number(period_minutes);
+        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
+      }
+      
+      // Noon break
+      schedule.push({
+        type: 'break',
+        break_name: 'Noon Break',
+        start_time: minutesToTime(currentMinutes),
+        end_time: minutesToTime(currentMinutes + Number(noon_break_length || 15))
+      });
+      currentMinutes += Number(noon_break_length || 15);
+      
+      // After noon break periods
+      for (let i = 0; i < Number(after_noon_break_period || 2); i++) {
+        schedule.push({
+          type: 'period',
+          start_time: minutesToTime(currentMinutes),
+          end_time: minutesToTime(currentMinutes + Number(period_minutes))
+        });
+        currentMinutes += Number(period_minutes);
+        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
+      }
+      
+      return schedule;
+    };
 
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
@@ -404,28 +513,39 @@ router.post('/generate', auth, [
       // Use one shared changeover rule for every class so generation stays consistent across all timetables.
       const changeoverMinutes = sharedChangeoverMinutes;
 
-      const breaks = breakPeriodRules.enabled
-        ? buildBreaksFromPeriodRules({
-            startTime: start_time,
-            endTime: end_time,
-            periodMinutes: Number(period_minutes),
-            changeoverMinutes,
-            rules: breakPeriodRules
-          })
-        : (Array.isArray(settings.timetable_breaks) ? settings.timetable_breaks : []);
-
-      const slots = buildSlots({
-        days,
-        startTime: start_time,
-        endTime: end_time,
-        periodMinutes: Number(period_minutes),
-        changeoverMinutes,
-        breaks
-      });
-      const generationItems = buildGenerationItems(slots, sharedActivities);
-
+      const customSchedule = buildCustomSchedule();
       const scheduledCounts = new Map();
       let classCount = 0;
+
+      const breakItems = customSchedule.filter((item) => item.type === 'break');
+      for (const day of days) {
+        for (const item of breakItems) {
+          const timetableId = await TimetableEntry.create({
+            class_id: classItem.class_id,
+            assignment_id: null,
+            day_of_week: day,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            room_id: null,
+            module_name: item.break_name,
+            entry_type: 'break'
+          });
+          const timetable = await TimetableEntry.findById(timetableId);
+          generated.push(timetable);
+          classCount += 1;
+        }
+      }
+
+      // Expand the generated daily periods across each selected day.
+      const periodSlots = customSchedule.filter((item) => item.type === 'period');
+      const slots = days.flatMap((day) => {
+        return periodSlots.map((item) => ({
+          day_of_week: day,
+          start_time: item.start_time,
+          end_time: item.end_time
+        }));
+      });
+      const generationItems = buildGenerationItems(slots, sharedActivities);
 
       for (const item of generationItems) {
         if (item.type === 'activity') {
@@ -497,7 +617,7 @@ router.post('/generate', auth, [
         class_id: classItem.class_id,
         class_name: classItem.class_name,
         entries: classCount,
-        expected_entries: generationItems.length
+        expected_entries: generationItems.length + (breakItems.length * days.length)
       });
 
       if (!classCount) {
