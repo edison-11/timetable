@@ -1,53 +1,77 @@
-const pool = require('../config/database');
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./timetable.db');
 const bcrypt = require('bcryptjs');
 
 class User {
   static async ensureProfilePhotoColumn() {
-    try {
-      await pool.execute('ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) NULL AFTER role');
-    } catch (error) {
-      if (error.code !== 'ER_DUP_FIELDNAME') {
-        throw error;
-      }
-    }
+    return new Promise((resolve, reject) => {
+      db.run('ALTER TABLE users ADD COLUMN profile_photo VARCHAR(255) NULL', (err) => {
+        if (err && err.message.includes('duplicate column name')) {
+          resolve();
+        } else if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 
   static async create(userData) {
     const { username, email, password, role = 'student' } = userData;
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    const [result] = await pool.execute(
-      'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-      [username, email, hashedPassword, role]
-    );
-    
-    return result.insertId;
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
+        [username, email, hashedPassword, role],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
   }
 
   static async findByEmail(email) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM users WHERE email = ?',
+        [email],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async findById(id) {
     await this.ensureProfilePhotoColumn();
 
-    const [rows] = await pool.execute(
-      'SELECT id, username, email, role, profile_photo, created_at FROM users WHERE id = ?',
-      [id]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT id, username, email, role, profile_photo, created_at FROM users WHERE id = ?',
+        [id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async findByEmailExcludingId(email, id) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM users WHERE email = ? AND id != ?',
-      [email, id]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM users WHERE email = ? AND id != ?',
+        [email, id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async comparePassword(plainPassword, hashedPassword) {
@@ -57,18 +81,29 @@ class User {
   static async getAll() {
     await this.ensureProfilePhotoColumn();
 
-    const [rows] = await pool.execute(
-      'SELECT id, username, email, role, profile_photo, created_at FROM users ORDER BY created_at DESC'
-    );
-    return rows;
+    return new Promise((resolve, reject) => {
+      db.all(
+        'SELECT id, username, email, role, profile_photo, created_at FROM users ORDER BY created_at DESC',
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
   }
 
   static async update(id, userData) {
     const { username, email, role } = userData;
-    await pool.execute(
-      'UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?',
-      [username, email, role, id]
-    );
+    return new Promise((resolve, reject) => {
+      db.run(
+        'UPDATE users SET username = ?, email = ?, role = ? WHERE id = ?',
+        [username, email, role, id],
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
   }
 
   static async updateProfile(id, userData) {
@@ -105,14 +140,25 @@ class User {
 
     updateValues.push(id);
 
-    await pool.execute(
-      `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
-      updateValues
-    );
+    return new Promise((resolve, reject) => {
+      db.run(
+        `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
+        updateValues,
+        function(err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
   }
 
   static async delete(id) {
-    await pool.execute('DELETE FROM users WHERE id = ?', [id]);
+    return new Promise((resolve, reject) => {
+      db.run('DELETE FROM users WHERE id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
   }
 }
 
