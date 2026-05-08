@@ -1,33 +1,42 @@
-const pool = require('../config/database');
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./timetable.db');
 
 class Timetable {
   static async create(timetableData) {
     const { title, description, user_id, days, start_time, end_time, subject } = timetableData;
     
-    const [result] = await pool.execute(
-      'INSERT INTO timetables (title, description, user_id, days, start_time, end_time, subject) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [title, description, user_id, JSON.stringify(days), start_time, end_time, subject]
-    );
-    
-    return result.insertId;
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO timetables (title, description, user_id, days, start_time, end_time, subject) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [title, description, user_id, JSON.stringify(days), start_time, end_time, subject],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
   }
 
   static async getAll() {
-    const [rows] = await pool.execute(`
-      SELECT t.*, u.username as created_by 
-      FROM timetables t 
-      LEFT JOIN users u ON t.user_id = u.id 
-      ORDER BY t.created_at DESC
-    `);
-    
-    return rows.map(row => ({
-      ...row,
-      days: JSON.parse(row.days)
-    }));
+    return new Promise((resolve, reject) => {
+      db.all(`
+        SELECT t.*, u.username as created_by 
+        FROM timetables t 
+        LEFT JOIN users u ON t.user_id = u.id 
+        ORDER BY t.created_at DESC
+      `, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows.map(row => ({
+          ...row,
+          days: JSON.parse(row.days)
+        })));
+      });
+    });
   }
 
   static async getById(id) {
-    const [rows] = await pool.execute(`
+    return new Promise((resolve, reject) => {
+      db.get(`
       SELECT t.*, u.username as created_by 
       FROM timetables t 
       LEFT JOIN users u ON t.user_id = u.id 

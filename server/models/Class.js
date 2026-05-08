@@ -1,73 +1,106 @@
-const pool = require('../config/database');
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./timetable.db');
 
 class Class {
   static async create(classData) {
     const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = classData;
     
-    const [result] = await pool.execute(
-      'INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [class_name, level, academic_year, class_teacher_id || null, shift_id || null, dos_id || null, section_id || null]
-    );
-    
-    return result.insertId;
+    return new Promise((resolve, reject) => {
+      db.run(
+        'INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [class_name, level, academic_year, class_teacher_id || null, shift_id || null, dos_id || null, section_id || null],
+        function(err) {
+          if (err) reject(err);
+          else resolve(this.lastID);
+        }
+      );
+    });
   }
 
   static async getAll() {
-    const [rows] = await pool.execute(`
-      SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
-      FROM class c
-      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id
-      LEFT JOIN shift s ON c.shift_id = s.shift_id
+    return new Promise((resolve, reject) => {
+      db.all(`
+        SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
+        FROM class c
+        LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id
+        LEFT JOIN shift s ON c.shift_id = s.shift_id
       LEFT JOIN dos d ON c.dos_id = d.dos_id
       LEFT JOIN section sec ON c.section_id = sec.section_id
       ORDER BY c.level, c.class_name
-    `);
-    return rows;
+      `, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
   }
 
   static async findByName(class_name) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?)',
-      [class_name]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?)',
+        [class_name],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async findByNameExcludingId(class_name, id) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?) AND class_id <> ?',
-      [class_name, id]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?) AND class_id <> ?',
+        [class_name, id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async findBySectionId(section_id) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE section_id = ?',
-      [section_id]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM class WHERE section_id = ?',
+        [section_id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async findBySectionIdExcludingId(section_id, id) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE section_id = ? AND class_id <> ?',
-      [section_id, id]
-    );
-    return rows[0];
+    return new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM class WHERE section_id = ? AND class_id <> ?',
+        [section_id, id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
   }
 
   static async findById(id) {
-    const [rows] = await pool.execute(`
-      SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
-      FROM class c
+    return new Promise((resolve, reject) => {
+      db.get(`
+        SELECT c.*, s.shift_name, s.teacher_changeover_minutes, d.name as dos_name, sec.section_name, t.name as class_teacher_name, t.department as class_teacher_department
+        FROM class c
       LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id
       LEFT JOIN shift s ON c.shift_id = s.shift_id
       LEFT JOIN dos d ON c.dos_id = d.dos_id
       LEFT JOIN section sec ON c.section_id = sec.section_id
       WHERE c.class_id = ?
-    `, [id]);
-    return rows[0];
+      `, [id], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
   }
 
   static async getByLevel(level) {

@@ -50,14 +50,15 @@ if (fs.existsSync(clientDistPath)) {
   console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
 }
 
-// MySQL connection test
-const pool = require('./config/database');
-pool.getConnection()
-  .then(connection => {
-    console.log('MySQL connected successfully');
-    connection.release();
-  })
-  .catch(err => console.error('MySQL connection error:', err));
+// Database connection test - using SQLite for now
+const sqlite3 = require('sqlite3').verbose();
+const db = new sqlite3.Database('./timetable.db', (err) => {
+  if (err) {
+    console.error('SQLite connection error:', err.message);
+  } else {
+    console.log('SQLite database connected successfully');
+  }
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -81,13 +82,17 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Serve static client files from the client directory
+const clientPath = path.resolve(__dirname, '../client');
+app.use(express.static(clientPath));
+
 // SPA fallback - serve index.html for client-side routing
 app.get('*', (req, res) => {
-  const indexPath = path.join(clientDistPath, 'index.html');
+  const indexPath = path.join(clientPath, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {
-    res.status(404).send('Frontend build not found. Run `npm install` and `npm run build` in the client folder.');
+    res.status(404).send('Client files not found.');
   }
 });
 
