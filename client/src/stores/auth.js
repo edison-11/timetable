@@ -52,7 +52,9 @@ export const useAuthStore = defineStore('auth', {
 
         if (loginType === 'teacher') {
           localStorage.setItem('teacher', JSON.stringify(user))
+          localStorage.removeItem('user')
         } else {
+          localStorage.setItem('user', JSON.stringify(user))
           localStorage.removeItem('teacher')
         }
         
@@ -79,6 +81,7 @@ export const useAuthStore = defineStore('auth', {
         
         localStorage.setItem('token', token)
         localStorage.setItem('userType', 'admin')
+        localStorage.setItem('user', JSON.stringify(user))
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
         return { success: true }
@@ -98,6 +101,7 @@ export const useAuthStore = defineStore('auth', {
       
       localStorage.removeItem('token')
       localStorage.removeItem('userType')
+      localStorage.removeItem('user')
       localStorage.removeItem('teacher')
       delete api.defaults.headers.common['Authorization']
     },
@@ -146,6 +150,18 @@ export const useAuthStore = defineStore('auth', {
       this.userType = userType
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
+      const cachedUser = userType === 'teacher'
+        ? localStorage.getItem('teacher')
+        : localStorage.getItem('user')
+
+      if (cachedUser) {
+        try {
+          this.user = JSON.parse(cachedUser)
+        } catch (error) {
+          this.user = null
+        }
+      }
+
       try {
         if (userType === 'teacher') {
           const response = await api.get('/teacher-auth/me')
@@ -166,6 +182,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = user
         this.userType = 'admin'
         localStorage.setItem('userType', 'admin')
+        localStorage.setItem('user', JSON.stringify(user))
         localStorage.removeItem('teacher')
         return true
       } catch (error) {

@@ -1,123 +1,105 @@
 <template>
-  <div class="min-vh-100 admin-page">
-    <header class="header-custom">
-      <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">🏛️</div>
-          <h1 class="h2 mb-0">Sections Management</h1>
+  <AppLayout>
+    <div class="sections-container">
+      <div class="card-custom">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="h3 fw-semibold text-dark">All Sections</h2>
+          <button class="btn-primary" @click="openAddModal">Add New Section</button>
         </div>
-        <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">A</div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <input v-model="searchQuery" type="text" placeholder="Search sections..." class="form-control">
+          </div>
+          <div class="col-md-6">
+            <select v-model="levelFilter" class="form-select">
+              <option value="">All Levels</option>
+              <option v-for="level in levelOptions" :key="level" :value="level">{{ level }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Section Name</th>
+                <th>Level</th>
+                <th>Description</th>
+                <th>Classes Count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="section in filteredSections" :key="section.section_id">
+                <td class="fw-medium">{{ section.section_name }}</td>
+                <td>{{ section.level }}</td>
+                <td>{{ section.description || 'No description' }}</td>
+                <td>
+                  <span class="badge">{{ section.class_count || 0 }}</span>
+                </td>
+                <td>
+                  <button class="btn-edit me-2" @click="openEditModal(section)">Edit</button>
+                  <button class="btn-delete" @click="deleteSection(section)">Delete</button>
+                </td>
+              </tr>
+              <tr v-if="!filteredSections.length">
+                <td colspan="5" class="text-center py-4">No sections found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </header>
 
-    <div class="d-flex admin-page-shell">
-      <AdminSidebar />
-
-      <main class="flex-grow-1 p-4 admin-main">
-        <div class="card-custom">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h3 fw-semibold text-dark">All Sections</h2>
-            <button class="btn btn-primary-custom" @click="openAddModal">Add New Section</button>
-          </div>
-
-          <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              <input v-model="searchQuery" type="text" placeholder="Search sections..." class="form-control">
+      <!-- Section Modal -->
+      <div class="modal fade" id="sectionModal" tabindex="-1" aria-labelledby="sectionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="sectionModalLabel">{{ isEditing ? 'Edit Section' : 'Add New Section' }}</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="col-md-6">
-              <select v-model="levelFilter" class="form-select">
-                <option value="">All Levels</option>
-                <option v-for="level in levelOptions" :key="level" :value="level">{{ level }}</option>
-              </select>
+            <div class="modal-body">
+              <div v-if="formMessage" class="alert alert-danger" role="alert">{{ formMessage }}</div>
+              <form @submit.prevent="saveSection">
+                <div class="mb-3">
+                  <label for="sectionName" class="form-label">Section Name *</label>
+                  <input id="sectionName" v-model="sectionForm.section_name" class="form-control" required placeholder="Example: A, Science, Arts" :class="{ 'is-invalid': errors.section_name }">
+                  <div class="invalid-feedback" v-if="errors.section_name">{{ errors.section_name }}</div>
+                </div>
+                <div class="mb-3">
+                  <label for="sectionLevel" class="form-label">Level *</label>
+                  <input id="sectionLevel" v-model="sectionForm.level" class="form-control" required list="levelSuggestions" placeholder="Example: Grade 10, Grade 11" :class="{ 'is-invalid': errors.level }">
+                  <datalist id="levelSuggestions">
+                    <option v-for="level in levelSuggestions" :key="level" :value="level" />
+                  </datalist>
+                  <div class="invalid-feedback" v-if="errors.level">{{ errors.level }}</div>
+                </div>
+                <div class="mb-3">
+                  <label for="sectionDescription" class="form-label">Description</label>
+                  <textarea id="sectionDescription" v-model="sectionForm.description" class="form-control" rows="3" placeholder="Optional description"></textarea>
+                </div>
+              </form>
             </div>
-          </div>
-
-          <div class="table-responsive">
-            <table class="table table-custom">
-              <thead>
-                <tr>
-                  <th>Section Name</th>
-                  <th>Level</th>
-                  <th>Description</th>
-                  <th>Classes Count</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="section in filteredSections" :key="section.section_id">
-                  <td class="fw-medium">{{ section.section_name }}</td>
-                  <td>{{ section.level }}</td>
-                  <td>{{ section.description || 'No description' }}</td>
-                  <td>
-                    <span class="badge bg-info">{{ section.class_count || 0 }}</span>
-                  </td>
-                  <td>
-                    <button class="btn btn-warning-custom btn-sm me-2" @click="openEditModal(section)">Edit</button>
-                    <button class="btn btn-danger-custom btn-sm" @click="deleteSection(section)">Delete</button>
-                  </td>
-                </tr>
-                <tr v-if="!filteredSections.length">
-                  <td colspan="5" class="text-center text-muted py-4">No sections found</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Section Modal -->
-        <div class="modal fade" id="sectionModal" tabindex="-1" aria-labelledby="sectionModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="sectionModalLabel">{{ isEditing ? 'Edit Section' : 'Add New Section' }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                <div v-if="formMessage" class="alert alert-danger" role="alert">{{ formMessage }}</div>
-                <form @submit.prevent="saveSection">
-                  <div class="mb-3">
-                    <label for="sectionName" class="form-label">Section Name *</label>
-                    <input id="sectionName" v-model="sectionForm.section_name" class="form-control" required placeholder="Example: A, Science, Arts" :class="{ 'is-invalid': errors.section_name }">
-                    <div class="invalid-feedback" v-if="errors.section_name">{{ errors.section_name }}</div>
-                  </div>
-                  <div class="mb-3">
-                    <label for="sectionLevel" class="form-label">Level *</label>
-                    <input id="sectionLevel" v-model="sectionForm.level" class="form-control" required list="levelSuggestions" placeholder="Example: Grade 10, Grade 11" :class="{ 'is-invalid': errors.level }">
-                    <datalist id="levelSuggestions">
-                      <option v-for="level in levelSuggestions" :key="level" :value="level" />
-                    </datalist>
-                    <div class="invalid-feedback" v-if="errors.level">{{ errors.level }}</div>
-                  </div>
-                  <div class="mb-3">
-                    <label for="sectionDescription" class="form-label">Description</label>
-                    <textarea id="sectionDescription" v-model="sectionForm.description" class="form-control" rows="3" placeholder="Optional description"></textarea>
-                  </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary-custom" @click="saveSection" :disabled="loading">
-                  <span v-if="loading">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Saving...
-                  </span>
-                  <span v-else>{{ isEditing ? 'Update Section' : 'Add Section' }}</span>
-                </button>
-              </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn-primary" @click="saveSection" :disabled="loading">
+                <span v-if="loading">Saving...</span>
+                <span v-else>{{ isEditing ? 'Update Section' : 'Add Section' }}</span>
+              </button>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
-import AdminSidebar from '@/components/AdminSidebar.vue'
-
+import AppLayout from '@/components/AppLayout.vue'
 
 const sections = ref([])
 const searchQuery = ref('')
@@ -147,7 +129,6 @@ const filteredSections = computed(() => {
       section.level?.toLowerCase().includes(query) ||
       section.description?.toLowerCase().includes(query)
     const matchesLevel = !levelFilter.value || section.level === levelFilter.value
-
     return matchesSearch && matchesLevel
   })
 })
@@ -256,10 +237,10 @@ const showToast = (message, type) => {
   const toastContainer = document.createElement('div')
   toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
   toastContainer.innerHTML = `
-    <div class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
       <div class="d-flex">
         <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>
   `
@@ -283,3 +264,131 @@ onMounted(() => {
   loadData()
 })
 </script>
+
+<style scoped>
+.sections-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.card-custom {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #64748b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-control, .form-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.table-custom {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-custom th,
+.table-custom td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.table-custom th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.badge {
+  background: #3b82f6;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+
+.is-invalid {
+  border-color: #ef4444;
+}
+
+.invalid-feedback {
+  color: #ef4444;
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+</style>

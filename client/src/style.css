@@ -301,8 +301,14 @@ body {
   position: fixed !important;
   top: var(--admin-header-height);
   bottom: 0;
-  overflow-y: auto;
+  overflow-y: hidden;
   padding-top: 0.5rem;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.admin-sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .admin-sidebar .p-3 > .nav-item-custom:first-child {
@@ -770,4 +776,68 @@ main {
   margin: 0 auto 0.75rem;
   color: white;
   font-size: 1.25rem;
+}
+
+/* Dashboard reference layout overrides */
+.dashboard-frame .admin-sidebar {
+  top: 0 !important;
+  bottom: 0 !important;
+  min-height: 100vh !important;
+  padding-top: 1.5rem !important;
+  overflow-y: auto !important;
+}
+
+.dashboard-frame .sidebar-custom .p-3 {
+  padding: 0 !important;
+}
+
+.dashboard-frame main {
+  padding: 0 !important;
+}
+
+.dashboard-frame + .app-account-menu,
+.app-account-menu {
+  top: 0.85rem;
+  right: 2.25rem;
+}
+
+.app-account-trigger {
+  min-height: 52px;
+  padding: 0.25rem 0.3rem 0.25rem 0.7rem;
+  color: #101a33;
+  background: transparent;
+}
+
+.app-account-trigger:hover,
+.app-account-trigger:focus {
+  background: #f4f7fc;
+  border-color: #dfe7f3;
+}
+
+.app-account-welcome {
+  color: #101a33;
+}
+
+.app-account-avatar {
+  width: 44px;
+  height: 44px;
+  background: #dceafe;
+  color: #1d4ed8;
+  box-shadow: none;
+}
+
+body:has(.dashboard-frame) .app-account-menu {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .dashboard-frame .admin-sidebar {
+    position: relative !important;
+    min-height: auto !important;
+    padding-top: 1rem !important;
+  }
+
+  .app-account-menu {
+    display: none;
+  }
 }

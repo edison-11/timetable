@@ -1,0 +1,6 @@
+(node:17088) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[2m11:55:32 AM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/auth/login:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1139:18)
+    at afterConnectMultiple (node:net:1712:7)

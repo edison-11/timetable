@@ -1,296 +1,267 @@
 <template>
-  <div class="min-vh-100 admin-page">
-    <!-- Header -->
-    <header class="header-custom">
-      <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">
-            📅
-          </div>
-          <h1 class="h2 mb-0">Modules Management</h1>
+  <AppLayout>
+    <div class="modules-container">
+      <div class="card-custom">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="h3 fw-semibold text-dark">All Modules</h2>
+          <button class="btn btn-primary" @click="openAddModal">
+            Add New Module
+          </button>
         </div>
-        <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
-          A
+
+        <!-- Search -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search modules..."
+              class="form-control"
+            />
+          </div>
+          <div class="col-md-4">
+            <select v-model="selectedDepartment" class="form-select" aria-label="Filter modules by department">
+              <option value="">All departments</option>
+              <option v-for="department in departmentFilterOptions" :key="department" :value="department">
+                {{ department }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Modules Table -->
+        <div class="table-responsive">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Module Name</th>
+                <th>Department</th>
+                <th>Hours/Year</th>
+                <th>Description</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="module in filteredModules" :key="module.module_id">
+                <td class="fw-medium">{{ module.module_name }}</td>
+                <td>
+                  <span class="badge">{{ module.department || 'SSOD' }}</span>
+                </td>
+                <td>{{ module.hours_per_year }}</td>
+                <td>{{ module.description || 'No description' }}</td>
+                <td>
+                  <button class="btn-edit" @click="openEditModal(module)">
+                    Edit
+                  </button>
+                  <button class="btn-delete" @click="handleDeleteModule(module)" :disabled="deleteLoadingId === module.module_id">
+                    <span v-if="deleteLoadingId === module.module_id">
+                      Deleting...
+                    </span>
+                    <span v-else>Delete</span>
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="!filteredModules.length">
+                <td colspan="5" class="text-center py-4">
+                  No modules found
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-    </header>
 
-    <div class="d-flex admin-page-shell">
-      <!-- Sidebar -->
-      <AdminSidebar />
-
-      <!-- Main Content -->
-      <main class="flex-grow-1 p-4 admin-main">
-        <div class="card-custom">
-          <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h3 fw-semibold text-dark">All Modules</h2>
-            <button class="btn btn-primary-custom" @click="openAddModal">
-              Add New Module
-            </button>
-          </div>
-
-          <!-- Search -->
-          <div class="row g-3 mb-4">
-            <div class="col-md-8">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="Search modules..."
-                class="form-control"
-              />
+      <!-- Add Module Modal -->
+      <div class="modal fade" id="addModuleModal" tabindex="-1" aria-labelledby="addModuleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="addModuleModalLabel">Add New Module</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="col-md-4">
-              <select v-model="selectedDepartment" class="form-select" aria-label="Filter modules by department">
-                <option value="">All departments</option>
-                <option v-for="department in departmentFilterOptions" :key="department" :value="department">
-                  {{ department }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Modules Table -->
-          <div class="table-responsive">
-            <table class="table table-custom">
-              <thead>
-                <tr>
-                  <th>Module Name</th>
-                  <th>Department</th>
-                  <th>Hours/Year</th>
-                  <th>Description</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="module in filteredModules" :key="module.module_id">
-                  <td class="fw-medium">{{ module.module_name }}</td>
-                  <td>
-                    <span class="badge bg-primary">{{ module.department || 'SSOD' }}</span>
-                  </td>
-                  <td>{{ module.hours_per_year }}</td>
-                  <td>{{ module.description || 'No description' }}</td>
-                  <td>
-                    <button class="btn btn-warning-custom btn-sm me-2" @click="openEditModal(module)">
-                      Edit
-                    </button>
-                    <button class="btn btn-danger-custom btn-sm" @click="handleDeleteModule(module)" :disabled="deleteLoadingId === module.module_id">
-                      <span v-if="deleteLoadingId === module.module_id">
-                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        Deleting...
-                      </span>
-                      <span v-else>Delete</span>
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!filteredModules.length">
-                  <td colspan="5" class="text-center text-muted py-4">
-                    No modules found
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Add Module Modal -->
-        <div class="modal fade" id="addModuleModal" tabindex="-1" aria-labelledby="addModuleModalLabel" aria-hidden="true">
-          <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="addModuleModalLabel">Add New Module</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-body">
+              <div v-if="formMessage" class="alert alert-danger" role="alert">
+                {{ formMessage }}
               </div>
-              <div class="modal-body">
-                <div v-if="formMessage" class="alert alert-danger" role="alert">
-                  {{ formMessage }}
-                </div>
-                <form @submit.prevent="handleAddModule">
-                  <div class="row g-3">
-                    <div class="col-md-12">
-                      <label for="moduleName" class="form-label">Module Name *</label>
-                      <input 
-                        type="text" 
-                        class="form-control" 
-                        id="moduleName" 
-                        v-model="newModule.module_name"
-                        required
-                        placeholder="Enter module name"
-                        :class="{ 'is-invalid': errors.module_name }"
-                      >
-                      <div class="invalid-feedback" v-if="errors.module_name">
-                        {{ errors.module_name }}
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="moduleDepartment" class="form-label">Department *</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="moduleDepartment"
-                        v-model="newModule.department"
-                        required
-                        list="departmentSuggestions"
-                        placeholder="Enter department"
-                        :class="{ 'is-invalid': errors.department }"
-                      >
-                      <datalist id="departmentSuggestions">
-                        <option v-for="department in departmentInputSuggestions" :key="department" :value="department" />
-                      </datalist>
-                      <div class="invalid-feedback" v-if="errors.department">
-                        {{ errors.department }}
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="hoursPerYear" class="form-label">Hours per Year *</label>
-                      <input 
-                        type="number" 
-                        class="form-control" 
-                        id="hoursPerYear" 
-                        v-model.number="newModule.hours_per_year"
-                        required
-                        min="1"
-                        step="1"
-                        placeholder="Enter hours per year"
-                        :class="{ 'is-invalid': errors.hours_per_year }"
-                      >
-                      <div class="invalid-feedback" v-if="errors.hours_per_year">
-                        {{ errors.hours_per_year }}
-                      </div>
-                    </div>
-                    <div class="col-md-12">
-                      <label for="moduleDescription" class="form-label">Description</label>
-                      <textarea 
-                        class="form-control" 
-                        id="moduleDescription" 
-                        v-model="newModule.description"
-                        rows="3"
-                        placeholder="Enter module description"
-                        :class="{ 'is-invalid': errors.description }"
-                      ></textarea>
-                      <div class="invalid-feedback" v-if="errors.description">
-                        {{ errors.description }}
-                      </div>
+              <form @submit.prevent="handleAddModule">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label for="moduleName" class="form-label">Module Name *</label>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      id="moduleName" 
+                      v-model="newModule.module_name"
+                      required
+                      placeholder="Enter module name"
+                      :class="{ 'is-invalid': errors.module_name }"
+                    >
+                    <div class="invalid-feedback" v-if="errors.module_name">
+                      {{ errors.module_name }}
                     </div>
                   </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary-custom" @click="handleAddModule" :disabled="loading">
-                  <span v-if="loading">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Adding...
-                  </span>
-                  <span v-else>Add Module</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Edit Module Modal -->
-        <div class="modal fade" id="editModuleModal" tabindex="-1" aria-labelledby="editModuleModalLabel" aria-hidden="true">
-          <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h5 class="modal-title" id="editModuleModalLabel">Edit Module</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-              </div>
-              <div class="modal-body">
-                <div v-if="editFormMessage" class="alert alert-danger" role="alert">
-                  {{ editFormMessage }}
-                </div>
-                <form @submit.prevent="handleEditModule">
-                  <div class="row g-3">
-                    <div class="col-md-12">
-                      <label for="editModuleName" class="form-label">Module Name *</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="editModuleName"
-                        v-model="editModule.module_name"
-                        required
-                        placeholder="Enter module name"
-                        :class="{ 'is-invalid': editErrors.module_name }"
-                      >
-                      <div class="invalid-feedback" v-if="editErrors.module_name">
-                        {{ editErrors.module_name }}
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="editModuleDepartment" class="form-label">Department *</label>
-                      <input
-                        type="text"
-                        class="form-control"
-                        id="editModuleDepartment"
-                        v-model="editModule.department"
-                        required
-                        list="departmentSuggestions"
-                        placeholder="Enter department"
-                        :class="{ 'is-invalid': editErrors.department }"
-                      >
-                      <div class="invalid-feedback" v-if="editErrors.department">
-                        {{ editErrors.department }}
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <label for="editHoursPerYear" class="form-label">Hours per Year *</label>
-                      <input
-                        type="number"
-                        class="form-control"
-                        id="editHoursPerYear"
-                        v-model.number="editModule.hours_per_year"
-                        required
-                        min="1"
-                        step="1"
-                        placeholder="Enter hours per year"
-                        :class="{ 'is-invalid': editErrors.hours_per_year }"
-                      >
-                      <div class="invalid-feedback" v-if="editErrors.hours_per_year">
-                        {{ editErrors.hours_per_year }}
-                      </div>
-                    </div>
-                    <div class="col-md-12">
-                      <label for="editModuleDescription" class="form-label">Description</label>
-                      <textarea
-                        class="form-control"
-                        id="editModuleDescription"
-                        v-model="editModule.description"
-                        rows="3"
-                        placeholder="Enter module description"
-                        :class="{ 'is-invalid': editErrors.description }"
-                      ></textarea>
-                      <div class="invalid-feedback" v-if="editErrors.description">
-                        {{ editErrors.description }}
-                      </div>
+                  <div class="col-md-6">
+                    <label for="moduleDepartment" class="form-label">Department *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="moduleDepartment"
+                      v-model="newModule.department"
+                      required
+                      list="departmentSuggestions"
+                      placeholder="Enter department"
+                      :class="{ 'is-invalid': errors.department }"
+                    >
+                    <datalist id="departmentSuggestions">
+                      <option v-for="department in departmentInputSuggestions" :key="department" :value="department" />
+                    </datalist>
+                    <div class="invalid-feedback" v-if="errors.department">
+                      {{ errors.department }}
                     </div>
                   </div>
-                </form>
-              </div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary-custom" @click="handleEditModule" :disabled="editLoading">
-                  <span v-if="editLoading">
-                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Saving...
-                  </span>
-                  <span v-else>Save Changes</span>
-                </button>
-              </div>
+                  <div class="col-md-6">
+                    <label for="hoursPerYear" class="form-label">Hours per Year *</label>
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      id="hoursPerYear" 
+                      v-model.number="newModule.hours_per_year"
+                      required
+                      min="1"
+                      step="1"
+                      placeholder="Enter hours per year"
+                      :class="{ 'is-invalid': errors.hours_per_year }"
+                    >
+                    <div class="invalid-feedback" v-if="errors.hours_per_year">
+                      {{ errors.hours_per_year }}
+                    </div>
+                  </div>
+                  <div class="col-md-12">
+                    <label for="moduleDescription" class="form-label">Description</label>
+                    <textarea 
+                      class="form-control" 
+                      id="moduleDescription" 
+                      v-model="newModule.description"
+                      rows="3"
+                      placeholder="Enter module description"
+                      :class="{ 'is-invalid': errors.description }"
+                    ></textarea>
+                    <div class="invalid-feedback" v-if="errors.description">
+                      {{ errors.description }}
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn-primary" @click="handleAddModule" :disabled="loading">
+                <span v-if="loading">Adding...</span>
+                <span v-else>Add Module</span>
+              </button>
             </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      <!-- Edit Module Modal -->
+      <div class="modal fade" id="editModuleModal" tabindex="-1" aria-labelledby="editModuleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="editModuleModalLabel">Edit Module</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div v-if="editFormMessage" class="alert alert-danger" role="alert">
+                {{ editFormMessage }}
+              </div>
+              <form @submit.prevent="handleEditModule">
+                <div class="row g-3">
+                  <div class="col-md-12">
+                    <label for="editModuleName" class="form-label">Module Name *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editModuleName"
+                      v-model="editModule.module_name"
+                      required
+                      placeholder="Enter module name"
+                      :class="{ 'is-invalid': editErrors.module_name }"
+                    >
+                    <div class="invalid-feedback" v-if="editErrors.module_name">
+                      {{ editErrors.module_name }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editModuleDepartment" class="form-label">Department *</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editModuleDepartment"
+                      v-model="editModule.department"
+                      required
+                      list="departmentSuggestions"
+                      placeholder="Enter department"
+                      :class="{ 'is-invalid': editErrors.department }"
+                    >
+                    <div class="invalid-feedback" v-if="editErrors.department">
+                      {{ editErrors.department }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editHoursPerYear" class="form-label">Hours per Year *</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="editHoursPerYear"
+                      v-model.number="editModule.hours_per_year"
+                      required
+                      min="1"
+                      step="1"
+                      placeholder="Enter hours per year"
+                      :class="{ 'is-invalid': editErrors.hours_per_year }"
+                    >
+                    <div class="invalid-feedback" v-if="editErrors.hours_per_year">
+                      {{ editErrors.hours_per_year }}
+                    </div>
+                  </div>
+                  <div class="col-md-12">
+                    <label for="editModuleDescription" class="form-label">Description</label>
+                    <textarea
+                      class="form-control"
+                      id="editModuleDescription"
+                      v-model="editModule.description"
+                      rows="3"
+                      placeholder="Enter module description"
+                      :class="{ 'is-invalid': editErrors.description }"
+                    ></textarea>
+                    <div class="invalid-feedback" v-if="editErrors.description">
+                      {{ editErrors.description }}
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn-primary" @click="handleEditModule" :disabled="editLoading">
+                <span v-if="editLoading">Saving...</span>
+                <span v-else>Save Changes</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
-import AdminSidebar from '@/components/AdminSidebar.vue'
-
+import AppLayout from '@/components/AppLayout.vue'
 
 const modules = ref([])
 const searchQuery = ref('')
@@ -456,17 +427,10 @@ const handleAddModule = async () => {
     const response = await api.post('/modules', payload)
     
     if (response.data.module) {
-      // Add the new module to the list
       modules.value.unshift(response.data.module)
-      
-      // Reset form
       resetForm()
-      
-      // Close modal
       const modalElement = document.getElementById('addModuleModal')
       Modal.getOrCreateInstance(modalElement).hide()
-      
-      // Show success message
       showSuccessMessage('Module added successfully!')
     }
   } catch (error) {
@@ -535,14 +499,11 @@ const handleDeleteModule = async (module) => {
 }
 
 const showSuccessMessage = (message) => {
-  // Create a toast notification
   const toastHtml = `
-    <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast align-items-center text-white bg-success border-0" role="alert">
       <div class="d-flex">
-        <div class="toast-body">
-          ${message}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>
   `
@@ -562,14 +523,11 @@ const showSuccessMessage = (message) => {
 }
 
 const showErrorMessage = (message) => {
-  // Create an error toast notification
   const toastHtml = `
-    <div class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast align-items-center text-white bg-danger border-0" role="alert">
       <div class="d-flex">
-        <div class="toast-body">
-          ${message}
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        <div class="toast-body">${message}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>
   `
@@ -601,3 +559,132 @@ onMounted(() => {
   loadModules()
 })
 </script>
+
+<style scoped>
+.modules-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.card-custom {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #64748b;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-edit {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.25rem;
+}
+
+.btn-delete {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.form-control, .form-select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.table-custom {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-custom th,
+.table-custom td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.table-custom th {
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.badge {
+  background: #3b82f6;
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+
+.is-invalid {
+  border-color: #ef4444;
+}
+
+.invalid-feedback {
+  color: #ef4444;
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+</style>

@@ -1,172 +1,155 @@
 <template>
-  <div class="min-vh-100 admin-page">
-    <header class="header-custom">
-      <div class="container-fluid px-4 py-3 d-flex justify-content-between align-items-center">
-        <div class="d-flex align-items-center gap-3">
-          <div class="d-flex align-items-center justify-center bg-primary rounded" style="width: 40px; height: 40px; font-size: 20px;">
-            S
+  <AppLayout>
+    <div class="settings-container">
+      <div class="card-custom">
+        <div class="d-flex justify-content-between align-items-start mb-4">
+          <div>
+            <h2 class="h3 fw-semibold text-dark mb-1">Timetable Settings</h2>
+            <p class="text-muted mb-0">These values are used when generating class timetables.</p>
           </div>
-          <h1 class="h2 mb-0">Settings</h1>
+          <button class="btn-outline-secondary" :disabled="loading" @click="loadSettings">
+            Refresh
+          </button>
         </div>
-        <div class="d-flex align-items-center justify-center bg-primary rounded-circle" style="width: 40px; height: 40px;">
-          A
+
+        <div v-if="message" class="alert" :class="messageType === 'success' ? 'alert-success' : 'alert-danger'">
+          {{ message }}
         </div>
-      </div>
-    </header>
 
-    <div class="d-flex admin-page-shell">
-      <AdminSidebar />
+        <div v-if="loading" class="text-muted py-4">
+          Loading settings...
+        </div>
 
-      <main class="flex-grow-1 p-4 admin-main">
-        <div class="card-custom">
-          <div class="d-flex justify-content-between align-items-start mb-4">
-            <div>
-              <h2 class="h3 fw-semibold text-dark mb-1">Timetable Settings</h2>
-              <p class="text-muted mb-0">These values are used when generating class timetables.</p>
-            </div>
-            <button class="btn btn-outline-secondary" :disabled="loading" @click="loadSettings">
-              Refresh
-            </button>
-          </div>
+        <form v-else @submit.prevent="saveSettings">
+          <div class="row g-4">
+            <!-- General Settings -->
+            <div class="col-12 col-lg-5">
+              <div class="settings-card">
+                <div class="settings-card-body">
+                  <h5 class="card-title">General</h5>
 
-          <div v-if="message" class="alert" :class="messageType === 'success' ? 'alert-success' : 'alert-danger'" role="alert">
-            {{ message }}
-          </div>
+                  <div class="mt-3">
+                    <label class="form-label">Teacher Changeover Minutes</label>
+                    <input
+                      v-model.number="settings.teacher_changeover_minutes"
+                      type="number"
+                      min="0"
+                      class="form-control"
+                      required
+                    >
+                  </div>
 
-          <div v-if="loading" class="text-muted py-4">
-            Loading settings...
-          </div>
-
-          <form v-else @submit.prevent="saveSettings">
-            <div class="row g-4">
-              <div class="col-12 col-lg-5">
-                <div class="card border-0 shadow-sm h-100">
-                  <div class="card-body">
-                    <h5 class="card-title">General</h5>
-
-                    <div class="mt-3">
-                      <label for="teacherChangeover" class="form-label">Teacher Changeover Minutes</label>
-                      <input
-                        id="teacherChangeover"
-                        v-model.number="settings.teacher_changeover_minutes"
-                        type="number"
-                        min="0"
-                        class="form-control"
-                        required
-                      >
+                  <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                      <label class="form-label">Default Break Start</label>
+                      <input v-model="settings.break_start_time" type="time" class="form-control" required>
                     </div>
-
-                    <div class="row g-3 mt-1">
-                      <div class="col-md-6">
-                        <label for="breakStart" class="form-label">Default Break Start</label>
-                        <input id="breakStart" v-model="settings.break_start_time" type="time" class="form-control" required>
-                      </div>
-                      <div class="col-md-6">
-                        <label for="breakEnd" class="form-label">Default Break End</label>
-                        <input id="breakEnd" v-model="settings.break_end_time" type="time" class="form-control" required>
-                      </div>
+                    <div class="col-md-6">
+                      <label class="form-label">Default Break End</label>
+                      <input v-model="settings.break_end_time" type="time" class="form-control" required>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div class="col-12 col-lg-7">
-                <div class="card border-0 shadow-sm h-100">
-                  <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                      <h5 class="card-title mb-0">Fixed Breaks</h5>
-                      <button type="button" class="btn btn-outline-primary btn-sm" @click="addBreak">
-                        Add Break
-                      </button>
-                    </div>
+            <!-- Fixed Breaks -->
+            <div class="col-12 col-lg-7">
+              <div class="settings-card">
+                <div class="settings-card-body">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Fixed Breaks</h5>
+                    <button type="button" class="btn-outline-primary btn-sm" @click="addBreak">
+                      Add Break
+                    </button>
+                  </div>
 
-                    <div v-if="!settings.timetable_breaks.length" class="text-muted mt-3">
-                      No breaks added.
-                    </div>
+                  <div v-if="!settings.timetable_breaks.length" class="text-muted mt-3">
+                    No breaks added.
+                  </div>
 
-                    <div v-for="(breakItem, index) in settings.timetable_breaks" :key="index" class="row g-2 align-items-end mt-2">
-                      <div class="col-md-5">
+                  <div v-for="(breakItem, index) in settings.timetable_breaks" :key="index" class="break-row">
+                    <div class="break-fields">
+                      <div class="break-field">
                         <label class="form-label">Name</label>
                         <input v-model="breakItem.break_name" type="text" class="form-control" required>
                       </div>
-                      <div class="col-md-3">
+                      <div class="break-field">
                         <label class="form-label">Start</label>
                         <input v-model="breakItem.start_time" type="time" class="form-control" required>
                       </div>
-                      <div class="col-md-3">
+                      <div class="break-field">
                         <label class="form-label">End</label>
                         <input v-model="breakItem.end_time" type="time" class="form-control" required>
                       </div>
-                      <div class="col-md-1">
-                        <button type="button" class="btn btn-outline-danger w-100" @click="removeBreak(index)">
-                          X
-                        </button>
+                      <div class="break-remove">
+                        <button type="button" class="btn-outline-danger" @click="removeBreak(index)">✕</button>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div class="card border-0 shadow-sm mt-4">
-              <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                  <div>
-                    <h5 class="card-title mb-1">Period-Based Break Rules</h5>
-                    <p class="text-muted mb-0">When enabled, breaks are calculated after a number of teaching periods instead of fixed clock times.</p>
-                  </div>
-                  <div class="form-check form-switch">
-                    <input id="periodRulesEnabled" v-model="settings.break_period_rules.enabled" class="form-check-input" type="checkbox">
-                    <label class="form-check-label" for="periodRulesEnabled">Enabled</label>
-                  </div>
+          <!-- Period-Based Break Rules -->
+          <div class="settings-card mt-4">
+            <div class="settings-card-body">
+              <div class="period-rules-header">
+                <div>
+                  <h5 class="card-title mb-1">Period-Based Break Rules</h5>
+                  <p class="text-muted mb-0">When enabled, breaks are calculated after a number of teaching periods instead of fixed clock times.</p>
                 </div>
-
-                <fieldset :disabled="!settings.break_period_rules.enabled" class="row g-3 mt-2">
-                  <div class="col-md-4">
-                    <label for="periodsMorning" class="form-label">Periods Before Morning Break</label>
-                    <input id="periodsMorning" v-model.number="settings.break_period_rules.periods_before_morning_break" type="number" min="1" class="form-control">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="periodsLunch" class="form-label">Periods Before Lunch</label>
-                    <input id="periodsLunch" v-model.number="settings.break_period_rules.periods_before_lunch" type="number" min="1" class="form-control">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="periodsAfternoon" class="form-label">Periods Before Afternoon Break</label>
-                    <input id="periodsAfternoon" v-model.number="settings.break_period_rules.periods_before_afternoon_break" type="number" min="1" class="form-control">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="morningMinutes" class="form-label">Morning Break Minutes</label>
-                    <input id="morningMinutes" v-model.number="settings.break_period_rules.morning_break_minutes" type="number" min="1" class="form-control">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="lunchMinutes" class="form-label">Lunch Break Minutes</label>
-                    <input id="lunchMinutes" v-model.number="settings.break_period_rules.lunch_break_minutes" type="number" min="1" class="form-control">
-                  </div>
-                  <div class="col-md-4">
-                    <label for="afternoonMinutes" class="form-label">Afternoon Break Minutes</label>
-                    <input id="afternoonMinutes" v-model.number="settings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
-                  </div>
-                </fieldset>
+                <div class="form-switch">
+                  <input id="periodRulesEnabled" v-model="settings.break_period_rules.enabled" type="checkbox">
+                  <label for="periodRulesEnabled">Enabled</label>
+                </div>
               </div>
-            </div>
 
-            <div class="d-flex justify-content-end mt-4">
-              <button class="btn btn-primary-custom btn-lg" :disabled="saving">
-                {{ saving ? 'Saving...' : 'Save Settings' }}
-              </button>
+              <fieldset :disabled="!settings.break_period_rules.enabled" class="period-rules-grid">
+                <div>
+                  <label class="form-label">Periods Before Morning Break</label>
+                  <input v-model.number="settings.break_period_rules.periods_before_morning_break" type="number" min="1" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label">Periods Before Lunch</label>
+                  <input v-model.number="settings.break_period_rules.periods_before_lunch" type="number" min="1" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label">Periods Before Afternoon Break</label>
+                  <input v-model.number="settings.break_period_rules.periods_before_afternoon_break" type="number" min="1" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label">Morning Break Minutes</label>
+                  <input v-model.number="settings.break_period_rules.morning_break_minutes" type="number" min="1" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label">Lunch Break Minutes</label>
+                  <input v-model.number="settings.break_period_rules.lunch_break_minutes" type="number" min="1" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label">Afternoon Break Minutes</label>
+                  <input v-model.number="settings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
+                </div>
+              </fieldset>
             </div>
-          </form>
-        </div>
-      </main>
+          </div>
+
+          <div class="form-actions">
+            <button class="btn-primary btn-lg" :disabled="saving">
+              {{ saving ? 'Saving...' : 'Save Settings' }}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
-  </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import api from '@/stores/api'
-import AdminSidebar from '@/components/AdminSidebar.vue'
-
+import AppLayout from '@/components/AppLayout.vue'
 
 const defaultSettings = () => ({
   teacher_changeover_minutes: 5,
@@ -195,6 +178,9 @@ const messageType = ref('success')
 const showMessage = (text, type = 'success') => {
   message.value = text
   messageType.value = type
+  setTimeout(() => {
+    if (message.value === text) message.value = ''
+  }, 3000)
 }
 
 const normalizeSettings = (value) => {
@@ -215,7 +201,6 @@ const normalizeSettings = (value) => {
 const loadSettings = async () => {
   loading.value = true
   message.value = ''
-
   try {
     const response = await api.get('/settings/timetable')
     settings.value = normalizeSettings(response.data.settings)
@@ -241,7 +226,6 @@ const removeBreak = (index) => {
 const saveSettings = async () => {
   saving.value = true
   message.value = ''
-
   try {
     const payload = {
       ...settings.value,
@@ -251,7 +235,6 @@ const saveSettings = async () => {
         end_time: breakItem.end_time
       }))
     }
-
     const response = await api.put('/settings/timetable', payload)
     settings.value = normalizeSettings(response.data.settings)
     showMessage('Settings saved successfully.')
@@ -267,3 +250,258 @@ onMounted(() => {
   loadSettings()
 })
 </script>
+
+<style scoped>
+.settings-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.card-custom {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem;
+}
+
+.settings-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+}
+
+.settings-card-body {
+  padding: 1.25rem;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-lg {
+  padding: 0.6rem 1.5rem;
+  font-size: 0.9rem;
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  border: 1px solid #64748b;
+  color: #64748b;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-outline-primary {
+  background: transparent;
+  border: 1px solid #3b82f6;
+  color: #3b82f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-switch input {
+  width: 36px;
+  height: 20px;
+  appearance: none;
+  background: #cbd5e1;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.form-switch input:checked {
+  background: #3b82f6;
+}
+
+.form-switch input::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.form-switch input:checked::before {
+  transform: translateX(16px);
+}
+
+.form-switch label {
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin: -0.5rem;
+}
+
+.g-3 { gap: 1rem; }
+.g-4 { gap: 1.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-3 { margin-top: 1rem; }
+.mt-4 { margin-top: 1.5rem; }
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-4 { margin-bottom: 1.5rem; }
+
+.col-12 { width: 100%; padding: 0.5rem; }
+.col-lg-5 { width: 41.666%; padding: 0.5rem; }
+.col-lg-7 { width: 58.333%; padding: 0.5rem; }
+.col-md-6 { width: 50%; padding: 0.5rem; }
+.col-md-4 { width: 33.333%; padding: 0.5rem; }
+.col-md-5 { width: 41.666%; padding: 0.5rem; }
+.col-md-3 { width: 25%; padding: 0.5rem; }
+.col-md-1 { width: 8.333%; padding: 0.5rem; }
+
+.alert {
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.alert-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.alert-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.text-muted {
+  color: #64748b;
+}
+
+.fw-semibold {
+  font-weight: 600;
+}
+
+.break-row {
+  margin-top: 0.5rem;
+}
+
+.break-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+
+.break-field {
+  flex: 1;
+  min-width: 100px;
+}
+
+.break-remove {
+  flex-shrink: 0;
+}
+
+.period-rules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.period-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+fieldset:disabled {
+  opacity: 0.6;
+}
+
+@media (max-width: 992px) {
+  .col-lg-5, .col-lg-7 {
+    width: 100%;
+  }
+  .period-rules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .period-rules-grid {
+    grid-template-columns: 1fr;
+  }
+  .break-fields {
+    flex-direction: column;
+  }
+  .break-field {
+    width: 100%;
+  }
+}
+</style>
