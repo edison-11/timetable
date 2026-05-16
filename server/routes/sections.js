@@ -63,6 +63,17 @@ router.get('/with-count', auth, async (req, res) => {
   }
 });
 
+// Get sections by level
+router.get('/level/:level', auth, async (req, res) => {
+  try {
+    const sections = await Section.getByLevel(req.params.level);
+    res.json({ sections });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get section by ID
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -71,17 +82,6 @@ router.get('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Section not found' });
     }
     res.json({ section });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get sections by level
-router.get('/level/:level', auth, async (req, res) => {
-  try {
-    const sections = await Section.getByLevel(req.params.level);
-    res.json({ sections });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

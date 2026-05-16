@@ -42,10 +42,16 @@ class Section {
 
   static async getSectionsWithClassCount() {
     const [rows] = await pool.execute(`
-      SELECT s.*, COUNT(c.class_id) as class_count
+      SELECT
+        s.section_id,
+        s.section_name,
+        s.level,
+        s.description,
+        COUNT(c.class_id) as class_count,
+        GROUP_CONCAT(c.class_name ORDER BY c.class_name SEPARATOR ', ') as class_names
       FROM section s
       LEFT JOIN class c ON s.section_id = c.section_id
-      GROUP BY s.section_id
+      GROUP BY s.section_id, s.section_name, s.level, s.description
       ORDER BY s.level, s.section_name
     `);
     return rows;

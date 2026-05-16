@@ -24,7 +24,7 @@
             <thead>
               <tr>
                 <th>Level</th>
-                <th>Sections</th>
+                <th>Classes</th>
                 <th>Description</th>
                 <th>Classes Count</th>
                 <th>Actions</th>
@@ -34,10 +34,11 @@
               <tr v-for="group in filteredSectionGroups" :key="group.level">
                 <td class="fw-medium level-cell">{{ group.level }}</td>
                 <td>
-                  <div class="section-list">
-                    <span v-for="section in group.sections" :key="section.section_id" class="section-chip">
-                      {{ section.section_name }}
+                  <div class="class-list">
+                    <span v-for="className in group.classes" :key="className" class="class-chip">
+                      {{ className }}
                     </span>
+                    <span v-if="!group.classes.length" class="empty-note">No classes assigned</span>
                   </div>
                 </td>
                 <td>
@@ -159,6 +160,7 @@ const filteredSectionGroups = computed(() => {
       groups.set(level, {
         level,
         sections: [],
+        classes: new Set(),
         class_count: 0
       })
     }
@@ -166,10 +168,17 @@ const filteredSectionGroups = computed(() => {
     const group = groups.get(level)
     group.sections.push(section)
     group.class_count += Number(section.class_count || 0)
+
+    String(section.class_names || '')
+      .split(',')
+      .map(className => className.trim())
+      .filter(Boolean)
+      .forEach(className => group.classes.add(className))
   })
 
   return [...groups.values()].map((group) => ({
     ...group,
+    classes: [...group.classes].sort((a, b) => a.localeCompare(b)),
     sections: group.sections.sort((a, b) => String(a.section_name).localeCompare(String(b.section_name)))
   }))
 }
@@ -394,14 +403,14 @@ onMounted(() => {
   font-size: 0.95rem;
 }
 
-.section-list,
+.class-list,
 .description-list,
 .section-actions {
   display: grid;
   gap: 0.45rem;
 }
 
-.section-chip {
+.class-chip {
   width: fit-content;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
@@ -410,6 +419,11 @@ onMounted(() => {
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.22rem 0.55rem;
+}
+
+.empty-note {
+  color: #94a3b8;
+  font-size: 0.78rem;
 }
 
 .description-list span {
