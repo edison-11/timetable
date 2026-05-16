@@ -1,6 +1,7 @@
 <template>
   <AppLayout>
-    <div class="dashboard-container">
+    <div class="dashboard-layout">
+      <div class="dashboard-container">
     
       <!-- Title -->
       <div class="dashboard-title-row">
@@ -56,9 +57,11 @@
         <div class="panel-header">
           <h2>Weekly Timetable Overview</h2>
           <div>
-            <select class="class-select">
-              <option>All Classes</option>
-              <option>B.Tech 1st Year</option>
+            <select v-model="selectedTimetableClassId" class="class-select">
+              <option value="">All Classes</option>
+              <option v-for="classItem in classOptions" :key="classItem.class_id" :value="classItem.class_id">
+                {{ classItem.class_name }}
+              </option>
             </select>
             <router-link to="/timetable" class="primary-link">View Full Timetable</router-link>
           </div>
@@ -68,28 +71,36 @@
           <table class="overview-table">
             <thead>
               <tr>
-                <th>Time / Day</th>
-                <th>Monday</th>
-                <th>Tuesday</th>
-                <th>Wednesday</th>
-                <th>Thursday</th>
-                <th>Friday</th>
-                <th>Saturday</th>
+                <th>Period</th>
+                <th>Time</th>
+                <th v-for="day in days" :key="day">{{ day }}</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in timetableRows" :key="row.time">
-                <td class="time-cell">{{ row.time }}</td>
-                <td v-for="day in days" :key="day">
-                  <div v-if="row[day]" class="class-block">
-                    <strong>{{ row[day].subject }}</strong>
-                    <span>{{ row[day].room }}</span>
+              <tr v-for="row in timetableRows" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
+                <td class="period-cell" :class="row.breakType">
+                  <span v-if="row.type === 'break'" class="break-label">{{ row.label }}</span>
+                  <span v-else>{{ row.period }}</span>
+                </td>
+                <td class="time-cell" :class="row.breakType">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
+                <td v-if="row.type === 'break'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
+                <td v-for="day in days" v-else :key="day">
+                  <div
+                    v-if="row.entriesByDay[day]"
+                    class="class-block"
+                    :class="{ 'activity-cell': row.entriesByDay[day].entry_type === 'activity' }"
+                  >
+                    <strong>{{ row.entriesByDay[day].module_name }}</strong>
+                    <small>{{ row.entriesByDay[day].teacher_name || (row.entriesByDay[day].entry_type === 'activity' ? 'Shared activity' : '') }}</small>
+                    <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">
+                      {{ row.entriesByDay[day].room_name || row.entriesByDay[day].room || 'TBA' }}
+                    </span>
                   </div>
                   <div v-else class="empty-block">—</div>
                 </td>
               </tr>
-              <tr class="lunch-row">
-                <td colspan="7" class="lunch-cell">🍽️ LUNCH BREAK</td>
+              <tr v-if="!timetableRows.length">
+                <td colspan="7" class="empty-state">No timetable entries found</td>
               </tr>
             </tbody>
           </table>
@@ -128,7 +139,9 @@
           </div>
         </div>
       </div>
-    </div>      <!-- Right Sidebar - Quick Actions & Notifications -->
+      </div>
+
+      <!-- Right Sidebar - Quick Actions & Notifications -->
       <div class="dashboard-sidebar">
         <!-- Quick Actions -->
         <div class="panel">
@@ -218,34 +231,213 @@
           <strong>2023 - 2024</strong>
         </div>
       </div>
+    </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
+import api from '@/stores/api'
 
 const weekRange = ref('May 8 - May 14, 2024')
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const selectedTimetableClassId = ref('')
+const timetableEntries = ref([])
+const breakPeriodRules = {
+  enabled: true,
+  periods_before_morning_break: 3,
+  periods_before_lunch: 2,
+  periods_before_afternoon_break: 3,
+  periods_after_afternoon_break: 2
+}
 
-const timetableRows = ref([
-  { time: '08:00-09:00', Monday: { subject: 'Mathematics', room: 'R101' }, Tuesday: { subject: 'Physics', room: 'R102' }, Wednesday: { subject: 'Chemistry', room: 'R103' }, Thursday: { subject: 'Mathematics', room: 'R101' }, Friday: { subject: 'English', room: 'R104' }, Saturday: { subject: 'CS', room: 'Lab1' } },
-  { time: '09:00-10:00', Monday: { subject: 'Physics', room: 'R102' }, Tuesday: { subject: 'Mathematics', room: 'R101' }, Wednesday: { subject: 'English', room: 'R104' }, Thursday: { subject: 'Chemistry', room: 'R103' }, Friday: { subject: 'Physics', room: 'R102' }, Saturday: { subject: 'Mathematics', room: 'R101' } },
-  { time: '10:00-11:00', Monday: { subject: 'Chemistry', room: 'R103' }, Tuesday: { subject: 'English', room: 'R104' }, Wednesday: { subject: 'Mathematics', room: 'R101' }, Thursday: { subject: 'Physics', room: 'R102' }, Friday: { subject: 'Chemistry', room: 'R103' }, Saturday: { subject: 'English', room: 'R104' } },
-  { time: '11:00-12:00', Monday: { subject: 'English', room: 'R104' }, Tuesday: { subject: 'Chemistry', room: 'R103' }, Wednesday: { subject: 'Physics', room: 'R102' }, Thursday: { subject: 'English', room: 'R104' }, Friday: { subject: 'Mathematics', room: 'R101' }, Saturday: { subject: 'Physics', room: 'R102' } },
-  { time: '13:00-14:00', Monday: { subject: 'CS', room: 'Lab1' }, Tuesday: { subject: 'Mathematics', room: 'R101' }, Wednesday: { subject: 'CS', room: 'Lab1' }, Thursday: { subject: 'CS', room: 'Lab1' }, Friday: { subject: 'English', room: 'R104' }, Saturday: { subject: 'Chemistry', room: 'R103' } },
-  { time: '14:00-15:00', Monday: { subject: 'Physics', room: 'R102' }, Tuesday: { subject: 'CS', room: 'Lab1' }, Wednesday: { subject: 'English', room: 'R104' }, Thursday: { subject: 'Mathematics', room: 'R101' }, Friday: { subject: 'CS', room: 'Lab1' }, Saturday: { subject: 'English', room: 'R104' } },
-  { time: '15:00-16:00', Monday: { subject: 'Extra', room: 'R105' }, Tuesday: { subject: 'Library', room: 'Library' }, Wednesday: { subject: 'Seminar', room: 'HallA' }, Thursday: { subject: 'Extra', room: 'R105' }, Friday: { subject: 'Library', room: 'Library' }, Saturday: { subject: 'Seminar', room: 'HallA' } }
-])
+const normalizeTime = (value) => String(value || '').slice(0, 5)
+
+const classOptions = computed(() => {
+  return groupedTimetables.value
+    .map((group) => ({
+      class_id: group.class_id,
+      class_name: group.class_name || `Class ${group.class_id}`
+    }))
+    .sort((a, b) => String(a.class_name).localeCompare(String(b.class_name)))
+})
+
+const visibleEntries = computed(() => {
+  const selectedGroup = selectedTimetableGroup.value
+  return selectedGroup ? selectedGroup.entries : []
+})
+
+const groupedTimetables = computed(() => {
+  const groups = new Map()
+  timetableEntries.value.forEach((entry) => {
+    if (!entry.module_name || entry.module_name === 'continue') return
+    if (!days.includes(entry.day_of_week)) return
+
+    const classId = entry.class_id || 'unknown'
+    if (!groups.has(classId)) {
+      groups.set(classId, {
+        class_id: classId,
+        class_name: entry.class_name,
+        entries: []
+      })
+    }
+    groups.get(classId).entries.push(entry)
+  })
+  return [...groups.values()]
+})
+
+const selectedTimetableGroup = computed(() => {
+  if (!groupedTimetables.value.length) return null
+  if (selectedTimetableClassId.value) {
+    return groupedTimetables.value.find((group) => String(group.class_id) === String(selectedTimetableClassId.value)) || null
+  }
+  return groupedTimetables.value[0]
+})
+
+const timetableRows = computed(() => buildTimetableGridWithBreaks(visibleEntries.value))
+
+const formatTimeRange = (start, end) => {
+  if (!start && !end) return '-'
+  return `${normalizeTime(start)} - ${normalizeTime(end)}`
+}
+
+const isBreakEntry = (entry) => entry.entry_type === 'break' || String(entry.module_name || '').toLowerCase().includes('break')
+
+const getBreakType = (label) => {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('morning')) return 'morning-break'
+  if (normalized.includes('lunch')) return 'lunch-break'
+  return 'evening-break'
+}
+
+const getBreakLabel = (label) => {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('morning')) return 'MORNING BREAK'
+  if (normalized.includes('lunch')) return 'LUNCH BREAK'
+  return 'EVENING BREAK'
+}
+
+const buildTimetableGridRows = (entries) => {
+  const timeSlots = new Map()
+  entries.filter((entry) => !isBreakEntry(entry)).forEach((entry) => {
+    const start = normalizeTime(entry.start_time)
+    const end = normalizeTime(entry.end_time)
+    if (!start || !end) return
+
+    const key = `${start}-${end}`
+    if (!timeSlots.has(key)) {
+      timeSlots.set(key, { key, type: 'period', start_time: start, end_time: end, entriesByDay: {} })
+    }
+    timeSlots.get(key).entriesByDay[entry.day_of_week] = entry
+  })
+
+  return [...timeSlots.values()]
+    .sort((a, b) => a.start_time.localeCompare(b.start_time))
+    .map((row, index) => ({ ...row, period: index + 1 }))
+}
+
+const buildBreakRows = (entries) => {
+  const breakSlots = new Map()
+  entries.filter(isBreakEntry).forEach((entry) => {
+    const start = normalizeTime(entry.start_time)
+    const end = normalizeTime(entry.end_time)
+    if (!start || !end) return
+
+    const label = getBreakLabel(entry.module_name)
+    const key = `break-${label}-${start}-${end}`
+    if (!breakSlots.has(key)) {
+      breakSlots.set(key, {
+        key,
+        type: 'break',
+        breakType: getBreakType(label),
+        label,
+        start_time: start,
+        end_time: end,
+        entriesByDay: {}
+      })
+    }
+  })
+  return [...breakSlots.values()].sort((a, b) => a.start_time.localeCompare(b.start_time))
+}
+
+const buildTimetableGridWithBreaks = (entries) => {
+  const allRows = buildTimetableGridRows(entries)
+
+  if (!breakPeriodRules.enabled) {
+    let period = 0
+    return [...allRows, ...buildBreakRows(entries)]
+      .sort((a, b) => a.start_time.localeCompare(b.start_time))
+      .map((row) => {
+        if (row.type === 'break') return row
+        period += 1
+        return { ...row, period }
+      })
+  }
+
+  const morningAfter = Number(breakPeriodRules.periods_before_morning_break) || 3
+  const lunchAfter = morningAfter + (Number(breakPeriodRules.periods_before_lunch) || 2)
+  const eveningAfter = lunchAfter + (Number(breakPeriodRules.periods_before_afternoon_break) || 3)
+  const totalRulePeriods = eveningAfter + (Number(breakPeriodRules.periods_after_afternoon_break) || 0)
+  const rows = allRows.slice(0, totalRulePeriods)
+  const breakPoints = [
+    { after: morningAfter, breakType: 'morning-break', label: 'MORNING BREAK' },
+    { after: lunchAfter, breakType: 'lunch-break', label: 'LUNCH BREAK' },
+    { after: eveningAfter, breakType: 'evening-break', label: 'EVENING BREAK' }
+  ]
+  const resultRows = []
+
+  rows.forEach((row, index) => {
+    resultRows.push(row)
+    breakPoints.forEach((breakPoint) => {
+      const nextRow = rows[index + 1]
+      if (index + 1 === breakPoint.after && nextRow) {
+        resultRows.push({
+          key: `${breakPoint.breakType}-${row.end_time}-${nextRow.start_time}`,
+          type: 'break',
+          breakType: breakPoint.breakType,
+          label: breakPoint.label,
+          start_time: row.end_time,
+          end_time: nextRow.start_time,
+          entriesByDay: {}
+        })
+      }
+    })
+  })
+
+  return resultRows
+}
+
+const loadTimetable = async () => {
+  try {
+    const response = await api.get('/timetable')
+    timetableEntries.value = response.data.timetables || []
+    selectedTimetableClassId.value = classOptions.value[0]?.class_id || ''
+  } catch (error) {
+    timetableEntries.value = []
+  }
+}
+
+onMounted(loadTimetable)
 </script>
 
 <style scoped>
+/* Dashboard Layout */
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 20rem);
+  gap: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
 /* Dashboard Right Sidebar */
 .dashboard-sidebar {
-  margin-top: 1.5rem;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
+  min-width: 0;
 }
 
 .actions-list {
@@ -360,14 +552,8 @@ const timetableRows = ref([
   margin-top: 0.2rem;
 }
 
-@media (max-width: 900px) {
-  .dashboard-sidebar {
-    grid-template-columns: 1fr;
-  }
-}
 .dashboard-container {
-  max-width: 1400px;
-  margin: 0 auto;
+  min-width: 0;
 }
 
 .dashboard-title-row {
@@ -490,11 +676,19 @@ const timetableRows = ref([
   border: 1px solid #e2e8f0;
   padding: 0.5rem;
   text-align: left;
+  vertical-align: middle;
 }
 
+.period-cell,
 .time-cell {
   background: #f8fafc;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.period-cell {
+  text-align: center;
+  width: 5rem;
 }
 
 .class-block {
@@ -509,9 +703,27 @@ const timetableRows = ref([
   font-size: 0.7rem;
 }
 
+.class-block small,
 .class-block span {
+  display: block;
   font-size: 0.6rem;
   color: #64748b;
+}
+
+.room-badge {
+  display: inline-block;
+  width: fit-content;
+  margin-top: 0.2rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.activity-cell {
+  background: #ecfdf5;
+  border-left-color: #22c55e;
 }
 
 .empty-block {
@@ -519,9 +731,32 @@ const timetableRows = ref([
   color: #cbd5e1;
 }
 
-.lunch-row td {
-  background: #fef3c7;
+.break-row td {
+  height: 2.1rem;
   text-align: center;
+  font-weight: 700;
+}
+
+.break-label {
+  font-size: 0.64rem;
+}
+
+.break-fill,
+.period-cell.lunch-break,
+.time-cell.lunch-break {
+  background: #fef3c7;
+}
+
+.break-fill.morning-break,
+.period-cell.morning-break,
+.time-cell.morning-break {
+  background: #dcfce7;
+}
+
+.break-fill.evening-break,
+.period-cell.evening-break,
+.time-cell.evening-break {
+  background: #e9d5ff;
 }
 
 .three-cards {
@@ -616,6 +851,14 @@ const timetableRows = ref([
 }
 
 @media (max-width: 900px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-sidebar {
+    order: -1;
+  }
+
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .three-cards { grid-template-columns: 1fr; }
 }

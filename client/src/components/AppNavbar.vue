@@ -1,30 +1,70 @@
 <template>
   <header class="app-navbar">
-    <button class="menu-toggle" @click="toggleSidebar">
+    <button class="menu-toggle" type="button" @click="toggleSidebar">
       <span></span><span></span><span></span>
     </button>
 
     <div class="search-bar">
-      <input type="search" placeholder="Search anything...">
-      <span class="search-icon">🔍</span>
+      <input v-model="searchQuery" type="search" placeholder="Search anything..." @keyup.enter="runSearch">
+      <span class="search-icon">Search</span>
     </div>
 
     <div class="navbar-right">
-      <button class="notifications-btn">
-        <span>🔔</span>
+      <button class="notifications-btn" type="button" title="Notifications" @click="goToDashboardNotifications">
+        <span>Bell</span>
         <span class="badge">3</span>
       </button>
-      
-      <div class="user-menu">
+
+      <button class="user-menu" type="button" title="Sign out" @click="logout">
         <div class="user-avatar">A</div>
-      </div>
+      </button>
     </div>
   </header>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
+const searchQuery = ref('')
+
 const toggleSidebar = () => {
   document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open')
+}
+
+const runSearch = () => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return
+
+  const destinations = [
+    { terms: ['dashboard', 'home', 'overview'], path: '/dashboard' },
+    { terms: ['timetable', 'schedule'], path: '/timetable' },
+    { terms: ['class', 'classes'], path: '/classes' },
+    { terms: ['subject', 'module', 'modules'], path: '/modules' },
+    { terms: ['room', 'rooms', 'classroom'], path: '/rooms' },
+    { terms: ['teacher', 'teachers'], path: '/teachers' },
+    { terms: ['section', 'sections'], path: '/sections' },
+    { terms: ['assignment', 'assignments'], path: '/assignments' },
+    { terms: ['shift', 'shifts'], path: '/shifts' },
+    { terms: ['setting', 'settings'], path: '/settings' }
+  ]
+  const destination = destinations.find(item => item.terms.some(term => term.includes(query) || query.includes(term)))
+
+  if (destination) router.push(destination.path)
+}
+
+const goToDashboardNotifications = () => {
+  router.push({ path: '/dashboard', hash: '#notifications' })
+}
+
+const logout = () => {
+  authStore.logout()
+  localStorage.removeItem('token')
+  localStorage.removeItem('userType')
+  router.push('/login')
 }
 </script>
 
@@ -68,7 +108,7 @@ const toggleSidebar = () => {
 .search-bar input {
   width: 100%;
   height: 42px;
-  padding: 0 2.5rem 0 1rem;
+  padding: 0 4rem 0 1rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #f8fafc;
@@ -81,6 +121,8 @@ const toggleSidebar = () => {
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
+  font-size: 0.75rem;
+  pointer-events: none;
 }
 
 .navbar-right {
@@ -97,7 +139,8 @@ const toggleSidebar = () => {
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 1.25rem;
+  font-size: 0.65rem;
+  color: #475569;
 }
 
 .badge {
@@ -109,6 +152,12 @@ const toggleSidebar = () => {
   font-size: 0.7rem;
   padding: 0 5px;
   border-radius: 999px;
+}
+
+.user-menu {
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .user-avatar {

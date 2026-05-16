@@ -56,6 +56,11 @@ router.put('/timetable', auth, [
     .isObject()
     .withMessage('Break period rules must be an object')
     .custom((rules) => {
+      // Only validate period values if the feature is enabled
+      if (!rules.enabled) {
+        return true;
+      }
+
       const integerFields = [
         'periods_before_morning_break',
         'periods_before_lunch',
@@ -71,6 +76,13 @@ router.put('/timetable', auth, [
           if (!Number.isInteger(value) || value < 1) {
             throw new Error('Break period values must be whole numbers of at least 1');
           }
+        }
+      }
+
+      if (rules.periods_after_afternoon_break !== undefined) {
+        const value = Number(rules.periods_after_afternoon_break);
+        if (!Number.isInteger(value) || value < 0) {
+          throw new Error('Periods after evening break must be a whole number of at least 0');
         }
       }
 
@@ -99,12 +111,13 @@ router.put('/timetable', auth, [
       break_period_rules: req.body.break_period_rules
         ? {
             enabled: Boolean(req.body.break_period_rules.enabled),
-            periods_before_morning_break: Number(req.body.break_period_rules.periods_before_morning_break || 2),
+            periods_before_morning_break: Number(req.body.break_period_rules.periods_before_morning_break || 3),
             periods_before_lunch: Number(req.body.break_period_rules.periods_before_lunch || 2),
-            periods_before_afternoon_break: Number(req.body.break_period_rules.periods_before_afternoon_break || 2),
-            morning_break_minutes: Number(req.body.break_period_rules.morning_break_minutes || 15),
-            lunch_break_minutes: Number(req.body.break_period_rules.lunch_break_minutes || 60),
-            afternoon_break_minutes: Number(req.body.break_period_rules.afternoon_break_minutes || 15)
+            periods_before_afternoon_break: Number(req.body.break_period_rules.periods_before_afternoon_break || 3),
+            periods_after_afternoon_break: Number(req.body.break_period_rules.periods_after_afternoon_break ?? 2),
+            morning_break_minutes: Number(req.body.break_period_rules.morning_break_minutes || 30),
+            lunch_break_minutes: Number(req.body.break_period_rules.lunch_break_minutes || 45),
+            afternoon_break_minutes: Number(req.body.break_period_rules.afternoon_break_minutes || 30)
           }
         : undefined
     });

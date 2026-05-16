@@ -116,8 +116,12 @@
                   <input v-model.number="settings.break_period_rules.periods_before_lunch" type="number" min="1" class="form-control">
                 </div>
                 <div>
-                  <label class="form-label">Periods Before Afternoon Break</label>
+                  <label class="form-label">Periods Before Evening Break</label>
                   <input v-model.number="settings.break_period_rules.periods_before_afternoon_break" type="number" min="1" class="form-control">
+                </div>
+                <div>
+                  <label class="form-label">Periods After Evening Break</label>
+                  <input v-model.number="settings.break_period_rules.periods_after_afternoon_break" type="number" min="0" class="form-control">
                 </div>
                 <div>
                   <label class="form-label">Morning Break Minutes</label>
@@ -128,7 +132,7 @@
                   <input v-model.number="settings.break_period_rules.lunch_break_minutes" type="number" min="1" class="form-control">
                 </div>
                 <div>
-                  <label class="form-label">Afternoon Break Minutes</label>
+                  <label class="form-label">Evening Break Minutes</label>
                   <input v-model.number="settings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
                 </div>
               </fieldset>
@@ -153,16 +157,19 @@ import AppLayout from '@/components/AppLayout.vue'
 
 const defaultSettings = () => ({
   teacher_changeover_minutes: 5,
-  break_start_time: '10:00',
-  break_end_time: '10:15',
+  break_start_time: '11:00',
+  break_end_time: '11:30',
   timetable_breaks: [
-    { break_name: 'Morning Break', start_time: '10:00', end_time: '10:15' }
+    { break_name: 'Morning Break', start_time: '11:00', end_time: '11:30' },
+    { break_name: 'Lunch Break', start_time: '13:30', end_time: '14:15' },
+    { break_name: 'Evening Break', start_time: '17:15', end_time: '17:45' }
   ],
   break_period_rules: {
-    enabled: false,
+    enabled: true,
     periods_before_morning_break: 3,
     periods_before_lunch: 2,
     periods_before_afternoon_break: 3,
+    periods_after_afternoon_break: 2,
     morning_break_minutes: 30,
     lunch_break_minutes: 45,
     afternoon_break_minutes: 30
@@ -214,8 +221,8 @@ const loadSettings = async () => {
 const addBreak = () => {
   settings.value.timetable_breaks.push({
     break_name: 'New Break',
-    start_time: '10:00',
-    end_time: '10:15'
+    start_time: '11:00',
+    end_time: '11:30'
   })
 }
 

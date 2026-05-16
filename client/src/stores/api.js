@@ -1,9 +1,22 @@
 import axios from 'axios'
 import { useAuthStore } from './auth'
 
+const getApiBaseUrl = () => {
+  const configuredUrl = import.meta.env.VITE_API_URL
+  if (configuredUrl) return configuredUrl
+
+  const { hostname, port, protocol } = window.location
+
+  if ((hostname === 'localhost' || hostname === '127.0.0.1') && port !== '5000') {
+    return `${protocol}//${hostname}:5000/api`
+  }
+
+  return '/api'
+}
+
 // Create axios instance
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseUrl(),
   timeout: 10000
 })
 

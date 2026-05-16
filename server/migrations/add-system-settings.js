@@ -18,13 +18,13 @@ async function addSystemSettings() {
 
   await pool.query(
     `INSERT INTO system_setting (setting_key, setting_value)
-     VALUES ('break_start_time', '10:00')
+     VALUES ('break_start_time', '11:00')
      ON DUPLICATE KEY UPDATE setting_value = setting_value`
   );
 
   await pool.query(
     `INSERT INTO system_setting (setting_key, setting_value)
-     VALUES ('break_end_time', '10:15')
+     VALUES ('break_end_time', '11:30')
      ON DUPLICATE KEY UPDATE setting_value = setting_value`
   );
 
@@ -33,10 +33,26 @@ async function addSystemSettings() {
      VALUES ('timetable_breaks', ?)
      ON DUPLICATE KEY UPDATE setting_value = setting_value`,
     [JSON.stringify([
-      { break_name: 'Morning Break', start_time: '10:00', end_time: '10:15' },
-      { break_name: 'Lunch Break', start_time: '12:00', end_time: '13:00' },
-      { break_name: 'Afternoon Break', start_time: '15:00', end_time: '15:15' }
+      { break_name: 'Morning Break', start_time: '11:00', end_time: '11:30' },
+      { break_name: 'Lunch Break', start_time: '13:30', end_time: '14:15' },
+      { break_name: 'Evening Break', start_time: '17:15', end_time: '17:45' }
     ])]
+  );
+
+  await pool.query(
+    `INSERT INTO system_setting (setting_key, setting_value)
+     VALUES ('break_period_rules', ?)
+     ON DUPLICATE KEY UPDATE setting_value = setting_value`,
+    [JSON.stringify({
+      enabled: true,
+      periods_before_morning_break: 3,
+      periods_before_lunch: 2,
+      periods_before_afternoon_break: 3,
+      periods_after_afternoon_break: 2,
+      morning_break_minutes: 30,
+      lunch_break_minutes: 45,
+      afternoon_break_minutes: 30
+    })]
   );
 
   console.log('system_setting table ready');

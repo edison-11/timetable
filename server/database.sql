@@ -216,13 +216,14 @@ INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id,
 ('11B', 'Grade 11', '2024-2025', NULL, 2, 1, 4);
 
 INSERT INTO break_time (shift_id, break_name, start_time, end_time) VALUES 
-(1, 'Morning Break', '10:00:00', '10:15:00'),
-(2, 'Afternoon Break', '15:00:00', '15:15:00'),
-(1, 'Lunch Break', '12:00:00', '13:00:00'),
-(2, 'Lunch Break', '17:00:00', '17:30:00');
+(1, 'Morning Break', '11:00:00', '11:30:00'),
+(2, 'Evening Break', '17:15:00', '17:45:00'),
+(1, 'Lunch Break', '13:30:00', '14:15:00'),
+(2, 'Lunch Break', '13:30:00', '14:15:00');
 
 INSERT INTO system_setting (setting_key, setting_value) VALUES
 ('teacher_changeover_minutes', '5'),
-('break_start_time', '10:00'),
-('break_end_time', '10:15'),
-('timetable_breaks', '[{"break_name":"Morning Break","start_time":"10:00","end_time":"10:15"},{"break_name":"Lunch Break","start_time":"12:00","end_time":"13:00"},{"break_name":"Afternoon Break","start_time":"15:00","end_time":"15:15"}]');
+('break_start_time', '11:00'),
+('break_end_time', '11:30'),
+('timetable_breaks', '[{"break_name":"Morning Break","start_time":"11:00","end_time":"11:30"},{"break_name":"Lunch Break","start_time":"13:30","end_time":"14:15"},{"break_name":"Evening Break","start_time":"17:15","end_time":"17:45"}]'),
+('break_period_rules', '{"enabled":true,"periods_before_morning_break":3,"periods_before_lunch":2,"periods_before_afternoon_break":3,"periods_after_afternoon_break":2,"morning_break_minutes":30,"lunch_break_minutes":45,"afternoon_break_minutes":30}');

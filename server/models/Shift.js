@@ -3,27 +3,20 @@ const pool = require('../config/database');
 class Shift {
   static async create(shiftData) {
     const { shift_name, start_time, end_time, teacher_changeover_minutes } = shiftData;
-    
     const [result] = await pool.execute(
       'INSERT INTO shift (shift_name, start_time, end_time, teacher_changeover_minutes) VALUES (?, ?, ?, ?)',
       [shift_name, start_time, end_time, teacher_changeover_minutes || 5]
     );
-    
     return result.insertId;
   }
 
   static async getAll() {
-    const [rows] = await pool.execute(
-      'SELECT * FROM shift ORDER BY start_time'
-    );
+    const [rows] = await pool.execute('SELECT * FROM shift ORDER BY start_time');
     return rows;
   }
 
   static async findById(id) {
-    const [rows] = await pool.execute(
-      'SELECT * FROM shift WHERE shift_id = ?',
-      [id]
-    );
+    const [rows] = await pool.execute('SELECT * FROM shift WHERE shift_id = ?', [id]);
     return rows[0];
   }
 
@@ -31,7 +24,7 @@ class Shift {
     const { shift_name, start_time, end_time, teacher_changeover_minutes } = shiftData;
     const updates = [];
     const values = [];
-    
+
     if (shift_name !== undefined) {
       updates.push('shift_name = ?');
       values.push(shift_name);
@@ -48,14 +41,11 @@ class Shift {
       updates.push('teacher_changeover_minutes = ?');
       values.push(teacher_changeover_minutes);
     }
-    
-    if (updates.length === 0) return;
-    
+
+    if (!updates.length) return;
+
     values.push(id);
-    await pool.execute(
-      `UPDATE shift SET ${updates.join(', ')} WHERE shift_id = ?`,
-      values
-    );
+    await pool.execute(`UPDATE shift SET ${updates.join(', ')} WHERE shift_id = ?`, values);
   }
 
   static async delete(id) {
@@ -63,41 +53,27 @@ class Shift {
   }
 
   static async getShiftWithBreaks(shift_id) {
-    const [rows] = await pool.execute(`
-      SELECT s.*, 
-             JSON_ARRAYAGG(
-               JSON_OBJECT(
-                 'break_id', b.break_id,
-                 'break_name', b.break_name,
-                 'start_time', b.start_time,
-                 'end_time', b.end_time
-               )
-             ) as breaks
-      FROM shift s
-      LEFT JOIN break_time b ON s.shift_id = b.shift_id
-      WHERE s.shift_id = ?
-      GROUP BY s.shift_id
-    `, [shift_id]);
-    return rows[0];
+    const shift = await this.findById(shift_id);
+    if (!shift) return null;
+
+    const [breaks] = await pool.execute(
+      'SELECT * FROM break_time WHERE shift_id = ? ORDER BY start_time',
+      [shift_id]
+    );
+
+    return {
+      ...shift,
+      breaks
+    };
   }
 
   static async getAllWithBreaks() {
-    const [rows] = await pool.execute(`
-      SELECT s.*, 
-             JSON_ARRAYAGG(
-               JSON_OBJECT(
-                 'break_id', b.break_id,
-                 'break_name', b.break_name,
-                 'start_time', b.start_time,
-                 'end_time', b.end_time
-               )
-             ) as breaks
-      FROM shift s
-      LEFT JOIN break_time b ON s.shift_id = b.shift_id
-      GROUP BY s.shift_id
-      ORDER BY s.start_time
-    `);
-    return rows;
+    const shifts = await this.getAll();
+    const [breaks] = await pool.execute('SELECT * FROM break_time ORDER BY start_time');
+    return shifts.map((shift) => ({
+      ...shift,
+      breaks: breaks.filter((breakItem) => breakItem.shift_id === shift.shift_id)
+    }));
   }
 }
 

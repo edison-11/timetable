@@ -70,8 +70,8 @@ const buildGenerationItems = (slots, sharedActivities) => {
       items.push({
         type: 'activity',
         day_of_week: slot.day_of_week,
-        start_time: slot.start_time,
-        end_time: slot.end_time,
+        start_time: overlappingActivity.start_time,
+        end_time: overlappingActivity.end_time,
         activity_name: overlappingActivity.activity_name,
         original_activity_time: {
           start: overlappingActivity.start_time,
@@ -168,6 +168,11 @@ const buildSlots = ({ days, startTime, endTime, periodMinutes, changeoverMinutes
 const toPositiveInteger = (value, fallback) => {
   const number = Number(value);
   return Number.isInteger(number) && number > 0 ? number : fallback;
+};
+
+const toNonNegativeInteger = (value, fallback) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : fallback;
 };
 
 const addPeriods = (startMinutes, periodCount, periodMinutes, changeoverMinutes) => {
@@ -316,6 +321,38 @@ router.post('/generate', auth, [
   body('end_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
   body('period_minutes').isInt({ min: 1 }).withMessage('Period minutes must be at least 1'),
   body('replace_existing').optional().isBoolean(),
+  body('break_period_rules')
+    .optional()
+    .isObject()
+    .withMessage('Break period rules must be an object')
+    .custom((rules) => {
+      const positiveFields = [
+        'periods_before_morning_break',
+        'periods_before_lunch',
+        'periods_before_afternoon_break',
+        'morning_break_minutes',
+        'lunch_break_minutes',
+        'afternoon_break_minutes'
+      ];
+
+      for (const field of positiveFields) {
+        if (rules[field] !== undefined) {
+          const value = Number(rules[field]);
+          if (!Number.isInteger(value) || value < 1) {
+            throw new Error('Break period rule values must be whole numbers of at least 1');
+          }
+        }
+      }
+
+      if (rules.periods_after_afternoon_break !== undefined) {
+        const value = Number(rules.periods_after_afternoon_break);
+        if (!Number.isInteger(value) || value < 0) {
+          throw new Error('Periods after evening break must be a whole number of at least 0');
+        }
+      }
+
+      return true;
+    }),
   body('shared_activities')
     .optional()
     .isArray()
@@ -363,9 +400,9 @@ router.post('/generate', auth, [
       noon_break_length,
       after_noon_break_period,
       period_minutes,
-      teacher_changeover_minutes,
-      replace_existing = true
+      teacher_changeover_minutes
     } = req.body;
+    const shouldReplaceExisting = req.body.replace_existing !== false;
 
     const days = Array.isArray(req.body.days) && req.body.days.length
       ? req.body.days.filter((day) => DAYS.includes(day))
@@ -386,7 +423,7 @@ router.post('/generate', auth, [
       
       // Calculate end time based on periods and breaks
       const totalPeriods = Number(before_morning_break || 3) + Number(after_break_period || 2) + Number(after_lunch_period || 3) + Number(after_noon_break_period || 2);
-      const totalBreakMinutes = Number(morning_break_length || 15) + Number(lunch_length || 60) + Number(noon_break_length || 15);
+      const totalBreakMinutes = Number(morning_break_length || 30) + Number(lunch_length || 45) + Number(noon_break_length || 30);
       const totalTeachingMinutes = totalPeriods * Number(period_minutes);
       const totalMinutes = totalTeachingMinutes + totalBreakMinutes;
       const endHour = 8 + Math.floor(totalMinutes / 60);
@@ -404,7 +441,22 @@ router.post('/generate', auth, [
     }
 
     const settings = await SystemSetting.getTimetableSettings();
-    const breakPeriodRules = settings.break_period_rules || {};
+    const requestBreakRules = req.body.break_period_rules || {};
+    const breakPeriodRules = {
+      ...(settings.break_period_rules || {}),
+      ...requestBreakRules
+    };
+    const periodsBeforeMorningBreak = toPositiveInteger(before_morning_break ?? breakPeriodRules.periods_before_morning_break, 3);
+    const periodsBeforeLunch = toPositiveInteger(after_break_period ?? breakPeriodRules.periods_before_lunch, 2);
+    const periodsBeforeAfternoonBreak = toPositiveInteger(after_lunch_period ?? breakPeriodRules.periods_before_afternoon_break, 3);
+    const periodsAfterAfternoonBreak = toNonNegativeInteger(after_noon_break_period ?? breakPeriodRules.periods_after_afternoon_break, 2);
+    const totalRulePeriods = periodsBeforeMorningBreak
+      + periodsBeforeLunch
+      + periodsBeforeAfternoonBreak
+      + periodsAfterAfternoonBreak;
+    const morningBreakMinutes = toPositiveInteger(morning_break_length ?? breakPeriodRules.morning_break_minutes, 30);
+    const lunchBreakMinutes = toPositiveInteger(lunch_length ?? breakPeriodRules.lunch_break_minutes, 45);
+    const afternoonBreakMinutes = toPositiveInteger(noon_break_length ?? breakPeriodRules.afternoon_break_minutes, 30);
     const sharedChangeoverMinutes = Number(teacher_changeover_minutes || settings.teacher_changeover_minutes || 5);
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
@@ -421,14 +473,13 @@ router.post('/generate', auth, [
       let currentMinutes = timeToMinutes(calculatedStartTime);
       
       // Before morning break periods
-      for (let i = 0; i < Number(before_morning_break || 3); i++) {
+      for (let i = 0; i < periodsBeforeMorningBreak; i++) {
         schedule.push({
           type: 'period',
           start_time: minutesToTime(currentMinutes),
           end_time: minutesToTime(currentMinutes + Number(period_minutes))
         });
         currentMinutes += Number(period_minutes);
-        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
       }
       
       // Morning break
@@ -436,19 +487,18 @@ router.post('/generate', auth, [
         type: 'break',
         break_name: 'Morning Break',
         start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + Number(morning_break_length || 15))
+        end_time: minutesToTime(currentMinutes + morningBreakMinutes)
       });
-      currentMinutes += Number(morning_break_length || 15);
+      currentMinutes += morningBreakMinutes;
       
       // After break periods
-      for (let i = 0; i < Number(after_break_period || 2); i++) {
+      for (let i = 0; i < periodsBeforeLunch; i++) {
         schedule.push({
           type: 'period',
           start_time: minutesToTime(currentMinutes),
           end_time: minutesToTime(currentMinutes + Number(period_minutes))
         });
         currentMinutes += Number(period_minutes);
-        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
       }
       
       // Lunch break
@@ -456,39 +506,37 @@ router.post('/generate', auth, [
         type: 'break',
         break_name: 'Lunch Break',
         start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + Number(lunch_length || 60))
+        end_time: minutesToTime(currentMinutes + lunchBreakMinutes)
       });
-      currentMinutes += Number(lunch_length || 60);
+      currentMinutes += lunchBreakMinutes;
       
       // After lunch periods
-      for (let i = 0; i < Number(after_lunch_period || 3); i++) {
+      for (let i = 0; i < periodsBeforeAfternoonBreak; i++) {
         schedule.push({
           type: 'period',
           start_time: minutesToTime(currentMinutes),
           end_time: minutesToTime(currentMinutes + Number(period_minutes))
         });
         currentMinutes += Number(period_minutes);
-        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
       }
       
-      // Noon break
+      // Evening break
       schedule.push({
         type: 'break',
-        break_name: 'Noon Break',
+        break_name: 'Evening Break',
         start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + Number(noon_break_length || 15))
+        end_time: minutesToTime(currentMinutes + afternoonBreakMinutes)
       });
-      currentMinutes += Number(noon_break_length || 15);
+      currentMinutes += afternoonBreakMinutes;
       
-      // After noon break periods
-      for (let i = 0; i < Number(after_noon_break_period || 2); i++) {
+      // After afternoon break periods
+      for (let i = 0; i < periodsAfterAfternoonBreak; i++) {
         schedule.push({
           type: 'period',
           start_time: minutesToTime(currentMinutes),
           end_time: minutesToTime(currentMinutes + Number(period_minutes))
         });
         currentMinutes += Number(period_minutes);
-        if (sharedChangeoverMinutes > 0) currentMinutes += sharedChangeoverMinutes;
       }
       
       return schedule;
@@ -497,6 +545,10 @@ router.post('/generate', auth, [
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
 
+      if (shouldReplaceExisting) {
+        await TimetableEntry.deleteByClass(classItem.class_id);
+      }
+
       if (!assignments.length) {
         skipped.push({
           class_id: classItem.class_id,
@@ -504,10 +556,6 @@ router.post('/generate', auth, [
           reason: 'No module assignments for this class'
         });
         continue;
-      }
-
-      if (replace_existing) {
-        await TimetableEntry.deleteByClass(classItem.class_id);
       }
 
       // Use one shared changeover rule for every class so generation stays consistent across all timetables.
@@ -617,6 +665,7 @@ router.post('/generate', auth, [
         class_id: classItem.class_id,
         class_name: classItem.class_name,
         entries: classCount,
+        periods_per_day: totalRulePeriods,
         expected_entries: generationItems.length + (breakItems.length * days.length)
       });
 

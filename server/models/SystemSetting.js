@@ -44,16 +44,17 @@ class SystemSetting {
     const teacherChangeoverMinutes = Number(
       await this.get('teacher_changeover_minutes', '5')
     );
-    const breakStartTime = await this.get('break_start_time', '10:00');
-    const breakEndTime = await this.get('break_end_time', '10:15');
+    const breakStartTime = await this.get('break_start_time', '11:00');
+    const breakEndTime = await this.get('break_end_time', '11:30');
     const timetableBreaksValue = await this.get('timetable_breaks', null);
     const breakPeriodRulesValue = await this.get('break_period_rules', null);
     let timetableBreaks = [];
     let breakPeriodRules = {
-      enabled: false,
+      enabled: true,
       periods_before_morning_break: 3,
       periods_before_lunch: 2,
       periods_before_afternoon_break: 3,
+      periods_after_afternoon_break: 2,
       morning_break_minutes: 30,
       lunch_break_minutes: 45,
       afternoon_break_minutes: 30
@@ -73,6 +74,16 @@ class SystemSetting {
           break_name: 'Morning Break',
           start_time: breakStartTime,
           end_time: breakEndTime
+        },
+        {
+          break_name: 'Lunch Break',
+          start_time: '13:30',
+          end_time: '14:15'
+        },
+        {
+          break_name: 'Evening Break',
+          start_time: '17:15',
+          end_time: '17:45'
         }
       ];
     }
