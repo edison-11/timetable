@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS teacher (
   email VARCHAR(100) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
   department VARCHAR(50) NOT NULL DEFAULT 'SSOD',
-  status ENUM('active', 'inactive', 'on_leave') DEFAULT 'active',
+  status ENUM('pending', 'active', 'inactive', 'on_leave') DEFAULT 'active',
   date_joined DATE,
   profile_photo VARCHAR(255),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

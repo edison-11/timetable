@@ -50,16 +50,6 @@ if (fs.existsSync(clientDistPath)) {
   console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
 }
 
-// Database connection test - using SQLite for now
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./timetable.db', (err) => {
-  if (err) {
-    console.error('SQLite connection error:', err.message);
-  } else {
-    console.log('SQLite database connected successfully');
-  }
-});
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/teacher-auth', teacherAuthRoutes);

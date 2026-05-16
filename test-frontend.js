@@ -5,14 +5,14 @@ async function testFrontendAccess() {
     console.log('Testing frontend access...');
     
     // Test if frontend HTML is served
-    const response = await axios.get('http://localhost:5000/client/index.html');
+    const response = await axios.get('http://localhost:5000/');
     console.log('✅ Frontend HTML accessible');
     console.log('Content type:', response.headers['content-type']);
     console.log('Content length:', response.data.length);
     
     // Test if API is working
     const apiResponse = await axios.post('http://localhost:5000/api/auth/login', {
-      email: 'admin@gmail.com',
+      email: 'admin@school.com',
       password: 'admin123'
     });
     console.log('✅ API login working');

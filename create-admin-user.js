@@ -16,15 +16,17 @@ async function createAdminUser() {
     // Hash the password
     const hashedPassword = await bcrypt.hash('admin123', 10);
 
-    // Insert admin user
+    // Insert or refresh the default admin user
     const [result] = await connection.execute(
-      'INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, ?)',
-      ['admin', 'admin@timetable.com', hashedPassword, 'admin']
+      `INSERT INTO users (username, email, password, role)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE username = VALUES(username), password = VALUES(password), role = VALUES(role)`,
+      ['admin', 'admin@school.com', hashedPassword, 'admin']
     );
 
-    console.log(`Admin user created with ID: ${result.insertId}`);
+    console.log(result.insertId ? `Admin user created with ID: ${result.insertId}` : 'Admin user updated');
     console.log('Login credentials:');
-    console.log('Email: admin@timetable.com');
+    console.log('Email: admin@school.com');
     console.log('Password: admin123');
 
     await connection.end();
