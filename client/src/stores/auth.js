@@ -126,6 +126,8 @@ export const useAuthStore = defineStore('auth', {
 
         if (this.userType === 'teacher') {
           localStorage.setItem('teacher', JSON.stringify(user))
+        } else {
+          localStorage.setItem('user', JSON.stringify(user))
         }
 
         return { success: true, user }

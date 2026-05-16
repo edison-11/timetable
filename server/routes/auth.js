@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -170,6 +171,14 @@ router.put('/me', auth, [
     });
 
     const user = await User.findById(req.user.id);
+
+    await Notification.create({
+      type: 'profile_changed',
+      title: `Profile changed: ${user.username}`,
+      message: `${user.username}'s admin profile was updated.`,
+      path: '/dashboard',
+      tone: 'violet'
+    });
 
     res.json({
       message: 'Profile updated successfully',

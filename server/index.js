@@ -20,6 +20,7 @@ const timetableRoutes = require('./routes/timetable');
 const uploadRoutes = require('./routes/upload');
 const pendingRoutes = require('./routes/pending');
 const settingsRoutes = require('./routes/settings');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use('/api/timetable', timetableRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/pending', pendingRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

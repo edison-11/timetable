@@ -20,6 +20,19 @@ const api = axios.create({
   timeout: 10000
 })
 
+const normalizeApiErrorMessage = (error) => {
+  const data = error.response?.data
+
+  if (!data || data.message) return
+
+  if (Array.isArray(data.errors) && data.errors.length > 0) {
+    data.message = data.errors
+      .map((item) => item.msg || item.message)
+      .filter(Boolean)
+      .join(', ')
+  }
+}
+
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
@@ -46,6 +59,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const authStore = useAuthStore()
+
+    normalizeApiErrorMessage(error)
     
     if (error.response?.status === 401) {
       const userType = localStorage.getItem('userType')

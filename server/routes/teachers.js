@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const Teacher = require('../models/Teacher');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { adminAuth } = require('../middleware/adminAuth');
 
@@ -34,6 +35,14 @@ router.post('/register', [
 
     const teacherId = await Teacher.create({ name, email, password, department, status, date_joined });
     const teacher = await Teacher.findById(teacherId);
+
+    await Notification.create({
+      type: 'teacher_registered',
+      title: `New teacher registered: ${teacher.name}`,
+      message: `${teacher.name} is waiting for review in the teachers list.`,
+      path: '/teachers',
+      tone: 'green'
+    });
 
     const token = generateToken(teacherId);
 
@@ -176,6 +185,14 @@ router.put('/:id', auth, [
     await Teacher.update(req.params.id, updateData);
     const updatedTeacher = await Teacher.findById(req.params.id);
 
+    await Notification.create({
+      type: 'teacher_updated',
+      title: `Teacher profile changed: ${updatedTeacher.name}`,
+      message: `${updatedTeacher.name}'s teacher record was updated.`,
+      path: '/teachers',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Teacher updated successfully',
       teacher: updatedTeacher
@@ -239,6 +256,14 @@ router.put('/:id/approve-test', async (req, res) => {
     await Teacher.update(req.params.id, { status: 'active' });
     const updatedTeacher = await Teacher.findById(req.params.id);
 
+    await Notification.create({
+      type: 'teacher_approved',
+      title: `Teacher approved: ${updatedTeacher.name}`,
+      message: `${updatedTeacher.name} can now access the system.`,
+      path: '/teachers',
+      tone: 'green'
+    });
+
     res.json({
       success: true,
       message: 'Teacher approved successfully',
@@ -264,6 +289,14 @@ router.put('/:id/approve', adminAuth, async (req, res) => {
 
     await Teacher.update(req.params.id, { status: 'active' });
     const updatedTeacher = await Teacher.findById(req.params.id);
+
+    await Notification.create({
+      type: 'teacher_approved',
+      title: `Teacher approved: ${updatedTeacher.name}`,
+      message: `${updatedTeacher.name} can now access the system.`,
+      path: '/teachers',
+      tone: 'green'
+    });
 
     res.json({
       success: true,
