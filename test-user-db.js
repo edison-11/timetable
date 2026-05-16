@@ -8,7 +8,7 @@ const db = new sqlite3.Database('./timetable.db', (err) => {
     // Test user table operations
     db.serialize(() => {
       // Check if admin user exists
-      db.get('SELECT * FROM users WHERE email = ?', ['admin@gmail.com'], (err, user) => {
+      db.get('SELECT * FROM users WHERE email = ?', ['admin@school.com'], (err, user) => {
         if (err) {
           console.error('❌ User query error:', err.message);
         } else if (user) {

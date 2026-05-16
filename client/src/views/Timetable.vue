@@ -1,49 +1,94 @@
 <template>
   <AppLayout>
     <div class="timetable-container">
-      <!-- Assignment Form -->
-      <div class="card-custom mb-4">
-        <div class="card-body">
-          <h2 class="h4 fw-semibold text-dark mb-4">📋 Assign Module to Teacher</h2>
-          
-          <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label">🏫 Class</label>
+      <header class="studio-header">
+        <div>
+          <p class="eyebrow">Scheduling workspace</p>
+          <h1>Timetable Studio</h1>
+          <p class="studio-subtitle">Assign teaching loads, set generation rules, and review class timetables from one control panel.</p>
+        </div>
+        <div class="studio-actions">
+          <button class="icon-button" type="button" title="Refresh timetable" @click="loadTimetable">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.66 5.66M4 12A8 8 0 0 1 17.66 6.34M17 3v4h4M7 21v-4H3"/></svg>
+          </button>
+          <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
+            {{ loading ? 'Working...' : 'Generate' }}
+          </button>
+        </div>
+      </header>
+
+      <section class="metrics-grid" aria-label="Timetable summary">
+        <div class="metric-card">
+          <span class="metric-icon class-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>
+          </span>
+          <div><strong>{{ classes.length }}</strong><span>Classes</span></div>
+        </div>
+        <div class="metric-card">
+          <span class="metric-icon teacher-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>
+          </span>
+          <div><strong>{{ teachers.length }}</strong><span>Teachers</span></div>
+        </div>
+        <div class="metric-card">
+          <span class="metric-icon module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>
+          </span>
+          <div><strong>{{ modules.length }}</strong><span>Modules</span></div>
+        </div>
+        <div class="metric-card">
+          <span class="metric-icon schedule-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 8h3v3H9z"/></svg>
+          </span>
+          <div><strong>{{ timetableEntries.length }}</strong><span>Entries</span></div>
+        </div>
+      </section>
+
+      <div v-if="assignmentMessage" class="status-message" :class="messageTone">
+        {{ cleanMessage(assignmentMessage) }}
+      </div>
+
+      <section class="control-grid">
+        <article class="panel-card">
+          <div class="panel-heading">
+            <span class="panel-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            </span>
+            <div>
+              <h2>Teaching Assignment</h2>
+              <p>Connect a teacher, module, class, year, and term before generation.</p>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Class</label>
               <select v-model="assignment.class_id" class="form-select">
                 <option value="">Select Class</option>
-                <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">
-                  {{ cls.class_name }}
-                </option>
+                <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">{{ cls.class_name }}</option>
               </select>
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">👨‍🏫 Teacher</label>
+            <div>
+              <label class="form-label">Teacher</label>
               <select v-model="assignment.teacher_id" class="form-select">
                 <option value="">Select Teacher</option>
-                <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
-                  {{ teacher.name }}
-                </option>
+                <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">{{ teacher.name }}</option>
               </select>
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">📖 Module</label>
+            <div>
+              <label class="form-label">Module</label>
               <select v-model="assignment.module_id" class="form-select">
                 <option value="">Select Module</option>
-                <option v-for="module in modules" :key="module.module_id" :value="module.module_id">
-                  {{ module.module_name }}
-                </option>
+                <option v-for="module in modules" :key="module.module_id" :value="module.module_id">{{ module.module_name }}</option>
               </select>
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">📅 Academic Year</label>
+            <div>
+              <label class="form-label">Academic Year</label>
               <input v-model="assignment.academic_year" class="form-control" placeholder="2024-2025">
             </div>
-
-            <div class="col-md-3">
-              <label class="form-label">🍂 Term</label>
+            <div>
+              <label class="form-label">Term</label>
               <select v-model="assignment.term" class="form-select">
                 <option value="">Select Term</option>
                 <option value="Term 1">Term 1</option>
@@ -52,298 +97,244 @@
               </select>
             </div>
           </div>
-          
-          <div class="row mt-3">
-            <div class="col-12">
-              <button class="btn-primary" @click="addAssignment" :disabled="loading">
-                {{ loading ? '⏳ Adding...' : '➕ Add Assignment' }}
-              </button>
+
+          <div class="panel-footer">
+            <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              {{ loading ? 'Adding...' : 'Add Assignment' }}
+            </button>
+          </div>
+        </article>
+
+        <article class="panel-card">
+          <div class="panel-heading">
+            <span class="panel-icon generate-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 14-5M20 11a8 8 0 0 1-14 5M18 3v5h-5M6 21v-5h5"/></svg>
+            </span>
+            <div>
+              <h2>Generation Rules</h2>
+              <p>Choose scope, timing, days, and conflict buffers.</p>
             </div>
           </div>
-          
-          <div v-if="assignmentMessage" class="alert alert-info mt-3">
-            {{ assignmentMessage }}
-          </div>
-        </div>
-      </div>
 
-      <!-- Generate Timetable -->
-      <div class="card-custom mb-4">
-        <div class="card-body">
-          <h2 class="h4 fw-semibold text-dark mb-4">⚙️ Generate Timetable</h2>
-          
-          <div class="row g-3">
-            <div class="col-md-3">
-              <label class="form-label">🏫 Class</label>
+          <div class="form-grid">
+            <div>
+              <label class="form-label">Class Scope</label>
               <select v-model="generateSettings.class_id" class="form-select">
                 <option value="">All Classes</option>
-                <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">
-                  {{ cls.class_name }}
-                </option>
+                <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">{{ cls.class_name }}</option>
               </select>
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">📊 Level</label>
+            <div>
+              <label class="form-label">Level</label>
               <select v-model="generateSettings.level" class="form-select">
                 <option value="">All Levels</option>
-                <option v-for="level in availableLevels" :key="level" :value="level">
-                  Level {{ level }}
-                </option>
+                <option v-for="level in availableLevels" :key="level" :value="level">Level {{ level }}</option>
               </select>
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">⏱️ Teacher Changeover (min)</label>
-              <input v-model.number="generateSettings.teacher_changeover_minutes" type="number" class="form-control" min="0" max="60">
-            </div>
-            
-            <div class="col-md-3">
-              <div class="form-check mt-4">
-                <input v-model="generateSettings.replace_existing" class="form-check-input" type="checkbox" id="replaceExisting">
-                <label class="form-check-label" for="replaceExisting">🔄 Replace existing</label>
-              </div>
-            </div>
-          </div>
-          
-          <div class="row g-3 mt-3">
-            <div class="col-md-3">
-              <label class="form-label">🕐 Start Time</label>
+            <div>
+              <label class="form-label">Start Time</label>
               <input v-model="generateSettings.start_time" type="time" class="form-control">
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">🕕 End Time</label>
+            <div>
+              <label class="form-label">End Time</label>
               <input v-model="generateSettings.end_time" type="time" class="form-control">
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">⏲️ Period (minutes)</label>
+            <div>
+              <label class="form-label">Period Minutes</label>
               <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="30" max="180">
             </div>
-            
-            <div class="col-md-3">
-              <label class="form-label">📆 Days</label>
-              <div class="d-flex gap-2 flex-wrap">
-                <div v-for="day in days" :key="day" class="form-check">
-                  <input v-model="generateSettings.selected_days" :value="day" class="form-check-input" type="checkbox">
-                  <label class="form-check-label">{{ day.slice(0,3) }}</label>
-                </div>
-              </div>
+            <div>
+              <label class="form-label">Teacher Changeover</label>
+              <input v-model.number="generateSettings.teacher_changeover_minutes" type="number" class="form-control" min="0" max="60">
             </div>
           </div>
-          
-          <div class="period-rules-card mt-4">
-            <div class="period-rules-header">
-              <div>
-                <h3 class="period-rules-title">Period-Based Break Rules</h3>
-                <p class="period-rules-description">
-                  When enabled, breaks are calculated after a number of teaching periods instead of fixed clock times.
-                </p>
-              </div>
-              <div class="form-switch">
-                <input
-                  id="periodRulesEnabled"
-                  v-model="generateSettings.break_period_rules.enabled"
-                  type="checkbox"
-                >
-                <label for="periodRulesEnabled">Enabled</label>
-              </div>
-            </div>
 
-            <fieldset :disabled="!generateSettings.break_period_rules.enabled" class="period-rules-grid">
-              <div>
-                <label class="form-label">Periods Before Morning Break</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.periods_before_morning_break"
-                  type="number"
-                  min="1"
-                  class="form-control"
-                >
-              </div>
-              <div>
-                <label class="form-label">Periods Before Lunch</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.periods_before_lunch"
-                  type="number"
-                  min="1"
-                  class="form-control"
-                >
-              </div>
-              <div>
-                <label class="form-label">Periods Before Evening Break</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.periods_before_afternoon_break"
-                  type="number"
-                  min="1"
-                  class="form-control"
-                >
-              </div>
-              <div>
-                <label class="form-label">Periods After Evening Break</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.periods_after_afternoon_break"
-                  type="number"
-                  min="0"
-                  class="form-control"
-                >
-              </div>
-              <div>
-                <label class="form-label">Morning Break Minutes</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.morning_break_minutes"
-                  type="number"
-                  min="1"
-                  class="form-control"
-                >
-              </div>
-              <div>
-                <label class="form-label">Lunch Break Minutes</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.lunch_break_minutes"
-                  type="number"
-                  min="1"
-                  class="form-control"
-                >
-              </div>
-              <div>
-                <label class="form-label">Evening Break Minutes</label>
-                <input
-                  v-model.number="generateSettings.break_period_rules.afternoon_break_minutes"
-                  type="number"
-                  min="1"
-                  class="form-control"
-                >
-              </div>
-            </fieldset>
+          <div class="day-picker" aria-label="Generation days">
+            <label v-for="day in days" :key="day" class="day-chip" :class="{ active: generateSettings.selected_days.includes(day) }">
+              <input v-model="generateSettings.selected_days" :value="day" type="checkbox">
+              {{ day.slice(0, 3) }}
+            </label>
           </div>
 
-          <div class="shared-activities-card mt-4">
-            <div class="shared-activities-header">
-              <div>
-                <h3 class="period-rules-title">Shared Activities</h3>
-                <p class="period-rules-description">
-                  Add activities that should appear at the same time across every generated class timetable.
-                </p>
-              </div>
-              <button class="btn-secondary" type="button" @click="addSharedActivity">
-                Add Activity
-              </button>
-            </div>
+          <label class="replace-toggle">
+            <input v-model="generateSettings.replace_existing" type="checkbox">
+            <span>Replace existing timetable entries when generating</span>
+          </label>
+        </article>
+      </section>
 
-            <div v-if="!sharedActivities.length" class="shared-empty">
-              No shared activities added.
+      <section class="advanced-grid">
+        <article class="panel-card">
+          <div class="panel-heading compact">
+            <span class="panel-icon rules-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+            </span>
+            <div>
+              <h2>Break Rules</h2>
+              <p>Control break placement by teaching-period counts.</p>
             </div>
-
-            <div v-for="(activity, index) in sharedActivities" :key="activity.id" class="shared-activity-row">
-              <div>
-                <label class="form-label">Activity Name</label>
-                <input
-                  v-model="activity.activity_name"
-                  type="text"
-                  class="form-control"
-                  placeholder="Example: Assembly"
-                >
-              </div>
-              <div>
-                <label class="form-label">Day</label>
-                <select v-model="activity.day_of_week" class="form-select">
-                  <option value="all">All selected days</option>
-                  <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
-                </select>
-              </div>
-              <div>
-                <label class="form-label">Start</label>
-                <input v-model="activity.start_time" type="time" class="form-control">
-              </div>
-              <div>
-                <label class="form-label">End</label>
-                <input v-model="activity.end_time" type="time" class="form-control">
-              </div>
-              <div class="shared-activity-actions">
-                <button class="btn-danger" type="button" @click="removeSharedActivity(index)">
-                  Remove
-                </button>
-              </div>
+            <div class="form-switch">
+              <input id="periodRulesEnabled" v-model="generateSettings.break_period_rules.enabled" type="checkbox">
+              <label for="periodRulesEnabled">Enabled</label>
             </div>
           </div>
-          
-          <div class="row mt-4">
-            <div class="col-12">
-              <button class="btn-success" @click="generateTimetable" :disabled="loading">
-                {{ loading ? '⏳ Generating...' : '🚀 Generate Timetable' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Timetable Display -->
-      <div v-if="displayedTimetables.length > 0" class="card-custom timetable-output-card">
-        <div class="card-body">
-          <div class="timetable-display-controls">
-            <h2 class="timetable-title">TIMETABLE</h2>
-            <div class="timetable-class-filter">
-              <label class="form-label">Class Timetable</label>
-              <select v-model="selectedTimetableClassId" class="form-select">
-                <option value="">All Classes</option>
-                <option v-for="cls in classesWithTimetables" :key="cls.class_id" :value="String(cls.class_id)">
-                  {{ cls.class_name }}
-                </option>
+          <fieldset :disabled="!generateSettings.break_period_rules.enabled" class="period-rules-grid">
+            <div>
+              <label class="form-label">Before Morning Break</label>
+              <input v-model.number="generateSettings.break_period_rules.periods_before_morning_break" type="number" min="1" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">Before Lunch</label>
+              <input v-model.number="generateSettings.break_period_rules.periods_before_lunch" type="number" min="1" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">Before Evening Break</label>
+              <input v-model.number="generateSettings.break_period_rules.periods_before_afternoon_break" type="number" min="1" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">After Evening Break</label>
+              <input v-model.number="generateSettings.break_period_rules.periods_after_afternoon_break" type="number" min="0" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">Morning Break Minutes</label>
+              <input v-model.number="generateSettings.break_period_rules.morning_break_minutes" type="number" min="1" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">Lunch Minutes</label>
+              <input v-model.number="generateSettings.break_period_rules.lunch_break_minutes" type="number" min="1" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">Evening Break Minutes</label>
+              <input v-model.number="generateSettings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
+            </div>
+          </fieldset>
+        </article>
+
+        <article class="panel-card">
+          <div class="panel-heading compact">
+            <span class="panel-icon activity-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 6v14M17 6v14M5 20h14M9 10h6M9 14h6"/></svg>
+            </span>
+            <div>
+              <h2>Shared Activities</h2>
+              <p>Assembly, exams, or events placed across selected classes.</p>
+            </div>
+            <button class="btn-secondary" type="button" @click="addSharedActivity">Add Activity</button>
+          </div>
+
+          <div v-if="!sharedActivities.length" class="shared-empty">No shared activities added.</div>
+
+          <div v-for="(activity, index) in sharedActivities" :key="activity.id" class="shared-activity-row">
+            <div>
+              <label class="form-label">Activity</label>
+              <input v-model="activity.activity_name" type="text" class="form-control" placeholder="Assembly">
+            </div>
+            <div>
+              <label class="form-label">Day</label>
+              <select v-model="activity.day_of_week" class="form-select">
+                <option value="all">All selected days</option>
+                <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
               </select>
             </div>
+            <div>
+              <label class="form-label">Start</label>
+              <input v-model="activity.start_time" type="time" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">End</label>
+              <input v-model="activity.end_time" type="time" class="form-control">
+            </div>
+            <button class="btn-danger" type="button" @click="removeSharedActivity(index)" title="Remove activity">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
           </div>
-          
-          <div v-for="group in displayedTimetables" :key="group.class_id" class="timetable-group mb-4">
-            <div class="timetable-header">
-              <strong>🏫 {{ group.class_name }}</strong>
-              <span class="badge">{{ group.entries.length }} entries</span>
-            </div>
-            <div class="table-responsive">
-              <table class="timetable-grid">
-                <thead>
-                  <tr>
-                    <th>Period</th>
-                    <th>Time</th>
-                    <th>Monday</th>
-                    <th>Tuesday</th>
-                    <th>Wednesday</th>
-                    <th>Thursday</th>
-                    <th>Friday</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="row in buildTimetableGridWithBreaks(group)" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
-                    <td class="period-col" :class="row.breakType">
-                      <span v-if="row.type === 'break'" class="break-label">{{ row.label }}</span>
-                      <span v-else>{{ row.period }}</span>
-                    </td>
-                    <td class="time-col" :class="row.breakType">
-                      {{ formatTimeRange(row.start_time, row.end_time) }}
-                    </td>
-                    <td v-if="row.type === 'break'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
-                    <td v-for="day in days" v-else :key="day" class="text-center">
-                      <div>
-                        <div
-                          v-if="row.entriesByDay[day]"
-                          class="module-cell"
-                          :class="{ 'activity-cell': row.entriesByDay[day].entry_type === 'activity' }"
-                          :data-module="row.entriesByDay[day].module_name"
-                        >
-                          <strong>{{ row.entriesByDay[day].module_name }}</strong>
-                          <small>{{ row.entriesByDay[day].teacher_name || (row.entriesByDay[day].entry_type === 'activity' ? 'Shared activity' : '') }}</small>
-                          <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">{{ row.entriesByDay[day].room || 'TBA' }}</span>
-                        </div>
-                        <span v-else class="empty-slot"></span>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+        </article>
+      </section>
+
+      <section class="generation-bar">
+        <div>
+          <strong>{{ generationSummary }}</strong>
+          <span>{{ generateSettings.start_time }} - {{ generateSettings.end_time }} with {{ generateSettings.period_minutes }} minute periods</span>
+        </div>
+        <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
+          {{ loading ? 'Generating...' : 'Generate Timetable' }}
+        </button>
+      </section>
+
+      <section v-if="displayedTimetables.length > 0" class="timetable-output-card">
+        <div class="output-toolbar">
+          <div>
+            <p class="eyebrow">Generated view</p>
+            <h2>Class Timetables</h2>
+          </div>
+          <div class="timetable-class-filter">
+            <label class="form-label">Display</label>
+            <select v-model="selectedTimetableClassId" class="form-select">
+              <option value="">All Classes</option>
+              <option v-for="cls in classesWithTimetables" :key="cls.class_id" :value="String(cls.class_id)">
+                {{ cls.class_name }}
+              </option>
+            </select>
           </div>
         </div>
-      </div>
+
+        <div v-for="group in displayedTimetables" :key="group.class_id" class="timetable-group">
+          <div class="timetable-header">
+            <div>
+              <strong>{{ group.class_name }}</strong>
+              <span>{{ group.level || 'No level set' }}</span>
+            </div>
+            <span class="badge">{{ group.entries.length }} entries</span>
+          </div>
+          <div class="table-responsive">
+            <table class="timetable-grid">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th>Time</th>
+                  <th>Monday</th>
+                  <th>Tuesday</th>
+                  <th>Wednesday</th>
+                  <th>Thursday</th>
+                  <th>Friday</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in buildTimetableGridWithBreaks(group)" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
+                  <td class="period-col" :class="row.breakType">
+                    <span v-if="row.type === 'break'" class="break-label">{{ row.label }}</span>
+                    <span v-else>{{ row.period }}</span>
+                  </td>
+                  <td class="time-col" :class="row.breakType">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
+                  <td v-if="row.type === 'break'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
+                  <td v-for="day in days" v-else :key="day">
+                    <div
+                      v-if="row.entriesByDay[day]"
+                      class="module-cell"
+                      :class="{ 'activity-cell': row.entriesByDay[day].entry_type === 'activity' }"
+                      :data-module="row.entriesByDay[day].module_name"
+                    >
+                      <strong>{{ row.entriesByDay[day].module_name }}</strong>
+                      <small>{{ row.entriesByDay[day].teacher_name || (row.entriesByDay[day].entry_type === 'activity' ? 'Shared activity' : '') }}</small>
+                      <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">{{ row.entriesByDay[day].room || 'TBA' }}</span>
+                    </div>
+                    <span v-else class="empty-slot"></span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section v-else class="empty-state">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 8h3v3H9z"/></svg>
+        <h2>No timetable generated yet</h2>
+        <p>Add assignments, confirm your generation rules, then create a timetable.</p>
+      </section>
     </div>
   </AppLayout>
 </template>
@@ -393,6 +384,26 @@ const generateSettings = ref({
 })
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+
+const messageTone = computed(() => {
+  const text = assignmentMessage.value.toLowerCase()
+  return text.includes('error') ? 'error' : 'success'
+})
+
+const generationSummary = computed(() => {
+  const scope = generateSettings.value.class_id
+    ? classes.value.find(cls => String(cls.class_id) === String(generateSettings.value.class_id))?.class_name || 'Selected class'
+    : 'All classes'
+  const daysCount = generateSettings.value.selected_days.length
+  return `${scope} across ${daysCount} day${daysCount === 1 ? '' : 's'}`
+})
+
+const cleanMessage = (message) => {
+  return String(message || '')
+    .replace(/[^\x20-\x7E]/g, '')
+    .replace(/^\s*(Adding|Generating)?\s*/, '')
+    .trim()
+}
 
 const addSharedActivity = () => {
   sharedActivities.value.push({
@@ -572,7 +583,6 @@ const buildTimetableGridWithBreaks = (group) => {
   }
 
   const resultRows = []
-
   const morningAfter = Number(rules.periods_before_morning_break) || 3
   const periodsBeforeLunch = Number(rules.periods_before_lunch) || 2
   const periodsBeforeEvening = Number(rules.periods_before_afternoon_break) || 3
@@ -607,20 +617,19 @@ const buildTimetableGridWithBreaks = (group) => {
   })
 
   return resultRows
-  
 }
 
 const addAssignment = async () => {
   loading.value = true
   try {
     await api.post('/assignments', assignment.value)
-    assignmentMessage.value = '✅ Assignment added successfully!'
+    assignmentMessage.value = 'Assignment added successfully.'
     assignment.value = { class_id: '', teacher_id: '', module_id: '', academic_year: '', term: '' }
     await loadSetupData()
     await loadTimetable()
     setTimeout(() => { assignmentMessage.value = '' }, 3000)
   } catch (error) {
-    assignmentMessage.value = '❌ Error: ' + (error.response?.data?.message || error.message)
+    assignmentMessage.value = 'Error: ' + (error.response?.data?.message || error.message)
   } finally {
     loading.value = false
   }
@@ -649,14 +658,14 @@ const generateTimetable = async () => {
     }
 
     const response = await api.post('/timetable/generate', payload)
-    assignmentMessage.value = '✅ Timetable generated! ' + (response.data.generated_count || 0) + ' entries created.'
+    assignmentMessage.value = 'Timetable generated. ' + (response.data.generated_count || 0) + ' entries created.'
     await loadTimetable()
     if (generateSettings.value.class_id) {
       selectedTimetableClassId.value = String(generateSettings.value.class_id)
     }
     setTimeout(() => { assignmentMessage.value = '' }, 3000)
   } catch (error) {
-    assignmentMessage.value = '❌ Error: ' + (error.response?.data?.message || error.message)
+    assignmentMessage.value = 'Error: ' + (error.response?.data?.message || error.message)
   } finally {
     loading.value = false
   }
@@ -701,92 +710,670 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.timetable-container { max-width: 1400px; margin: 0 auto; }
-.card-custom { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; margin-bottom: 1.5rem; }
-.card-body { padding: 1.25rem; }
-.row { display: flex; flex-wrap: wrap; margin: -0.5rem; }
-.col-md-3 { flex: 1; padding: 0.5rem; min-width: 180px; }
-.btn-primary, .btn-success { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 0.6rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 500; transition: all 0.3s; }
-.btn-primary:hover, .btn-success:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(59,130,246,0.3); }
-.btn-secondary, .btn-danger { border: none; padding: 0.55rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; }
-.btn-secondary { background: #e0f2fe; color: #075985; }
-.btn-danger { background: #fee2e2; color: #991b1b; }
-.form-control, .form-select { width: 100%; padding: 0.5rem; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.9rem; color: #1e293b; background-color: white; appearance: auto; }
-.form-select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 16px 12px; padding-right: 2.25rem; }
-.form-select:hover { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-.form-select:focus { border-color: #3b82f6; outline: none; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-.form-label { display: block; margin-bottom: 0.25rem; font-weight: 500; font-size: 0.8rem; color: #475569; }
-.form-check { display: flex; align-items: center; gap: 0.5rem; }
-.form-switch { display: flex; align-items: center; gap: 0.75rem; }
-.form-switch input { width: 54px; height: 30px; appearance: none; background: #cbd5e1; border: none; border-radius: 999px; cursor: pointer; position: relative; transition: background 0.2s ease; }
-.form-switch input:checked { background: #3b82f6; }
-.form-switch input::before { content: ''; position: absolute; width: 26px; height: 26px; left: 2px; top: 2px; background: white; border-radius: 50%; box-shadow: 0 1px 4px rgba(15,23,42,0.2); transition: transform 0.2s ease; }
-.form-switch input:checked::before { transform: translateX(24px); }
-.form-switch label { color: #0f172a; cursor: pointer; font-size: 0.95rem; }
-.badge { background: #3b82f6; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; }
-.alert { padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; }
-.alert-info { background: #e0f2fe; color: #0369a1; }
-.period-rules-card, .shared-activities-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; background: #fff; }
-.period-rules-header, .shared-activities-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-.period-rules-title { margin: 0 0 0.5rem; font-size: 1.35rem; font-weight: 700; color: #0f172a; }
-.period-rules-description { margin: 0; max-width: 640px; color: #475569; font-size: 1rem; line-height: 1.6; }
-.period-rules-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; border: 0; padding: 0; margin: 0; }
-.period-rules-grid .form-label { margin-bottom: 0.5rem; font-size: 0.9rem; font-weight: 700; color: #334155; }
-.period-rules-grid .form-control { min-height: 58px; padding: 0.75rem; border-radius: 12px; font-size: 1rem; }
-.shared-empty { color: #64748b; font-weight: 600; }
-.shared-activity-row { display: grid; grid-template-columns: 1.5fr 1fr 0.8fr 0.8fr auto; gap: 1rem; align-items: end; margin-top: 1rem; }
-.shared-activity-actions { display: flex; align-items: end; }
-fieldset:disabled { opacity: 0.6; }
-.table-responsive { overflow-x: auto; border: 1px solid #1f2937; background: #fff; }
-.timetable-output-card > .card-body > .h4 { display: none; }
-.timetable-display-controls { display: grid; grid-template-columns: 1fr minmax(220px, 320px); gap: 1rem; align-items: end; margin-bottom: 1rem; }
-.timetable-title { margin: 0 0 0.85rem; text-align: center; color: #08245f; font-size: 4rem; line-height: 1; font-weight: 900; letter-spacing: 0; text-transform: uppercase; }
-.timetable-class-filter { align-self: center; }
-.timetable-class-filter .form-label { font-weight: 700; color: #08245f; }
-.timetable-grid { width: 100%; min-width: 980px; border-collapse: collapse; table-layout: fixed; font-size: 1rem; background: white; border: 0; }
-.timetable-grid th { background: linear-gradient(180deg, #082a68, #061d48); color: white; font-weight: 900; padding: 0.9rem 0.6rem; text-align: center; text-transform: uppercase; font-size: 1.2rem; border: 1px solid #9aa7bd; }
-.timetable-grid th:first-child { width: 13%; }
-.timetable-grid th:nth-child(2) { width: 14%; }
-.timetable-grid td { border: 1px solid #3f3f46; padding: 0.55rem 0.45rem; text-align: center; vertical-align: middle; height: 58px; }
-.period-col { background: #fff; color: #020617; font-size: 1.35rem; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
-.time-col { background: #fff; font-size: 1.1rem; font-weight: 500; color: #020617; white-space: nowrap; }
-.break-label { display: block; color: #08245f; font-size: 1rem; font-weight: 900; text-transform: uppercase; }
-.period-col.morning-break, .time-col.morning-break, .break-fill.morning-break { background: linear-gradient(90deg, #e8f4df, #d8eccb); }
-.period-col.lunch-break, .time-col.lunch-break, .break-fill.lunch-break { background: linear-gradient(90deg, #fff4bf, #ffe99a); }
-.period-col.evening-break, .time-col.evening-break, .break-fill.evening-break { background: linear-gradient(90deg, #e7f1ff, #d5e8ff); }
-.period-col.lunch-break .break-label { color: #3f2f00; }
-.break-fill { padding: 0; }
-.module-cell { background: #f8fafc; border-radius: 8px; padding: 0.4rem; transition: all 0.2s; }
-.module-cell:hover { transform: scale(1.02); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.module-cell strong { display: block; font-size: 0.75rem; color: #1e293b; }
-.module-cell small { display: block; font-size: 0.6rem; color: #64748b; }
-.module-cell.activity-cell { background: #f0fdf4; border-left: 4px solid #16a34a; }
-.module-cell[data-module="Mathematics"] { background: #dbeafe; border-left: 4px solid #3b82f6; }
-.module-cell[data-module="Physics"] { background: #dcfce7; border-left: 4px solid #22c55e; }
-.module-cell[data-module="Chemistry"] { background: #fed7aa; border-left: 4px solid #f97316; }
-.module-cell[data-module="English"] { background: #fae8ff; border-left: 4px solid #d946ef; }
-.module-cell[data-module="Computer Sci."] { background: #e0e7ff; border-left: 4px solid #6366f1; }
-.module-cell[data-module="Extra Class"] { background: #fef3c7; border-left: 4px solid #f59e0b; }
-.module-cell[data-module="Library"] { background: #e2e8f0; border-left: 4px solid #64748b; }
-.module-cell[data-module="Seminar Hall A"] { background: #ccfbf1; border-left: 4px solid #14b8a6; }
-.room-badge { display: inline-block; margin-top: 0.2rem; padding: 0.1rem 0.3rem; background: rgba(0,0,0,0.05); border-radius: 4px; font-size: 0.55rem; color: #475569; }
-.empty-slot { display: block; min-height: 1rem; }
-.timetable-group { border: 0; border-radius: 0; margin-bottom: 1.25rem; overflow: visible; }
-.timetable-header { background: #f8fafc; padding: 0.75rem 1rem; border-bottom: 1px solid #e2e8f0; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-.text-center { text-align: center; }
-.text-muted { color: #64748b; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-@media (max-width: 768px) {
-  .col-md-3 { min-width: 100%; }
-  .timetable-display-controls { grid-template-columns: 1fr; }
-  .timetable-title { font-size: 2.4rem; }
-  .period-rules-card { padding: 1rem; }
-  .period-rules-grid { grid-template-columns: 1fr; gap: 1rem; }
-  .period-rules-description { font-size: 0.95rem; }
-  .shared-activities-card { padding: 1rem; }
-  .shared-activity-row { grid-template-columns: 1fr; }
+.timetable-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+  color: #0f172a;
+}
+
+svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.studio-header,
+.panel-card,
+.generation-bar,
+.timetable-output-card,
+.empty-state {
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.studio-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.35rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1);
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #2563eb;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-header h1,
+.output-toolbar h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.studio-subtitle {
+  max-width: 740px;
+  margin: 0.45rem 0 0;
+  color: #52627a;
+  font-size: 0.98rem;
+}
+
+.studio-actions,
+.panel-footer {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.icon-button,
+.btn-primary,
+.btn-success,
+.btn-secondary,
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.icon-button {
+  width: 42px;
+  color: #0f172a;
+  background: #eef2f7;
+}
+
+.btn-primary,
+.btn-success {
+  padding: 0.6rem 1rem;
+  color: #fff;
+  background: #2563eb;
+}
+
+.btn-success {
+  background: #15803d;
+}
+
+.btn-secondary {
+  padding: 0.55rem 0.85rem;
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.btn-danger {
+  width: 42px;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-secondary:hover,
+.icon-button:hover,
+.btn-danger:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+  transform: none;
+  box-shadow: none;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.metric-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-height: 86px;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.metric-icon,
+.panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.teacher-icon { color: #047857; background: #d1fae5; }
+.module-icon { color: #b45309; background: #fef3c7; }
+.schedule-icon { color: #7c3aed; background: #ede9fe; }
+.generate-icon { color: #047857; background: #d1fae5; }
+.rules-icon { color: #b45309; background: #fef3c7; }
+.activity-icon { color: #0f766e; background: #ccfbf1; }
+
+.metric-card strong {
+  display: block;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.metric-card span:not(.metric-icon) {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-message {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  font-weight: 750;
+}
+
+.status-message.success {
+  color: #166534;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+}
+
+.status-message.error {
+  color: #991b1b;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.control-grid,
+.advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.panel-card {
+  padding: 1rem;
+}
+
+.panel-heading {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.8rem;
+  align-items: start;
+  margin-bottom: 1rem;
+}
+
+.panel-heading.compact {
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 850;
+}
+
+.panel-heading p {
+  margin: 0.22rem 0 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form-control,
+.form-select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  background-color: #fff;
+  font-size: 0.9rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #2563eb;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.panel-footer {
+  margin-top: 1rem;
+}
+
+.day-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.day-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #475569;
+  background: #f8fafc;
+  font-size: 0.8rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.day-chip input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.day-chip.active {
+  color: #fff;
+  border-color: #2563eb;
+  background: #2563eb;
+}
+
+.replace-toggle {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 0.9rem 0 0;
+  color: #475569;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.form-switch {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.form-switch input {
+  width: 50px;
+  height: 28px;
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: #cbd5e1;
+  cursor: pointer;
+  position: relative;
+}
+
+.form-switch input::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  top: 2px;
+  left: 2px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+  transition: transform 0.18s ease;
+}
+
+.form-switch input:checked {
+  background: #2563eb;
+}
+
+.form-switch input:checked::before {
+  transform: translateX(22px);
+}
+
+.form-switch label {
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.period-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+fieldset:disabled {
+  opacity: 0.55;
+}
+
+.shared-empty {
+  display: grid;
+  min-height: 88px;
+  place-items: center;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-weight: 750;
+}
+
+.shared-activity-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.7fr 0.7fr auto;
+  gap: 0.7rem;
+  align-items: end;
+  margin-top: 0.75rem;
+}
+
+.generation-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: #f8fafc;
+}
+
+.generation-bar strong {
+  display: block;
+  font-weight: 900;
+}
+
+.generation-bar span {
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.timetable-output-card {
+  padding: 1rem;
+}
+
+.output-toolbar {
+  display: grid;
+  grid-template-columns: 1fr minmax(220px, 320px);
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+}
+
+.timetable-group {
+  margin-top: 1rem;
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+}
+
+.timetable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #dbe3ef;
+  background: #f8fafc;
+}
+
+.timetable-header strong {
+  display: block;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.timetable-header span:not(.badge) {
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  background: #fff;
+}
+
+.timetable-grid {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.timetable-grid th {
+  padding: 0.78rem 0.55rem;
+  border: 1px solid #b8c2d1;
+  color: #fff;
+  background: #0f2f5f;
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.timetable-grid th:first-child {
+  width: 10%;
+}
+
+.timetable-grid th:nth-child(2) {
+  width: 13%;
+}
+
+.timetable-grid td {
+  height: 64px;
+  padding: 0.45rem;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.period-col,
+.time-col {
+  color: #0f172a;
+  background: #f8fafc;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.time-col {
+  font-size: 0.9rem;
+}
+
+.break-label {
+  display: block;
+  color: #0f2f5f;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.period-col.morning-break,
+.time-col.morning-break,
+.break-fill.morning-break {
+  background: #e8f7e9;
+}
+
+.period-col.lunch-break,
+.time-col.lunch-break,
+.break-fill.lunch-break {
+  background: #fff4c7;
+}
+
+.period-col.evening-break,
+.time-col.evening-break,
+.break-fill.evening-break {
+  background: #e9f2ff;
+}
+
+.module-cell {
+  min-height: 50px;
+  padding: 0.45rem;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  background: #eff6ff;
+  text-align: left;
+}
+
+.module-cell strong,
+.module-cell small {
+  display: block;
+}
+
+.module-cell strong {
+  color: #172554;
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.module-cell small {
+  margin-top: 0.2rem;
+  color: #475569;
+  font-size: 0.67rem;
+}
+
+.module-cell.activity-cell {
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.room-badge {
+  display: inline-flex;
+  margin-top: 0.28rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  color: #334155;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.empty-slot {
+  display: block;
+  min-height: 1rem;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.empty-state svg {
+  width: 3rem;
+  height: 3rem;
+  color: #94a3b8;
+}
+
+.empty-state h2 {
+  margin: 0.8rem 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #64748b;
+}
+
+@media (max-width: 1100px) {
+  .metrics-grid,
+  .control-grid,
+  .advanced-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shared-activity-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .studio-header,
+  .output-toolbar,
+  .generation-bar,
+  .control-grid,
+  .advanced-grid,
+  .metrics-grid,
+  .form-grid,
+  .period-rules-grid,
+  .panel-heading.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-header h1 {
+    font-size: 1.45rem;
+  }
+
+  .studio-actions,
+  .generation-bar {
+    align-items: stretch;
+  }
+
+  .generation-bar,
+  .studio-actions {
+    flex-direction: column;
+  }
+
+  .shared-activity-row {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-danger {
+    width: 100%;
+  }
 }
 </style>

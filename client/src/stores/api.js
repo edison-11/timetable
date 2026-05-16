@@ -59,10 +59,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const authStore = useAuthStore()
-
-    normalizeApiErrorMessage(error)
     
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !isLoginRequest) {
       const userType = localStorage.getItem('userType')
       
       if (userType === 'teacher') {

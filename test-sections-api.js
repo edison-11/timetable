@@ -8,7 +8,7 @@ async function testSectionsAPI() {
     // Step 1: Login as admin
     console.log('Step 1: Logging in as admin...');
     const loginResponse = await axios.post('http://localhost:5000/api/auth/login', {
-      email: 'admin@timetable.com',
+      email: 'admin@school.com',
       password: 'admin123'
     });
     const token = loginResponse.data.token;

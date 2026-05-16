@@ -5,7 +5,7 @@ async function testLogin() {
     console.log('Testing login with admin credentials...');
     
     const response = await axios.post('http://localhost:5000/api/auth/login', {
-      email: 'admin@gmail.com',
+      email: 'admin@school.com',
       password: 'admin123'
     });
     
