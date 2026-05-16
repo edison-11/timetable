@@ -4,6 +4,7 @@ const TimetableEntry = require('../models/TimetableEntry');
 const Assignment = require('../models/Assignment');
 const Class = require('../models/Class');
 const SystemSetting = require('../models/SystemSetting');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -301,6 +302,14 @@ router.post('/', auth, [
 
     const timetableId = await TimetableEntry.create({ class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name });
     const timetable = await TimetableEntry.findById(timetableId);
+
+    await Notification.create({
+      type: 'timetable_published',
+      title: `Timetable entry published for ${timetable.class_name || 'a class'}`,
+      message: `${timetable.module_name || 'A timetable entry'} was scheduled on ${day_of_week} at ${start_time}.`,
+      path: '/timetable',
+      tone: 'blue'
+    });
 
     res.status(201).json({
       message: 'Timetable entry created successfully',
@@ -676,6 +685,20 @@ router.post('/generate', auth, [
           reason: 'No available slots generated for this class'
         });
       }
+    }
+
+    if (generated.length) {
+      const classSummary = classEntryCounts.length === 1
+        ? classEntryCounts[0].class_name
+        : `${classEntryCounts.length} classes`;
+
+      await Notification.create({
+        type: 'timetable_published',
+        title: `New timetable published for ${classSummary}`,
+        message: `${generated.length} timetable entries were generated.`,
+        path: '/timetable',
+        tone: 'blue'
+      });
     }
 
     res.status(201).json({

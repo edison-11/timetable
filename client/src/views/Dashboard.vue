@@ -188,40 +188,31 @@
         </div>
 
         <!-- Notifications -->
-        <div class="panel">
+        <div id="notifications" class="panel">
           <div class="panel-header">
             <h3>🔔 Notifications</h3>
-            <button class="view-all">View All</button>
+            <button class="view-all" type="button" @click="loadNotifications">Refresh</button>
           </div>
           <div class="notifications-list">
-            <div class="notification">
-              <span class="dot blue"></span>
+            <div v-if="!notifications.length" class="notification empty">
               <div class="notification-content">
-                <strong>Timetable published for B.Tech 1st Year</strong>
-                <small>2 hours ago</small>
+                <strong>No notifications yet</strong>
+                <small>System updates will appear here.</small>
               </div>
             </div>
-            <div class="notification">
-              <span class="dot amber"></span>
+            <button
+              v-for="notification in notifications"
+              :key="notification.id"
+              class="notification notification-button"
+              type="button"
+              @click="openNotification(notification)"
+            >
+              <span class="dot" :class="notification.tone"></span>
               <div class="notification-content">
-                <strong>Room 101 is booked on Monday 10:00 AM</strong>
-                <small>5 hours ago</small>
+                <strong>{{ notification.title }}</strong>
+                <small>{{ notification.time }}</small>
               </div>
-            </div>
-            <div class="notification">
-              <span class="dot green"></span>
-              <div class="notification-content">
-                <strong>New teacher John Doe added successfully</strong>
-                <small>1 day ago</small>
-              </div>
-            </div>
-            <div class="notification">
-              <span class="dot violet"></span>
-              <div class="notification-content">
-                <strong>Holiday added on May 25, 2024</strong>
-                <small>2 days ago</small>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -244,6 +235,7 @@ const weekRange = ref('May 8 - May 14, 2024')
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
+const notifications = ref([])
 const breakPeriodRules = {
   enabled: true,
   periods_before_morning_break: 3,
@@ -418,7 +410,47 @@ const loadTimetable = async () => {
   }
 }
 
-onMounted(loadTimetable)
+const formatNotificationTime = (dateValue) => {
+  const date = new Date(dateValue)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const seconds = Math.max(Math.floor((Date.now() - date.getTime()) / 1000), 0)
+  if (seconds < 60) return 'Just now'
+
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`
+
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`
+
+  const daysAgo = Math.floor(hours / 24)
+  return `${daysAgo} day${daysAgo === 1 ? '' : 's'} ago`
+}
+
+const loadNotifications = async () => {
+  try {
+    const response = await api.get('/notifications?limit=6')
+    notifications.value = (response.data.notifications || []).map((notification) => ({
+      ...notification,
+      tone: notification.tone || 'blue',
+      path: notification.path || '/dashboard',
+      time: formatNotificationTime(notification.created_at)
+    }))
+  } catch (error) {
+    notifications.value = []
+  }
+}
+
+const openNotification = (notification) => {
+  if (notification.path) {
+    window.location.href = notification.path
+  }
+}
+
+onMounted(() => {
+  loadTimetable()
+  loadNotifications()
+})
 </script>
 
 <style scoped>
@@ -498,6 +530,24 @@ onMounted(loadTimetable)
   border-bottom: 1px solid #e2e8f0;
 }
 
+.notification-button {
+  width: 100%;
+  background: transparent;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.notification-button:hover {
+  background: #f8fafc;
+}
+
+.notification.empty {
+  color: #64748b;
+}
+
 .notification:last-child {
   border-bottom: none;
 }
@@ -509,6 +559,12 @@ onMounted(loadTimetable)
   margin-top: 0.3rem;
   flex-shrink: 0;
 }
+
+.dot.blue { background: #3b82f6; }
+.dot.amber { background: #f59e0b; }
+.dot.green { background: #22c55e; }
+.dot.violet { background: #8b5cf6; }
+.dot.rose { background: #f43f5e; }
 
 .notification-content strong {
   display: block;

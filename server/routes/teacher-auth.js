@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const Teacher = require('../models/Teacher');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -49,6 +50,14 @@ router.post('/register', [
     });
 
     const teacher = await Teacher.findById(teacherId);
+
+    await Notification.create({
+      type: 'teacher_registered',
+      title: `New teacher registered: ${teacher.name}`,
+      message: `${teacher.name} is waiting for approval.`,
+      path: '/teachers',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Teacher registered successfully. Awaiting admin approval.',
@@ -206,6 +215,14 @@ router.put('/me', auth, [
     });
 
     const teacher = await Teacher.findById(teacherId);
+
+    await Notification.create({
+      type: 'profile_changed',
+      title: `Profile changed: ${teacher.name}`,
+      message: `${teacher.name}'s teacher profile was updated.`,
+      path: '/teachers',
+      tone: 'violet'
+    });
 
     res.json({
       message: 'Profile updated successfully',
