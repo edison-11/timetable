@@ -12,41 +12,41 @@
         <div class="week-picker">
           <span class="calendar-mark"></span>
           <span>{{ weekRange }}</span>
-          <span class="chevron">▼</span>
+          <span class="chevron">v</span>
         </div>
       </div>
 
       <!-- 4 Metric Cards -->
       <div class="metric-grid">
         <div class="metric-card">
-          <div class="metric-icon blue">📅</div>
+          <div class="metric-icon blue" v-html="icons.calendar"></div>
           <div class="metric-copy">
             <span>Total Timetables</span>
-            <strong>12</strong>
+            <strong>{{ dashboardStats.timetables }}</strong>
             <small>All departments</small>
           </div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon green">📚</div>
+          <div class="metric-icon green" v-html="icons.book"></div>
           <div class="metric-copy">
             <span>Total Subjects</span>
-            <strong>48</strong>
+            <strong>{{ dashboardStats.modules }}</strong>
             <small>Across all classes</small>
           </div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon violet">👨‍🏫</div>
+          <div class="metric-icon violet" v-html="icons.teacher"></div>
           <div class="metric-copy">
             <span>Total Teachers</span>
-            <strong>32</strong>
+            <strong>{{ dashboardStats.teachers }}</strong>
             <small>Active teachers</small>
           </div>
         </div>
         <div class="metric-card">
-          <div class="metric-icon amber">🏢</div>
+          <div class="metric-icon amber" v-html="icons.room"></div>
           <div class="metric-copy">
             <span>Total Rooms</span>
-            <strong>18</strong>
+            <strong>{{ dashboardStats.rooms }}</strong>
             <small>Available rooms</small>
           </div>
         </div>
@@ -96,7 +96,7 @@
                       {{ row.entriesByDay[day].room_name || row.entriesByDay[day].room || 'TBA' }}
                     </span>
                   </div>
-                  <div v-else class="empty-block">—</div>
+                  <div v-else class="empty-block">-</div>
                 </td>
               </tr>
               <tr v-if="!timetableRows.length">
@@ -110,7 +110,7 @@
       <!-- 3 Bottom Cards -->
       <div class="three-cards">
         <div class="panel">
-          <div class="panel-title">📊<h3>Timetable Distribution</h3></div>
+          <div class="panel-title"><span v-html="icons.chart"></span><h3>Timetable Distribution</h3></div>
           <div class="distribution-content">
             <div class="donut"></div>
             <div class="legend">
@@ -122,14 +122,14 @@
           </div>
         </div>
         <div class="panel">
-          <div class="panel-title">🏢<h3>Room Utilization</h3></div>
+          <div class="panel-title"><span v-html="icons.room"></span><h3>Room Utilization</h3></div>
           <div class="utilization-bar"><span style="width:72%"></span></div>
-          <div class="utilization-value">72%</div>
+          <div class="utilization-value">{{ roomUtilization }}%</div>
           <p>Average Utilization</p>
-          <div class="room-stats"><div><strong>13</strong> Used</div><div><strong>5</strong> Available</div></div>
+          <div class="room-stats"><div><strong>{{ usedRooms }}</strong> Used</div><div><strong>{{ availableRooms }}</strong> Available</div></div>
         </div>
         <div class="panel">
-          <div class="panel-title">👩‍🏫<h3>Teacher Workload</h3></div>
+          <div class="panel-title"><span v-html="icons.teacher"></span><h3>Teacher Workload</h3></div>
           <div class="workload-bars">
             <div><span style="height:45%"></span><small>0-10</small></div>
             <div><span style="height:72%"></span><small>10-20</small></div>
@@ -146,39 +146,39 @@
         <!-- Quick Actions -->
         <div class="panel">
           <div class="panel-header">
-            <h3>⚡ Quick Actions</h3>
+            <h3>Quick Actions</h3>
           </div>
           <div class="actions-list">
             <router-link to="/timetable" class="action-item">
-              <span class="action-icon blue">➕</span>
+              <span class="action-icon blue" v-html="icons.plus"></span>
               <div>
                 <strong>Create Timetable</strong>
                 <small>Generate new timetable</small>
               </div>
             </router-link>
             <router-link to="/classes" class="action-item">
-              <span class="action-icon green">📚</span>
+              <span class="action-icon green" v-html="icons.book"></span>
               <div>
                 <strong>Add Class</strong>
                 <small>Create new class</small>
               </div>
             </router-link>
             <router-link to="/modules" class="action-item">
-              <span class="action-icon violet">📖</span>
+              <span class="action-icon violet" v-html="icons.bookOpen"></span>
               <div>
                 <strong>Add Subject</strong>
                 <small>Create new subject</small>
               </div>
             </router-link>
             <router-link to="/teachers" class="action-item">
-              <span class="action-icon amber">👨‍🏫</span>
+              <span class="action-icon amber" v-html="icons.teacher"></span>
               <div>
                 <strong>Add Teacher</strong>
                 <small>Register new teacher</small>
               </div>
             </router-link>
             <router-link to="/rooms" class="action-item">
-              <span class="action-icon rose">🏠</span>
+              <span class="action-icon rose" v-html="icons.room"></span>
               <div>
                 <strong>Add Room</strong>
                 <small>Add new classroom</small>
@@ -190,7 +190,7 @@
         <!-- Notifications -->
         <div id="notifications" class="panel">
           <div class="panel-header">
-            <h3>🔔 Notifications</h3>
+            <h3>Notifications</h3>
             <button class="view-all" type="button" @click="loadNotifications">Refresh</button>
           </div>
           <div class="notifications-list">
@@ -243,6 +243,20 @@ const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
 const notifications = ref([])
+const classes = ref([])
+const teachers = ref([])
+const modules = ref([])
+const rooms = ref([])
+
+const icons = {
+  calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>',
+  bookOpen: '<svg viewBox="0 0 24 24"><path d="M2 5.5A3.5 3.5 0 0 1 5.5 2H12v18H5.5A3.5 3.5 0 0 0 2 23V5.5ZM12 2h6.5A3.5 3.5 0 0 1 22 5.5V23a3.5 3.5 0 0 0-3.5-3H12"/></svg>',
+  teacher: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>',
+  room: '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>',
+  chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16V9M12 16V6M16 16v-4"/></svg>',
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
+}
 const breakPeriodRules = {
   enabled: true,
   periods_before_morning_break: 3,
@@ -295,6 +309,20 @@ const selectedTimetableGroup = computed(() => {
 })
 
 const timetableRows = computed(() => buildTimetableGridWithBreaks(visibleEntries.value))
+
+const dashboardStats = computed(() => ({
+  timetables: groupedTimetables.value.length,
+  modules: modules.value.length,
+  teachers: teachers.value.length,
+  rooms: rooms.value.length
+}))
+
+const usedRooms = computed(() => new Set(timetableEntries.value.filter(entry => entry.room_id).map(entry => entry.room_id)).size)
+const availableRooms = computed(() => Math.max(rooms.value.length - usedRooms.value, 0))
+const roomUtilization = computed(() => {
+  if (!rooms.value.length) return 0
+  return Math.round((usedRooms.value / rooms.value.length) * 100)
+})
 
 const formatTimeRange = (start, end) => {
   if (!start && !end) return '-'
@@ -448,6 +476,27 @@ const loadNotifications = async () => {
   }
 }
 
+const loadDashboardData = async () => {
+  try {
+    const [classesResponse, teachersResponse, modulesResponse, roomsResponse] = await Promise.all([
+      api.get('/classes'),
+      api.get('/teachers'),
+      api.get('/modules'),
+      api.get('/rooms')
+    ])
+
+    classes.value = classesResponse.data.classes || []
+    teachers.value = teachersResponse.data.teachers || []
+    modules.value = modulesResponse.data.modules || []
+    rooms.value = roomsResponse.data.rooms || []
+  } catch (error) {
+    classes.value = []
+    teachers.value = []
+    modules.value = []
+    rooms.value = []
+  }
+}
+
 const openNotification = (notification) => {
   if (notification.path) {
     window.location.href = notification.path
@@ -468,6 +517,7 @@ const rejectPendingTeacher = async (notification) => {
 }
 
 onMounted(() => {
+  loadDashboardData()
   loadTimetable()
   loadNotifications()
 })
@@ -534,7 +584,18 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  font-size: 1.1rem;
+}
+
+.metric-icon :deep(svg),
+.action-icon :deep(svg),
+.panel-title :deep(svg) {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .notifications-list {
@@ -637,8 +698,8 @@ onMounted(() => {
 }
 
 .academic-card {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 8px;
   padding: 0.8rem;
   color: white;
   text-align: center;
@@ -702,8 +763,9 @@ onMounted(() => {
   gap: 0.8rem;
   background: white;
   padding: 1rem;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.06);
 }
 
 .metric-icon {
@@ -713,7 +775,6 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  font-size: 1.2rem;
 }
 
 .metric-copy span {
@@ -727,15 +788,17 @@ onMounted(() => {
   font-size: 1.3rem;
 }
 
-.blue { background: #dbeafe; }
-.green { background: #dcfce7; }
-.violet { background: #e9d5ff; }
-.amber { background: #fed7aa; }
+.blue { background: #dbeafe; color: #1d4ed8; }
+.green { background: #dcfce7; color: #047857; }
+.violet { background: #ede9fe; color: #6d28d9; }
+.amber { background: #fef3c7; color: #b45309; }
+.rose { background: #ffe4e6; color: #be123c; }
 
 .panel {
   background: white;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.06);
   padding: 1rem;
   margin-bottom: 1.5rem;
 }

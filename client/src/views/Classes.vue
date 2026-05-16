@@ -60,6 +60,15 @@
             </select>
           </div>
           <div>
+            <label class="form-label">Room</label>
+            <select v-model="classForm.room_id" class="form-control">
+              <option value="">No room</option>
+              <option v-for="room in rooms" :key="room.room_id" :value="room.room_id">
+                {{ room.room_name }} ({{ room.capacity }})
+              </option>
+            </select>
+          </div>
+          <div>
             <label class="form-label">DOS</label>
             <select v-model="classForm.dos_id" class="form-control">
               <option value="">No DOS</option>
@@ -102,6 +111,7 @@
               <th>Teacher Dept.</th>
               <th>Shift</th>
               <th>Section</th>
+              <th>Room</th>
               <th>DOS</th>
               <th>Actions</th>
             </tr>
@@ -115,6 +125,7 @@
               <td><span class="badge">{{ cls.class_teacher_department || 'N/A' }}</span></td>
               <td>{{ cls.shift_name || 'No shift' }}</td>
               <td>{{ cls.section_name || 'No section' }}</td>
+              <td>{{ cls.room_name || 'No room' }}</td>
               <td>{{ cls.dos_name || 'No DOS' }}</td>
               <td class="actions-cell">
                 <button class="btn-edit" @click="openEditForm(cls)">Edit</button>
@@ -124,7 +135,7 @@
               </td>
             </tr>
             <tr v-if="!filteredClasses.length">
-              <td colspan="9" class="empty-row">
+              <td colspan="10" class="empty-row">
                 {{ loading ? 'Loading classes...' : 'No classes found' }}
               </td>
             </tr>
@@ -150,6 +161,7 @@ const classesList = ref([])
 const teachers = ref([])
 const shifts = ref([])
 const sections = ref([])
+const rooms = ref([])
 const dosList = ref([])
 const searchQuery = ref('')
 const levelFilter = ref('')
@@ -170,6 +182,7 @@ const emptyClassForm = () => ({
   class_teacher_id: '',
   shift_id: '',
   section_id: '',
+  room_id: '',
   dos_id: ''
 })
 
@@ -188,7 +201,8 @@ const filteredClasses = computed(() => {
       cls.level?.toLowerCase().includes(query) ||
       cls.academic_year?.toLowerCase().includes(query) ||
       cls.class_teacher_name?.toLowerCase().includes(query) ||
-      cls.section_name?.toLowerCase().includes(query)
+      cls.section_name?.toLowerCase().includes(query) ||
+      cls.room_name?.toLowerCase().includes(query)
     const matchesLevel = !levelFilter.value || cls.level === levelFilter.value
     const matchesYear = !academicYearFilter.value || cls.academic_year === academicYearFilter.value
     return matchesSearch && matchesLevel && matchesYear
@@ -212,6 +226,7 @@ const buildPayload = () => ({
   class_teacher_id: nullableId(classForm.value.class_teacher_id),
   shift_id: nullableId(classForm.value.shift_id),
   section_id: nullableId(classForm.value.section_id),
+  room_id: nullableId(classForm.value.room_id),
   dos_id: nullableId(classForm.value.dos_id)
 })
 
@@ -231,6 +246,7 @@ const openEditForm = (cls) => {
     class_teacher_id: cls.class_teacher_id || '',
     shift_id: cls.shift_id || '',
     section_id: cls.section_id || '',
+    room_id: cls.room_id || '',
     dos_id: cls.dos_id || ''
   }
   showForm.value = true
@@ -296,16 +312,18 @@ const loadClasses = async () => {
 }
 
 const loadOptions = async () => {
-  const [teacherRes, shiftRes, sectionRes, dosRes] = await Promise.allSettled([
+  const [teacherRes, shiftRes, sectionRes, roomRes, dosRes] = await Promise.allSettled([
     api.get('/teachers'),
     api.get('/shifts'),
     api.get('/sections'),
+    api.get('/rooms'),
     api.get('/dos')
   ])
 
   if (teacherRes.status === 'fulfilled') teachers.value = teacherRes.value.data.teachers || []
   if (shiftRes.status === 'fulfilled') shifts.value = shiftRes.value.data.shifts || []
   if (sectionRes.status === 'fulfilled') sections.value = sectionRes.value.data.sections || []
+  if (roomRes.status === 'fulfilled') rooms.value = roomRes.value.data.rooms || []
   if (dosRes.status === 'fulfilled') dosList.value = dosRes.value.data.dos || []
 }
 

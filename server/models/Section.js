@@ -48,9 +48,10 @@ class Section {
         s.level,
         s.description,
         COUNT(c.class_id) as class_count,
+        GROUP_CONCAT(c.class_id ORDER BY c.class_name SEPARATOR ',') as class_ids,
         GROUP_CONCAT(c.class_name ORDER BY c.class_name SEPARATOR ', ') as class_names
       FROM section s
-      LEFT JOIN class c ON s.section_id = c.section_id
+      LEFT JOIN class c ON s.level = c.level
       GROUP BY s.section_id, s.section_name, s.level, s.description
       ORDER BY s.level, s.section_name
     `);

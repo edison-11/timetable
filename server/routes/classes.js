@@ -14,7 +14,8 @@ router.post('/', auth, [
   body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
   body('shift_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
   body('dos_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
-  body('section_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt()
+  body('section_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('room_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -22,7 +23,7 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
+    const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id } = req.body;
 
     // Check for duplicate section assignment if section_id is provided
     if (section_id) {
@@ -32,7 +33,7 @@ router.post('/', auth, [
       }
     }
 
-    const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id });
+    const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id });
     const classData = await Class.findById(classId);
 
     await Notification.create({
@@ -130,7 +131,8 @@ router.put('/:id', auth, [
   body('class_teacher_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
   body('shift_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
   body('dos_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
-  body('section_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt()
+  body('section_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('room_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -138,7 +140,7 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id } = req.body;
+    const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id } = req.body;
     const updateData = {};
     
     if (class_name) {
@@ -149,6 +151,7 @@ router.put('/:id', auth, [
     if (class_teacher_id !== undefined) updateData.class_teacher_id = class_teacher_id || null;
     if (shift_id !== undefined) updateData.shift_id = shift_id;
     if (dos_id !== undefined) updateData.dos_id = dos_id;
+    if (room_id !== undefined) updateData.room_id = room_id;
     if (section_id !== undefined) {
       // Check for duplicate section assignment if section_id is provided and not null
       if (section_id) {

@@ -161,13 +161,19 @@ const filteredSectionGroups = computed(() => {
         level,
         sections: [],
         classes: new Set(),
+        classIds: new Set(),
         class_count: 0
       })
     }
 
     const group = groups.get(level)
     group.sections.push(section)
-    group.class_count += Number(section.class_count || 0)
+
+    String(section.class_ids || '')
+      .split(',')
+      .map(classId => classId.trim())
+      .filter(Boolean)
+      .forEach(classId => group.classIds.add(classId))
 
     String(section.class_names || '')
       .split(',')
@@ -179,6 +185,7 @@ const filteredSectionGroups = computed(() => {
   return [...groups.values()].map((group) => ({
     ...group,
     classes: [...group.classes].sort((a, b) => a.localeCompare(b)),
+    class_count: group.classIds.size || group.classes.size || Number(group.class_count || 0),
     sections: group.sections.sort((a, b) => String(a.section_name).localeCompare(String(b.section_name)))
   }))
 }

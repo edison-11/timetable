@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS shift (
   shift_name VARCHAR(50) NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
+  teacher_changeover_minutes INT NOT NULL DEFAULT 5,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -77,12 +78,14 @@ CREATE TABLE IF NOT EXISTS class (
   shift_id INT,
   dos_id INT,
   section_id INT,
+  room_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (class_teacher_id) REFERENCES teacher(teacher_id) ON DELETE SET NULL,
   FOREIGN KEY (shift_id) REFERENCES shift(shift_id) ON DELETE SET NULL,
   FOREIGN KEY (dos_id) REFERENCES dos(dos_id) ON DELETE SET NULL,
-  FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE SET NULL
+  FOREIGN KEY (section_id) REFERENCES section(section_id) ON DELETE SET NULL,
+  FOREIGN KEY (room_id) REFERENCES room(room_id) ON DELETE SET NULL
 );
 
 -- Room table
@@ -101,13 +104,15 @@ CREATE TABLE IF NOT EXISTS assignment (
   teacher_id INT NOT NULL,
   module_id INT NOT NULL,
   class_id INT NOT NULL,
+  shift_id INT NULL,
   academic_year VARCHAR(20) NOT NULL,
   term VARCHAR(20) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (teacher_id) REFERENCES teacher(teacher_id) ON DELETE CASCADE,
   FOREIGN KEY (module_id) REFERENCES module(module_id) ON DELETE CASCADE,
-  FOREIGN KEY (class_id) REFERENCES class(class_id) ON DELETE CASCADE
+  FOREIGN KEY (class_id) REFERENCES class(class_id) ON DELETE CASCADE,
+  FOREIGN KEY (shift_id) REFERENCES shift(shift_id) ON DELETE SET NULL
 );
 
 -- Timetable table
@@ -168,6 +173,7 @@ CREATE INDEX idx_teacher_status ON teacher(status);
 CREATE INDEX idx_class_level ON class(level);
 CREATE INDEX idx_class_academic_year ON class(academic_year);
 CREATE INDEX idx_class_section ON class(section_id);
+CREATE INDEX idx_class_room ON class(room_id);
 CREATE INDEX idx_assignment_teacher ON assignment(teacher_id);
 CREATE INDEX idx_assignment_module ON assignment(module_id);
 CREATE INDEX idx_assignment_class ON assignment(class_id);
@@ -209,11 +215,11 @@ INSERT INTO room (room_name, room_type, capacity) VALUES
 ('Room 201', 'Classroom', 35),
 ('Lab 301', 'Computer Lab', 40);
 
-INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id) VALUES 
-('10A', 'Grade 10', '2024-2025', 1, 1, 1, 1),
-('10B', 'Grade 10', '2024-2025', 2, 1, 1, 2),
-('11A', 'Grade 11', '2024-2025', NULL, 2, 1, 3),
-('11B', 'Grade 11', '2024-2025', NULL, 2, 1, 4);
+INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id) VALUES 
+('10A', 'Grade 10', '2024-2025', 1, 1, 1, 1, 1),
+('10B', 'Grade 10', '2024-2025', 2, 1, 1, 2, 2),
+('11A', 'Grade 11', '2024-2025', NULL, 2, 1, 3, 3),
+('11B', 'Grade 11', '2024-2025', NULL, 2, 1, 4, 4);
 
 INSERT INTO break_time (shift_id, break_name, start_time, end_time) VALUES 
 (1, 'Morning Break', '11:00:00', '11:30:00'),

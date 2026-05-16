@@ -57,8 +57,21 @@ const profilePhotoUpload = multer({
   }
 });
 
+const handleMulterError = (err, req, res, next) => {
+  if (!err) return next();
+
+  if (err instanceof multer.MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'Uploaded file is too large'
+      : err.message;
+    return res.status(400).json({ message });
+  }
+
+  return res.status(400).json({ message: err.message || 'Upload failed' });
+};
+
 // Upload single file
-router.post('/single', auth, upload.single('file'), (req, res) => {
+router.post('/single', auth, upload.single('file'), handleMulterError, (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -81,7 +94,7 @@ router.post('/single', auth, upload.single('file'), (req, res) => {
   }
 });
 
-router.post('/profile-photo', auth, profilePhotoUpload.single('photo'), (req, res) => {
+router.post('/profile-photo', auth, profilePhotoUpload.single('photo'), handleMulterError, (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No photo uploaded' });
@@ -105,7 +118,7 @@ router.post('/profile-photo', auth, profilePhotoUpload.single('photo'), (req, re
 });
 
 // Upload multiple files
-router.post('/multiple', auth, upload.array('files', 5), (req, res) => {
+router.post('/multiple', auth, upload.array('files', 5), handleMulterError, (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No files uploaded' });

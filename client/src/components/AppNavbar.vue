@@ -6,7 +6,9 @@
 
     <div class="search-bar">
       <input v-model="searchQuery" type="search" placeholder="Search anything..." @keyup.enter="runSearch">
-      <span class="search-icon">Search</span>
+      <span class="search-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
+      </span>
     </div>
 
     <div class="navbar-right">
@@ -93,23 +95,23 @@
             </label>
 
             <label>
-              Name
-              <input v-model="profileForm.name" type="text" required>
+              {{ isTeacherAccount ? 'Teacher Name' : 'Admin Name' }}
+              <input v-model.trim="profileForm.name" type="text" minlength="3" required>
             </label>
 
             <label>
               Email
-              <input v-model="profileForm.email" type="email" required>
+              <input v-model.trim="profileForm.email" type="email" required>
             </label>
 
             <label v-if="isTeacherAccount">
               Department
-              <input v-model="profileForm.department" type="text" required>
+              <input v-model.trim="profileForm.department" type="text" required>
             </label>
 
             <label>
               New Password
-              <input v-model="profileForm.password" type="password" placeholder="Leave blank to keep current">
+              <input v-model="profileForm.password" type="password" minlength="6" placeholder="Leave blank to keep current">
             </label>
 
             <p v-if="profileMessage" class="profile-message" :class="{ error: profileError }">
@@ -179,7 +181,7 @@ const resolveAssetUrl = (path) => {
   return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
 }
 
-const hydrateProfileForm = () => {
+const hydrateProfileForm = ({ clearStatus = true } = {}) => {
   profileForm.value = {
     name: currentUser.value.name || currentUser.value.username || '',
     email: currentUser.value.email || '',
@@ -189,8 +191,10 @@ const hydrateProfileForm = () => {
   }
   selectedProfilePhoto.value = null
   profilePreviewUrl.value = ''
-  profileMessage.value = ''
-  profileError.value = false
+  if (clearStatus) {
+    profileMessage.value = ''
+    profileError.value = false
+  }
 }
 
 const toggleSidebar = () => {
@@ -323,6 +327,22 @@ const saveProfile = async () => {
   profileError.value = false
 
   try {
+    const displayName = profileForm.value.name.trim()
+    const email = profileForm.value.email.trim()
+    const department = profileForm.value.department.trim()
+
+    if (displayName.length < 3) {
+      throw new Error(`${isTeacherAccount.value ? 'Teacher name' : 'Admin name'} must be at least 3 characters`)
+    }
+
+    if (!email) {
+      throw new Error('Email is required')
+    }
+
+    if (isTeacherAccount.value && !department) {
+      throw new Error('Department is required')
+    }
+
     let profilePhotoPath = currentUser.value.profile_photo || null
 
     if (selectedProfilePhoto.value) {
@@ -338,18 +358,20 @@ const saveProfile = async () => {
 
     const payload = isTeacherAccount.value
       ? {
-          name: profileForm.value.name,
-          email: profileForm.value.email,
-          department: profileForm.value.department,
-          password: profileForm.value.password,
+          name: displayName,
+          email,
+          department,
           profile_photo: profilePhotoPath
         }
       : {
-          username: profileForm.value.name,
-          email: profileForm.value.email,
-          password: profileForm.value.password,
+          username: displayName,
+          email,
           profile_photo: profilePhotoPath
         }
+
+    if (profileForm.value.password) {
+      payload.password = profileForm.value.password
+    }
 
     const result = await authStore.updateProfile(payload)
 
@@ -362,7 +384,6 @@ const saveProfile = async () => {
       URL.revokeObjectURL(profilePreviewUrl.value)
     }
     profilePreviewUrl.value = ''
-    hydrateProfileForm()
     profileMessage.value = 'Profile updated successfully'
     await fetchNotifications()
   } catch (error) {
@@ -393,7 +414,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', closeMenusOnOutsideClick)
 })
 
-watch(currentUser, hydrateProfileForm)
+watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
 
 const logout = () => {
   authStore.logout()
@@ -410,8 +431,9 @@ const logout = () => {
   right: 0;
   left: 240px;
   height: 70px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #dbeafe;
+  backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -443,21 +465,30 @@ const logout = () => {
 .search-bar input {
   width: 100%;
   height: 42px;
-  padding: 0 4rem 0 1rem;
-  border: 1px solid #e2e8f0;
+  padding: 0 3rem 0 1rem;
+  border: 1px solid #bfdbfe;
   border-radius: 8px;
-  background: #f8fafc;
+  background: #f8fbff;
   outline: none;
 }
 
 .search-icon {
   position: absolute;
-  right: 0.75rem;
+  right: 0.85rem;
   top: 50%;
   transform: translateY(-50%);
   color: #94a3b8;
-  font-size: 0.75rem;
   pointer-events: none;
+}
+
+.search-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .navbar-right {
@@ -683,7 +714,7 @@ const logout = () => {
 .user-menu span {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -738,7 +769,7 @@ const logout = () => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
   color: white;
   display: flex;
   align-items: center;
