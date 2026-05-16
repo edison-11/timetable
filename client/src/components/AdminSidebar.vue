@@ -39,6 +39,7 @@ const adminSidebarItems = [
   { name: 'Timetables', path: '/timetable', icon: '📅' },
   { name: 'Classes', path: '/classes', icon: '📚' },
   { name: 'Subjects', path: '/modules', icon: '📖' },
+  { name: 'Rooms', path: '/rooms', icon: '🏠' },
   { name: 'Teachers', path: '/teachers', icon: '👨‍🏫' },
   { name: 'Sections', path: '/sections', icon: '📑' },
   { name: 'Assignments', path: '/assignments', icon: '✏️' },

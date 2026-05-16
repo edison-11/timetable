@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Shift = require('../models/Shift');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -22,6 +23,14 @@ router.post('/', auth, [
 
     const shiftId = await Shift.create({ shift_name, start_time, end_time, teacher_changeover_minutes });
     const shift = await Shift.findById(shiftId);
+
+    await Notification.create({
+      type: 'shift_created',
+      title: `Shift added: ${shift.shift_name}`,
+      message: `${shift.shift_name} runs from ${shift.start_time} to ${shift.end_time}.`,
+      path: '/shifts',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Shift created successfully',
@@ -107,6 +116,14 @@ router.put('/:id', auth, [
     await Shift.update(req.params.id, updateData);
     const updatedShift = await Shift.findById(req.params.id);
 
+    await Notification.create({
+      type: 'shift_updated',
+      title: `Shift updated: ${updatedShift.shift_name}`,
+      message: `${updatedShift.shift_name} details were updated.`,
+      path: '/shifts',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Shift updated successfully',
       shift: updatedShift
@@ -126,6 +143,13 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Shift.delete(req.params.id);
+    await Notification.create({
+      type: 'shift_deleted',
+      title: `Shift deleted: ${shift.shift_name}`,
+      message: `${shift.shift_name} was removed from the system.`,
+      path: '/shifts',
+      tone: 'rose'
+    });
     res.json({ message: 'Shift deleted successfully' });
   } catch (error) {
     console.error(error);

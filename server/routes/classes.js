@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Class = require('../models/Class');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -33,6 +34,14 @@ router.post('/', auth, [
 
     const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id });
     const classData = await Class.findById(classId);
+
+    await Notification.create({
+      type: 'class_created',
+      title: `Class added: ${classData.class_name}`,
+      message: `${classData.class_name} was created for ${classData.academic_year}.`,
+      path: '/classes',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Class created successfully',
@@ -154,6 +163,14 @@ router.put('/:id', auth, [
     await Class.update(req.params.id, updateData);
     const updatedClass = await Class.findById(req.params.id);
 
+    await Notification.create({
+      type: 'class_updated',
+      title: `Class updated: ${updatedClass.class_name}`,
+      message: `${updatedClass.class_name} details were updated.`,
+      path: '/classes',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Class updated successfully',
       class: updatedClass
@@ -173,6 +190,14 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Class.delete(req.params.id);
+    await Notification.create({
+      type: 'class_deleted',
+      title: `Class deleted: ${classData.class_name}`,
+      message: `${classData.class_name} was removed from the system.`,
+      path: '/classes',
+      tone: 'rose'
+    });
+
     res.json({ message: 'Class deleted successfully' });
   } catch (error) {
     console.error(error);

@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Module = require('../models/Module');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -22,6 +23,14 @@ router.post('/', auth, [
 
     const moduleId = await Module.create({ module_name, department, hours_per_year, description });
     const module = await Module.findById(moduleId);
+
+    await Notification.create({
+      type: 'module_created',
+      title: `Module added: ${module.module_name}`,
+      message: `${module.module_name} was added to ${module.department}.`,
+      path: '/modules',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Module created successfully',
@@ -104,6 +113,14 @@ router.put('/:id', auth, [
     await Module.update(req.params.id, updateData);
     const updatedModule = await Module.findById(req.params.id);
 
+    await Notification.create({
+      type: 'module_updated',
+      title: `Module updated: ${updatedModule.module_name}`,
+      message: `${updatedModule.module_name} details were updated.`,
+      path: '/modules',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Module updated successfully',
       module: updatedModule
@@ -123,6 +140,14 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Module.delete(req.params.id);
+    await Notification.create({
+      type: 'module_deleted',
+      title: `Module deleted: ${module.module_name}`,
+      message: `${module.module_name} was removed from the system.`,
+      path: '/modules',
+      tone: 'rose'
+    });
+
     res.json({ message: 'Module deleted successfully' });
   } catch (error) {
     console.error(error);

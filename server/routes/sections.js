@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Section = require('../models/Section');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -21,6 +22,14 @@ router.post('/', auth, [
 
     const sectionId = await Section.create({ section_name, level, description });
     const section = await Section.findById(sectionId);
+
+    await Notification.create({
+      type: 'section_created',
+      title: `Section added: ${section.section_name}`,
+      message: `${section.section_name} was created for ${section.level}.`,
+      path: '/sections',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Section created successfully',
@@ -101,6 +110,14 @@ router.put('/:id', auth, [
     await Section.update(req.params.id, updateData);
     const updatedSection = await Section.findById(req.params.id);
 
+    await Notification.create({
+      type: 'section_updated',
+      title: `Section updated: ${updatedSection.section_name}`,
+      message: `${updatedSection.section_name} details were updated.`,
+      path: '/sections',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Section updated successfully',
       section: updatedSection
@@ -120,6 +137,14 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Section.delete(req.params.id);
+    await Notification.create({
+      type: 'section_deleted',
+      title: `Section deleted: ${section.section_name}`,
+      message: `${section.section_name} was removed from the system.`,
+      path: '/sections',
+      tone: 'rose'
+    });
+
     res.json({ message: 'Section deleted successfully' });
   } catch (error) {
     console.error(error);

@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Room = require('../models/Room');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -21,6 +22,14 @@ router.post('/', auth, [
 
     const roomId = await Room.create({ room_name, room_type, capacity });
     const room = await Room.findById(roomId);
+
+    await Notification.create({
+      type: 'room_created',
+      title: `Room added: ${room.room_name}`,
+      message: `${room.room_name} was added with capacity ${room.capacity}.`,
+      path: '/rooms',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Room created successfully',
@@ -118,6 +127,14 @@ router.put('/:id', auth, [
     await Room.update(req.params.id, updateData);
     const updatedRoom = await Room.findById(req.params.id);
 
+    await Notification.create({
+      type: 'room_updated',
+      title: `Room updated: ${updatedRoom.room_name}`,
+      message: `${updatedRoom.room_name} details were updated.`,
+      path: '/rooms',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Room updated successfully',
       room: updatedRoom
@@ -137,6 +154,14 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Room.delete(req.params.id);
+    await Notification.create({
+      type: 'room_deleted',
+      title: `Room deleted: ${room.room_name}`,
+      message: `${room.room_name} was removed from the system.`,
+      path: '/rooms',
+      tone: 'rose'
+    });
+
     res.json({ message: 'Room deleted successfully' });
   } catch (error) {
     console.error(error);

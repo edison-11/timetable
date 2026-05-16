@@ -33,20 +33,27 @@
             No notifications yet.
           </div>
 
-          <button
+          <div
             v-for="notification in notifications"
             :key="notification.id"
             class="notification-item"
             :class="{ unread: !notification.read }"
-            type="button"
+            role="button"
+            tabindex="0"
             @click="openNotification(notification)"
+            @keyup.enter="openNotification(notification)"
           >
             <span class="notification-dot" :class="notification.tone"></span>
             <span>
               <strong>{{ notification.title }}</strong>
+              <em v-if="notification.message">{{ notification.message }}</em>
               <small>{{ notification.time }}</small>
+              <span v-if="notification.action_required" class="notification-actions" @click.stop>
+                <button type="button" class="approve-action" @click="approvePendingTeacher(notification)">Approve</button>
+                <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
+              </span>
             </span>
-          </button>
+          </div>
 
           <button class="view-all-notifications" type="button" @click="goToDashboardNotifications">
             View all notifications
@@ -150,7 +157,7 @@ const profileForm = ref({
   profile_photo: ''
 })
 const notifications = ref([])
-const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]')))
+const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
 
 const unreadCount = computed(() => notifications.value.filter(item => !item.read).length)
 const currentUser = computed(() => authStore.currentUser || {})
@@ -236,7 +243,7 @@ const fetchNotifications = async () => {
       tone: notification.tone || 'blue',
       path: notification.path || '/dashboard',
       time: formatNotificationTime(notification.created_at),
-      read: readNotificationIds.value.has(Number(notification.id))
+      read: readNotificationIds.value.has(String(notification.id))
     }))
   } catch (error) {
     console.error('Failed to load notifications', error)
@@ -258,17 +265,30 @@ const toggleNotifications = () => {
 }
 
 const markAllRead = () => {
-  notifications.value.forEach((item) => readNotificationIds.value.add(Number(item.id)))
+  notifications.value.forEach((item) => readNotificationIds.value.add(String(item.id)))
   notifications.value = notifications.value.map(item => ({ ...item, read: true }))
   rememberReadNotifications()
 }
 
 const openNotification = (notification) => {
   notification.read = true
-  readNotificationIds.value.add(Number(notification.id))
+  readNotificationIds.value.add(String(notification.id))
   rememberReadNotifications()
   showNotifications.value = false
   router.push(notification.path)
+}
+
+const approvePendingTeacher = async (notification) => {
+  if (!notification.entity_id) return
+  await api.put(`/teachers/${notification.entity_id}/approve`)
+  await fetchNotifications()
+}
+
+const rejectPendingTeacher = async (notification) => {
+  if (!notification.entity_id) return
+  if (!confirm('Reject this teacher registration request?')) return
+  await api.delete(`/teachers/${notification.entity_id}/reject`)
+  await fetchNotifications()
 }
 
 const goToDashboardNotifications = () => {
@@ -600,11 +620,39 @@ const logout = () => {
   line-height: 1.35;
 }
 
+.notification-item em {
+  display: block;
+  margin-top: 0.15rem;
+  color: #475569;
+  font-size: 0.68rem;
+  font-style: normal;
+  line-height: 1.3;
+}
+
 .notification-item small {
   display: block;
   color: #64748b;
   margin-top: 0.2rem;
 }
+
+.notification-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.notification-actions button {
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.3rem 0.55rem;
+}
+
+.approve-action { background: #16a34a; }
+.reject-action { background: #dc2626; }
 
 .view-all-notifications {
   width: 100%;

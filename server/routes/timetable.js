@@ -856,6 +856,14 @@ router.put('/:id', auth, [
     await TimetableEntry.update(req.params.id, updateData);
     const updatedTimetable = await TimetableEntry.findById(req.params.id);
 
+    await Notification.create({
+      type: 'timetable_updated',
+      title: `Timetable entry updated for ${updatedTimetable.class_name || 'a class'}`,
+      message: `${updatedTimetable.module_name || 'A timetable entry'} was updated on ${updatedTimetable.day_of_week}.`,
+      path: '/timetable',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Timetable entry updated successfully',
       timetable: updatedTimetable
@@ -875,6 +883,13 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await TimetableEntry.delete(req.params.id);
+    await Notification.create({
+      type: 'timetable_deleted',
+      title: `Timetable entry deleted for ${timetable.class_name || 'a class'}`,
+      message: `${timetable.module_name || 'A timetable entry'} was removed from ${timetable.day_of_week}.`,
+      path: '/timetable',
+      tone: 'rose'
+    });
     res.json({ message: 'Timetable entry deleted successfully' });
   } catch (error) {
     console.error(error);

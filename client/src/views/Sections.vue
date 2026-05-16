@@ -23,27 +23,44 @@
           <table class="table-custom">
             <thead>
               <tr>
-                <th>Section Name</th>
                 <th>Level</th>
+                <th>Sections</th>
                 <th>Description</th>
                 <th>Classes Count</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="section in filteredSections" :key="section.section_id">
-                <td class="fw-medium">{{ section.section_name }}</td>
-                <td>{{ section.level }}</td>
-                <td>{{ section.description || 'No description' }}</td>
+              <tr v-for="group in filteredSectionGroups" :key="group.level">
+                <td class="fw-medium level-cell">{{ group.level }}</td>
                 <td>
-                  <span class="badge">{{ section.class_count || 0 }}</span>
+                  <div class="section-list">
+                    <span v-for="section in group.sections" :key="section.section_id" class="section-chip">
+                      {{ section.section_name }}
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  <button class="btn-edit me-2" @click="openEditModal(section)">Edit</button>
-                  <button class="btn-delete" @click="deleteSection(section)">Delete</button>
+                  <div class="description-list">
+                    <span v-for="section in group.sections" :key="section.section_id">
+                      <strong>{{ section.section_name }}:</strong> {{ section.description || 'No description' }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="badge">{{ group.class_count }}</span>
+                </td>
+                <td>
+                  <div class="section-actions">
+                    <div v-for="section in group.sections" :key="section.section_id" class="section-action-row">
+                      <span>{{ section.section_name }}</span>
+                      <button class="btn-edit" @click="openEditModal(section)">Edit</button>
+                      <button class="btn-delete" @click="deleteSection(section)">Delete</button>
+                    </div>
+                  </div>
                 </td>
               </tr>
-              <tr v-if="!filteredSections.length">
+              <tr v-if="!filteredSectionGroups.length">
                 <td colspan="5" class="text-center py-4">No sections found</td>
               </tr>
             </tbody>
@@ -133,6 +150,31 @@ const filteredSections = computed(() => {
   })
 })
 
+const filteredSectionGroups = computed(() => {
+  const groups = new Map()
+
+  filteredSections.value.forEach((section) => {
+    const level = section.level || 'No Level'
+    if (!groups.has(level)) {
+      groups.set(level, {
+        level,
+        sections: [],
+        class_count: 0
+      })
+    }
+
+    const group = groups.get(level)
+    group.sections.push(section)
+    group.class_count += Number(section.class_count || 0)
+  })
+
+  return [...groups.values()].map((group) => ({
+    ...group,
+    sections: group.sections.sort((a, b) => String(a.section_name).localeCompare(String(b.section_name)))
+  }))
+}
+)
+
 const uniqueSorted = (items) => {
   return [...new Set(items.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 }
@@ -197,14 +239,8 @@ const saveSection = async () => {
       : await api.post('/sections', payload)
     const savedSection = response.data.section
 
-    if (isEditing.value) {
-      const index = sections.value.findIndex(section => section.section_id === savedSection.section_id)
-      if (index !== -1) sections.value.splice(index, 1, savedSection)
-    } else {
-      sections.value.unshift(savedSection)
-    }
-
     Modal.getOrCreateInstance(document.getElementById('sectionModal')).hide()
+    await loadData()
     showToast(isEditing.value ? 'Section updated successfully!' : 'Section added successfully!', 'success')
   } catch (error) {
     if (error.response?.data?.errors?.length) {
@@ -351,6 +387,52 @@ onMounted(() => {
   padding: 0.25rem 0.5rem;
   border-radius: 20px;
   font-size: 0.7rem;
+}
+
+.level-cell {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.section-list,
+.description-list,
+.section-actions {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.section-chip {
+  width: fit-content;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.22rem 0.55rem;
+}
+
+.description-list span {
+  color: #475569;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.description-list strong {
+  color: #0f172a;
+}
+
+.section-action-row {
+  display: grid;
+  grid-template-columns: minmax(4rem, 1fr) auto auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.section-action-row span {
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .is-invalid {

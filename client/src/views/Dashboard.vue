@@ -200,19 +200,26 @@
                 <small>System updates will appear here.</small>
               </div>
             </div>
-            <button
+            <div
               v-for="notification in notifications"
               :key="notification.id"
               class="notification notification-button"
-              type="button"
+              role="button"
+              tabindex="0"
               @click="openNotification(notification)"
+              @keyup.enter="openNotification(notification)"
             >
               <span class="dot" :class="notification.tone"></span>
               <div class="notification-content">
                 <strong>{{ notification.title }}</strong>
+                <span v-if="notification.message">{{ notification.message }}</span>
                 <small>{{ notification.time }}</small>
+                <div v-if="notification.action_required" class="notification-actions" @click.stop>
+                  <button type="button" class="approve-action" @click="approvePendingTeacher(notification)">Approve</button>
+                  <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
+                </div>
               </div>
-            </button>
+            </div>
           </div>
         </div>
 
@@ -447,6 +454,19 @@ const openNotification = (notification) => {
   }
 }
 
+const approvePendingTeacher = async (notification) => {
+  if (!notification.entity_id) return
+  await api.put(`/teachers/${notification.entity_id}/approve`)
+  await loadNotifications()
+}
+
+const rejectPendingTeacher = async (notification) => {
+  if (!notification.entity_id) return
+  if (!confirm('Reject this teacher registration request?')) return
+  await api.delete(`/teachers/${notification.entity_id}/reject`)
+  await loadNotifications()
+}
+
 onMounted(() => {
   loadTimetable()
   loadNotifications()
@@ -572,9 +592,37 @@ onMounted(() => {
 }
 
 .notification-content small {
+  display: block;
   font-size: 0.6rem;
   color: #94a3b8;
 }
+
+.notification-content span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  color: #475569;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+
+.notification-actions button {
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.3rem 0.55rem;
+}
+
+.approve-action { background: #16a34a; }
+.reject-action { background: #dc2626; }
 
 .view-all {
   background: none;
