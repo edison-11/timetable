@@ -9,6 +9,8 @@
     "server": "nodemon server/index.js --watch server",
     "client": "cd client && npm run serve",
     "build": "cd client && npm run build",
+    "db:migrate": "node server/migrations/fix-current-schema.js",
+    "db:seed": "node server/migrations/seed-demo-data.js",
     "install-all": "npm install && cd client && npm install",
     "start:prod": "node server/index.js"
   },

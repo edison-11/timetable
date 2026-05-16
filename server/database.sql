@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS shift (
   shift_name VARCHAR(50) NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
+  teacher_changeover_minutes INT NOT NULL DEFAULT 5,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -101,13 +102,15 @@ CREATE TABLE IF NOT EXISTS assignment (
   teacher_id INT NOT NULL,
   module_id INT NOT NULL,
   class_id INT NOT NULL,
+  shift_id INT NULL,
   academic_year VARCHAR(20) NOT NULL,
   term VARCHAR(20) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (teacher_id) REFERENCES teacher(teacher_id) ON DELETE CASCADE,
   FOREIGN KEY (module_id) REFERENCES module(module_id) ON DELETE CASCADE,
-  FOREIGN KEY (class_id) REFERENCES class(class_id) ON DELETE CASCADE
+  FOREIGN KEY (class_id) REFERENCES class(class_id) ON DELETE CASCADE,
+  FOREIGN KEY (shift_id) REFERENCES shift(shift_id) ON DELETE SET NULL
 );
 
 -- Timetable table

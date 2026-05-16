@@ -19,7 +19,7 @@ import AppNavbar from './AppNavbar.vue'
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: #f5f7fb;
+  background: #f5f9ff;
 }
 
 .main-wrapper {
@@ -34,7 +34,7 @@ import AppNavbar from './AppNavbar.vue'
   flex: 1;
   padding: 1.5rem;
   margin-top: 70px;
-  background: #f5f7fb;
+  background: #f5f9ff;
 }
 
 @media (max-width: 768px) {

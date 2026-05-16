@@ -16,7 +16,7 @@
         class="nav-item"
         :class="{ active: route.path === item.path }"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-icon" v-html="item.icon"></span>
         <span class="nav-label">{{ item.name }}</span>
       </router-link>
     </nav>
@@ -34,16 +34,28 @@ import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
+const icons = {
+  dashboard: '<svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-3H4v3Z"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
+  classes: '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>',
+  modules: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>',
+  teachers: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>',
+  sections: '<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  assignments: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  shifts: '<svg viewBox="0 0 24 24"><path d="M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg>',
+  settings: '<svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
+}
+
 const adminSidebarItems = [
-  { name: 'Dashboard', path: '/dashboard', icon: '📊' },
-  { name: 'Timetables', path: '/timetable', icon: '📅' },
-  { name: 'Classes', path: '/classes', icon: '📚' },
-  { name: 'Subjects', path: '/modules', icon: '📖' },
-  { name: 'Teachers', path: '/teachers', icon: '👨‍🏫' },
-  { name: 'Sections', path: '/sections', icon: '📑' },
-  { name: 'Assignments', path: '/assignments', icon: '✏️' },
-  { name: 'Shifts', path: '/shifts', icon: '⏰' },
-  { name: 'Settings', path: '/settings', icon: '⚙️' }
+  { name: 'Dashboard', path: '/dashboard', icon: icons.dashboard },
+  { name: 'Timetables', path: '/timetable', icon: icons.calendar },
+  { name: 'Classes', path: '/classes', icon: icons.classes },
+  { name: 'Subjects', path: '/modules', icon: icons.modules },
+  { name: 'Teachers', path: '/teachers', icon: icons.teachers },
+  { name: 'Sections', path: '/sections', icon: icons.sections },
+  { name: 'Assignments', path: '/assignments', icon: icons.assignments },
+  { name: 'Shifts', path: '/shifts', icon: icons.shifts },
+  { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 
 const academicYear = computed(() => {
@@ -60,15 +72,13 @@ const academicYear = computed(() => {
   left: 0;
   width: 240px;
   height: 100vh;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  background: #ffffff;
+  border-right: 1px solid #dbeafe;
+  box-shadow: 8px 0 26px rgba(37, 99, 235, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 200;
   overflow-y: auto;
-}
-
-.admin-sidebar::-webkit-scrollbar {
-  width: 4px;
 }
 
 .sidebar-brand {
@@ -76,85 +86,117 @@ const academicYear = computed(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem 1rem;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #dbeafe;
   margin-bottom: 1rem;
 }
 
 .brand-mark {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
   border-radius: 8px;
-  font-weight: 700;
+  font-weight: 800;
   color: white;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
 }
 
 .brand-text strong {
   display: block;
   font-size: 1rem;
-  color: white;
+  color: #0f172a;
 }
 
 .brand-text span {
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 700;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.5rem;
+  padding: 0 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.6rem 0.75rem;
+  min-height: 42px;
+  padding: 0.62rem 0.75rem;
   border-radius: 8px;
-  color: #cbd5e1;
+  color: #475569;
   text-decoration: none;
-  transition: all 0.2s;
-  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  font-size: 0.88rem;
+  font-weight: 760;
 }
 
 .nav-item:hover {
-  background: #334155;
-  color: white;
+  background: #eff6ff;
+  color: #1d4ed8;
+  transform: translateX(2px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
   color: white;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
 }
 
 .nav-icon {
-  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
   width: 24px;
-  text-align: center;
+  height: 24px;
+}
+
+.nav-icon :deep(svg) {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .academic-card {
   margin: 1rem;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 0.85rem;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
   border-radius: 8px;
   text-align: center;
 }
 
 .academic-card span {
   display: block;
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 750;
 }
 
 .academic-card strong {
-  font-size: 0.875rem;
-  color: white;
+  font-size: 0.9rem;
+  color: #1d4ed8;
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+
+  .admin-sidebar.mobile-open {
+    transform: translateX(0);
+  }
 }
 </style>
