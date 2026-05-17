@@ -30,10 +30,13 @@ router.post('/', auth, [
 
     const { teacher_id, module_id, class_id, academic_year, term } = req.body;
 
-    // Check for conflicts
-    const hasConflict = await Assignment.checkConflict(teacher_id, module_id, class_id, academic_year, term);
-    if (hasConflict) {
-      return res.status(400).json({ message: 'Assignment already exists for this combination' });
+    // Idempotency: if this exact assignment already exists, return the existing one
+    const existingAssignment = await Assignment.findByCombination(teacher_id, module_id, class_id, academic_year, term);
+    if (existingAssignment) {
+      return res.status(200).json({
+        message: 'Assignment already exists for this combination',
+        assignment: existingAssignment
+      });
     }
 
     const assignmentId = await Assignment.create({ teacher_id, module_id, class_id, academic_year, term });

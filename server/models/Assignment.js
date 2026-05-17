@@ -154,6 +154,57 @@ class Assignment {
     await pool.execute('DELETE FROM assignment WHERE assignment_id = ?', [id]);
   }
 
+  static async findByCombination(teacher_id, module_id, class_id, academic_year, term) {
+    const [rows] = await pool.execute(
+      `
+      SELECT a.*,
+             t.name as teacher_name,
+             t.department as teacher_department,
+             m.module_name,
+             m.hours_per_year,
+             c.class_name,
+             c.level,
+             c.shift_id,
+             s.shift_name
+      FROM assignment a
+      LEFT JOIN teacher t ON a.teacher_id = t.teacher_id
+      LEFT JOIN module m ON a.module_id = m.module_id
+      LEFT JOIN class c ON a.class_id = c.class_id
+      LEFT JOIN shift s ON c.shift_id = s.shift_id
+      WHERE a.teacher_id = ?
+        AND a.module_id = ?
+        AND a.class_id = ?
+        AND a.academic_year = ?
+        AND a.term = ?
+      LIMIT 1
+      `,
+      [teacher_id, module_id, class_id, academic_year, term]
+    );
+
+    return rows[0] || null;
+  }
+
+  static async checkDifferentTeacherForClassAndYear(class_id, academic_year, teacher_id) {
+    // If there are any existing assignments for this class+academic_year with a different teacher_id,
+    // return true (conflict). If teacher_id is null/undefined, we treat it as "no teacher assignment desired"
+    // and return false.
+    if (!teacher_id) return false;
+
+    const [rows] = await pool.execute(
+      `
+      SELECT 1
+      FROM assignment
+      WHERE class_id = ?
+        AND academic_year = ?
+        AND teacher_id <> ?
+      LIMIT 1
+      `,
+      [class_id, academic_year, teacher_id]
+    );
+
+    return rows.length > 0;
+  }
+
   static async checkConflict(teacher_id, module_id, class_id, academic_year, term, exclude_id = null) {
     let query = `
       SELECT * FROM assignment 

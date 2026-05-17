@@ -5,12 +5,12 @@ class Class {
     const {
       class_name,
       level,
-      academic_year,
-      class_teacher_id,
-      shift_id,
-      dos_id,
       section_id,
-      room_id
+      class_teacher_id,
+      academic_year = null,
+      shift_id = null,
+      dos_id = null,
+      room_id = null
     } = classData;
 
     const [result] = await pool.execute(
@@ -82,6 +82,22 @@ class Class {
     return rows[0];
   }
 
+  static async findByRoomId(room_id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM class WHERE room_id = ?',
+      [room_id]
+    );
+    return rows[0];
+  }
+
+  static async findByRoomIdExcludingId(room_id, id) {
+    const [rows] = await pool.execute(
+      'SELECT * FROM class WHERE room_id = ? AND class_id <> ?',
+      [room_id, id]
+    );
+    return rows[0];
+  }
+
   static async findById(id) {
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
@@ -125,22 +141,14 @@ class Class {
 
     const class_name = classData.class_name ?? currentClass.class_name;
     const level = classData.level ?? currentClass.level;
-    const academic_year = classData.academic_year ?? currentClass.academic_year;
+    const section_id = classData.section_id ?? currentClass.section_id;
     const class_teacher_id = Object.prototype.hasOwnProperty.call(classData, 'class_teacher_id')
       ? classData.class_teacher_id
       : currentClass.class_teacher_id;
-    const shift_id = Object.prototype.hasOwnProperty.call(classData, 'shift_id')
-      ? classData.shift_id
-      : currentClass.shift_id;
-    const dos_id = Object.prototype.hasOwnProperty.call(classData, 'dos_id')
-      ? classData.dos_id
-      : currentClass.dos_id;
-    const section_id = Object.prototype.hasOwnProperty.call(classData, 'section_id')
-      ? classData.section_id
-      : currentClass.section_id;
-    const room_id = Object.prototype.hasOwnProperty.call(classData, 'room_id')
-      ? classData.room_id
-      : currentClass.room_id;
+    const academic_year = classData.academic_year ?? currentClass.academic_year;
+    const shift_id = classData.shift_id ?? currentClass.shift_id;
+    const dos_id = classData.dos_id ?? currentClass.dos_id;
+    const room_id = classData.room_id ?? currentClass.room_id;
 
     await pool.execute(
       'UPDATE class SET class_name = ?, level = ?, academic_year = ?, class_teacher_id = ?, shift_id = ?, dos_id = ?, section_id = ?, room_id = ? WHERE class_id = ?',

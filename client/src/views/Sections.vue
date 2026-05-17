@@ -34,11 +34,16 @@
               <tr v-for="group in filteredSectionGroups" :key="group.level">
                 <td class="fw-medium level-cell">{{ group.level }}</td>
                 <td>
-                  <div class="class-list">
-                    <span v-for="className in group.classes" :key="className" class="class-chip">
-                      {{ className }}
-                    </span>
-                    <span v-if="!group.classes.length" class="empty-note">No classes assigned</span>
+                  <div class="section-class-list">
+                    <div v-for="section in group.sections" :key="section.section_id" class="section-class-row">
+                      <strong>{{ section.section_name }}</strong>
+                      <div class="class-list">
+                        <span v-for="className in section.classes" :key="className" class="class-chip">
+                          {{ className }}
+                        </span>
+                        <span v-if="!section.classes.length" class="empty-note">No classes assigned</span>
+                      </div>
+                    </div>
                   </div>
                 </td>
                 <td>
@@ -54,7 +59,6 @@
                 <td>
                   <div class="section-actions">
                     <div v-for="section in group.sections" :key="section.section_id" class="section-action-row">
-                      <span>{{ section.section_name }}</span>
                       <button class="btn-edit" @click="openEditModal(section)">Edit</button>
                       <button class="btn-delete" @click="deleteSection(section)">Delete</button>
                     </div>
@@ -114,7 +118,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
@@ -160,32 +164,33 @@ const filteredSectionGroups = computed(() => {
       groups.set(level, {
         level,
         sections: [],
-        classes: new Set(),
-        classIds: new Set(),
-        class_count: 0
+        classIds: new Set()
       })
     }
 
-    const group = groups.get(level)
-    group.sections.push(section)
-
-    String(section.class_ids || '')
+    const classIds = String(section.class_ids || '')
       .split(',')
       .map(classId => classId.trim())
       .filter(Boolean)
-      .forEach(classId => group.classIds.add(classId))
 
-    String(section.class_names || '')
+    const classes = String(section.class_names || '')
       .split(',')
       .map(className => className.trim())
       .filter(Boolean)
-      .forEach(className => group.classes.add(className))
+      .sort((a, b) => a.localeCompare(b))
+
+    const group = groups.get(level)
+    const countKeys = classIds.length ? classIds : classes.length ? classes : [section.section_id || section.section_name]
+    countKeys.forEach(classItem => group.classIds.add(classItem))
+    group.sections.push({
+      ...section,
+      classes
+    })
   })
 
   return [...groups.values()].map((group) => ({
     ...group,
-    classes: [...group.classes].sort((a, b) => a.localeCompare(b)),
-    class_count: group.classIds.size || group.classes.size || Number(group.class_count || 0),
+    class_count: group.classIds.size,
     sections: group.sections.sort((a, b) => String(a.section_name).localeCompare(String(b.section_name)))
   }))
 }
@@ -312,8 +317,19 @@ const loadData = async () => {
   }
 }
 
+const refreshSections = () => {
+  loadData()
+}
+
 onMounted(() => {
   loadData()
+  window.addEventListener('classes-updated', refreshSections)
+})
+
+onActivated(loadData)
+
+onBeforeUnmount(() => {
+  window.removeEventListener('classes-updated', refreshSections)
 })
 </script>
 
@@ -411,10 +427,21 @@ onMounted(() => {
 }
 
 .class-list,
+.section-class-list,
 .description-list,
 .section-actions {
   display: grid;
   gap: 0.45rem;
+}
+
+.section-class-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.section-class-row strong {
+  color: #0f172a;
+  font-size: 0.78rem;
 }
 
 .class-chip {
@@ -445,15 +472,9 @@ onMounted(() => {
 
 .section-action-row {
   display: grid;
-  grid-template-columns: minmax(4rem, 1fr) auto auto;
+  grid-template-columns: auto auto;
   gap: 0.45rem;
   align-items: center;
-}
-
-.section-action-row span {
-  color: #334155;
-  font-size: 0.78rem;
-  font-weight: 700;
 }
 
 .is-invalid {
