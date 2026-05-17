@@ -35,6 +35,7 @@ const migrate = async () => {
   await addColumnIfMissing('shift', 'teacher_changeover_minutes', 'INTEGER NOT NULL DEFAULT 5');
   await addColumnIfMissing('module', 'department', "VARCHAR(50) NOT NULL DEFAULT 'SSOD'");
   await addColumnIfMissing('class', 'class_teacher_id', 'INTEGER');
+  await addColumnIfMissing('class', 'room_id', 'INTEGER');
 };
 
 migrate()

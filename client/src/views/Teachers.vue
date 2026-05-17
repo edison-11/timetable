@@ -33,6 +33,7 @@
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="on_leave">On Leave</option>
+              <option value="pending">Pending</option>
             </select>
           </div>
         </div>
@@ -64,8 +65,26 @@
                 </td>
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
-                  <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
-                  <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
+                  <template v-if="teacher.status === 'pending'">
+                    <button
+                      class="btn-approve me-2"
+                      @click="approveTeacher(teacher)"
+                      :disabled="approvalLoadingId === teacher.teacher_id"
+                    >
+                      {{ approvalLoadingId === teacher.teacher_id ? 'Approving...' : 'Approve' }}
+                    </button>
+                    <button
+                      class="btn-delete"
+                      @click="rejectTeacher(teacher)"
+                      :disabled="approvalLoadingId === teacher.teacher_id"
+                    >
+                      Reject
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
+                    <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
+                  </template>
                 </td>
               </tr>
               <tr v-if="!filteredTeachers.length">
@@ -159,6 +178,7 @@
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                       <option value="on_leave">On Leave</option>
+                      <option value="pending">Pending</option>
                     </select>
                   </div>
                   <div class="col-12">
@@ -263,6 +283,7 @@
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
                       <option value="on_leave">On Leave</option>
+                      <option value="pending">Pending</option>
                     </select>
                   </div>
                 </div>
@@ -320,6 +341,7 @@ const newTeacher = ref({
 })
 
 const loading = ref(false)
+const approvalLoadingId = ref(null)
 const errors = ref({})
 
 const filteredTeachers = computed(() => {
@@ -569,6 +591,42 @@ const deleteTeacher = async (teacher) => {
   }
 }
 
+const approveTeacher = async (teacher) => {
+  approvalLoadingId.value = teacher.teacher_id
+
+  try {
+    const response = await api.put(`/teachers/${teacher.teacher_id}/approve`)
+    const updatedTeacher = response.data.teacher
+    const index = teachers.value.findIndex(t => t.teacher_id === teacher.teacher_id)
+    if (index !== -1) {
+      teachers.value[index] = updatedTeacher
+    }
+    showSuccessMessage('Teacher approved successfully!')
+  } catch (error) {
+    console.error('Error approving teacher:', error)
+    showErrorMessage(error.response?.data?.message || 'Failed to approve teacher.')
+  } finally {
+    approvalLoadingId.value = null
+  }
+}
+
+const rejectTeacher = async (teacher) => {
+  if (!confirm(`Reject ${teacher.name}'s registration request?`)) return
+
+  approvalLoadingId.value = teacher.teacher_id
+
+  try {
+    await api.delete(`/teachers/${teacher.teacher_id}/reject`)
+    teachers.value = teachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
+    showSuccessMessage('Teacher rejected successfully!')
+  } catch (error) {
+    console.error('Error rejecting teacher:', error)
+    showErrorMessage(error.response?.data?.message || 'Failed to reject teacher.')
+  } finally {
+    approvalLoadingId.value = null
+  }
+}
+
 const loadTeachers = async () => {
   try {
     const response = await api.get('/teachers')
@@ -639,6 +697,21 @@ onMounted(() => {
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.btn-approve {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-approve:disabled,
+.btn-delete:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .form-control, .form-select {

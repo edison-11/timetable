@@ -1,9 +1,18 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Assignment = require('../models/Assignment');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
+
+const describeAssignment = (assignment) => {
+  if (!assignment) return 'Assignment';
+  const moduleName = assignment.module_name || `Module ${assignment.module_id}`;
+  const teacherName = assignment.teacher_name || `Teacher ${assignment.teacher_id}`;
+  const className = assignment.class_name || `Class ${assignment.class_id}`;
+  return `${teacherName} - ${moduleName} for ${className}`;
+};
 
 // Create assignment
 router.post('/', auth, [
@@ -21,14 +30,25 @@ router.post('/', auth, [
 
     const { teacher_id, module_id, class_id, academic_year, term } = req.body;
 
-    // Check for conflicts
-    const hasConflict = await Assignment.checkConflict(teacher_id, module_id, class_id, academic_year, term);
-    if (hasConflict) {
-      return res.status(400).json({ message: 'Assignment already exists for this combination' });
+    // Idempotency: if this exact assignment already exists, return the existing one
+    const existingAssignment = await Assignment.findByCombination(teacher_id, module_id, class_id, academic_year, term);
+    if (existingAssignment) {
+      return res.status(200).json({
+        message: 'Assignment already exists for this combination',
+        assignment: existingAssignment
+      });
     }
 
     const assignmentId = await Assignment.create({ teacher_id, module_id, class_id, academic_year, term });
     const assignment = await Assignment.findById(assignmentId);
+
+    await Notification.create({
+      type: 'assignment_created',
+      title: 'Assignment added',
+      message: describeAssignment(assignment),
+      path: '/assignments',
+      tone: 'green'
+    });
 
     res.status(201).json({
       message: 'Assignment created successfully',
@@ -143,6 +163,14 @@ router.put('/:id', auth, [
     await Assignment.update(req.params.id, updateData);
     const updatedAssignment = await Assignment.findById(req.params.id);
 
+    await Notification.create({
+      type: 'assignment_updated',
+      title: 'Assignment updated',
+      message: describeAssignment(updatedAssignment),
+      path: '/assignments',
+      tone: 'violet'
+    });
+
     res.json({
       message: 'Assignment updated successfully',
       assignment: updatedAssignment
@@ -162,6 +190,13 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Assignment.delete(req.params.id);
+    await Notification.create({
+      type: 'assignment_deleted',
+      title: 'Assignment deleted',
+      message: describeAssignment(assignment),
+      path: '/assignments',
+      tone: 'rose'
+    });
     res.json({ message: 'Assignment deleted successfully' });
   } catch (error) {
     console.error(error);

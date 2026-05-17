@@ -18,7 +18,7 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('department').optional().trim().notEmpty().withMessage('Department cannot be empty'),
-  body('status').optional().isIn(['active', 'inactive', 'on_leave'])
+  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -143,6 +143,17 @@ router.get('/active', auth, async (req, res) => {
   }
 });
 
+// Get pending teachers
+router.get('/pending', auth, async (req, res) => {
+  try {
+    const pendingTeachers = await Teacher.getByStatus('pending');
+    res.json({ pendingTeachers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get teacher by ID
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -163,7 +174,7 @@ router.put('/:id', auth, [
   body('email').optional().isEmail().normalizeEmail(),
   body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('department').optional().trim().notEmpty(),
-  body('status').optional().isIn(['active', 'inactive', 'on_leave']),
+  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending']),
   body('date_joined').optional().isDate()
 ], async (req, res) => {
   try {
@@ -212,6 +223,14 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await Teacher.delete(req.params.id);
+    await Notification.create({
+      type: 'teacher_deleted',
+      title: `Teacher deleted: ${teacher.name}`,
+      message: `${teacher.name} was removed from the system.`,
+      path: '/teachers',
+      tone: 'rose'
+    });
+
     res.json({ message: 'Teacher deleted successfully' });
   } catch (error) {
     console.error(error);
@@ -221,17 +240,6 @@ router.delete('/:id', auth, async (req, res) => {
 
 // Get pending teachers (temporary test without auth)
 router.get('/pending-test', async (req, res) => {
-  try {
-    const pendingTeachers = await Teacher.getByStatus('pending');
-    res.json({ pendingTeachers });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get pending teachers
-router.get('/pending', async (req, res) => {
   try {
     const pendingTeachers = await Teacher.getByStatus('pending');
     res.json({ pendingTeachers });
@@ -322,6 +330,14 @@ router.delete('/:id/reject', adminAuth, async (req, res) => {
     }
 
     await Teacher.delete(req.params.id);
+    await Notification.create({
+      type: 'teacher_rejected',
+      title: `Teacher rejected: ${teacher.name}`,
+      message: `${teacher.name}'s registration request was rejected.`,
+      path: '/teachers',
+      tone: 'rose'
+    });
+
     res.json({
       success: true,
       message: 'Teacher rejected and removed successfully'
