@@ -7,35 +7,46 @@
             <h1>Rooms Management</h1>
             <p>Create, update, and remove classroom spaces.</p>
           </div>
-          <button class="btn-secondary" :disabled="loading" @click="loadRooms">
-            {{ loading ? 'Refreshing...' : 'Refresh' }}
-          </button>
+          <div class="header-actions">
+            <button class="btn-primary" type="button" @click="openAddForm">Add New Room</button>
+            <button class="btn-secondary" :disabled="loading" @click="loadRooms">
+              {{ loading ? 'Refreshing...' : 'Refresh' }}
+            </button>
+          </div>
         </div>
 
         <div v-if="message" class="alert" :class="messageType === 'success' ? 'alert-success' : 'alert-danger'">
           {{ message }}
         </div>
+      </div>
 
-        <form class="room-form" @submit.prevent="saveRoom">
-          <div>
-            <label class="form-label">Room Name *</label>
-            <input v-model="roomForm.room_name" class="form-control" required placeholder="Example: Room 101">
+      <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
+        <div class="form-card modal-card" role="dialog" aria-modal="true">
+          <div class="form-header">
+            <h2>{{ isEditing ? 'Edit Room' : 'Add New Room' }}</h2>
+            <button class="btn-secondary" type="button" @click="closeForm">Cancel</button>
           </div>
-          <div>
-            <label class="form-label">Room Type *</label>
-            <input v-model="roomForm.room_type" class="form-control" required placeholder="Classroom, Lab, Hall">
-          </div>
-          <div>
-            <label class="form-label">Capacity *</label>
-            <input v-model.number="roomForm.capacity" type="number" min="1" class="form-control" required>
-          </div>
-          <div class="form-actions">
-            <button class="btn-primary" type="submit" :disabled="saving">
-              {{ saving ? 'Saving...' : (isEditing ? 'Update Room' : 'Add Room') }}
-            </button>
-            <button v-if="isEditing" class="btn-secondary" type="button" @click="resetForm">Cancel</button>
-          </div>
-        </form>
+
+          <form class="room-form" @submit.prevent="saveRoom">
+            <div>
+              <label class="form-label">Room Name *</label>
+              <input v-model="roomForm.room_name" class="form-control" required placeholder="Example: Room 101">
+            </div>
+            <div>
+              <label class="form-label">Room Type *</label>
+              <input v-model="roomForm.room_type" class="form-control" required placeholder="Classroom, Lab, Hall">
+            </div>
+            <div>
+              <label class="form-label">Capacity *</label>
+              <input v-model.number="roomForm.capacity" type="number" min="1" class="form-control" required>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" type="submit" :disabled="saving">
+                {{ saving ? 'Saving...' : (isEditing ? 'Update Room' : 'Add Room') }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <div class="card-custom">
@@ -87,6 +98,7 @@ const loading = ref(false)
 const saving = ref(false)
 const deletingId = ref(null)
 const isEditing = ref(false)
+const showForm = ref(false)
 const message = ref('')
 const messageType = ref('success')
 
@@ -110,6 +122,16 @@ const showMessage = (text, type = 'success') => {
 const resetForm = () => {
   isEditing.value = false
   roomForm.value = emptyRoomForm()
+}
+
+const openAddForm = () => {
+  resetForm()
+  showForm.value = true
+}
+
+const closeForm = () => {
+  showForm.value = false
+  resetForm()
 }
 
 const loadRooms = async () => {
@@ -145,7 +167,7 @@ const saveRoom = async () => {
     }
 
     showMessage(isEditing.value ? 'Room updated successfully.' : 'Room added successfully.')
-    resetForm()
+    closeForm()
   } catch (error) {
     const validationMessage = error.response?.data?.errors?.[0]?.msg
     showMessage(validationMessage || error.response?.data?.message || 'Failed to save room.', 'danger')
@@ -157,6 +179,7 @@ const saveRoom = async () => {
 const editRoom = (room) => {
   isEditing.value = true
   roomForm.value = { ...room }
+  showForm.value = true
 }
 
 const deleteRoom = async (room) => {
@@ -192,6 +215,7 @@ onMounted(loadRooms)
 }
 
 .page-header,
+.form-header,
 .table-header {
   display: flex;
   justify-content: space-between;
@@ -213,9 +237,39 @@ onMounted(loadRooms)
   color: #64748b;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.form-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 1.25rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal-card {
+  width: min(680px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
 .room-form {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   align-items: end;
 }
@@ -337,6 +391,12 @@ button:disabled {
 @media (max-width: 900px) {
   .room-form {
     grid-template-columns: 1fr;
+  }
+
+  .page-header,
+  .form-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>

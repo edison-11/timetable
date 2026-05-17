@@ -11,6 +11,10 @@
           <button class="icon-button" type="button" title="Refresh timetable" @click="loadTimetable">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.66 5.66M4 12A8 8 0 0 1 17.66 6.34M17 3v4h4M7 21v-4H3"/></svg>
           </button>
+          <button class="btn-primary" type="button" @click="openAssignmentForm">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Add Assignment
+          </button>
           <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
             {{ loading ? 'Working...' : 'Generate' }}
@@ -49,16 +53,16 @@
         {{ cleanMessage(assignmentMessage) }}
       </div>
 
-      <section class="control-grid">
-        <article class="panel-card">
-          <div class="panel-heading">
-            <span class="panel-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            </span>
+      <div v-if="showAssignmentForm" class="modal-overlay" @click.self="closeAssignmentForm">
+        <div class="assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+          <div class="modal-header">
             <div>
-              <h2>Teaching Assignment</h2>
-              <p>Connect a teacher, module, class, year, and term before generation.</p>
+              <p class="eyebrow">Teaching load</p>
+              <h2 id="assignmentModalTitle">Add Assignment</h2>
             </div>
+            <button class="icon-button" type="button" title="Close form" @click="closeAssignmentForm">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
           </div>
 
           <div class="form-grid">
@@ -98,14 +102,17 @@
             </div>
           </div>
 
-          <div class="panel-footer">
+          <div class="modal-footer">
+            <button class="btn-secondary" type="button" @click="closeAssignmentForm">Cancel</button>
             <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
               {{ loading ? 'Adding...' : 'Add Assignment' }}
             </button>
           </div>
-        </article>
+        </div>
+      </div>
 
+      <section class="control-grid">
         <article class="panel-card">
           <div class="panel-heading">
             <span class="panel-icon generate-icon">
@@ -352,15 +359,18 @@ const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const selectedTimetableClassId = ref('')
 const sharedActivities = ref([])
+const showAssignmentForm = ref(false)
 let sharedActivityId = 0
 
-const assignment = ref({
+const emptyAssignment = () => ({
   class_id: '',
   teacher_id: '',
   module_id: '',
   academic_year: '',
   term: ''
 })
+
+const assignment = ref(emptyAssignment())
 
 const generateSettings = ref({
   class_id: '',
@@ -403,6 +413,16 @@ const cleanMessage = (message) => {
     .replace(/[^\x20-\x7E]/g, '')
     .replace(/^\s*(Adding|Generating)?\s*/, '')
     .trim()
+}
+
+const openAssignmentForm = () => {
+  assignment.value = emptyAssignment()
+  showAssignmentForm.value = true
+}
+
+const closeAssignmentForm = () => {
+  showAssignmentForm.value = false
+  assignment.value = emptyAssignment()
 }
 
 const addSharedActivity = () => {
@@ -624,7 +644,7 @@ const addAssignment = async () => {
   try {
     await api.post('/assignments', assignment.value)
     assignmentMessage.value = 'Assignment added successfully.'
-    assignment.value = { class_id: '', teacher_id: '', module_id: '', academic_year: '', term: '' }
+    closeAssignmentForm()
     await loadSetupData()
     await loadTimetable()
     setTimeout(() => { assignmentMessage.value = '' }, 3000)
@@ -913,12 +933,61 @@ button:disabled {
   border: 1px solid #fecaca;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.assignment-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
 .control-grid,
 .advanced-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.control-grid {
+  grid-template-columns: 1fr;
+}
+
+.advanced-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .panel-card {

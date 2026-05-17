@@ -3,83 +3,98 @@
     <div class="assignments-container">
       <div class="card-custom mb-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="h3 fw-semibold text-dark">Add Assignment</h2>
-          <button class="btn btn-outline-primary" @click="loadData">Refresh</button>
+          <h2 class="h3 fw-semibold text-dark">Assignments</h2>
+          <div class="header-actions">
+            <button class="btn btn-primary" type="button" @click="openAddModal">Add Assignment</button>
+            <button class="btn btn-outline-primary" @click="loadData">Refresh</button>
+          </div>
         </div>
+      </div>
 
-        <div v-if="formMessage" class="alert alert-danger" role="alert">{{ formMessage }}</div>
+      <div class="modal fade" id="assignmentModal" tabindex="-1" aria-labelledby="assignmentModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="assignmentModalLabel">Add Assignment</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div v-if="formMessage" class="alert alert-danger" role="alert">{{ formMessage }}</div>
 
-        <form class="row g-3" @submit.prevent="handleAddAssignment">
-          <div class="col-md-4">
-            <label for="teacherDepartment" class="form-label">Teacher Department</label>
-            <select id="teacherDepartment" v-model="selectedDepartment" class="form-select">
-              <option value="">All departments</option>
-              <option v-for="department in teacherDepartments" :key="department" :value="department">
-                {{ department }}
-              </option>
-            </select>
+              <form class="row g-3" @submit.prevent="handleAddAssignment">
+                <div class="col-md-4">
+                  <label for="teacherDepartment" class="form-label">Teacher Department</label>
+                  <select id="teacherDepartment" v-model="selectedDepartment" class="form-select">
+                    <option value="">All departments</option>
+                    <option v-for="department in teacherDepartments" :key="department" :value="department">
+                      {{ department }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="assignmentTeacher" class="form-label">Teacher *</label>
+                  <select id="assignmentTeacher" v-model.number="newAssignment.teacher_id" class="form-select" required :class="{ 'is-invalid': errors.teacher_id }">
+                    <option value="">Select teacher</option>
+                    <option v-for="teacher in filteredTeachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
+                      {{ teacher.name }} - {{ teacher.department || 'SSOD' }}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback" v-if="errors.teacher_id">{{ errors.teacher_id }}</div>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="assignmentModule" class="form-label">Module *</label>
+                  <select id="assignmentModule" v-model.number="newAssignment.module_id" class="form-select" required :class="{ 'is-invalid': errors.module_id }">
+                    <option value="">Select module</option>
+                    <option v-for="module in modules" :key="module.module_id" :value="module.module_id">
+                      {{ module.module_name }} - {{ module.department || 'SSOD' }}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback" v-if="errors.module_id">{{ errors.module_id }}</div>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="assignmentClass" class="form-label">Class *</label>
+                  <select id="assignmentClass" v-model.number="newAssignment.class_id" class="form-select" required :class="{ 'is-invalid': errors.class_id }">
+                    <option value="">Select class</option>
+                    <option v-for="classItem in classes" :key="classItem.class_id" :value="classItem.class_id">
+                      {{ classItem.class_name }} - {{ classItem.level }} - {{ classItem.shift_name || 'No shift' }}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback" v-if="errors.class_id">{{ errors.class_id }}</div>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="academicYear" class="form-label">Academic Year *</label>
+                  <input id="academicYear" v-model="newAssignment.academic_year" class="form-control" required placeholder="2024-2025" :class="{ 'is-invalid': errors.academic_year }">
+                  <div class="invalid-feedback" v-if="errors.academic_year">{{ errors.academic_year }}</div>
+                </div>
+
+                <div class="col-md-4">
+                  <label for="assignmentTerm" class="form-label">Term *</label>
+                  <select id="assignmentTerm" v-model="newAssignment.term" class="form-select" required :class="{ 'is-invalid': errors.term }">
+                    <option value="">Select term</option>
+                    <option value="Term 1">Term 1</option>
+                    <option value="Term 2">Term 2</option>
+                    <option value="Term 3">Term 3</option>
+                  </select>
+                  <div class="invalid-feedback" v-if="errors.term">{{ errors.term }}</div>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Cancel</button>
+              <button class="btn btn-primary" type="button" :disabled="loading" @click="handleAddAssignment">
+                <span v-if="loading">
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Saving...
+                </span>
+                <span v-else>Add Assignment</span>
+              </button>
+            </div>
           </div>
-
-          <div class="col-md-4">
-            <label for="assignmentTeacher" class="form-label">Teacher *</label>
-            <select id="assignmentTeacher" v-model.number="newAssignment.teacher_id" class="form-select" required :class="{ 'is-invalid': errors.teacher_id }">
-              <option value="">Select teacher</option>
-              <option v-for="teacher in filteredTeachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
-                {{ teacher.name }} - {{ teacher.department || 'SSOD' }}
-              </option>
-            </select>
-            <div class="invalid-feedback" v-if="errors.teacher_id">{{ errors.teacher_id }}</div>
-          </div>
-
-          <div class="col-md-4">
-            <label for="assignmentModule" class="form-label">Module *</label>
-            <select id="assignmentModule" v-model.number="newAssignment.module_id" class="form-select" required :class="{ 'is-invalid': errors.module_id }">
-              <option value="">Select module</option>
-              <option v-for="module in modules" :key="module.module_id" :value="module.module_id">
-                {{ module.module_name }} - {{ module.department || 'SSOD' }}
-              </option>
-            </select>
-            <div class="invalid-feedback" v-if="errors.module_id">{{ errors.module_id }}</div>
-          </div>
-
-          <div class="col-md-4">
-            <label for="assignmentClass" class="form-label">Class *</label>
-            <select id="assignmentClass" v-model.number="newAssignment.class_id" class="form-select" required :class="{ 'is-invalid': errors.class_id }">
-              <option value="">Select class</option>
-              <option v-for="classItem in classes" :key="classItem.class_id" :value="classItem.class_id">
-                {{ classItem.class_name }} - {{ classItem.level }} - {{ classItem.shift_name || 'No shift' }}
-              </option>
-            </select>
-            <div class="invalid-feedback" v-if="errors.class_id">{{ errors.class_id }}</div>
-          </div>
-
-          <div class="col-md-4">
-            <label for="academicYear" class="form-label">Academic Year *</label>
-            <input id="academicYear" v-model="newAssignment.academic_year" class="form-control" required placeholder="2024-2025" :class="{ 'is-invalid': errors.academic_year }">
-            <div class="invalid-feedback" v-if="errors.academic_year">{{ errors.academic_year }}</div>
-          </div>
-
-          <div class="col-md-4">
-            <label for="assignmentTerm" class="form-label">Term *</label>
-            <select id="assignmentTerm" v-model="newAssignment.term" class="form-select" required :class="{ 'is-invalid': errors.term }">
-              <option value="">Select term</option>
-              <option value="Term 1">Term 1</option>
-              <option value="Term 2">Term 2</option>
-              <option value="Term 3">Term 3</option>
-            </select>
-            <div class="invalid-feedback" v-if="errors.term">{{ errors.term }}</div>
-          </div>
-
-          <div class="col-12">
-            <button class="btn btn-primary" type="submit" :disabled="loading">
-              <span v-if="loading">
-                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Saving...
-              </span>
-              <span v-else>Add Assignment</span>
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
 
       <div class="card-custom">
@@ -128,6 +143,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 
@@ -149,6 +165,24 @@ const newAssignment = ref({
   academic_year: '2024-2025',
   term: ''
 })
+
+const resetAssignmentForm = () => {
+  newAssignment.value = {
+    teacher_id: '',
+    module_id: '',
+    class_id: '',
+    academic_year: newAssignment.value.academic_year || '2024-2025',
+    term: ''
+  }
+  selectedDepartment.value = ''
+  formMessage.value = ''
+  errors.value = {}
+}
+
+const openAddModal = () => {
+  resetAssignmentForm()
+  Modal.getOrCreateInstance(document.getElementById('assignmentModal')).show()
+}
 
 const teacherDepartments = computed(() => {
   const departments = teachers.value.map(teacher => teacher.department || 'SSOD')
@@ -212,7 +246,7 @@ const handleAddAssignment = async () => {
       }
       formMessage.value = ''
       errors.value = {}
-      alert('Assignment added successfully!')
+      Modal.getOrCreateInstance(document.getElementById('assignmentModal')).hide()
     }
   } catch (error) {
     if (error.response?.status === 401) {
@@ -276,6 +310,12 @@ onMounted(() => {
   border: 1px solid #e2e8f0;
   padding: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .btn-primary {
@@ -354,5 +394,25 @@ onMounted(() => {
 
 .is-invalid {
   border-color: #ef4444;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-body {
+  padding: 1rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 </style>

@@ -1,4 +1,4 @@
- <template>
+<template>
   <AppLayout>
     <div class="classes-container">
       <div class="page-header">
@@ -9,69 +9,95 @@
         <button class="btn-primary" @click="openAddForm">+ Add New Class</button>
       </div>
 
-      <div v-if="message" class="alert" :class="messageType === 'success' ? 'alert-success' : 'alert-danger'">
+      <div
+        v-if="message"
+        class="alert"
+        :class="messageType === 'success' ? 'alert-success' : 'alert-danger'"
+      >
         {{ message }}
       </div>
 
-      <div v-if="showForm" class="form-card">
-        <div class="form-header">
-          <h2>{{ isEditing ? 'Edit Class' : 'Add New Class' }}</h2>
-          <button class="btn-secondary" type="button" @click="closeForm">Cancel</button>
-        </div>
+      <!-- Centered modal overlay -->
+      <div v-if="showForm" class="modal-overlay" @click.self="closeForm">
+        <div class="form-card modal-card" role="dialog" aria-modal="true">
+          <div class="form-header">
+            <h2>{{ isEditing ? 'Edit Class' : 'Add New Class' }}</h2>
+            <button class="btn-secondary" type="button" @click="closeForm">Cancel</button>
+          </div>
 
-        <form class="class-form" @submit.prevent="saveClass">
-          <div>
-            <label class="form-label">Class Name *</label>
-            <input v-model="classForm.class_name" class="form-control" required placeholder="Example: SODA">
-          </div>
-          <div>
-            <label class="form-label">Level *</label>
-            <input v-model="classForm.level" class="form-control" required placeholder="Example: L3">
-          </div>
-          <div>
-            <label class="form-label">Academic Year *</label>
-            <input v-model="classForm.academic_year" class="form-control" required placeholder="Example: 2025/2026">
-          </div>
-          <div>
-            <label class="form-label">Section *</label>
-            <select v-model="classForm.section_id" class="form-control" required>
-              <option value="">Select section</option>
-              <option v-for="section in sections" :key="section.section_id" :value="section.section_id">
-                {{ section.section_name }} ({{ section.level }})
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Room *</label>
-            <select v-model="classForm.room_id" class="form-control" required>
-              <option value="">Select room</option>
-              <option v-for="room in rooms" :key="room.room_id" :value="room.room_id">
-                {{ room.room_name }} ({{ room.capacity }})
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Full Name (Class Teacher)</label>
-            <select v-model="classForm.class_teacher_id" class="form-control">
-              <option value="">Not assigned</option>
-              <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
-                {{ teacher.name }}
-              </option>
-            </select>
-          </div>
-          <div class="form-actions">
-            <button class="btn-primary" type="submit" :disabled="saving">
-              {{ saving ? 'Saving...' : (isEditing ? 'Update Class' : 'Add Class') }}
-            </button>
-          </div>
-        </form>
+          <form class="class-form" @submit.prevent="saveClass">
+            <div>
+              <label class="form-label">Class Name *</label>
+              <input
+                v-model="classForm.class_name"
+                class="form-control"
+                required
+                placeholder="Example: SODA"
+              />
+            </div>
+
+            <div>
+              <label class="form-label">Level *</label>
+              <input v-model="classForm.level" class="form-control" required placeholder="Example: L3" />
+            </div>
+
+            <div>
+              <label class="form-label">Academic Year *</label>
+              <input
+                v-model="classForm.academic_year"
+                class="form-control"
+                required
+                placeholder="Example: 2025/2026"
+              />
+            </div>
+
+            <div>
+              <label class="form-label">Section *</label>
+              <select v-model="classForm.section_id" class="form-control" required>
+                <option value="">Select section</option>
+                <option v-for="section in sections" :key="section.section_id" :value="section.section_id">
+                  {{ section.section_name }} ({{ section.level }})
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label">Room *</label>
+              <select v-model="classForm.room_id" class="form-control" required>
+                <option value="">Select room</option>
+                <option v-for="room in rooms" :key="room.room_id" :value="room.room_id">
+                  {{ room.room_name }} ({{ room.capacity }})
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label">Full Name (Class Teacher)</label>
+              <select v-model="classForm.class_teacher_id" class="form-control">
+                <option value="">Not assigned</option>
+                <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
+                  {{ teacher.name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn-primary" type="submit" :disabled="saving">
+                {{ saving ? 'Saving...' : isEditing ? 'Update Class' : 'Add Class' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
+      <!-- Filters + table -->
       <div class="filters-bar">
-        <input v-model="searchQuery" type="text" placeholder="Search classes..." class="search-input">
+        <input v-model="searchQuery" type="text" placeholder="Search classes..." class="search-input" />
         <select v-model="levelFilter" class="filter-select">
           <option value="">All Levels</option>
-          <option v-for="level in levelOptions" :key="level" :value="level">{{ level }}</option>
+          <option v-for="level in levelOptions" :key="level" :value="level">
+            {{ level }}
+          </option>
         </select>
         <button class="btn-secondary" :disabled="loading" @click="loadClasses">
           {{ loading ? 'Refreshing...' : 'Refresh' }}
@@ -345,6 +371,23 @@ onMounted(async () => {
 
 .form-card {
   padding: 1.25rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.modal-card {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
 }
 
 .class-form {

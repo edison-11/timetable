@@ -1,52 +1,21 @@
 <template>
   <AppLayout>
     <div class="shifts-container">
-      <div class="card-custom mb-4">
-        <div class="d-flex justify-content-between align-items-start mb-4">
+      <div class="card-custom">
+        <div class="d-flex justify-content-between align-items-center mb-4">
           <div>
-            <h2 class="h3 fw-semibold text-dark mb-1">Add New Shift</h2>
+            <h2 class="h3 fw-semibold text-dark mb-1">Saved Shifts</h2>
             <p class="text-muted mb-0">Create shifts that appear in the Classes shift dropdown. Each shift can have its own teacher changeover time.</p>
           </div>
-          <button class="btn-outline-secondary" :disabled="loading" @click="loadShifts">Refresh</button>
+          <div class="header-actions">
+            <button class="btn-primary" type="button" @click="openAddModal">Add New Shift</button>
+            <button class="btn-outline-secondary" :disabled="loading" @click="loadShifts">Refresh</button>
+            <span class="badge">{{ shifts.length }} shifts</span>
+          </div>
         </div>
 
         <div v-if="formMessage" class="alert alert-danger">
           {{ formMessage }}
-        </div>
-
-        <form class="row g-3" @submit.prevent="addShift">
-          <div class="col-md-4">
-            <label class="form-label">Shift Name *</label>
-            <input v-model="shiftForm.shift_name" class="form-control" required placeholder="Example: Morning Shift">
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label">Start Time *</label>
-            <input v-model="shiftForm.start_time" type="time" class="form-control" required>
-          </div>
-
-          <div class="col-md-3">
-            <label class="form-label">End Time *</label>
-            <input v-model="shiftForm.end_time" type="time" class="form-control" required>
-          </div>
-
-          <div class="col-md-2">
-            <label class="form-label">Changeover Minutes</label>
-            <input v-model.number="shiftForm.teacher_changeover_minutes" type="number" min="0" class="form-control">
-          </div>
-
-          <div class="col-12">
-            <button type="submit" class="btn-primary" :disabled="saving">
-              {{ saving ? 'Adding...' : 'Add Shift' }}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div class="card-custom">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="h3 fw-semibold text-dark mb-0">Saved Shifts</h2>
-          <span class="badge">{{ shifts.length }} shifts</span>
         </div>
 
         <div v-if="loading" class="text-center py-5">
@@ -84,9 +53,9 @@
         </div>
       </div>
 
-      <!-- Edit Modal -->
+      <!-- Shift Modal -->
       <div class="modal fade" id="shiftModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">{{ isEditing ? 'Edit Shift' : 'Add New Shift' }}</h5>
@@ -146,6 +115,18 @@ const saving = ref(false)
 const formMessage = ref('')
 const modalMessage = ref('')
 
+const resetShiftForm = () => {
+  shiftForm.value = {
+    shift_name: '',
+    start_time: '',
+    end_time: '',
+    teacher_changeover_minutes: 5
+  }
+  isEditing.value = false
+  currentShift.value = null
+  modalMessage.value = ''
+}
+
 const formatTime = (time) => {
   if (!time) return '-'
   const [hours, minutes] = time.split(':')
@@ -168,30 +149,18 @@ const loadShifts = async () => {
   }
 }
 
-const addShift = async () => {
-  saving.value = true
-  formMessage.value = ''
-  try {
-    const response = await api.post('/shifts', shiftForm.value)
-    shifts.value.push(response.data.shift)
-    shiftForm.value = {
-      shift_name: '',
-      start_time: '',
-      end_time: '',
-      teacher_changeover_minutes: 5
-    }
-  } catch (error) {
-    formMessage.value = error.response?.data?.message || 'Failed to add shift.'
-  } finally {
-    saving.value = false
-  }
+const openAddModal = () => {
+  resetShiftForm()
+  const modal = Modal.getOrCreateInstance(document.getElementById('shiftModal'))
+  modal.show()
 }
 
 const openEditModal = (shift) => {
   isEditing.value = true
   currentShift.value = shift
   shiftForm.value = { ...shift }
-  const modal = new Modal(document.getElementById('shiftModal'))
+  modalMessage.value = ''
+  const modal = Modal.getOrCreateInstance(document.getElementById('shiftModal'))
   modal.show()
 }
 
@@ -199,23 +168,24 @@ const saveShift = async () => {
   saving.value = true
   modalMessage.value = ''
   try {
-    const response = await api.put(`/shifts/${currentShift.value.shift_id}`, shiftForm.value)
-    const index = shifts.value.findIndex(s => s.shift_id === currentShift.value.shift_id)
-    if (index !== -1) {
-      shifts.value[index] = response.data.shift
+    const response = isEditing.value
+      ? await api.put(`/shifts/${currentShift.value.shift_id}`, shiftForm.value)
+      : await api.post('/shifts', shiftForm.value)
+
+    if (isEditing.value) {
+      const index = shifts.value.findIndex(s => s.shift_id === currentShift.value.shift_id)
+      if (index !== -1) {
+        shifts.value[index] = response.data.shift
+      }
+    } else {
+      shifts.value.push(response.data.shift)
     }
-    const modal = Modal.getInstance(document.getElementById('shiftModal'))
+
+    const modal = Modal.getOrCreateInstance(document.getElementById('shiftModal'))
     modal.hide()
-    isEditing.value = false
-    currentShift.value = null
-    shiftForm.value = {
-      shift_name: '',
-      start_time: '',
-      end_time: '',
-      teacher_changeover_minutes: 5
-    }
+    resetShiftForm()
   } catch (error) {
-    modalMessage.value = error.response?.data?.message || 'Failed to update shift.'
+    modalMessage.value = error.response?.data?.message || 'Failed to save shift.'
   } finally {
     saving.value = false
   }
@@ -248,6 +218,13 @@ onMounted(() => {
   border: 1px solid #e2e8f0;
   padding: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .btn-primary {
