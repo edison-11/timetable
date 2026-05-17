@@ -6,6 +6,7 @@ const Class = require('../models/Class');
 const SystemSetting = require('../models/SystemSetting');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const conflictDetectionService = require('../services/conflictDetection');
 
 const router = express.Router();
 
@@ -252,11 +253,14 @@ const rankAssignments = (assignments, scheduledCounts) => {
 // Create timetable entry
 router.post('/', auth, [
   body('class_id').isInt().withMessage('Valid class ID is required'),
-  body('assignment_id').isInt().withMessage('Valid assignment ID is required'),
+  body('assignment_id').optional().isInt(),
   body('day_of_week').isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).withMessage('Invalid day of week'),
   body('start_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
   body('end_time').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
-  body('room_id').optional().isInt()
+  body('room_id').optional().isInt(),
+  body('status').optional().isIn(['draft', 'published']),
+  body('academic_year').optional().isString(),
+  body('term').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -264,52 +268,49 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id } = req.body;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term, module_name } = req.body;
 
-    // Check for class conflicts
-    const classConflicts = await TimetableEntry.getConflicts(class_id, day_of_week, start_time, end_time);
-    if (classConflicts.length > 0) {
-      return res.status(400).json({ message: 'Class time conflict detected', conflicts: classConflicts });
+    // Use comprehensive conflict detection service
+    const conflicts = await conflictDetectionService.checkAllConflicts({
+      class_id,
+      assignment_id,
+      day_of_week,
+      start_time,
+      end_time,
+      room_id,
+      timetable_id: null
+    });
+
+    if (conflicts.length > 0) {
+      return res.status(400).json({ 
+        message: 'Conflict detected', 
+        conflicts 
+      });
     }
 
-    const settings = await SystemSetting.getTimetableSettings();
-    const changeoverMinutes = Number(settings.teacher_changeover_minutes ?? 5);
-
-    // Check teacher conflicts, including the configured changeover buffer.
-    const assignment = await require('../models/Assignment').findById(assignment_id);
-    const module_name = assignment ? assignment.module_name : null;
-
-    if (assignment) {
-      const teacherConflicts = await getTeacherConflictsWithChangeover(
-        assignment.teacher_id,
-        day_of_week,
-        start_time,
-        end_time,
-        changeoverMinutes
-      );
-      if (teacherConflicts.length > 0) {
-        return res.status(400).json({ message: 'Teacher time conflict or changeover conflict detected', conflicts: teacherConflicts });
-      }
-    }
-
-    // Check room conflicts if room is specified
-    if (room_id) {
-      const roomConflicts = await TimetableEntry.getRoomConflicts(room_id, day_of_week, start_time, end_time);
-      if (roomConflicts.length > 0) {
-        return res.status(400).json({ message: 'Room time conflict detected', conflicts: roomConflicts });
-      }
-    }
-
-    const timetableId = await TimetableEntry.create({ class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name });
+    const timetableId = await TimetableEntry.create({ 
+      class_id, 
+      assignment_id, 
+      day_of_week, 
+      start_time, 
+      end_time, 
+      room_id, 
+      module_name,
+      status: status || 'draft',
+      academic_year,
+      term
+    });
     const timetable = await TimetableEntry.findById(timetableId);
 
-    await Notification.create({
-      type: 'timetable_published',
-      title: `Timetable entry published for ${timetable.class_name || 'a class'}`,
-      message: `${timetable.module_name || 'A timetable entry'} was scheduled on ${day_of_week} at ${start_time}.`,
-      path: '/timetable',
-      tone: 'blue'
-    });
+    if (status === 'published') {
+      await Notification.create({
+        type: 'timetable_published',
+        title: `Timetable entry published for ${timetable.class_name || 'a class'}`,
+        message: `${timetable.module_name || 'A timetable entry'} was scheduled on ${day_of_week} at ${start_time}.`,
+        path: '/timetable',
+        tone: 'blue'
+      });
+    }
 
     res.status(201).json({
       message: 'Timetable entry created successfully',
@@ -801,7 +802,10 @@ router.put('/:id', auth, [
   body('day_of_week').optional().isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
   body('start_time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   body('end_time').optional().matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  body('room_id').optional().isInt()
+  body('room_id').optional().isInt(),
+  body('status').optional().isIn(['draft', 'published']),
+  body('academic_year').optional().isString(),
+  body('term').optional().isString()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -809,49 +813,39 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id } = req.body;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term } = req.body;
 
-    // Check for conflicts if updating time-related fields
-    if (class_id && day_of_week && start_time && end_time) {
-      const classConflicts = await TimetableEntry.getConflicts(class_id, day_of_week, start_time, end_time, req.params.id);
-      if (classConflicts.length > 0) {
-        return res.status(400).json({ message: 'Class time conflict detected', conflicts: classConflicts });
-      }
-
-      if (assignment_id) {
-        const assignment = await require('../models/Assignment').findById(assignment_id);
-        if (assignment) {
-          const settings = await SystemSetting.getTimetableSettings();
-          const changeoverMinutes = Number(settings.teacher_changeover_minutes ?? 5);
-          const teacherConflicts = await getTeacherConflictsWithChangeover(
-            assignment.teacher_id,
-            day_of_week,
-            start_time,
-            end_time,
-            changeoverMinutes,
-            req.params.id
-          );
-          if (teacherConflicts.length > 0) {
-            return res.status(400).json({ message: 'Teacher time conflict or changeover conflict detected', conflicts: teacherConflicts });
-          }
-        }
-      }
-
-      if (room_id) {
-        const roomConflicts = await TimetableEntry.getRoomConflicts(room_id, day_of_week, start_time, end_time, req.params.id);
-        if (roomConflicts.length > 0) {
-          return res.status(400).json({ message: 'Room time conflict detected', conflicts: roomConflicts });
-        }
-      }
+    // Get existing timetable entry
+    const existing = await TimetableEntry.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: 'Timetable entry not found' });
     }
 
-    const updateData = {};
-    if (class_id) updateData.class_id = class_id;
-    if (assignment_id) updateData.assignment_id = assignment_id;
-    if (day_of_week) updateData.day_of_week = day_of_week;
-    if (start_time) updateData.start_time = start_time;
-    if (end_time) updateData.end_time = end_time;
-    if (room_id !== undefined) updateData.room_id = room_id;
+    // Use existing values if not provided in update
+    const updateData = {
+      class_id: class_id || existing.class_id,
+      assignment_id: assignment_id !== undefined ? assignment_id : existing.assignment_id,
+      day_of_week: day_of_week || existing.day_of_week,
+      start_time: start_time || existing.start_time,
+      end_time: end_time || existing.end_time,
+      room_id: room_id !== undefined ? room_id : existing.room_id,
+      status: status || existing.status,
+      academic_year: academic_year || existing.academic_year,
+      term: term || existing.term
+    };
+
+    // Use comprehensive conflict detection service for updates
+    const conflicts = await conflictDetectionService.checkAllConflicts({
+      ...updateData,
+      timetable_id: req.params.id
+    });
+
+    if (conflicts.length > 0) {
+      return res.status(400).json({ 
+        message: 'Conflict detected', 
+        conflicts 
+      });
+    }
 
     await TimetableEntry.update(req.params.id, updateData);
     const updatedTimetable = await TimetableEntry.findById(req.params.id);

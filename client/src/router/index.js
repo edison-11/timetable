@@ -101,6 +101,18 @@ const router = createRouter({
       name: 'TeacherDashboard',
       component: () => import('@/views/TeacherDashboard.vue'),
       meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/student-portal',
+      name: 'StudentPortal',
+      component: () => import('@/views/StudentPortal.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/teacher-portal',
+      name: 'TeacherPortal',
+      component: () => import('@/views/TeacherPortal.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

@@ -161,6 +161,15 @@
             <input v-model="generateSettings.replace_existing" type="checkbox">
             <span>Replace existing timetable entries when generating</span>
           </label>
+
+          <div class="status-control">
+            <label class="form-label">Timetable Status</label>
+            <select v-model="generateSettings.status" class="form-select">
+              <option value="draft">Draft (Not visible to students)</option>
+              <option value="published">Published (Visible to students)</option>
+            </select>
+            <small class="form-hint">Draft timetables allow you to work on next semester's schedule without affecting current student views.</small>
+          </div>
         </article>
       </section>
 
@@ -287,7 +296,20 @@
               <strong>{{ group.class_name }}</strong>
               <span>{{ group.level || 'No level set' }}</span>
             </div>
-            <span class="badge">{{ group.entries.length }} entries</span>
+            <div class="timetable-actions">
+              <span class="badge">{{ group.entries.length }} entries</span>
+              <div class="export-dropdown">
+                <button class="btn-secondary" @click="toggleExportDropdown(group.class_id)">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 12l-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>
+                  Export
+                </button>
+                <div v-if="activeExportDropdown === group.class_id" class="export-menu">
+                  <button @click="handleExportPDF(group.entries, group.class_name)">PDF</button>
+                  <button @click="handleExportExcel(group.entries, group.class_name)">Excel</button>
+                  <button @click="handleExportICal(group.entries, group.class_name)">iCal</button>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="timetable-grid">
@@ -343,6 +365,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import { exportToPDF, exportToExcel, exportToICal } from '@/utils/exportTimetable'
 
 const loading = ref(false)
 const classes = ref([])
@@ -352,6 +375,7 @@ const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const selectedTimetableClassId = ref('')
 const sharedActivities = ref([])
+const activeExportDropdown = ref(null)
 let sharedActivityId = 0
 
 const assignment = ref({
@@ -371,6 +395,7 @@ const generateSettings = ref({
   teacher_changeover_minutes: 5,
   replace_existing: true,
   selected_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  status: 'draft',
   break_period_rules: {
     enabled: true,
     periods_before_morning_break: 3,
@@ -488,6 +513,25 @@ const formatTimeRange = (start, end) => {
 
 const isBreakEntry = (entry) => {
   return entry.entry_type === 'break' || String(entry.module_name || '').toLowerCase().includes('break')
+}
+
+const toggleExportDropdown = (classId) => {
+  activeExportDropdown.value = activeExportDropdown.value === classId ? null : classId
+}
+
+const handleExportPDF = (entries, className) => {
+  exportToPDF(entries, className)
+  activeExportDropdown.value = null
+}
+
+const handleExportExcel = (entries, className) => {
+  exportToExcel(entries, className)
+  activeExportDropdown.value = null
+}
+
+const handleExportICal = (entries, className) => {
+  exportToICal(entries, className)
+  activeExportDropdown.value = null
 }
 
 const getBreakType = (label) => {

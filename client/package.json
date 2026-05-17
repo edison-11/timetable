@@ -7,16 +7,20 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "serve": "vite preview --port 3000"
+   "serve": "vite --port 3000"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
     "@vueuse/core": "^10.4.1",
     "axios": "^1.5.0",
     "bootstrap": "^5.3.8",
+    "ical-generator": "^8.0.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.1",
     "pinia": "^2.1.6",
     "vue": "^3.3.4",
-    "vue-router": "^4.2.4"
+    "vue-router": "^4.2.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.3.4",
