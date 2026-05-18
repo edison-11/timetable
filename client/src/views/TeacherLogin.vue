@@ -112,6 +112,10 @@ const handleLogin = async () => {
   } catch (err) {
     if (!err.response) {
       error.value = 'Cannot connect to the server. Please make sure the backend is running on port 5000.'
+    } else if (err.response.status === 403) {
+      error.value = err.response.data?.message || 'Your account exists but is not approved yet. Ask the admin to approve it from the Teachers page.'
+    } else if (err.response.status === 401) {
+      error.value = 'Invalid teacher email or password. If you just registered, use the same password you entered during registration.'
     } else {
       error.value = err.response?.data?.message || 'Login failed'
     }

@@ -50,6 +50,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,
@@ -71,6 +72,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,
@@ -92,6 +94,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,
@@ -114,6 +117,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,
@@ -124,6 +128,7 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE a.teacher_id = ?
+         OR t.entry_type IN ('break', 'activity')
       ORDER BY t.day_of_week, t.start_time
     `, [teacher_id]);
     return rows;
@@ -136,6 +141,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,
@@ -158,6 +164,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,
@@ -263,6 +270,7 @@ class TimetableEntry {
              c.level,
              a.academic_year,
              a.term,
+             a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
              r.room_name,

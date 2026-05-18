@@ -4,11 +4,31 @@
       <div class="card-custom">
         <div class="d-flex justify-content-between align-items-start mb-4">
           <div>
-            <h2 class="h3 fw-semibold text-dark mb-1">Timetable Settings</h2>
-            <p class="text-muted mb-0">These values are used when generating class timetables.</p>
+            <h2 class="h3 fw-semibold text-dark mb-1">System Settings</h2>
+            <p class="text-muted mb-0">Manage your timetable and institution settings.</p>
           </div>
           <button class="btn-outline-secondary" :disabled="loading" @click="loadSettings">
             Refresh
+          </button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="nav nav-tabs mb-4" role="tablist">
+          <button
+            class="nav-link"
+            :class="{ active: activeTab === 'institution' }"
+            @click="activeTab = 'institution'"
+            role="tab"
+          >
+            Institution
+          </button>
+          <button
+            class="nav-link"
+            :class="{ active: activeTab === 'timetable' }"
+            @click="activeTab = 'timetable'"
+            role="tab"
+          >
+            Timetable
           </button>
         </div>
 
@@ -16,135 +36,198 @@
           {{ message }}
         </div>
 
-        <div v-if="loading" class="text-muted py-4">
-          Loading settings...
-        </div>
+        <!-- Institution Tab -->
+        <div v-if="activeTab === 'institution'">
+          <div v-if="loading" class="text-muted py-4">
+            Loading settings...
+          </div>
+          <form v-else @submit.prevent="saveInstitutionSettings">
+            <div class="settings-card">
+              <div class="settings-card-body">
+                <h5 class="card-title mb-4">Institution Settings</h5>
 
-        <form v-else @submit.prevent="saveSettings">
-          <div class="row g-4">
-            <!-- General Settings -->
-            <div class="col-12 col-lg-5">
-              <div class="settings-card">
-                <div class="settings-card-body">
-                  <h5 class="card-title">General</h5>
-
-                  <div class="mt-3">
-                    <label class="form-label">Teacher Changeover Minutes</label>
+                <div class="row g-3">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">School Name</label>
                     <input
-                      v-model.number="settings.teacher_changeover_minutes"
-                      type="number"
-                      min="0"
+                      v-model="institutionSettings.school_name"
+                      type="text"
                       class="form-control"
                       required
                     >
                   </div>
 
-                  <div class="row g-3 mt-2">
-                    <div class="col-md-6">
-                      <label class="form-label">Default Break Start</label>
-                      <input v-model="settings.break_start_time" type="time" class="form-control" required>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">Principal Name</label>
+                    <input
+                      v-model="institutionSettings.principal_name"
+                      type="text"
+                      class="form-control"
+                    >
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">Director of Studies</label>
+                    <input
+                      v-model="institutionSettings.director_studies_name"
+                      type="text"
+                      class="form-control"
+                    >
+                  </div>
+
+                  <div class="col-12 col-md-6">
+                    <label class="form-label">School Access Code</label>
+                    <input
+                      v-model="institutionSettings.school_code"
+                      type="text"
+                      class="form-control"
+                      placeholder="e.g., SCH1234"
+                    >
+                    <small class="text-muted d-block mt-1">Teachers must enter this code during registration and login.</small>
+                  </div>
+                </div>
+
+                <div class="form-actions mt-4">
+                  <button type="submit" class="btn-primary btn-lg" :disabled="saving">
+                    {{ saving ? 'Saving...' : 'Save Institution Settings' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Timetable Tab -->
+        <div v-if="activeTab === 'timetable'">
+          <div v-if="loading" class="text-muted py-4">
+            Loading settings...
+          </div>
+          <form v-else @submit.prevent="saveTimetableSettings">
+            <div class="row g-4">
+              <!-- General Settings -->
+              <div class="col-12 col-lg-5">
+                <div class="settings-card">
+                  <div class="settings-card-body">
+                    <h5 class="card-title">General</h5>
+
+                    <div class="mt-3">
+                      <label class="form-label">Teacher Changeover Minutes</label>
+                      <input
+                        v-model.number="timetableSettings.teacher_changeover_minutes"
+                        type="number"
+                        min="0"
+                        class="form-control"
+                        required
+                      >
                     </div>
-                    <div class="col-md-6">
-                      <label class="form-label">Default Break End</label>
-                      <input v-model="settings.break_end_time" type="time" class="form-control" required>
+
+                    <div class="row g-3 mt-2">
+                      <div class="col-md-6">
+                        <label class="form-label">Default Break Start</label>
+                        <input v-model="timetableSettings.break_start_time" type="time" class="form-control" required>
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label">Default Break End</label>
+                        <input v-model="timetableSettings.break_end_time" type="time" class="form-control" required>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Fixed Breaks -->
+              <div class="col-12 col-lg-7">
+                <div class="settings-card">
+                  <div class="settings-card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                      <h5 class="card-title mb-0">Fixed Breaks</h5>
+                      <button type="button" class="btn-outline-primary btn-sm" @click="addBreak">
+                        Add Break
+                      </button>
+                    </div>
+
+                    <div v-if="!timetableSettings.timetable_breaks.length" class="text-muted mt-3">
+                      No breaks added.
+                    </div>
+
+                    <div v-for="(breakItem, index) in timetableSettings.timetable_breaks" :key="index" class="break-row">
+                      <div class="break-fields">
+                        <div class="break-field">
+                          <label class="form-label">Name</label>
+                          <input v-model="breakItem.break_name" type="text" class="form-control" required>
+                        </div>
+                        <div class="break-field">
+                          <label class="form-label">Start</label>
+                          <input v-model="breakItem.start_time" type="time" class="form-control" required>
+                        </div>
+                        <div class="break-field">
+                          <label class="form-label">End</label>
+                          <input v-model="breakItem.end_time" type="time" class="form-control" required>
+                        </div>
+                        <div class="break-remove">
+                          <button type="button" class="btn-outline-danger" @click="removeBreak(index)">✕</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Fixed Breaks -->
-            <div class="col-12 col-lg-7">
-              <div class="settings-card">
-                <div class="settings-card-body">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Fixed Breaks</h5>
-                    <button type="button" class="btn-outline-primary btn-sm" @click="addBreak">
-                      Add Break
-                    </button>
+            <!-- Period-Based Break Rules -->
+            <div class="settings-card mt-4">
+              <div class="settings-card-body">
+                <div class="period-rules-header">
+                  <div>
+                    <h5 class="card-title mb-1">Period-Based Break Rules</h5>
+                    <p class="text-muted mb-0">When enabled, breaks are calculated after a number of teaching periods instead of fixed clock times.</p>
                   </div>
-
-                  <div v-if="!settings.timetable_breaks.length" class="text-muted mt-3">
-                    No breaks added.
-                  </div>
-
-                  <div v-for="(breakItem, index) in settings.timetable_breaks" :key="index" class="break-row">
-                    <div class="break-fields">
-                      <div class="break-field">
-                        <label class="form-label">Name</label>
-                        <input v-model="breakItem.break_name" type="text" class="form-control" required>
-                      </div>
-                      <div class="break-field">
-                        <label class="form-label">Start</label>
-                        <input v-model="breakItem.start_time" type="time" class="form-control" required>
-                      </div>
-                      <div class="break-field">
-                        <label class="form-label">End</label>
-                        <input v-model="breakItem.end_time" type="time" class="form-control" required>
-                      </div>
-                      <div class="break-remove">
-                        <button type="button" class="btn-outline-danger" @click="removeBreak(index)">Remove</button>
-                      </div>
-                    </div>
+                  <div class="form-switch">
+                    <input id="periodRulesEnabled" v-model="timetableSettings.break_period_rules.enabled" type="checkbox">
+                    <label for="periodRulesEnabled">Enabled</label>
                   </div>
                 </div>
+
+                <fieldset :disabled="!timetableSettings.break_period_rules.enabled" class="period-rules-grid">
+                  <div>
+                    <label class="form-label">Periods Before Morning Break</label>
+                    <input v-model.number="timetableSettings.break_period_rules.periods_before_morning_break" type="number" min="1" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Periods Before Lunch</label>
+                    <input v-model.number="timetableSettings.break_period_rules.periods_before_lunch" type="number" min="1" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Periods Before Evening Break</label>
+                    <input v-model.number="timetableSettings.break_period_rules.periods_before_afternoon_break" type="number" min="1" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Periods After Evening Break</label>
+                    <input v-model.number="timetableSettings.break_period_rules.periods_after_afternoon_break" type="number" min="0" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Morning Break Minutes</label>
+                    <input v-model.number="timetableSettings.break_period_rules.morning_break_minutes" type="number" min="1" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Lunch Break Minutes</label>
+                    <input v-model.number="timetableSettings.break_period_rules.lunch_break_minutes" type="number" min="1" class="form-control">
+                  </div>
+                  <div>
+                    <label class="form-label">Evening Break Minutes</label>
+                    <input v-model.number="timetableSettings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
+                  </div>
+                </fieldset>
               </div>
             </div>
-          </div>
 
-          <!-- Period-Based Break Rules -->
-          <div class="settings-card mt-4">
-            <div class="settings-card-body">
-              <div class="period-rules-header">
-                <div>
-                  <h5 class="card-title mb-1">Period-Based Break Rules</h5>
-                  <p class="text-muted mb-0">When enabled, breaks are calculated after a number of teaching periods instead of fixed clock times.</p>
-                </div>
-                <div class="form-switch">
-                  <input id="periodRulesEnabled" v-model="settings.break_period_rules.enabled" type="checkbox">
-                  <label for="periodRulesEnabled">Enabled</label>
-                </div>
-              </div>
-
-              <fieldset :disabled="!settings.break_period_rules.enabled" class="period-rules-grid">
-                <div>
-                  <label class="form-label">Periods Before Morning Break</label>
-                  <input v-model.number="settings.break_period_rules.periods_before_morning_break" type="number" min="1" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label">Periods Before Lunch</label>
-                  <input v-model.number="settings.break_period_rules.periods_before_lunch" type="number" min="1" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label">Periods Before Evening Break</label>
-                  <input v-model.number="settings.break_period_rules.periods_before_afternoon_break" type="number" min="1" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label">Periods After Evening Break</label>
-                  <input v-model.number="settings.break_period_rules.periods_after_afternoon_break" type="number" min="0" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label">Morning Break Minutes</label>
-                  <input v-model.number="settings.break_period_rules.morning_break_minutes" type="number" min="1" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label">Lunch Break Minutes</label>
-                  <input v-model.number="settings.break_period_rules.lunch_break_minutes" type="number" min="1" class="form-control">
-                </div>
-                <div>
-                  <label class="form-label">Evening Break Minutes</label>
-                  <input v-model.number="settings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
-                </div>
-              </fieldset>
+            <div class="form-actions mt-4">
+              <button type="submit" class="btn-primary btn-lg" :disabled="saving">
+                {{ saving ? 'Saving...' : 'Save Timetable Settings' }}
+              </button>
             </div>
-          </div>
-
-          <div class="form-actions">
-            <button class="btn-primary btn-lg" :disabled="saving">
-              {{ saving ? 'Saving...' : 'Save Settings' }}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   </AppLayout>
@@ -155,7 +238,9 @@ import { onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 
-const defaultSettings = () => ({
+const activeTab = ref('institution')
+
+const defaultTimetableSettings = () => ({
   teacher_changeover_minutes: 5,
   break_start_time: '11:00',
   break_end_time: '11:30',
@@ -176,7 +261,15 @@ const defaultSettings = () => ({
   }
 })
 
-const settings = ref(defaultSettings())
+const defaultInstitutionSettings = () => ({
+  school_name: 'My School',
+  principal_name: '',
+  director_studies_name: '',
+  school_code: ''
+})
+
+const institutionSettings = ref(defaultInstitutionSettings())
+const timetableSettings = ref(defaultTimetableSettings())
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
@@ -190,8 +283,8 @@ const showMessage = (text, type = 'success') => {
   }, 3000)
 }
 
-const normalizeSettings = (value) => {
-  const defaults = defaultSettings()
+const normalizeTimetableSettings = (value) => {
+  const defaults = defaultTimetableSettings()
   return {
     ...defaults,
     ...value,
@@ -209,8 +302,12 @@ const loadSettings = async () => {
   loading.value = true
   message.value = ''
   try {
-    const response = await api.get('/settings/timetable')
-    settings.value = normalizeSettings(response.data.settings)
+    const [institutionResponse, timetableResponse] = await Promise.all([
+      api.get('/settings/institution').catch(() => ({ data: { settings: {} } })),
+      api.get('/settings/timetable').catch(() => ({ data: { settings: {} } }))
+    ])
+    institutionSettings.value = { ...defaultInstitutionSettings(), ...institutionResponse.data.settings }
+    timetableSettings.value = normalizeTimetableSettings(timetableResponse.data.settings)
   } catch (error) {
     showMessage(error.response?.data?.message || 'Failed to load settings.', 'danger')
   } finally {
@@ -219,7 +316,7 @@ const loadSettings = async () => {
 }
 
 const addBreak = () => {
-  settings.value.timetable_breaks.push({
+  timetableSettings.value.timetable_breaks.push({
     break_name: 'New Break',
     start_time: '11:00',
     end_time: '11:30'
@@ -227,24 +324,39 @@ const addBreak = () => {
 }
 
 const removeBreak = (index) => {
-  settings.value.timetable_breaks.splice(index, 1)
+  timetableSettings.value.timetable_breaks.splice(index, 1)
 }
 
-const saveSettings = async () => {
+const saveInstitutionSettings = async () => {
+  saving.value = true
+  message.value = ''
+  try {
+    const response = await api.put('/settings/institution', institutionSettings.value)
+    institutionSettings.value = { ...defaultInstitutionSettings(), ...response.data.settings }
+    showMessage('Institution settings saved successfully.')
+  } catch (error) {
+    const validationMessage = error.response?.data?.errors?.[0]?.msg
+    showMessage(validationMessage || error.response?.data?.message || 'Failed to save settings.', 'danger')
+  } finally {
+    saving.value = false
+  }
+}
+
+const saveTimetableSettings = async () => {
   saving.value = true
   message.value = ''
   try {
     const payload = {
-      ...settings.value,
-      timetable_breaks: settings.value.timetable_breaks.map((breakItem) => ({
+      ...timetableSettings.value,
+      timetable_breaks: timetableSettings.value.timetable_breaks.map((breakItem) => ({
         break_name: breakItem.break_name.trim(),
         start_time: breakItem.start_time,
         end_time: breakItem.end_time
       }))
     }
     const response = await api.put('/settings/timetable', payload)
-    settings.value = normalizeSettings(response.data.settings)
-    showMessage('Settings saved successfully.')
+    timetableSettings.value = normalizeTimetableSettings(response.data.settings)
+    showMessage('Timetable settings saved successfully.')
   } catch (error) {
     const validationMessage = error.response?.data?.errors?.[0]?.msg
     showMessage(validationMessage || error.response?.data?.message || 'Failed to save settings.', 'danger')

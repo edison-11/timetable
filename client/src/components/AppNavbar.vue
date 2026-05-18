@@ -28,7 +28,10 @@
         <div v-if="showNotifications" class="notifications-dropdown">
           <div class="notifications-header">
             <strong>Notifications</strong>
-            <button type="button" @click="markAllRead">Mark all read</button>
+            <div class="notification-header-actions">
+              <button type="button" @click="markAllRead">Mark all read</button>
+              <button type="button" @click="clearNotifications" :disabled="!notifications.length">Clear</button>
+            </div>
           </div>
 
           <div v-if="!notifications.length" class="notification-empty">
@@ -54,6 +57,16 @@
                 <button type="button" class="approve-action" @click="approvePendingTeacher(notification)">Approve</button>
                 <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
               </span>
+            </span>
+            <span
+              class="notification-delete"
+              role="button"
+              tabindex="0"
+              title="Delete notification"
+              @click.stop="deleteNotification(notification)"
+              @keyup.enter.stop="deleteNotification(notification)"
+            >
+              x
             </span>
           </div>
 
@@ -274,6 +287,30 @@ const markAllRead = () => {
   rememberReadNotifications()
 }
 
+const deleteNotification = async (notification) => {
+  try {
+    await api.delete(`/notifications/${notification.id}`)
+    readNotificationIds.value.delete(Number(notification.id))
+    notifications.value = notifications.value.filter(item => Number(item.id) !== Number(notification.id))
+    rememberReadNotifications()
+  } catch (error) {
+    console.error('Failed to delete notification', error)
+  }
+}
+
+const clearNotifications = async () => {
+  if (!notifications.value.length) return
+
+  try {
+    await api.delete('/notifications')
+    notifications.value = []
+    readNotificationIds.value = new Set()
+    rememberReadNotifications()
+  } catch (error) {
+    console.error('Failed to clear notifications', error)
+  }
+}
+
 const openNotification = (notification) => {
   notification.read = true
   readNotificationIds.value.add(String(notification.id))
@@ -431,14 +468,15 @@ const logout = () => {
   right: 0;
   left: 240px;
   height: 70px;
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid #dbeafe;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
   backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 2rem;
   z-index: 100;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 .menu-toggle {
@@ -466,10 +504,15 @@ const logout = () => {
   width: 100%;
   height: 42px;
   padding: 0 3rem 0 1rem;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
-  background: #f8fbff;
+  background: #f8fafc;
+  color: #0f172a;
   outline: none;
+}
+
+.search-bar input::placeholder {
+  color: #64748b;
 }
 
 .search-icon {
@@ -477,7 +520,7 @@ const logout = () => {
   right: 0.85rem;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: #64748b;
   pointer-events: none;
 }
 
@@ -505,11 +548,11 @@ const logout = () => {
   position: relative;
   width: 42px;
   height: 42px;
-  background: #f1f5f9;
-  border: 1px solid transparent;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
   border-radius: 50%;
   cursor: pointer;
-  color: #475569;
+  color: #334155;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -518,9 +561,9 @@ const logout = () => {
 
 .notifications-btn:hover,
 .notifications-btn:focus-visible {
-  background: #e0f2fe;
-  border-color: #7dd3fc;
-  color: #0369a1;
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
   outline: none;
 }
 
@@ -574,10 +617,10 @@ const logout = () => {
   top: calc(100% + 0.75rem);
   right: 0;
   width: min(340px, calc(100vw - 2rem));
-  background: white;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
   padding: 0.5rem;
   z-index: 200;
 }
@@ -588,22 +631,40 @@ const logout = () => {
   justify-content: space-between;
   padding: 0.5rem 0.5rem 0.75rem;
   border-bottom: 1px solid #e2e8f0;
-  color: #0f172a;
+  color: #1f2937;
+  font-weight: 800;
+}
+
+.notification-header-actions {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
 }
 
 .notifications-header button,
 .view-all-notifications {
   border: none;
   background: transparent;
-  color: #2563eb;
+  color: #3498db;
   cursor: pointer;
-  font-weight: 700;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+.notifications-header button:hover,
+.view-all-notifications:hover {
+  color: #2980b9;
+}
+
+.notifications-header button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
 }
 
 .notification-item {
   width: 100%;
   display: grid;
-  grid-template-columns: 10px 1fr;
+  grid-template-columns: 10px 1fr 24px;
   gap: 0.75rem;
   align-items: start;
   border: none;
@@ -625,10 +686,11 @@ const logout = () => {
 }
 
 .notification-empty {
-  color: #64748b;
+  color: #6b7280;
   font-size: 0.85rem;
   padding: 0.85rem 0.5rem;
   text-align: center;
+  font-weight: 600;
 }
 
 .notification-dot {
@@ -646,9 +708,10 @@ const logout = () => {
 
 .notification-item strong {
   display: block;
-  color: #0f172a;
+  color: #1f2937;
   font-size: 0.88rem;
   line-height: 1.35;
+  font-weight: 800;
 }
 
 .notification-item em {
@@ -662,8 +725,9 @@ const logout = () => {
 
 .notification-item small {
   display: block;
-  color: #64748b;
+  color: #6b7280;
   margin-top: 0.2rem;
+  font-weight: 600;
 }
 
 .notification-actions {
@@ -685,6 +749,24 @@ const logout = () => {
 .approve-action { background: #16a34a; }
 .reject-action { background: #dc2626; }
 
+.notification-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.notification-delete:hover,
+.notification-delete:focus-visible {
+  color: #991b1b;
+  background: #fee2e2;
+  outline: none;
+}
+
 .view-all-notifications {
   width: 100%;
   padding: 0.75rem 0.5rem 0.5rem;
@@ -699,7 +781,7 @@ const logout = () => {
   width: 42px;
   height: 42px;
   background: transparent;
-  border: none;
+  border: 2px solid #cbd5e1;
   padding: 0;
   cursor: pointer;
   border-radius: 50%;
@@ -709,15 +791,23 @@ const logout = () => {
   color: white;
   font-weight: bold;
   overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.user-menu:hover,
+.user-menu:focus-visible {
+  border-color: #93c5fd;
 }
 
 .user-menu span {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  background: #3498db;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 900;
+  font-size: 0.9rem;
 }
 
 .user-menu img,
@@ -732,10 +822,10 @@ const logout = () => {
   top: calc(100% + 0.75rem);
   right: 0;
   width: min(360px, calc(100vw - 2rem));
-  background: white;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
   padding: 1rem;
   z-index: 200;
 }
@@ -755,26 +845,29 @@ const logout = () => {
 }
 
 .account-header strong {
-  color: #0f172a;
+  color: #1f2937;
   font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .account-header small {
-  color: #64748b;
+  color: #6b7280;
   margin-top: 0.15rem;
   word-break: break-word;
+  font-weight: 600;
 }
 
 .account-avatar-large {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  background: #3498db;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 800;
+  font-weight: 900;
+  font-size: 1.1rem;
   overflow: hidden;
 }
 
@@ -787,32 +880,33 @@ const logout = () => {
 .profile-form label {
   display: grid;
   gap: 0.35rem;
-  color: #334155;
+  color: #1f2937;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .profile-form input {
   width: 100%;
   min-height: 38px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 0.5rem 0.65rem;
-  color: #0f172a;
+  color: #1f2937;
   font: inherit;
-  font-weight: 500;
+  font-weight: 600;
+  background: #ffffff;
 }
 
 .profile-form input:focus {
-  border-color: #3b82f6;
-  outline: 3px solid rgba(59, 130, 246, 0.18);
+  border-color: #3498db;
+  outline: 3px solid rgba(52, 152, 219, 0.2);
 }
 
 .profile-message {
   margin: 0;
-  color: #047857;
+  color: #059669;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .profile-message.error {
@@ -834,21 +928,33 @@ const logout = () => {
   padding: 0 0.85rem;
   cursor: pointer;
   font-weight: 800;
+  font-size: 0.85rem;
 }
 
 .save-profile-btn {
-  background: #2563eb;
+  background: #3498db;
   color: white;
+  transition: background 0.2s ease;
+}
+
+.save-profile-btn:hover:not(:disabled) {
+  background: #2980b9;
 }
 
 .save-profile-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.7;
+  opacity: 0.6;
 }
 
 .logout-btn {
+  background: #f1f5f9;
+  color: #dc2626;
+  font-weight: 800;
+  transition: background 0.2s ease;
+}
+
+.logout-btn:hover {
   background: #fee2e2;
-  color: #b91c1c;
 }
 
 @media (max-width: 768px) {

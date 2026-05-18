@@ -58,6 +58,26 @@ class Notification {
 
     return rows;
   }
+
+  static async count() {
+    await this.ensureTable();
+
+    const [rows] = await pool.execute('SELECT COUNT(*) as total FROM notification');
+    return rows[0]?.total || 0;
+  }
+
+  static async delete(id) {
+    await this.ensureTable();
+
+    const [result] = await pool.execute('DELETE FROM notification WHERE notification_id = ?', [id]);
+    return result.affectedRows > 0;
+  }
+
+  static async clearAll() {
+    await this.ensureTable();
+
+    await pool.execute('DELETE FROM notification');
+  }
 }
 
 module.exports = Notification;

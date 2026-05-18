@@ -690,6 +690,15 @@ onMounted(() => {
   cursor: pointer;
 }
 
+.btn-approve {
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .btn-delete {
   background: #ef4444;
   color: white;

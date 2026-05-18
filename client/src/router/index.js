@@ -91,6 +91,12 @@ const router = createRouter({
       component: () => import('@/views/TeacherRegister.vue')
     },
     {
+      path: '/teacher/settings',
+      name: 'TeacherSettings',
+      component: () => import('@/views/TeacherSettings.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
       path: '/teacher/login',
       name: 'TeacherLogin',
       component: () => import('@/views/TeacherLogin.vue'),
@@ -99,7 +105,31 @@ const router = createRouter({
     {
       path: '/teacher/dashboard',
       name: 'TeacherDashboard',
-      component: () => import('@/views/TeacherDashboard.vue'),
+      component: () => import('@/views/TeacherDashboardComplete.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/timetable',
+      name: 'TeacherTimetable',
+      component: () => import('@/views/TeacherTimetableComplete.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/profile',
+      name: 'TeacherProfile',
+      component: () => import('@/views/TeacherProfileComplete.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/requests',
+      name: 'TeacherRequests',
+      component: () => import('@/views/TeacherRequestsComplete.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/announcements',
+      name: 'TeacherAnnouncements',
+      component: () => import('@/views/TeacherAnnouncementsComplete.vue'),
       meta: { requiresTeacherAuth: true }
     },
     {

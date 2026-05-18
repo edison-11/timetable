@@ -42,8 +42,32 @@ router.get('/', auth, async (req, res) => {
       .slice(0, limit);
 
     res.json({
+      total: await Notification.count(),
       notifications: combinedNotifications
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const deleted = await Notification.delete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    res.json({ message: 'Notification deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/', auth, async (req, res) => {
+  try {
+    await Notification.clearAll();
+    res.json({ message: 'Notifications cleared successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

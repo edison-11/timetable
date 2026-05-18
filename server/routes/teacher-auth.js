@@ -23,7 +23,16 @@ router.post('/register', [
   body('name').trim().isLength({ min: 3 }).withMessage('Name must be at least 3 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('department').optional().trim()
+  body('department').optional().trim(),
+  body('employeeId').trim().notEmpty().withMessage('Teacher ID is required'),
+  body('phone').trim().notEmpty().withMessage('Phone number is required'),
+  body('module_name').trim().notEmpty().withMessage('Module or subject is required'),
+  body('qualification').optional().trim(),
+  body('yearsExperience').optional().isInt({ min: 0 }).toInt(),
+  body('availableDays').optional().trim(),
+  body('availableFrom').optional().isString(),
+  body('availableTo').optional().isString(),
+  body('notes').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -31,22 +40,43 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, department = 'SSOD' } = req.body;
+    const {
+      name,
+      email,
+      password,
+      department = 'SSOD',
+      employeeId,
+      phone,
+      module_name,
+      qualification,
+      yearsExperience,
+      availableDays,
+      availableFrom,
+      availableTo,
+      notes
+    } = req.body;
 
-    // Check if teacher email already exists
     const existingTeacher = await Teacher.findByEmail(email);
     if (existingTeacher) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Create teacher account in pending state
     const teacherId = await Teacher.create({
       name,
       email,
       password,
       department,
       status: 'pending',
-      date_joined: new Date().toISOString().split('T')[0]
+      date_joined: new Date().toISOString().split('T')[0],
+      employee_id: employeeId,
+      phone,
+      module_name,
+      qualification,
+      years_experience: yearsExperience,
+      available_days: availableDays,
+      available_from: availableFrom,
+      available_to: availableTo,
+      notes
     });
 
     const teacher = await Teacher.findById(teacherId);
@@ -56,18 +86,28 @@ router.post('/register', [
       title: `New teacher registered: ${teacher.name}`,
       message: `${teacher.name} is waiting for approval.`,
       path: '/teachers',
-      tone: 'green'
+      tone: 'green',
+      recipient_role: 'dos'
     });
 
     res.status(201).json({
-      message: 'Teacher registered successfully. Awaiting admin approval.',
+      message: 'Teacher registered successfully. Awaiting approval.',
       teacher: {
         teacher_id: teacher.teacher_id,
         name: teacher.name,
         email: teacher.email,
         department: teacher.department,
         status: teacher.status,
-        profile_photo: teacher.profile_photo || null
+        profile_photo: teacher.profile_photo || null,
+        employee_id: teacher.employee_id || null,
+        phone: teacher.phone || null,
+        module_name: teacher.module_name || null,
+        qualification: teacher.qualification || null,
+        years_experience: teacher.years_experience || null,
+        available_days: teacher.available_days || null,
+        available_from: teacher.available_from || null,
+        available_to: teacher.available_to || null,
+        notes: teacher.notes || null
       }
     });
   } catch (error) {
@@ -88,24 +128,6 @@ router.post('/login', [
     }
 
     const { email, password } = req.body;
-
-    // Temporary bypass for testing - remove in production
-    if (email === 'test@example.com' && password === 'password123') {
-      const token = jwt.sign({ teacherId: 1, type: 'teacher' }, JWT_SECRET, { expiresIn: '7d' });
-      return res.json({
-        message: 'Login successful',
-        token,
-        teacher: {
-          teacher_id: 1,
-          id: 1,
-          name: 'Test Teacher',
-          email: 'test@example.com',
-          department: 'Computer Science',
-          status: 'active',
-          profile_photo: null
-        }
-      });
-    }
 
     const teacher = await Teacher.findByEmail(email);
     if (!teacher) {
@@ -166,7 +188,16 @@ router.get('/me', auth, async (req, res) => {
         email: teacher.email,
         department: teacher.department,
         status: teacher.status,
-        profile_photo: teacher.profile_photo || null
+        profile_photo: teacher.profile_photo || null,
+        employee_id: teacher.employee_id || null,
+        phone: teacher.phone || null,
+        module_name: teacher.module_name || null,
+        qualification: teacher.qualification || null,
+        years_experience: teacher.years_experience || null,
+        available_days: teacher.available_days || null,
+        available_from: teacher.available_from || null,
+        available_to: teacher.available_to || null,
+        notes: teacher.notes || null
       }
     });
   } catch (error) {
@@ -179,6 +210,15 @@ router.put('/me', auth, [
   body('name').trim().isLength({ min: 3 }).withMessage('Name must be at least 3 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('department').trim().notEmpty().withMessage('Department is required'),
+  body('employee_id').optional().trim(),
+  body('phone').optional().trim(),
+  body('module_name').optional().trim(),
+  body('qualification').optional().trim(),
+  body('yearsExperience').optional().isInt({ min: 0 }).toInt(),
+  body('availableDays').optional().trim(),
+  body('availableFrom').optional().isString(),
+  body('availableTo').optional().isString(),
+  body('notes').optional().trim(),
   body('password')
     .optional({ checkFalsy: true })
     .isLength({ min: 6 })
@@ -199,9 +239,24 @@ router.put('/me', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, department, password, profile_photo } = req.body;
-    const existingTeacher = await Teacher.findByEmailExcludingId(email, teacherId);
+    const {
+      name,
+      email,
+      department,
+      password,
+      profile_photo,
+      employee_id,
+      phone,
+      module_name,
+      qualification,
+      yearsExperience,
+      availableDays,
+      availableFrom,
+      availableTo,
+      notes
+    } = req.body;
 
+    const existingTeacher = await Teacher.findByEmailExcludingId(email, teacherId);
     if (existingTeacher) {
       return res.status(400).json({ message: 'Email already in use' });
     }
@@ -211,7 +266,16 @@ router.put('/me', auth, [
       email,
       department,
       password: password || undefined,
-      profile_photo
+      profile_photo,
+      employee_id,
+      phone,
+      module_name,
+      qualification,
+      years_experience: yearsExperience,
+      available_days: availableDays,
+      available_from: availableFrom,
+      available_to: availableTo,
+      notes
     });
 
     const teacher = await Teacher.findById(teacherId);
@@ -232,7 +296,16 @@ router.put('/me', auth, [
         email: teacher.email,
         department: teacher.department,
         status: teacher.status,
-        profile_photo: teacher.profile_photo || null
+        profile_photo: teacher.profile_photo || null,
+        employee_id: teacher.employee_id || null,
+        phone: teacher.phone || null,
+        module_name: teacher.module_name || null,
+        qualification: teacher.qualification || null,
+        years_experience: teacher.years_experience || null,
+        available_days: teacher.available_days || null,
+        available_from: teacher.available_from || null,
+        available_to: teacher.available_to || null,
+        notes: teacher.notes || null
       }
     });
   } catch (error) {

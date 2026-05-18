@@ -25,7 +25,6 @@ class Class {
     return `
       SELECT c.*,
              s.shift_name,
-             s.teacher_changeover_minutes,
              d.name as dos_name,
              sec.section_name,
              r.room_name,

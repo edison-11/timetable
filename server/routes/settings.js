@@ -5,6 +5,70 @@ const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Institution Settings
+router.get('/institution', auth, async (req, res) => {
+  try {
+    const school_name = await SystemSetting.get('school_name', 'My School');
+    const principal_name = await SystemSetting.get('principal_name', '');
+    const director_studies_name = await SystemSetting.get('director_studies_name', '');
+    const school_code = await SystemSetting.get('school_code', '');
+
+    res.json({
+      settings: {
+        school_name,
+        principal_name,
+        director_studies_name,
+        school_code
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/institution', auth, [
+  body('school_name').trim().notEmpty().withMessage('School name is required'),
+  body('principal_name').trim().optional(),
+  body('director_studies_name').trim().optional(),
+  body('school_code').trim().optional()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { school_name, principal_name, director_studies_name, school_code } = req.body;
+
+    if (school_name) {
+      await SystemSetting.set('school_name', school_name);
+    }
+    if (principal_name !== undefined) {
+      await SystemSetting.set('principal_name', principal_name);
+    }
+    if (director_studies_name !== undefined) {
+      await SystemSetting.set('director_studies_name', director_studies_name);
+    }
+    if (school_code !== undefined) {
+      await SystemSetting.set('school_code', school_code);
+    }
+
+    res.json({
+      message: 'Institution settings updated successfully',
+      settings: {
+        school_name,
+        principal_name,
+        director_studies_name,
+        school_code
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/timetable', auth, async (req, res) => {
   try {
     const settings = await SystemSetting.getTimetableSettings();
