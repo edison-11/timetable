@@ -61,9 +61,17 @@ const handleMulterError = (err, req, res, next) => {
   if (!err) return next();
 
   if (err instanceof multer.MulterError) {
-    const message = err.code === 'LIMIT_FILE_SIZE'
-      ? 'Uploaded file is too large'
-      : err.message;
+    let message = err.message;
+    
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      // Check which upload route was used to provide specific limit
+      const isProfilePhoto = req.route.path === '/profile-photo';
+      const maxSize = isProfilePhoto ? '2MB' : '5MB';
+      message = `Uploaded file is too large. Maximum size allowed is ${maxSize}.`;
+    } else if (err.code === 'LIMIT_FILE_COUNT') {
+      message = `Too many files uploaded. Maximum allowed is 5 files.`;
+    }
+    
     return res.status(400).json({ message });
   }
 

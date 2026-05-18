@@ -21,6 +21,9 @@ const uploadRoutes = require('./routes/upload');
 const pendingRoutes = require('./routes/pending');
 const settingsRoutes = require('./routes/settings');
 const notificationRoutes = require('./routes/notifications');
+const absenceRoutes = require('./routes/absence');
+const substitutionRoutes = require('./routes/substitution');
+const studentRoutes = require('./routes/students');
 
 const app = express();
 
@@ -68,6 +71,9 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/pending', pendingRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/absence', absenceRoutes);
+app.use('/api/substitution', substitutionRoutes);
+app.use('/api/students', studentRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
