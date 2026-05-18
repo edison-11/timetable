@@ -61,7 +61,6 @@ const handleMulterError = (err, req, res, next) => {
   if (!err) return next();
 
   if (err instanceof multer.MulterError) {
-<<<<<<< HEAD
     let message = err.message;
     
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -73,11 +72,6 @@ const handleMulterError = (err, req, res, next) => {
       message = `Too many files uploaded. Maximum allowed is 5 files.`;
     }
     
-=======
-    const message = err.code === 'LIMIT_FILE_SIZE'
-      ? 'Uploaded file is too large'
-      : err.message;
->>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
     return res.status(400).json({ message });
   }
 

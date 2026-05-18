@@ -7,7 +7,6 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-<<<<<<< HEAD
     const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
     const [notifications, pendingTeachers] = await Promise.all([
       Notification.getRecent(limit),
@@ -43,22 +42,8 @@ router.get('/', auth, async (req, res) => {
       .slice(0, limit);
 
     res.json({
+      total: await Notification.count(),
       notifications: combinedNotifications
-=======
-    const notifications = await Notification.getRecent(req.query.limit);
-    const total = await Notification.count();
-    res.json({
-      total,
-      notifications: notifications.map((notification) => ({
-        id: notification.notification_id,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        path: notification.path,
-        tone: notification.tone,
-        created_at: notification.created_at
-      }))
->>>>>>> 4d46d2d4 (all changes made on the teacher's pages)
     });
   } catch (error) {
     console.error(error);
