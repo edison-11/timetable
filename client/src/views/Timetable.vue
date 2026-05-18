@@ -15,14 +15,6 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             Add Assignment
           </button>
-          <button class="btn-secondary" type="button" @click="printTimetable" :disabled="!displayedTimetables.length" title="Print timetable">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
-            Print
-          </button>
-          <button class="btn-secondary" type="button" @click="downloadTimetable(exportFormat)" :disabled="!displayedTimetables.length" title="Download timetable">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
-            Download
-          </button>
           <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
             {{ loading ? 'Working...' : 'Generate' }}
@@ -310,10 +302,10 @@
               Print
             </button>
             <select v-model="exportFormat" class="form-select export-select" aria-label="Download format">
+              <option value="pdf">PDF</option>
               <option value="csv">CSV</option>
               <option value="xls">Excel (.xls)</option>
               <option value="doc">Word (.doc)</option>
-              <option value="pdf">PDF</option>
               <option value="json">JSON</option>
               <option value="txt">Text</option>
               <option value="html">HTML</option>
@@ -411,8 +403,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-import { exportToPDF, exportToWord, exportToICal, printTimetable as printClassTimetable } from '@/utils/exportTimetable'
-import { downloadTimetablePdf } from '@/utils/timetablePdf'
+import { exportToICal } from '@/utils/exportTimetable'
 
 const loading = ref(false)
 const classes = ref([])
@@ -424,7 +415,7 @@ const selectedTimetableClassId = ref('')
 const sharedActivities = ref([])
 const showAssignmentForm = ref(false)
 const activeExportDropdown = ref(null)
-const exportFormat = ref('csv')
+const exportFormat = ref('pdf')
 let sharedActivityId = 0
 
 const emptyAssignment = () => ({
@@ -635,17 +626,17 @@ const getExportOptions = (group) => ({
 })
 
 const handleExportPDF = (group) => {
-  exportToPDF(group.entries, group.class_name, getExportOptions(group))
+  downloadTimetable('pdf', [group])
   activeExportDropdown.value = null
 }
 
 const handleExportWord = (group) => {
-  exportToWord(group.entries, group.class_name, getExportOptions(group))
+  downloadTimetable('doc', [group])
   activeExportDropdown.value = null
 }
 
 const handlePrint = (group) => {
-  printClassTimetable(group.entries, group.class_name, getExportOptions(group))
+  openPdfPrintWindow([group])
   activeExportDropdown.value = null
 }
 
@@ -788,10 +779,10 @@ const escapeCsvValue = (value) => {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
-const buildTimetableExportRows = () => {
+const buildTimetableExportRows = (groups = displayedTimetables.value) => {
   const rows = [['Class', 'Period', 'Time', ...days]]
 
-  displayedTimetables.value.forEach((group) => {
+  groups.forEach((group) => {
     buildTimetableGridWithBreaks(group).forEach((row) => {
       if (row.type === 'break') {
         rows.push([
@@ -832,9 +823,9 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;')
 
-const buildTimetableHtml = () => {
+const buildTimetableHtml = (groups = displayedTimetables.value) => {
   const header = ['Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
-  const body = displayedTimetables.value.map((group) => {
+  const body = groups.map((group) => {
     const groupHeader = `<tr class="class-row"><td colspan="${days.length + 1}">${escapeHtml(group.class_name || `Class ${group.class_id}`)}</td></tr>`
     const rows = buildTimetableGridWithBreaks(group).map((row) => {
       if (row.type === 'break') {
@@ -930,8 +921,10 @@ const buildPdfRows = () => {
   return rows
 }
 
-const getExportBaseName = () => {
-  const scope = selectedTimetableClassId.value
+const getExportBaseName = (groups = displayedTimetables.value) => {
+  const scope = groups.length === 1
+    ? groups[0].class_name || `Class ${groups[0].class_id}`
+    : selectedTimetableClassId.value
     ? classesWithTimetables.value.find(cls => String(cls.class_id) === selectedTimetableClassId.value)?.class_name || 'selected-class'
     : 'all-classes'
   return `timetable-${String(scope).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
@@ -949,38 +942,33 @@ const downloadBlob = (content, filename, type) => {
   URL.revokeObjectURL(url)
 }
 
-const openPdfPrintWindow = () => {
+const openPdfPrintWindow = (groups = displayedTimetables.value) => {
   const printWindow = window.open('', '_blank', 'width=1200,height=800')
   if (!printWindow) {
     assignmentMessage.value = 'Allow pop-ups to export PDF, then choose Save as PDF.'
     return
   }
 
-  printWindow.document.write(buildTimetableHtml())
+  printWindow.document.write(buildTimetableHtml(groups))
   printWindow.document.close()
   printWindow.focus()
   printWindow.print()
 }
 
-const downloadTimetable = (format = 'csv') => {
-  if (!displayedTimetables.value.length) {
+const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) => {
+  if (!groups.length) {
     assignmentMessage.value = 'Generate or load a timetable before downloading.'
     return
   }
 
-  const baseName = getExportBaseName()
-  const rows = buildTimetableExportRows()
-  const html = buildTimetableHtml()
+  const baseName = getExportBaseName(groups)
+  const rows = buildTimetableExportRows(groups)
+  const html = buildTimetableHtml(groups)
   const selectedFormat = String(format || 'csv').toLowerCase()
 
   if (selectedFormat === 'pdf') {
-    downloadTimetablePdf({
-      title: 'Class Timetables',
-      headers: ['Time', ...days],
-      rows: buildPdfRows(),
-      filename: `${baseName}.pdf`
-    })
-    assignmentMessage.value = 'PDF timetable downloaded.'
+    openPdfPrintWindow(groups)
+    assignmentMessage.value = 'Use Save as PDF in the print dialog.'
   } else if (selectedFormat === 'xls') {
     downloadBlob(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
     assignmentMessage.value = 'Excel timetable downloaded.'
@@ -988,7 +976,7 @@ const downloadTimetable = (format = 'csv') => {
     downloadBlob(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
     assignmentMessage.value = 'Word timetable downloaded.'
   } else if (selectedFormat === 'json') {
-    downloadBlob(JSON.stringify(displayedTimetables.value, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
+    downloadBlob(JSON.stringify(groups, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
     assignmentMessage.value = 'JSON timetable downloaded.'
   } else if (selectedFormat === 'txt') {
     downloadBlob(rows.map(row => row.join(' | ')).join('\n'), `${baseName}.txt`, 'text/plain;charset=utf-8')
@@ -997,7 +985,7 @@ const downloadTimetable = (format = 'csv') => {
     downloadBlob(html, `${baseName}.html`, 'text/html;charset=utf-8')
     assignmentMessage.value = 'HTML timetable downloaded.'
   } else {
-    downloadBlob(buildTimetableCsv(), `${baseName}.csv`, 'text/csv;charset=utf-8')
+    downloadBlob(rows.map(row => row.map(escapeCsvValue).join(',')).join('\n'), `${baseName}.csv`, 'text/csv;charset=utf-8')
     assignmentMessage.value = 'CSV timetable downloaded.'
   }
 
@@ -1010,7 +998,7 @@ const printTimetable = () => {
     return
   }
 
-  window.print()
+  openPdfPrintWindow()
 }
 
 const copyTimetableSummary = async () => {

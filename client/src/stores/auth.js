@@ -24,50 +24,41 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        let response
-        let loginType = 'admin'
+        const userType = credentials.role === 'teacher' ? 'teacher' : 'admin'
+        const endpoint = userType === 'teacher' ? '/teacher-auth/login' : '/auth/login'
 
         try {
-          response = await api.post('/auth/login', credentials)
-        } catch (error) {
-          // If admin login fails, try teacher login
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            response = await api.post('/teacher-auth/login', credentials)
-            loginType = 'teacher'
+          const response = await api.post(endpoint, credentials)
+          const { token } = response.data
+          const user = userType === 'teacher' ? response.data.teacher : response.data.user
+
+          this.token = token
+          this.user = user
+          this.userType = userType
+
+          localStorage.setItem('token', token)
+          localStorage.setItem('userType', userType)
+          api.defaults.headers.common['Authorization'] = `Bearer ${token}`
+
+          if (userType === 'teacher') {
+            localStorage.setItem('teacher', JSON.stringify(user))
+            localStorage.removeItem('user')
           } else {
-            throw error
+            localStorage.setItem('user', JSON.stringify(user))
+            localStorage.removeItem('teacher')
           }
-        }
 
-        const { token } = response.data
-        const user = loginType === 'teacher' ? response.data.teacher : response.data.user
-        
-        this.token = token
-        this.user = user
-        this.userType = loginType
-        
-        localStorage.setItem('token', token)
-        localStorage.setItem('userType', loginType)
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-
-        if (loginType === 'teacher') {
-          localStorage.setItem('teacher', JSON.stringify(user))
-          localStorage.removeItem('user')
-        } else {
-          localStorage.setItem('user', JSON.stringify(user))
-          localStorage.removeItem('teacher')
+          return { success: true, userType }
+        } catch (error) {
+          const message =
+            error?.response?.data?.message ||
+            error?.response?.data?.error ||
+            error?.response?.data?.errors?.[0]?.msg ||
+            error?.response?.data?.errors?.[0]?.message ||
+            'Login failed'
+          this.error = message
+          return { success: false, error: message }
         }
-        
-        return { success: true, userType: loginType }
-      } catch (error) {
-        const message =
-          error?.response?.data?.message ||
-          error?.response?.data?.error ||
-          error?.response?.data?.errors?.[0]?.msg ||
-          error?.response?.data?.errors?.[0]?.message ||
-          'Login failed'
-        this.error = message
-        return { success: false, error: message }
       } finally {
         this.loading = false
       }

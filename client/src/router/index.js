@@ -156,6 +156,18 @@ router.beforeEach((to, from, next) => {
   // Simple authentication check
   const isAuthenticated = !!token
   const isTeacher = userType === 'teacher'
+
+  if (to.path === '/login' && isAuthenticated && isTeacher) {
+    authStore.logout()
+    next()
+    return
+  }
+
+  if (to.path === '/teacher/login' && isAuthenticated && !isTeacher) {
+    authStore.logout()
+    next()
+    return
+  }
   
   if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
     next('/teacher/login')

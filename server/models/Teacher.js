@@ -87,7 +87,10 @@ class Teacher {
 
   static async findByEmail(email) {
     await this.ensureProfileColumns();
-    const [rows] = await pool.execute('SELECT * FROM teacher WHERE email = ?', [email]);
+    const [rows] = await pool.execute(
+      'SELECT teacher_id, name, email, password, department, status, date_joined, school_code, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, profile_photo, created_at FROM teacher WHERE LOWER(email) = LOWER(?)',
+      [email]
+    );
     return rows[0];
   }
 
@@ -102,7 +105,7 @@ class Teacher {
 
   static async findByEmailExcludingId(email, id) {
     const [rows] = await pool.execute(
-      'SELECT * FROM teacher WHERE email = ? AND teacher_id != ?',
+      'SELECT * FROM teacher WHERE LOWER(email) = LOWER(?) AND teacher_id != ?',
       [email, id]
     );
     return rows[0];

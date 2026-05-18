@@ -16,7 +16,7 @@ class DOS {
 
   static async findByEmail(email) {
     const [rows] = await pool.execute(
-      'SELECT * FROM dos WHERE email = ?',
+      'SELECT * FROM dos WHERE LOWER(email) = LOWER(?)',
       [email]
     );
     return rows[0];

@@ -251,6 +251,37 @@ const rankAssignments = (assignments, scheduledCounts) => {
     .map((item) => item.assignment);
 };
 
+const getDesiredBlockSize = (assignment) => {
+  const hours = Number(assignment.hours_per_year || 0);
+  if (hours >= 80) return 2;
+  return 1;
+};
+
+const isSameAssignmentSoftConflict = (conflict, assignment, classItem, slot) => {
+  return Number(conflict.class_id) === Number(classItem.class_id)
+    && Number(conflict.assignment_id) === Number(assignment.assignment_id)
+    && !overlaps(
+      timeToMinutes(conflict.start_time),
+      timeToMinutes(conflict.end_time),
+      timeToMinutes(slot.start_time),
+      timeToMinutes(slot.end_time)
+    );
+};
+
+const hasBlockingTeacherConflict = async (assignment, classItem, slot, changeoverMinutes) => {
+  const conflicts = await getTeacherConflictsWithChangeover(
+    assignment.teacher_id,
+    slot.day_of_week,
+    slot.start_time,
+    slot.end_time,
+    changeoverMinutes
+  );
+
+  return conflicts.some((conflict) => {
+    return !isSameAssignmentSoftConflict(conflict, assignment, classItem, slot);
+  });
+};
+
 const findAvailableRoomId = async (dayOfWeek, startTime, endTime) => {
   const rooms = await Room.getAvailableRooms(startTime, endTime, dayOfWeek);
   return rooms[0]?.room_id || null;
@@ -483,6 +514,12 @@ router.post('/generate', auth, [
     const skipped = [];
     const classEntryCounts = [];
 
+    if (shouldReplaceExisting) {
+      for (const classItem of selectedClasses) {
+        await TimetableEntry.deleteByClass(classItem.class_id);
+      }
+    }
+
     // Build custom breaks and time slots from period and break length fields
     const buildCustomSchedule = () => {
       const schedule = [];
@@ -561,10 +598,6 @@ router.post('/generate', auth, [
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
 
-      if (shouldReplaceExisting) {
-        await TimetableEntry.deleteByClass(classItem.class_id);
-      }
-
       if (!assignments.length) {
         skipped.push({
           class_id: classItem.class_id,
@@ -610,6 +643,7 @@ router.post('/generate', auth, [
         }));
       });
       const generationItems = buildGenerationItems(slots, sharedActivities);
+      const dayBlockState = new Map();
 
       for (const item of generationItems) {
         if (item.type === 'activity') {
@@ -626,25 +660,31 @@ router.post('/generate', auth, [
           const timetable = await TimetableEntry.findById(timetableId);
           generated.push(timetable);
           classCount += 1;
+          dayBlockState.delete(item.day_of_week);
           continue;
         }
 
         let scheduledAssignment = null;
         let hasConflict = false;
+        const currentBlock = dayBlockState.get(item.day_of_week);
 
-        for (const assignment of rankAssignments(assignments, scheduledCounts)) {
-          const teacherConflicts = await getTeacherConflictsWithChangeover(
-            assignment.teacher_id,
-            item.day_of_week,
-            item.start_time,
-            item.end_time,
-            changeoverMinutes
-          );
+        if (
+          currentBlock
+          && currentBlock.end_time === item.start_time
+          && currentBlock.count < getDesiredBlockSize(currentBlock.assignment)
+          && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))
+        ) {
+          scheduledAssignment = currentBlock.assignment;
+          hasConflict = false;
+        }
 
-          if (!teacherConflicts.length) {
-            scheduledAssignment = assignment;
-            hasConflict = false;
-            break;
+        if (!scheduledAssignment) {
+          for (const assignment of rankAssignments(assignments, scheduledCounts)) {
+            if (!(await hasBlockingTeacherConflict(assignment, classItem, item, changeoverMinutes))) {
+              scheduledAssignment = assignment;
+              hasConflict = false;
+              break;
+            }
           }
         }
 
@@ -675,6 +715,13 @@ router.post('/generate', auth, [
           scheduledAssignment.assignment_id,
           (scheduledCounts.get(scheduledAssignment.assignment_id) || 0) + 1
         );
+        dayBlockState.set(item.day_of_week, {
+          assignment: scheduledAssignment,
+          end_time: item.end_time,
+          count: currentBlock?.assignment?.assignment_id === scheduledAssignment.assignment_id
+            ? currentBlock.count + 1
+            : 1
+        });
         classCount += 1;
       }
 

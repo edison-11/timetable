@@ -45,7 +45,7 @@ class User {
 
   static async findByEmail(email) {
     const [rows] = await pool.query(
-      'SELECT * FROM users WHERE email = ?',
+      'SELECT * FROM users WHERE LOWER(email) = LOWER(?)',
       [email]
     );
     return rows[0] || null;
@@ -63,7 +63,7 @@ class User {
 
   static async findByEmailExcludingId(email, id) {
     const [rows] = await pool.query(
-      'SELECT * FROM users WHERE email = ? AND id != ?',
+      'SELECT * FROM users WHERE LOWER(email) = LOWER(?) AND id != ?',
       [email, id]
     );
     return rows[0] || null;

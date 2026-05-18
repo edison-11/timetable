@@ -11,8 +11,8 @@ router.post('/login', async (req, res) => {
     const { email, password, rememberMe } = req.body;
 
     try {
-        // Check for user email
-        const [rows] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        // Check for user email (case-insensitive)
+        const [rows] = await db.execute('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
         
         if (rows.length === 0) {
             return res.status(401).json({ message: 'Invalid email or password' });

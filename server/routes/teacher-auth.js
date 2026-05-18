@@ -129,10 +129,17 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    const teacher = await Teacher.findByEmail(email);
-    if (!teacher) {
+    // Query with case-insensitive email matching
+    const [rows] = await require('../config/database').execute(
+      'SELECT * FROM teacher WHERE LOWER(email) = LOWER(?)',
+      [email]
+    );
+    
+    if (rows.length === 0) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
+
+    const teacher = rows[0];
 
     // Compare passwords
     const isMatch = await bcrypt.compare(password, teacher.password);

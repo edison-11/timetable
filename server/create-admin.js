@@ -19,7 +19,7 @@ const createAdminUser = async () => {
 
     // Hash password with bcryptjs
     const salt = bcryptjs.genSaltSync(10);
-    const hashedPassword = bcryptjs.hashSync('admin123456', salt);
+    const hashedPassword = bcryptjs.hashSync('Admin@123456', salt);
 
     // Create admin user directly
     await pool.execute(
@@ -34,13 +34,13 @@ const createAdminUser = async () => {
     );
     
     if (user.length > 0) {
-      const match = bcryptjs.compareSync('admin123456', user[0].password);
+      const match = bcryptjs.compareSync('Admin@123456', user[0].password);
       if (match) {
         console.log('✓ Admin user created successfully!');
         console.log('');
         console.log('Login Credentials:');
         console.log('  Email: admin@school.com');
-        console.log('  Password: admin123456');
+        console.log('  Password: Admin@123456');
         console.log('');
       } else {
         console.log('✗ Password verification failed');
