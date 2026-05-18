@@ -60,8 +60,14 @@ export const useAuthStore = defineStore('auth', {
         
         return { success: true, userType: loginType }
       } catch (error) {
-        this.error = error.response?.data?.message || 'Login failed'
-        return { success: false, error: this.error }
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.response?.data?.errors?.[0]?.msg ||
+          error?.response?.data?.errors?.[0]?.message ||
+          'Login failed'
+        this.error = message
+        return { success: false, error: message }
       } finally {
         this.loading = false
       }
