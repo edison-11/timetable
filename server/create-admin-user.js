@@ -15,12 +15,12 @@ async function createAdminUser() {
 
       try {
         // Hash password
-        const password = 'admin123';
+        const password = 'admin123456';
         const hashedPassword = await bcrypt.hash(password, 10);
 
         db.run(
           'INSERT OR REPLACE INTO users (id, username, email, password, role, created_at, updated_at) VALUES (1, ?, ?, ?, ?, datetime("now"), datetime("now"))',
-          ['Admin', 'admin@example.com', hashedPassword, 'admin'],
+          ['Admin', 'admin@school.com', hashedPassword, 'admin'],
           (err) => {
             if (err) {
               console.error('❌ Error creating admin user:', err);
@@ -29,8 +29,8 @@ async function createAdminUser() {
             }
 
             console.log('✅ Admin user created/updated successfully');
-            console.log('   Email: admin@example.com');
-            console.log('   Password: admin123');
+            console.log('   Email: admin@school.com');
+            console.log('   Password: admin123456');
 
             db.all('SELECT id, email, role FROM users LIMIT 5', (err, rows) => {
               if (err) {

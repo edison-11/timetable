@@ -7,7 +7,7 @@ const findOne = async (query, params) => {
 };
 
 const ensureUser = async () => {
-  const password = await bcrypt.hash('admin123', 10);
+  const password = await bcrypt.hash('admin123456', 10);
   await pool.execute(
     `INSERT INTO users (username, email, password, role)
      VALUES (?, ?, ?, ?)
@@ -110,7 +110,7 @@ const run = async () => {
   );
 
   console.log('Demo data ready');
-  console.log('Admin: admin@school.com / admin123');
+  console.log('Admin: admin@school.com / admin123456');
   console.log('Teacher: prince@gmail.com / teacher123');
   await pool.end();
 };
