@@ -280,12 +280,11 @@
         <div class="output-toolbar">
           <div>
             <p class="eyebrow">Generated view</p>
-            <h2>Class Timetables</h2>
+            <h2>Class Timetable</h2>
           </div>
           <div class="timetable-class-filter">
             <label class="form-label">Display</label>
             <select v-model="selectedTimetableClassId" class="form-select">
-              <option value="">All Classes</option>
               <option v-for="cls in classesWithTimetables" :key="cls.class_id" :value="String(cls.class_id)">
                 {{ cls.class_name }}
               </option>
@@ -295,9 +294,10 @@
 
         <div v-for="group in displayedTimetables" :key="group.class_id" class="timetable-group">
           <div class="timetable-header">
-            <div>
+            <div class="timetable-meta">
               <strong>{{ group.class_name }}</strong>
-              <span>{{ group.level || 'No level set' }}</span>
+              <span>Level: {{ group.level || 'No level set' }}</span>
+              <span>Room: {{ group.room_name || 'No room set' }}</span>
             </div>
             <div class="timetable-actions">
               <span class="badge">{{ group.entries.length }} entries</span>
@@ -494,13 +494,19 @@ const groupedTimetables = computed(() => {
   timetableEntries.value.forEach(entry => {
     if (!entry.module_name || entry.module_name === 'continue') return
     const classId = entry.class_id
+    const classRecord = classes.value.find(cls => String(cls.class_id) === String(classId))
     if (!groups.has(classId)) {
       groups.set(classId, {
         class_id: classId,
-        class_name: entry.class_name,
-        level: entry.level,
+        class_name: entry.class_name || classRecord?.class_name,
+        level: entry.level || classRecord?.level,
+        room_name: entry.room_name || entry.room || classRecord?.room_name,
         entries: []
       })
+    }
+    const group = groups.get(classId)
+    if (!group.room_name && (entry.room_name || entry.room || classRecord?.room_name)) {
+      group.room_name = entry.room_name || entry.room || classRecord?.room_name
     }
     groups.get(classId).entries.push(entry)
   })
@@ -517,9 +523,23 @@ const classesWithTimetables = computed(() => {
 })
 
 const displayedTimetables = computed(() => {
-  if (!selectedTimetableClassId.value) return groupedTimetables.value
-  return groupedTimetables.value.filter(group => String(group.class_id) === String(selectedTimetableClassId.value))
+  const selectedId = selectedTimetableClassId.value || classesWithTimetables.value[0]?.class_id
+  if (!selectedId) return []
+  return groupedTimetables.value.filter(group => String(group.class_id) === String(selectedId))
 })
+
+const ensureSelectedTimetableClass = () => {
+  const availableClasses = classesWithTimetables.value
+  if (!availableClasses.length) {
+    selectedTimetableClassId.value = ''
+    return
+  }
+
+  const hasSelectedClass = availableClasses.some(cls => String(cls.class_id) === String(selectedTimetableClassId.value))
+  if (!hasSelectedClass) {
+    selectedTimetableClassId.value = String(availableClasses[0].class_id)
+  }
+}
 
 const formatTimeRange = (start, end) => {
   if (!start && !end) return '-'
@@ -768,6 +788,7 @@ const loadTimetable = async () => {
   try {
     const res = await api.get('/timetable')
     timetableEntries.value = res.data.timetables || []
+    ensureSelectedTimetableClass()
   } catch (e) { console.error(e) }
 }
 
@@ -1278,6 +1299,17 @@ fieldset:disabled {
   display: block;
   font-size: 1rem;
   font-weight: 900;
+}
+
+.timetable-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+
+.timetable-meta strong {
+  flex-basis: 100%;
 }
 
 .timetable-header span:not(.badge) {
