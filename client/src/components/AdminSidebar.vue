@@ -49,14 +49,14 @@ const icons = {
 
 const adminSidebarItems = [
   { name: 'Dashboard', path: '/dashboard', icon: icons.dashboard },
-  { name: 'Timetables', path: '/timetable', icon: icons.calendar },
-  { name: 'Classes', path: '/classes', icon: icons.classes },
-  { name: 'Subjects', path: '/modules', icon: icons.modules },
-  { name: 'Rooms', path: '/rooms', icon: icons.rooms },
-  { name: 'Teachers', path: '/teachers', icon: icons.teachers },
   { name: 'Sections', path: '/sections', icon: icons.sections },
-  { name: 'Assignments', path: '/assignments', icon: icons.assignments },
+  { name: 'Rooms', path: '/rooms', icon: icons.rooms },
   { name: 'Shifts', path: '/shifts', icon: icons.shifts },
+  { name: 'Teachers', path: '/teachers', icon: icons.teachers },
+  { name: 'Subjects', path: '/modules', icon: icons.modules },
+  { name: 'Classes', path: '/classes', icon: icons.classes },
+  { name: 'Assignments', path: '/assignments', icon: icons.assignments },
+  { name: 'Timetables', path: '/timetable', icon: icons.calendar },
   { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 

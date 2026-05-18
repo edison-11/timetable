@@ -15,10 +15,6 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             Add Assignment
           </button>
-          <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
-            {{ loading ? 'Working...' : 'Generate' }}
-          </button>
         </div>
       </header>
 
@@ -311,9 +307,10 @@
                   Export
                 </button>
                 <div v-if="activeExportDropdown === group.class_id" class="export-menu">
-                  <button @click="handleExportPDF(group.entries, group.class_name)">PDF</button>
-                  <button @click="handleExportExcel(group.entries, group.class_name)">Excel</button>
-                  <button @click="handleExportICal(group.entries, group.class_name)">iCal</button>
+                  <button @click="handleExportPDF(group)">PDF</button>
+                  <button @click="handleExportWord(group)">Word</button>
+                  <button @click="handlePrint(group)">Print</button>
+                  <button @click="handleExportICal(group)">iCal</button>
                 </div>
               </div>
             </div>
@@ -372,7 +369,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-import { exportToPDF, exportToExcel, exportToICal } from '@/utils/exportTimetable'
+import { exportToPDF, exportToWord, exportToICal, printTimetable } from '@/utils/exportTimetable'
 
 const loading = ref(false)
 const classes = ref([])
@@ -382,11 +379,8 @@ const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const selectedTimetableClassId = ref('')
 const sharedActivities = ref([])
-<<<<<<< HEAD
 const showAssignmentForm = ref(false)
-=======
 const activeExportDropdown = ref(null)
->>>>>>> afe91b2037c6c4db99536ca2696081aa72e39791
 let sharedActivityId = 0
 
 const emptyAssignment = () => ({
@@ -542,18 +536,25 @@ const toggleExportDropdown = (classId) => {
   activeExportDropdown.value = activeExportDropdown.value === classId ? null : classId
 }
 
-const handleExportPDF = (entries, className) => {
-  exportToPDF(entries, className)
+const getExportRows = (group) => buildTimetableGridWithBreaks(group)
+
+const handleExportPDF = (group) => {
+  exportToPDF(group.entries, group.class_name, { rows: getExportRows(group) })
   activeExportDropdown.value = null
 }
 
-const handleExportExcel = (entries, className) => {
-  exportToExcel(entries, className)
+const handleExportWord = (group) => {
+  exportToWord(group.entries, group.class_name, { rows: getExportRows(group) })
   activeExportDropdown.value = null
 }
 
-const handleExportICal = (entries, className) => {
-  exportToICal(entries, className)
+const handlePrint = (group) => {
+  printTimetable(group.entries, group.class_name, { rows: getExportRows(group) })
+  activeExportDropdown.value = null
+}
+
+const handleExportICal = (group) => {
+  exportToICal(group.entries, group.class_name)
   activeExportDropdown.value = null
 }
 

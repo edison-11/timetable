@@ -38,7 +38,8 @@
             </button>
             <div v-if="showExportDropdown" class="export-menu">
               <button @click="handleExportPDF">PDF</button>
-              <button @click="handleExportExcel">Excel</button>
+              <button @click="handleExportWord">Word</button>
+              <button @click="handlePrint">Print</button>
               <button @click="handleExportICal">iCal</button>
             </div>
           </div>
@@ -133,7 +134,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
-import { exportToPDF, exportToExcel, exportToICal } from '@/utils/exportTimetable'
+import { exportToPDF, exportToWord, exportToICal, printTimetable } from '@/utils/exportTimetable'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -237,8 +238,13 @@ const handleExportPDF = () => {
   showExportDropdown.value = false
 }
 
-const handleExportExcel = () => {
-  exportToExcel(schedule.value, teacher.value?.name || 'My_Schedule')
+const handleExportWord = () => {
+  exportToWord(schedule.value, teacher.value?.name || 'My_Schedule')
+  showExportDropdown.value = false
+}
+
+const handlePrint = () => {
+  printTimetable(schedule.value, teacher.value?.name || 'My_Schedule')
   showExportDropdown.value = false
 }
 

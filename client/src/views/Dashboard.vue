@@ -112,31 +112,44 @@
         <div class="panel">
           <div class="panel-title"><span v-html="icons.chart"></span><h3>Timetable Distribution</h3></div>
           <div class="distribution-content">
-            <div class="donut"></div>
+            <div class="donut" :style="{ background: distributionGradient }">
+              <strong>{{ distributionTotal }}</strong>
+              <span>entries</span>
+            </div>
             <div class="legend">
-              <div><span style="background:#3b82f6"></span>Science <em>45% (5)</em></div>
-              <div><span style="background:#22c55e"></span>Engineering <em>30% (3)</em></div>
-              <div><span style="background:#f97316"></span>Commerce <em>15% (2)</em></div>
-              <div><span style="background:#8b5cf6"></span>Arts <em>10% (2)</em></div>
+              <div v-for="item in dashboardStatsCards.distribution" :key="item.module_name">
+                <span :style="{ background: getDistributionColor(item.module_name) }"></span>
+                <strong>{{ item.module_name }}</strong>
+                <em>{{ item.percent }}% · {{ item.count }}</em>
+              </div>
+              <div v-if="!dashboardStatsCards.distribution.length" class="empty-state">No data yet</div>
             </div>
           </div>
         </div>
+
         <div class="panel">
           <div class="panel-title"><span v-html="icons.room"></span><h3>Room Utilization</h3></div>
-          <div class="utilization-bar"><span style="width:72%"></span></div>
-          <div class="utilization-value">{{ roomUtilization }}%</div>
-          <p>Average Utilization</p>
-          <div class="room-stats"><div><strong>{{ usedRooms }}</strong> Used</div><div><strong>{{ availableRooms }}</strong> Available</div></div>
+          <div class="room-utilization-head">
+            <strong>{{ dashboardStatsCards.roomUtilization }}%</strong>
+            <span>{{ dashboardStatsCards.usedRooms }} of {{ dashboardStatsCards.usedRooms + dashboardStatsCards.availableRooms }} rooms used</span>
+          </div>
+          <div class="utilization-bar"><span :style="{ width: `${dashboardStatsCards.roomUtilization}%` }"></span></div>
+          <div class="room-stats">
+            <div><strong>{{ dashboardStatsCards.usedRooms }}</strong> Used</div>
+            <div><strong>{{ dashboardStatsCards.availableRooms }}</strong> Available</div>
+          </div>
         </div>
+
         <div class="panel">
           <div class="panel-title"><span v-html="icons.teacher"></span><h3>Teacher Workload</h3></div>
           <div class="workload-bars">
-            <div><span style="height:45%"></span><small>0-10</small></div>
-            <div><span style="height:72%"></span><small>10-20</small></div>
-            <div><span style="height:88%"></span><small>20-30</small></div>
-            <div><span style="height:64%"></span><small>30-40</small></div>
-            <div><span style="height:28%"></span><small>40+</small></div>
+            <div v-for="bucket in workloadBuckets" :key="bucket.label">
+              <strong>{{ bucket.count }}</strong>
+              <span :style="{ height: `${bucket.percent}%` }"></span>
+              <small>{{ bucket.label }}</small>
+            </div>
           </div>
+          <p class="workload-note">Teachers grouped by number of timetable entries.</p>
         </div>
       </div>
       </div>
@@ -316,6 +329,77 @@ const dashboardStats = computed(() => ({
   teachers: teachers.value.length,
   rooms: rooms.value.length
 }))
+
+const dashboardStatsCards = ref({
+  distribution: [],
+  roomUtilization: 0,
+  usedRooms: 0,
+  availableRooms: 0,
+  workloadBars: [0, 0, 0, 0, 0],
+  workloadBuckets: []
+})
+
+const getDistributionColor = (moduleName) => {
+  const palette = ['#2563eb', '#16a34a', '#f97316', '#7c3aed', '#dc2626']
+  const idx = Math.abs(String(moduleName || '').split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0)) % palette.length
+  return palette[idx]
+}
+
+const distributionTotal = computed(() => {
+  return dashboardStatsCards.value.distribution.reduce((sum, item) => sum + Number(item.count || 0), 0)
+})
+
+const distributionGradient = computed(() => {
+  if (!dashboardStatsCards.value.distribution.length) {
+    return 'conic-gradient(#e2e8f0 0% 100%)'
+  }
+
+  let cursor = 0
+  const parts = dashboardStatsCards.value.distribution.map((item) => {
+    const start = cursor
+    const end = Math.min(cursor + Number(item.percent || 0), 100)
+    cursor = end
+    return `${getDistributionColor(item.module_name)} ${start}% ${end}%`
+  })
+
+  if (cursor < 100) parts.push(`#e2e8f0 ${cursor}% 100%`)
+  return `conic-gradient(${parts.join(', ')})`
+})
+
+const workloadBuckets = computed(() => {
+  const fallbackLabels = ['0-10', '10-20', '20-30', '30-40', '40+']
+  if (dashboardStatsCards.value.workloadBuckets.length) {
+    return dashboardStatsCards.value.workloadBuckets
+  }
+  return dashboardStatsCards.value.workloadBars.map((percent, index) => ({
+    label: fallbackLabels[index],
+    count: 0,
+    percent
+  }))
+})
+
+const loadDashboardStatsCards = async () => {
+  try {
+    const response = await api.get('/dashboard/stats')
+    dashboardStatsCards.value = {
+      distribution: response.data.distribution || [],
+      roomUtilization: response.data.roomUtilization || 0,
+      usedRooms: response.data.usedRooms || 0,
+      availableRooms: response.data.availableRooms || 0,
+      workloadBars: (response.data.workload?.bars || [0, 0, 0, 0, 0]).slice(0, 5),
+      workloadBuckets: response.data.workload?.buckets || []
+    }
+  } catch (error) {
+    dashboardStatsCards.value = {
+      distribution: [],
+      roomUtilization: 0,
+      usedRooms: 0,
+      availableRooms: 0,
+      workloadBars: [0, 0, 0, 0, 0],
+      workloadBuckets: []
+    }
+  }
+}
 
 const usedRooms = computed(() => new Set(timetableEntries.value.filter(entry => entry.room_id).map(entry => entry.room_id)).size)
 const availableRooms = computed(() => Math.max(rooms.value.length - usedRooms.value, 0))
@@ -520,6 +604,7 @@ onMounted(() => {
   loadDashboardData()
   loadTimetable()
   loadNotifications()
+  loadDashboardStatsCards()
 })
 </script>
 
@@ -932,11 +1017,16 @@ onMounted(() => {
   gap: 1rem;
 }
 
+.three-cards .panel {
+  min-height: 170px;
+  margin-bottom: 0;
+}
+
 .panel-title {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  margin-bottom: 0.5rem;
+  gap: 0.45rem;
+  margin-bottom: 0.8rem;
 }
 
 .panel-title h3 {
@@ -946,23 +1036,54 @@ onMounted(() => {
 
 .distribution-content {
   display: flex;
-  gap: 0.8rem;
+  gap: 1rem;
   align-items: center;
 }
 
 .donut {
-  width: 70px;
-  height: 70px;
+  width: 82px;
+  height: 82px;
+  flex: 0 0 82px;
   border-radius: 50%;
-  background: conic-gradient(#3b82f6 0% 45%, #22c55e 45% 75%, #f97316 75% 90%, #8b5cf6 90% 100%);
+  display: grid;
+  place-content: center;
+  text-align: center;
+  position: relative;
+}
+
+.donut::after {
+  content: "";
+  position: absolute;
+  inset: 17px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+.donut strong,
+.donut span {
+  position: relative;
+  z-index: 1;
+}
+
+.donut strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.donut span {
+  font-size: 0.58rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 700;
 }
 
 .legend div {
-  display: flex;
+  display: grid;
+  grid-template-columns: 0.6rem 1fr auto;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.65rem;
-  margin-bottom: 0.2rem;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  margin-bottom: 0.35rem;
 }
 
 .legend span {
@@ -971,36 +1092,82 @@ onMounted(() => {
   border-radius: 50%;
 }
 
+.legend strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.legend em {
+  color: #475569;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.room-utilization-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.room-utilization-head strong {
+  font-size: 2rem;
+  line-height: 1;
+  color: #1d4ed8;
+}
+
+.room-utilization-head span {
+  color: #475569;
+  font-size: 0.75rem;
+  text-align: right;
+}
+
 .utilization-bar {
-  height: 6px;
+  height: 10px;
   background: #e2e8f0;
-  border-radius: 3px;
-  margin: 0.5rem 0;
+  border-radius: 999px;
+  margin: 0.5rem 0 0.9rem;
+  overflow: hidden;
 }
 
 .utilization-bar span {
   display: block;
   height: 100%;
-  background: #3b82f6;
-  border-radius: 3px;
-}
-
-.utilization-value {
-  font-size: 1.2rem;
-  font-weight: 700;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+  border-radius: inherit;
 }
 
 .room-stats {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.room-stats div {
+  flex: 1;
+  padding: 0.65rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.72rem;
+}
+
+.room-stats strong {
+  display: block;
+  color: #0f172a;
+  font-size: 1.05rem;
 }
 
 .workload-bars {
   display: flex;
   justify-content: space-around;
   align-items: flex-end;
-  height: 80px;
+  height: 112px;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
 }
 
 .workload-bars div {
@@ -1009,12 +1176,33 @@ onMounted(() => {
   align-items: center;
   gap: 0.2rem;
   flex: 1;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.workload-bars strong {
+  font-size: 0.8rem;
+  color: #0f172a;
 }
 
 .workload-bars span {
-  width: 25px;
-  background: #3b82f6;
-  border-radius: 3px 3px 0 0;
+  width: 100%;
+  max-width: 32px;
+  min-height: 4px;
+  background: linear-gradient(180deg, #60a5fa, #2563eb);
+  border-radius: 5px 5px 0 0;
+}
+
+.workload-bars small {
+  color: #475569;
+  font-size: 0.64rem;
+  white-space: nowrap;
+}
+
+.workload-note {
+  margin: 0.65rem 0 0;
+  color: #64748b;
+  font-size: 0.72rem;
 }
 
 @media (max-width: 900px) {
