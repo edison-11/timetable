@@ -32,12 +32,24 @@ class SystemSetting {
   static async set(key, value) {
     await this.ensureTable();
 
+    // First try to update
     await pool.execute(
-      `INSERT INTO system_setting (setting_key, setting_value)
-       VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-      [key, String(value)]
+      `UPDATE system_setting SET setting_value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting_key = ?`,
+      [String(value), key]
     );
+
+    // If nothing was updated, insert
+    const [result] = await pool.execute(
+      'SELECT * FROM system_setting WHERE setting_key = ?',
+      [key]
+    );
+
+    if (!result.length) {
+      await pool.execute(
+        `INSERT INTO system_setting (setting_key, setting_value) VALUES (?, ?)`,
+        [key, String(value)]
+      );
+    }
   }
 
   static async getTimetableSettings() {

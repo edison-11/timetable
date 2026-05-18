@@ -91,6 +91,12 @@ const router = createRouter({
       component: () => import('@/views/TeacherRegister.vue')
     },
     {
+      path: '/teacher/settings',
+      name: 'TeacherSettings',
+      component: () => import('@/views/TeacherSettings.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
       path: '/teacher/login',
       name: 'TeacherLogin',
       component: () => import('@/views/TeacherLogin.vue'),

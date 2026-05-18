@@ -39,7 +39,10 @@ const icons = {
   calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
   classes: '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>',
   modules: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>',
+<<<<<<< HEAD
   rooms: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7M5 10v10h14V10M9 20v-6h6v6"/></svg>',
+=======
+>>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
   teachers: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>',
   sections: '<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
   assignments: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
@@ -49,6 +52,7 @@ const icons = {
 
 const adminSidebarItems = [
   { name: 'Dashboard', path: '/dashboard', icon: icons.dashboard },
+<<<<<<< HEAD
   { name: 'Sections', path: '/sections', icon: icons.sections },
   { name: 'Rooms', path: '/rooms', icon: icons.rooms },
   { name: 'Shifts', path: '/shifts', icon: icons.shifts },
@@ -57,6 +61,15 @@ const adminSidebarItems = [
   { name: 'Classes', path: '/classes', icon: icons.classes },
   { name: 'Assignments', path: '/assignments', icon: icons.assignments },
   { name: 'Timetables', path: '/timetable', icon: icons.calendar },
+=======
+  { name: 'Timetables', path: '/timetable', icon: icons.calendar },
+  { name: 'Classes', path: '/classes', icon: icons.classes },
+  { name: 'Subjects', path: '/modules', icon: icons.modules },
+  { name: 'Teachers', path: '/teachers', icon: icons.teachers },
+  { name: 'Sections', path: '/sections', icon: icons.sections },
+  { name: 'Assignments', path: '/assignments', icon: icons.assignments },
+  { name: 'Shifts', path: '/shifts', icon: icons.shifts },
+>>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
   { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 

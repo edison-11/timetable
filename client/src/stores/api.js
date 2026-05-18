@@ -59,23 +59,25 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const authStore = useAuthStore()
-    
+    const config = error.config || {}
+    const requestUrl = String(config.url || '')
+    const isLoginRequest = requestUrl.includes('/auth/login') || requestUrl.includes('/teacher-auth/login') || requestUrl.includes('/auth/register')
+
     if (error.response?.status === 401 && !isLoginRequest) {
       const userType = localStorage.getItem('userType')
       
       if (userType === 'teacher') {
-        // Clear teacher auth data
         localStorage.removeItem('token')
         localStorage.removeItem('teacher')
         localStorage.removeItem('userType')
         window.location.href = '/teacher/login'
       } else {
-        // Clear admin auth data
         authStore.logout()
         window.location.href = '/login'
       }
     }
     
+    normalizeApiErrorMessage(error)
     return Promise.reject(error)
   }
 )

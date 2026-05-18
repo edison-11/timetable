@@ -4,6 +4,7 @@
 /* Custom Bootstrap overrides and additions */
 body {
   background-color: #f5f9ff;
+<<<<<<< HEAD
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.6;
   color: #000000;
@@ -19,6 +20,22 @@ body {
   --app-page: #f5f9ff;
   --app-text: #000000;
   --app-muted: #333333;
+=======
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #0f172a;
+}
+
+:root {
+  --app-blue: #2563eb;
+  --app-blue-dark: #1d4ed8;
+  --app-blue-soft: #eff6ff;
+  --app-border: #dbeafe;
+  --app-surface: #ffffff;
+  --app-page: #f5f9ff;
+  --app-text: #0f172a;
+  --app-muted: #64748b;
+>>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
 }
 
 /* Fix text alignment and spacing */

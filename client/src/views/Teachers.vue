@@ -65,6 +65,7 @@
                 </td>
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
+<<<<<<< HEAD
                   <template v-if="teacher.status === 'pending'">
                     <button
                       class="btn-approve me-2"
@@ -85,6 +86,17 @@
                     <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
                     <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
                   </template>
+=======
+                  <button
+                    v-if="teacher.status === 'pending'"
+                    class="btn-approve me-2"
+                    @click="approveTeacher(teacher)"
+                  >
+                    Approve
+                  </button>
+                  <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
+                  <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
+>>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
                 </td>
               </tr>
               <tr v-if="!filteredTeachers.length">
@@ -578,6 +590,24 @@ const handleUpdateTeacher = async (event) => {
   }
 }
 
+const approveTeacher = async (teacher) => {
+  if (!confirm(`Approve ${teacher.name} as an active teacher?`)) return
+
+  try {
+    const response = await api.put(`/teachers/${teacher.teacher_id}/approve`)
+    if (response.data.teacher) {
+      const index = teachers.value.findIndex(t => t.teacher_id === teacher.teacher_id)
+      if (index !== -1) {
+        teachers.value[index] = response.data.teacher
+      }
+      showSuccessMessage(`${teacher.name} has been approved.`)
+    }
+  } catch (error) {
+    console.error('Error approving teacher:', error)
+    showErrorMessage('Failed to approve teacher. Please try again.')
+  }
+}
+
 const deleteTeacher = async (teacher) => {
   if (!confirm(`Are you sure you want to delete ${teacher.name}? This action cannot be undone.`)) return
   
@@ -683,6 +713,15 @@ onMounted(() => {
 
 .btn-edit {
   background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-approve {
+  background: #22c55e;
   color: white;
   border: none;
   padding: 0.25rem 0.75rem;

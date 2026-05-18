@@ -129,9 +129,25 @@
 
         <div class="panel">
           <div class="panel-title"><span v-html="icons.room"></span><h3>Room Utilization</h3></div>
+<<<<<<< HEAD
           <div class="room-utilization-head">
             <strong>{{ dashboardStatsCards.roomUtilization }}%</strong>
             <span>{{ dashboardStatsCards.usedRooms }} of {{ dashboardStatsCards.usedRooms + dashboardStatsCards.availableRooms }} rooms used</span>
+=======
+          <div class="utilization-bar"><span style="width:72%"></span></div>
+          <div class="utilization-value">{{ roomUtilization }}%</div>
+          <p>Average Utilization</p>
+          <div class="room-stats"><div><strong>{{ usedRooms }}</strong> Used</div><div><strong>{{ availableRooms }}</strong> Available</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><span v-html="icons.teacher"></span><h3>Teacher Workload</h3></div>
+          <div class="workload-bars">
+            <div><span style="height:45%"></span><small>0-10</small></div>
+            <div><span style="height:72%"></span><small>10-20</small></div>
+            <div><span style="height:88%"></span><small>20-30</small></div>
+            <div><span style="height:64%"></span><small>30-40</small></div>
+            <div><span style="height:28%"></span><small>40+</small></div>
+>>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
           </div>
           <div class="utilization-bar"><span :style="{ width: `${dashboardStatsCards.roomUtilization}%` }"></span></div>
           <div class="room-stats">
@@ -330,6 +346,7 @@ const dashboardStats = computed(() => ({
   rooms: rooms.value.length
 }))
 
+<<<<<<< HEAD
 const dashboardStatsCards = ref({
   distribution: [],
   roomUtilization: 0,
@@ -401,6 +418,8 @@ const loadDashboardStatsCards = async () => {
   }
 }
 
+=======
+>>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
 const usedRooms = computed(() => new Set(timetableEntries.value.filter(entry => entry.room_id).map(entry => entry.room_id)).size)
 const availableRooms = computed(() => Math.max(rooms.value.length - usedRooms.value, 0))
 const roomUtilization = computed(() => {
