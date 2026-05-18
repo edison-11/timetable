@@ -128,6 +128,7 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE a.teacher_id = ?
+         OR t.entry_type IN ('break', 'activity')
       ORDER BY t.day_of_week, t.start_time
     `, [teacher_id]);
     return rows;

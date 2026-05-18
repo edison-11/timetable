@@ -736,7 +736,13 @@ router.get('/', auth, async (req, res) => {
 // Get timetable by teacher
 router.get('/teacher/:teacher_id', auth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByTeacher(req.params.teacher_id);
+    const requestedTeacherId = String(req.params.teacher_id);
+
+    if (req.user?.type === 'teacher' && String(req.user.teacherId) !== requestedTeacherId) {
+      return res.status(403).json({ message: 'You can only view your own timetable' });
+    }
+
+    const timetables = await TimetableEntry.getByTeacher(requestedTeacherId);
     res.json({ timetables });
   } catch (error) {
     console.error(error);

@@ -274,8 +274,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import api from '@/stores/api'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const todayClasses = ref([])
 const weeklyLessons = ref(0)
 const freePeriods = ref(0)
@@ -284,11 +286,24 @@ const pendingRequests = ref(0)
 const upcomingClasses = ref([])
 const recentRequests = ref([])
 const announcements = ref([])
+const timetableEntries = ref([])
 
 const teacher = computed(() => {
+  if (authStore.currentUserType === 'teacher' && authStore.currentUser) {
+    return authStore.currentUser
+  }
+
   const stored = localStorage.getItem('teacher')
-  return stored ? JSON.parse(stored) : null
+  if (!stored) return null
+
+  try {
+    return JSON.parse(stored)
+  } catch (error) {
+    return null
+  }
 })
+
+const currentTeacherId = computed(() => teacher.value?.teacher_id || teacher.value?.id || null)
 
 const formattedDate = computed(() => {
   const today = new Date()
@@ -326,6 +341,31 @@ const formatDateShort = (date) => {
 const getDayName = (day) => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   return typeof day === 'number' ? days[day] : day
+}
+
+const schoolDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const todayName = () => schoolDays[new Date().getDay() - 1] || ''
+
+const normalizeTime = (time) => String(time || '').slice(0, 5)
+
+const formatTimeRange = (start, end) => `${normalizeTime(start)} - ${normalizeTime(end)}`
+
+const isBreakEntry = (entry) => entry?.entry_type === 'break' || String(entry?.module_name || '').toLowerCase().includes('break')
+
+const isTeacherLesson = (entry) => String(entry.teacher_id || '') === String(currentTeacherId.value || '') && !isBreakEntry(entry)
+
+const getNextDateForDay = (dayName) => {
+  const dayIndex = schoolDays.indexOf(dayName)
+  if (dayIndex === -1) return new Date()
+
+  const today = new Date()
+  const currentSchoolIndex = today.getDay() - 1
+  let offset = dayIndex - currentSchoolIndex
+  if (offset < 0) offset += 7
+
+  const date = new Date(today)
+  date.setDate(today.getDate() + offset)
+  return date
 }
 
 const getSubjectColor = (subject) => {
@@ -406,108 +446,93 @@ const requestFreeSlot = (period) => {
   })
 }
 
-const loadTodaySchedule = () => {
-  // Mock data - replace with API call
-  todayClasses.value = [
-    {
-      id: 1,
-      subject: 'Mathematics',
-      class_name: 'Class 10-A',
-      room: '101',
-      start_time: '08:00',
-      end_time: '09:00',
-      duration: '1h',
-      type: 'lesson'
-    },
-    {
-      id: 2,
-      subject: 'English',
-      class_name: 'Class 10-B',
-      room: '105',
-      start_time: '10:30',
-      end_time: '11:30',
-      duration: '1h',
-      type: 'lesson'
-    }
-  ]
+const toDashboardLesson = (entry) => ({
+  id: entry.timetable_id,
+  subject: entry.module_name || 'Lesson',
+  class_name: entry.class_name || 'General',
+  room: entry.room_name || 'TBD',
+  start_time: entry.start_time,
+  end_time: entry.end_time,
+  duration: formatTimeRange(entry.start_time, entry.end_time),
+  type: entry.entry_type || 'lesson',
+  day: entry.day_of_week,
+  date: getNextDateForDay(entry.day_of_week)
+})
+
+const hydrateDashboardFromTimetable = () => {
+  const teacherLessons = timetableEntries.value
+    .filter(isTeacherLesson)
+    .sort((a, b) => {
+      const dayDiff = schoolDays.indexOf(a.day_of_week) - schoolDays.indexOf(b.day_of_week)
+      return dayDiff || normalizeTime(a.start_time).localeCompare(normalizeTime(b.start_time))
+    })
+
+  todayClasses.value = teacherLessons
+    .filter((entry) => entry.day_of_week === todayName())
+    .map(toDashboardLesson)
+
+  weeklyLessons.value = teacherLessons.length
+
+  upcomingClasses.value = teacherLessons
+    .filter((entry) => entry.day_of_week !== todayName() || normalizeTime(entry.start_time) >= normalizeTime(new Date().toTimeString()))
+    .map(toDashboardLesson)
+    .slice(0, 8)
+
+  const slots = [...new Set(timetableEntries.value
+    .filter((entry) => !isBreakEntry(entry) && entry.start_time && entry.end_time)
+    .map((entry) => `${normalizeTime(entry.start_time)}-${normalizeTime(entry.end_time)}`))]
+    .sort()
+
+  const occupied = new Set(teacherLessons.map((entry) => `${entry.day_of_week}|${normalizeTime(entry.start_time)}-${normalizeTime(entry.end_time)}`))
+  const free = []
+  schoolDays.forEach((day) => {
+    slots.forEach((slot) => {
+      if (!occupied.has(`${day}|${slot}`)) {
+        free.push({ day, time: slot.replace('-', ' - ') })
+      }
+    })
+  })
+
+  freePeriodsDetail.value = free
+  freePeriods.value = free.length
+  pendingRequests.value = 0
+  recentRequests.value = []
+  announcements.value = []
 }
 
-const loadWeeklyData = () => {
-  weeklyLessons.value = 15
-  freePeriods.value = 8
-  freePeriodsDetail.value = [
-    { day: 'Monday', time: '09:00 - 10:00' },
-    { day: 'Tuesday', time: '11:30 - 12:30' },
-    { day: 'Wednesday', time: '08:00 - 09:00' },
-    { day: 'Thursday', time: '14:00 - 15:00' },
-    { day: 'Friday', time: '13:00 - 14:00' }
-  ]
+const loadTeacherDashboardResources = async () => {
+  await authStore.checkAuth()
+
+  if (!currentTeacherId.value) {
+    todayClasses.value = []
+    weeklyLessons.value = 0
+    freePeriods.value = 0
+    freePeriodsDetail.value = []
+    upcomingClasses.value = []
+    pendingRequests.value = 0
+    recentRequests.value = []
+    announcements.value = []
+    return
+  }
+
+  const response = await api.get(`/timetable/teacher/${currentTeacherId.value}`)
+  timetableEntries.value = response.data.timetables || []
+  hydrateDashboardFromTimetable()
 }
 
-const loadUpcomingClasses = () => {
-  upcomingClasses.value = [
-    {
-      id: 1,
-      subject: 'Physics',
-      class_name: 'Class 11-A',
-      day: 1,
-      date: new Date(Date.now() + 86400000),
-      start_time: '08:00'
-    },
-    {
-      id: 2,
-      subject: 'Chemistry',
-      class_name: 'Class 11-B',
-      day: 2,
-      date: new Date(Date.now() + 172800000),
-      start_time: '10:00'
-    }
-  ]
-}
-
-const loadPendingRequests = () => {
-  pendingRequests.value = 2
-  recentRequests.value = [
-    {
-      id: 1,
-      type: 'Class Swap',
-      status: 'pending',
-      date: '2 days ago'
-    },
-    {
-      id: 2,
-      type: 'Room Change',
-      status: 'approved',
-      date: '5 days ago'
-    }
-  ]
-}
-
-const loadAnnouncements = () => {
-  announcements.value = [
-    {
-      id: 1,
-      title: 'Staff Meeting Next Thursday',
-      message: 'Please note that there will be a staff meeting next Thursday at 4 PM in the main hall.',
-      date: new Date(),
-      read: false
-    },
-    {
-      id: 2,
-      title: 'New Assessment Schedule',
-      message: 'The revised assessment schedule for Term 2 has been released. Please check your email.',
-      date: new Date(Date.now() - 86400000),
-      read: true
-    }
-  ]
-}
-
-onMounted(() => {
-  loadTodaySchedule()
-  loadWeeklyData()
-  loadUpcomingClasses()
-  loadPendingRequests()
-  loadAnnouncements()
+onMounted(async () => {
+  try {
+    await loadTeacherDashboardResources()
+  } catch (error) {
+    todayClasses.value = []
+    weeklyLessons.value = 0
+    freePeriods.value = 0
+    freePeriodsDetail.value = []
+    upcomingClasses.value = []
+    pendingRequests.value = 0
+    recentRequests.value = []
+    announcements.value = []
+  }
 })
 </script>
 

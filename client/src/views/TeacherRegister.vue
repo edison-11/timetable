@@ -30,7 +30,7 @@
                   v-model.trim="form.name"
                   type="text"
                   class="form-control form-control-lg"
-                  placeholder="Claude Mwanza"
+                  placeholder="Teacher full name"
                   required
                 >
                 <small class="form-text text-muted">Your full legal name as it appears in school records</small>
@@ -42,7 +42,7 @@
                   v-model.trim="form.email"
                   type="email"
                   class="form-control form-control-lg"
-                  placeholder="claude@school.com"
+                  placeholder="teacher@school.com"
                   required
                 >
                 <small class="form-text text-muted">Must be unique and valid. Used for login.</small>

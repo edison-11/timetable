@@ -712,10 +712,15 @@ const loadTimetable = async () => {
   loadError.value = ''
   try {
     await authStore.checkAuth()
-    const response = await api.get('/timetable')
+    const teacherId = currentTeacherId.value
+    if (!teacherId) {
+      throw new Error('Teacher profile was not loaded.')
+    }
+
+    const response = await api.get(`/timetable/teacher/${teacherId}`)
     timetableEntries.value = response.data.timetables || []
   } catch (error) {
-    loadError.value = error.response?.data?.message || 'Failed to load timetable.'
+    loadError.value = error.response?.data?.message || error.message || 'Failed to load timetable.'
   } finally {
     loading.value = false
   }
