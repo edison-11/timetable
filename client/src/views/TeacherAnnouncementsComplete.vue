@@ -450,16 +450,64 @@ const viewAnnouncement = (announcement) => {
   showDetailsModal.value = true
 }
 
-const shareAnnouncement = (announcement) => {
-  alert(`Sharing: ${announcement.title}\n\nShare functionality to be implemented`)
+const buildAnnouncementText = (announcement) => {
+  const attachments = announcement.attachments?.length
+    ? `\n\nAttachments:\n${announcement.attachments.map(item => `- ${item.name} (${formatFileSize(item.size)})`).join('\n')}`
+    : ''
+
+  return `${announcement.title}
+Category: ${announcement.category}
+Published: ${formatDateTime(announcement.date)}
+Author: ${announcement.author}
+
+${announcement.content}${attachments}`
+}
+
+const downloadBlob = (content, filename, type = 'text/plain;charset=utf-8') => {
+  const blob = new Blob([content], { type })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const safeFileName = (name, extension) => {
+  const base = String(name || 'announcement').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return `${base || 'announcement'}.${extension}`
+}
+
+const shareAnnouncement = async (announcement) => {
+  const shareData = {
+    title: announcement.title,
+    text: buildAnnouncementText(announcement)
+  }
+
+  if (navigator.share) {
+    await navigator.share(shareData)
+    return
+  }
+
+  await navigator.clipboard.writeText(shareData.text)
+  openMenuId.value = null
 }
 
 const downloadAnnouncement = (announcement) => {
-  alert(`Downloading: ${announcement.title}\n\nDownload functionality to be implemented`)
+  downloadBlob(buildAnnouncementText(announcement), safeFileName(announcement.title, 'txt'))
+  openMenuId.value = null
 }
 
 const downloadFile = (attachment) => {
-  alert(`Downloading: ${attachment.name}\n\nDownload functionality to be implemented`)
+  const content = `${attachment.name}
+Type: ${attachment.type || 'file'}
+Size: ${formatFileSize(attachment.size)}
+
+This attachment record is available in the announcement system.`
+  const extension = String(attachment.name || '').split('.').pop() || 'txt'
+  downloadBlob(content, attachment.name || safeFileName('attachment', extension))
 }
 </script>
 

@@ -129,25 +129,9 @@
 
         <div class="panel">
           <div class="panel-title"><span v-html="icons.room"></span><h3>Room Utilization</h3></div>
-<<<<<<< HEAD
           <div class="room-utilization-head">
             <strong>{{ dashboardStatsCards.roomUtilization }}%</strong>
             <span>{{ dashboardStatsCards.usedRooms }} of {{ dashboardStatsCards.usedRooms + dashboardStatsCards.availableRooms }} rooms used</span>
-=======
-          <div class="utilization-bar"><span style="width:72%"></span></div>
-          <div class="utilization-value">{{ roomUtilization }}%</div>
-          <p>Average Utilization</p>
-          <div class="room-stats"><div><strong>{{ usedRooms }}</strong> Used</div><div><strong>{{ availableRooms }}</strong> Available</div></div>
-        </div>
-        <div class="panel">
-          <div class="panel-title"><span v-html="icons.teacher"></span><h3>Teacher Workload</h3></div>
-          <div class="workload-bars">
-            <div><span style="height:45%"></span><small>0-10</small></div>
-            <div><span style="height:72%"></span><small>10-20</small></div>
-            <div><span style="height:88%"></span><small>20-30</small></div>
-            <div><span style="height:64%"></span><small>30-40</small></div>
-            <div><span style="height:28%"></span><small>40+</small></div>
->>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
           </div>
           <div class="utilization-bar"><span :style="{ width: `${dashboardStatsCards.roomUtilization}%` }"></span></div>
           <div class="room-stats">
@@ -220,7 +204,10 @@
         <div id="notifications" class="panel">
           <div class="panel-header">
             <h3>Notifications</h3>
-            <button class="view-all" type="button" @click="loadNotifications">Refresh</button>
+            <div class="notification-tools">
+              <button class="view-all" type="button" @click="loadNotifications">Refresh</button>
+              <button class="view-all danger" type="button" :disabled="!notifications.length" @click="clearNotifications">Clear</button>
+            </div>
           </div>
           <div class="notifications-list">
             <div v-if="!notifications.length" class="notification empty">
@@ -248,6 +235,8 @@
                   <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
                 </div>
               </div>
+            </div>
+              <span class="notification-remove" @click.stop="deleteNotification(notification)">x</span>
             </div>
           </div>
         </div>
@@ -346,7 +335,6 @@ const dashboardStats = computed(() => ({
   rooms: rooms.value.length
 }))
 
-<<<<<<< HEAD
 const dashboardStatsCards = ref({
   distribution: [],
   roomUtilization: 0,
@@ -418,8 +406,6 @@ const loadDashboardStatsCards = async () => {
   }
 }
 
-=======
->>>>>>> 0a6fcf6b (changes made in the project on teacher's side)
 const usedRooms = computed(() => new Set(timetableEntries.value.filter(entry => entry.room_id).map(entry => entry.room_id)).size)
 const availableRooms = computed(() => Math.max(rooms.value.length - usedRooms.value, 0))
 const roomUtilization = computed(() => {
@@ -579,6 +565,26 @@ const loadNotifications = async () => {
   }
 }
 
+const deleteNotification = async (notification) => {
+  try {
+    await api.delete(`/notifications/${notification.id}`)
+    notifications.value = notifications.value.filter((item) => Number(item.id) !== Number(notification.id))
+  } catch (error) {
+    await loadNotifications()
+  }
+}
+
+const clearNotifications = async () => {
+  if (!notifications.value.length) return
+
+  try {
+    await api.delete('/notifications')
+    notifications.value = []
+  } catch (error) {
+    await loadNotifications()
+  }
+}
+
 const loadDashboardData = async () => {
   try {
     const [classesResponse, teachersResponse, modulesResponse, roomsResponse] = await Promise.all([
@@ -708,6 +714,12 @@ onMounted(() => {
   gap: 0.8rem;
 }
 
+.notification-tools {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
 .notification {
   display: flex;
   gap: 0.6rem;
@@ -717,6 +729,7 @@ onMounted(() => {
 
 .notification-button {
   width: 100%;
+  align-items: flex-start;
   background: transparent;
   border-top: none;
   border-left: none;
@@ -789,6 +802,23 @@ onMounted(() => {
 .approve-action { background: #16a34a; }
 .reject-action { background: #dc2626; }
 
+.notification-remove {
+  margin-left: auto;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.notification-remove:hover {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 .view-all {
   background: none;
   border: none;
@@ -799,6 +829,16 @@ onMounted(() => {
 
 .view-all:hover {
   text-decoration: underline;
+}
+
+.view-all.danger {
+  color: #dc2626;
+}
+
+.view-all:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 .academic-card {

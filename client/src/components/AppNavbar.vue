@@ -58,9 +58,6 @@
                 <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
               </span>
             </span>
-<<<<<<< HEAD
-          </div>
-=======
             <span
               class="notification-delete"
               role="button"
@@ -71,8 +68,7 @@
             >
               x
             </span>
-          </button>
->>>>>>> 4d46d2d4 (all changes made on the teacher's pages)
+          </div>
 
           <button class="view-all-notifications" type="button" @click="goToDashboardNotifications">
             View all notifications
@@ -639,6 +635,12 @@ const logout = () => {
   font-weight: 800;
 }
 
+.notification-header-actions {
+  display: inline-flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
 .notifications-header button,
 .view-all-notifications {
   border: none;
@@ -654,10 +656,15 @@ const logout = () => {
   color: #2980b9;
 }
 
+.notifications-header button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
 .notification-item {
   width: 100%;
   display: grid;
-  grid-template-columns: 10px 1fr;
+  grid-template-columns: 10px 1fr 24px;
   gap: 0.75rem;
   align-items: start;
   border: none;
@@ -741,6 +748,24 @@ const logout = () => {
 
 .approve-action { background: #16a34a; }
 .reject-action { background: #dc2626; }
+
+.notification-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: #94a3b8;
+  font-weight: 900;
+}
+
+.notification-delete:hover,
+.notification-delete:focus-visible {
+  color: #991b1b;
+  background: #fee2e2;
+  outline: none;
+}
 
 .view-all-notifications {
   width: 100%;

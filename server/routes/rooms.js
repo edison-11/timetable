@@ -52,20 +52,6 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get room by ID
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const room = await Room.findById(req.params.id);
-    if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-    res.json({ room });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Get rooms by type
 router.get('/type/:room_type', auth, async (req, res) => {
   try {
@@ -99,6 +85,20 @@ router.get('/:id/usage', auth, async (req, res) => {
   try {
     const usage = await Room.getRoomUsage(req.params.id);
     res.json({ usage });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get room by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const room = await Room.findById(req.params.id);
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+    res.json({ room });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
