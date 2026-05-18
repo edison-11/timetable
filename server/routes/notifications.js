@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
+<<<<<<< HEAD
     const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
     const [notifications, pendingTeachers] = await Promise.all([
       Notification.getRecent(limit),
@@ -43,7 +44,45 @@ router.get('/', auth, async (req, res) => {
 
     res.json({
       notifications: combinedNotifications
+=======
+    const notifications = await Notification.getRecent(req.query.limit);
+    const total = await Notification.count();
+    res.json({
+      total,
+      notifications: notifications.map((notification) => ({
+        id: notification.notification_id,
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        path: notification.path,
+        tone: notification.tone,
+        created_at: notification.created_at
+      }))
+>>>>>>> 4d46d2d4 (all changes made on the teacher's pages)
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const deleted = await Notification.delete(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+    res.json({ message: 'Notification deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/', auth, async (req, res) => {
+  try {
+    await Notification.clearAll();
+    res.json({ message: 'Notifications cleared successfully' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

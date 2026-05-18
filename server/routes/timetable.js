@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const TimetableEntry = require('../models/TimetableEntry');
 const Assignment = require('../models/Assignment');
 const Class = require('../models/Class');
+const Room = require('../models/Room');
 const SystemSetting = require('../models/SystemSetting');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
@@ -248,6 +249,11 @@ const rankAssignments = (assignments, scheduledCounts) => {
     })
     .sort((a, b) => b.score - a.score)
     .map((item) => item.assignment);
+};
+
+const findAvailableRoomId = async (dayOfWeek, startTime, endTime) => {
+  const rooms = await Room.getAvailableRooms(startTime, endTime, dayOfWeek);
+  return rooms[0]?.room_id || null;
 };
 
 // Create timetable entry
@@ -651,13 +657,14 @@ router.post('/generate', auth, [
           }
         }
 
+        const roomId = await findAvailableRoomId(item.day_of_week, item.start_time, item.end_time);
         const timetableId = await TimetableEntry.create({
           class_id: classItem.class_id,
           assignment_id: scheduledAssignment.assignment_id,
           day_of_week: item.day_of_week,
           start_time: item.start_time,
           end_time: item.end_time,
-          room_id: null,
+          room_id: roomId,
           module_name: scheduledAssignment.module_name,
           entry_type: 'lesson'
         });
@@ -726,14 +733,11 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get timetable entry by ID
-router.get('/:id', auth, async (req, res) => {
+// Get timetable by teacher
+router.get('/teacher/:teacher_id', auth, async (req, res) => {
   try {
-    const timetable = await TimetableEntry.findById(req.params.id);
-    if (!timetable) {
-      return res.status(404).json({ message: 'Timetable entry not found' });
-    }
-    res.json({ timetable });
+    const timetables = await TimetableEntry.getByTeacher(req.params.teacher_id);
+    res.json({ timetables });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -762,11 +766,14 @@ router.get('/class/:class_id/weekly', auth, async (req, res) => {
   }
 });
 
-// Get timetable by teacher
-router.get('/teacher/:teacher_id', auth, async (req, res) => {
+// Get timetable entry by ID
+router.get('/:id', auth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByTeacher(req.params.teacher_id);
-    res.json({ timetables });
+    const timetable = await TimetableEntry.findById(req.params.id);
+    if (!timetable) {
+      return res.status(404).json({ message: 'Timetable entry not found' });
+    }
+    res.json({ timetable });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

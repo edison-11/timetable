@@ -87,9 +87,9 @@ const academicYear = computed(() => {
   left: 0;
   width: 240px;
   height: 100vh;
-  background: #ffffff;
-  border-right: 1px solid #dbeafe;
-  box-shadow: 8px 0 26px rgba(37, 99, 235, 0.08);
+  background: #f8f9fa;
+  border-right: 1px solid #e9ecef;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   z-index: 200;
@@ -101,7 +101,7 @@ const academicYear = computed(() => {
   align-items: center;
   gap: 0.75rem;
   padding: 1.5rem 1rem;
-  border-bottom: 1px solid #dbeafe;
+  border-bottom: 1px solid #e9ecef;
   margin-bottom: 1rem;
 }
 
@@ -111,66 +111,70 @@ const academicYear = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  background: linear-gradient(135deg, #3498db, #2980b9);
   border-radius: 8px;
   font-weight: 800;
   color: white;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
 }
 
 .brand-text strong {
   display: block;
-  font-size: 1rem;
-  color: #0f172a;
+  font-size: 0.95rem;
+  color: #2c3e50;
+  font-weight: 700;
 }
 
 .brand-text span {
-  font-size: 0.72rem;
-  color: #64748b;
-  font-weight: 700;
+  font-size: 0.7rem;
+  color: #7f8c8d;
+  font-weight: 600;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.65rem;
+  padding: 0 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 42px;
-  padding: 0.62rem 0.75rem;
+  min-height: 40px;
+  padding: 0.65rem 0.75rem;
   border-radius: 8px;
-  color: #475569;
+  color: #495057;
   text-decoration: none;
-  transition: all 0.2s ease;
-  font-size: 0.88rem;
-  font-weight: 760;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-left: 3px solid transparent;
 }
 
 .nav-item:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
-  transform: translateX(2px);
+  background: #e9ecef;
+  color: #3498db;
+  border-left-color: #3498db;
+  transform: translateX(3px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
   color: white;
-  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.22);
+  border-left-color: #2980b9;
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
 }
 
 .nav-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
 }
 
 .nav-icon :deep(svg) {
@@ -185,23 +189,29 @@ const academicYear = computed(() => {
 
 .academic-card {
   margin: 1rem;
-  padding: 0.85rem;
-  background: #eff6ff;
+  padding: 1rem;
+  background: linear-gradient(135deg, #e8f4f8 0%, #dbeafe 100%);
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
 }
 
 .academic-card span {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: #64748b;
-  font-weight: 750;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .academic-card strong {
-  font-size: 0.9rem;
-  color: #1d4ed8;
+  font-size: 1rem;
+  color: #2980b9;
+  font-weight: 800;
+  display: block;
+  margin-top: 0.35rem;
 }
 
 @media (max-width: 768px) {

@@ -19,7 +19,7 @@ import AppNavbar from './AppNavbar.vue'
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: #f5f9ff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
 }
 
 .main-wrapper {
@@ -32,9 +32,9 @@ import AppNavbar from './AppNavbar.vue'
 
 .main-content {
   flex: 1;
-  padding: 1.5rem;
+  padding: 2rem;
   margin-top: 70px;
-  background: #f5f9ff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
 }
 
 @media (max-width: 768px) {
