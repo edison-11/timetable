@@ -69,6 +69,78 @@ router.put('/institution', auth, [
   }
 });
 
+router.get('/admin', auth, async (req, res) => {
+  try {
+    const default_landing_page = await SystemSetting.get('admin_default_landing_page', '/dashboard');
+    const dashboard_density = await SystemSetting.get('admin_dashboard_density', 'comfortable');
+    const auto_refresh_minutes = Number(await SystemSetting.get('admin_auto_refresh_minutes', '5'));
+    const notification_retention_days = Number(await SystemSetting.get('admin_notification_retention_days', '30'));
+    const export_filename_prefix = await SystemSetting.get('admin_export_filename_prefix', 'timetable');
+    const show_empty_slots = await SystemSetting.get('admin_show_empty_slots', 'true');
+
+    res.json({
+      settings: {
+        default_landing_page,
+        dashboard_density,
+        auto_refresh_minutes: Number.isFinite(auto_refresh_minutes) ? auto_refresh_minutes : 5,
+        notification_retention_days: Number.isFinite(notification_retention_days) ? notification_retention_days : 30,
+        export_filename_prefix,
+        show_empty_slots: show_empty_slots === 'true'
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/admin', auth, [
+  body('default_landing_page').optional().isIn(['/dashboard', '/timetable', '/teachers', '/settings']),
+  body('dashboard_density').optional().isIn(['comfortable', 'compact']),
+  body('auto_refresh_minutes').optional().isInt({ min: 1, max: 60 }),
+  body('notification_retention_days').optional().isInt({ min: 1, max: 365 }),
+  body('export_filename_prefix').optional().trim().isLength({ min: 1, max: 40 }),
+  body('show_empty_slots').optional().isBoolean()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const {
+      default_landing_page,
+      dashboard_density,
+      auto_refresh_minutes,
+      notification_retention_days,
+      export_filename_prefix,
+      show_empty_slots
+    } = req.body;
+
+    if (default_landing_page !== undefined) await SystemSetting.set('admin_default_landing_page', default_landing_page);
+    if (dashboard_density !== undefined) await SystemSetting.set('admin_dashboard_density', dashboard_density);
+    if (auto_refresh_minutes !== undefined) await SystemSetting.set('admin_auto_refresh_minutes', Number(auto_refresh_minutes));
+    if (notification_retention_days !== undefined) await SystemSetting.set('admin_notification_retention_days', Number(notification_retention_days));
+    if (export_filename_prefix !== undefined) await SystemSetting.set('admin_export_filename_prefix', export_filename_prefix.trim());
+    if (show_empty_slots !== undefined) await SystemSetting.set('admin_show_empty_slots', Boolean(show_empty_slots));
+
+    res.json({
+      message: 'Admin settings updated successfully',
+      settings: {
+        default_landing_page,
+        dashboard_density,
+        auto_refresh_minutes: Number(auto_refresh_minutes),
+        notification_retention_days: Number(notification_retention_days),
+        export_filename_prefix,
+        show_empty_slots: Boolean(show_empty_slots)
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/timetable', auth, async (req, res) => {
   try {
     const settings = await SystemSetting.getTimetableSettings();

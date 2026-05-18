@@ -128,7 +128,7 @@
             </span>
             <div>
               <h2>Generation Rules</h2>
-              <p>Choose scope, timing, days, and conflict buffers.</p>
+              <p>Choose scope. The daily structure is fixed.</p>
             </div>
           </div>
 
@@ -149,25 +149,25 @@
             </div>
             <div>
               <label class="form-label">Start Time</label>
-              <input v-model="generateSettings.start_time" type="time" class="form-control">
+              <input v-model="generateSettings.start_time" type="time" class="form-control" readonly>
             </div>
             <div>
               <label class="form-label">End Time</label>
-              <input v-model="generateSettings.end_time" type="time" class="form-control">
+              <input v-model="generateSettings.end_time" type="time" class="form-control" readonly>
             </div>
             <div>
-              <label class="form-label">Period Minutes</label>
-              <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="30" max="180">
+              <label class="form-label">Slot Minutes</label>
+              <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="45" max="45" readonly>
             </div>
             <div>
-              <label class="form-label">Teacher Changeover</label>
-              <input v-model.number="generateSettings.teacher_changeover_minutes" type="number" class="form-control" min="0" max="60">
+              <label class="form-label">Slots</label>
+              <input value="10 fixed slots" type="text" class="form-control" readonly>
             </div>
           </div>
 
           <div class="day-picker" aria-label="Generation days">
             <label v-for="day in days" :key="day" class="day-chip" :class="{ active: generateSettings.selected_days.includes(day) }">
-              <input v-model="generateSettings.selected_days" :value="day" type="checkbox">
+              <input v-model="generateSettings.selected_days" :value="day" type="checkbox" disabled>
               {{ day.slice(0, 3) }}
             </label>
           </div>
@@ -188,7 +188,7 @@
         </article>
       </section>
 
-      <section class="advanced-grid">
+      <section v-if="false" class="advanced-grid">
         <article class="panel-card">
           <div class="panel-heading compact">
             <span class="panel-icon rules-icon">
@@ -277,6 +277,25 @@
         </article>
       </section>
 
+      <section class="fixed-structure-panel">
+        <table class="fixed-structure-table">
+          <thead>
+            <tr>
+              <th>Slot</th>
+              <th>Start</th>
+              <th>End</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in FIXED_TIMETABLE_ROWS" :key="`${row.type}-${row.start_time}`" :class="{ 'break-row': row.type === 'break' }">
+              <td>{{ row.type === 'break' ? row.label : row.slot_number }}</td>
+              <td>{{ row.start_time }}</td>
+              <td>{{ row.end_time }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
       <section class="generation-bar">
         <div>
           <strong>{{ generationSummary }}</strong>
@@ -355,7 +374,7 @@
             <table class="timetable-grid">
               <thead>
                 <tr>
-                  <th>Period</th>
+                  <th>Slot</th>
                   <th>Time</th>
                   <th>Monday</th>
                   <th>Tuesday</th>
@@ -407,6 +426,7 @@ import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import { exportToPDF, exportToWord, exportToICal, printTimetable as printClassTimetable } from '@/utils/exportTimetable'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
+import { FIXED_DAYS, buildFixedTimetableRows, FIXED_TIMETABLE_ROWS } from '@/utils/fixedTimetableStructure'
 
 const loading = ref(false)
 const classes = ref([])
@@ -435,11 +455,11 @@ const generateSettings = ref({
   class_id: '',
   level: '',
   start_time: '08:00',
-  end_time: '19:45',
-  period_minutes: 60,
-  teacher_changeover_minutes: 5,
+  end_time: '17:15',
+  period_minutes: 45,
+  teacher_changeover_minutes: 0,
   replace_existing: true,
-  selected_days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  selected_days: [...FIXED_DAYS],
   status: 'draft',
   break_period_rules: {
     enabled: true,
@@ -453,7 +473,7 @@ const generateSettings = ref({
   }
 })
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const days = FIXED_DAYS
 
 const messageTone = computed(() => {
   const text = assignmentMessage.value.toLowerCase()
@@ -688,61 +708,7 @@ const buildBreakRows = (group) => {
 }
 
 const buildTimetableGridWithBreaks = (group) => {
-  const allRows = buildTimetableGridRows(group)
-  const rules = generateSettings.value.break_period_rules
-
-  if (!rules.enabled) {
-    const savedBreakRows = buildBreakRows(group)
-    const combinedRows = [...allRows, ...savedBreakRows].sort((a, b) => {
-      const timeDiff = a.start_time.localeCompare(b.start_time)
-      if (timeDiff !== 0) return timeDiff
-      if (a.type === b.type) return 0
-      return a.type === 'break' ? -1 : 1
-    })
-
-    let period = 0
-    return combinedRows.map((row) => {
-      if (row.type === 'break') return row
-      period += 1
-      return { ...row, period }
-    })
-  }
-
-  const resultRows = []
-  const morningAfter = Number(rules.periods_before_morning_break) || 3
-  const periodsBeforeLunch = Number(rules.periods_before_lunch) || 2
-  const periodsBeforeEvening = Number(rules.periods_before_afternoon_break) || 3
-  const periodsAfterEvening = Number(rules.periods_after_afternoon_break) || 0
-  const lunchAfter = morningAfter + periodsBeforeLunch
-  const eveningAfter = lunchAfter + periodsBeforeEvening
-  const totalRulePeriods = eveningAfter + periodsAfterEvening
-  const rows = allRows.slice(0, totalRulePeriods)
-  const formattedBreakPoints = [
-    { after: morningAfter, breakType: 'morning-break', label: 'MORNING BREAK' },
-    { after: lunchAfter, breakType: 'lunch-break', label: 'LUNCH BREAK' },
-    { after: eveningAfter, breakType: 'evening-break', label: 'EVENING BREAK' }
-  ]
-
-  rows.forEach((row, index) => {
-    resultRows.push(row)
-
-    formattedBreakPoints.forEach(bp => {
-      const nextRow = rows[index + 1]
-      if (index + 1 === bp.after && nextRow) {
-        resultRows.push({
-          key: `${bp.breakType}-${row.end_time}-${nextRow.start_time}`,
-          type: 'break',
-          breakType: bp.breakType,
-          label: bp.label,
-          start_time: row.end_time,
-          end_time: nextRow.start_time,
-          entriesByDay: {}
-        })
-      }
-    })
-  })
-
-  return resultRows
+  return buildFixedTimetableRows(group.entries, days)
 }
 
 const escapeCsvValue = (value) => {
@@ -751,7 +717,7 @@ const escapeCsvValue = (value) => {
 }
 
 const buildTimetableExportRows = () => {
-  const rows = [['Class', 'Period', 'Time', ...days]]
+  const rows = [['Class', 'Slot', 'Time', ...days]]
 
   displayedTimetables.value.forEach((group) => {
     buildTimetableGridWithBreaks(group).forEach((row) => {
@@ -1029,23 +995,12 @@ const addAssignment = async () => {
 const generateTimetable = async () => {
   loading.value = true
   try {
-    const rules = generateSettings.value.break_period_rules
     const payload = {
-      ...generateSettings.value,
+      class_id: generateSettings.value.class_id,
+      level: generateSettings.value.level,
       replace_existing: true,
-      days: generateSettings.value.selected_days,
-      break_period_rules: rules,
-      shared_activities: buildSharedActivitiesPayload()
-    }
-
-    if (rules.enabled) {
-      payload.before_morning_break = rules.periods_before_morning_break
-      payload.after_break_period = rules.periods_before_lunch
-      payload.after_lunch_period = rules.periods_before_afternoon_break
-      payload.after_noon_break_period = rules.periods_after_afternoon_break
-      payload.morning_break_length = rules.morning_break_minutes
-      payload.lunch_length = rules.lunch_break_minutes
-      payload.noon_break_length = rules.afternoon_break_minutes
+      days: [...FIXED_DAYS],
+      status: generateSettings.value.status
     }
 
     const response = await api.post('/timetable/generate', payload)
@@ -1567,6 +1522,40 @@ fieldset:disabled {
 .generation-bar span {
   color: #64748b;
   font-size: 0.88rem;
+}
+
+.fixed-structure-panel {
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.fixed-structure-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.fixed-structure-table th,
+.fixed-structure-table td {
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #e5edf6;
+  text-align: left;
+}
+
+.fixed-structure-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.fixed-structure-table .break-row td {
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 800;
 }
 
 .timetable-output-card {
