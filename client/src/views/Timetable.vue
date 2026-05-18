@@ -82,14 +82,20 @@
               </select>
             </div>
             <div>
-              <label class="form-label">Teacher</label>
+              <div class="field-label-row">
+                <label class="form-label">Teacher</label>
+                <router-link to="/teachers" class="field-link">Add teacher</router-link>
+              </div>
               <select v-model="assignment.teacher_id" class="form-select">
                 <option value="">Select Teacher</option>
                 <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">{{ teacher.name }}</option>
               </select>
             </div>
             <div>
-              <label class="form-label">Module</label>
+              <div class="field-label-row">
+                <label class="form-label">Module</label>
+                <router-link to="/modules" class="field-link">Add module</router-link>
+              </div>
               <select v-model="assignment.module_id" class="form-select">
                 <option value="">Select Module</option>
                 <option v-for="module in modules" :key="module.module_id" :value="module.module_id">{{ module.module_name }}</option>
@@ -381,7 +387,7 @@
                     >
                       <strong>{{ row.entriesByDay[day].module_name }}</strong>
                       <small>{{ row.entriesByDay[day].teacher_name || (row.entriesByDay[day].entry_type === 'activity' ? 'Shared activity' : '') }}</small>
-                      <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">{{ row.entriesByDay[day].room_name || row.entriesByDay[day].room || 'TBA' }}</span>
+                      <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">{{ row.entriesByDay[day].room_name || row.entriesByDay[day].room || group.room_name || 'TBA' }}</span>
                     </div>
                     <span v-else class="empty-slot"></span>
                   </td>
@@ -425,8 +431,8 @@ const emptyAssignment = () => ({
   class_id: '',
   teacher_id: '',
   module_id: '',
-  academic_year: '',
-  term: ''
+  academic_year: defaultAcademicYear(),
+  term: 'Term 1'
 })
 
 const assignment = ref(emptyAssignment())
@@ -455,6 +461,12 @@ const generateSettings = ref({
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
+function defaultAcademicYear() {
+  const today = new Date()
+  const startYear = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1
+  return `${startYear}-${startYear + 1}`
+}
+
 const messageTone = computed(() => {
   const text = assignmentMessage.value.toLowerCase()
   return text.includes('error') ? 'error' : 'success'
@@ -473,6 +485,14 @@ const cleanMessage = (message) => {
     .replace(/[^\x20-\x7E]/g, '')
     .replace(/^\s*(Adding|Generating)?\s*/, '')
     .trim()
+}
+
+const getApiErrorMessage = (error, fallback = 'Request failed.') => {
+  const data = error.response?.data
+  if (Array.isArray(data?.errors) && data.errors.length) {
+    return data.errors.map(item => item.msg).filter(Boolean).join(', ')
+  }
+  return data?.message || error.message || fallback
 }
 
 const openAssignmentForm = () => {
@@ -594,20 +614,38 @@ const toggleExportDropdown = (classId) => {
   activeExportDropdown.value = activeExportDropdown.value === classId ? null : classId
 }
 
-const getExportRows = (group) => buildTimetableGridWithBreaks(group)
+const withGroupRoomFallback = (rows, group) => {
+  return rows.map((row) => {
+    if (row.type === 'break') return row
+    const entriesByDay = {}
+    days.forEach((day) => {
+      const entry = row.entriesByDay?.[day]
+      entriesByDay[day] = entry
+        ? { ...entry, room_name: entry.room_name || entry.room || group.room_name }
+        : entry
+    })
+    return { ...row, entriesByDay }
+  })
+}
+
+const getExportOptions = (group) => ({
+  rows: withGroupRoomFallback(buildTimetableGridWithBreaks(group), group),
+  level: group.level,
+  roomName: group.room_name
+})
 
 const handleExportPDF = (group) => {
-  exportToPDF(group.entries, group.class_name, { rows: getExportRows(group) })
+  exportToPDF(group.entries, group.class_name, getExportOptions(group))
   activeExportDropdown.value = null
 }
 
 const handleExportWord = (group) => {
-  exportToWord(group.entries, group.class_name, { rows: getExportRows(group) })
+  exportToWord(group.entries, group.class_name, getExportOptions(group))
   activeExportDropdown.value = null
 }
 
 const handlePrint = (group) => {
-  printClassTimetable(group.entries, group.class_name, { rows: getExportRows(group) })
+  printClassTimetable(group.entries, group.class_name, getExportOptions(group))
   activeExportDropdown.value = null
 }
 
@@ -1020,7 +1058,7 @@ const addAssignment = async () => {
     await loadTimetable()
     setTimeout(() => { assignmentMessage.value = '' }, 3000)
   } catch (error) {
-    assignmentMessage.value = 'Error: ' + (error.response?.data?.message || error.message)
+    assignmentMessage.value = 'Error: ' + getApiErrorMessage(error, 'Failed to add assignment.')
   } finally {
     loading.value = false
   }
@@ -1056,7 +1094,7 @@ const generateTimetable = async () => {
     }
     setTimeout(() => { assignmentMessage.value = '' }, 3000)
   } catch (error) {
-    assignmentMessage.value = 'Error: ' + (error.response?.data?.message || error.message)
+    assignmentMessage.value = 'Error: ' + getApiErrorMessage(error, 'Failed to generate timetable.')
   } finally {
     loading.value = false
   }
@@ -1398,12 +1436,31 @@ button:disabled {
   gap: 0.85rem;
 }
 
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .form-label {
   display: block;
   margin-bottom: 0.35rem;
   color: #475569;
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.field-link {
+  margin-bottom: 0.35rem;
+  color: #2563eb;
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.field-link:hover {
+  text-decoration: underline;
 }
 
 .form-control,

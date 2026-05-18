@@ -33,7 +33,10 @@
                 </div>
 
                 <div class="col-md-4">
-                  <label for="assignmentTeacher" class="form-label">Teacher *</label>
+                  <div class="d-flex align-items-center justify-content-between gap-2">
+                    <label for="assignmentTeacher" class="form-label">Teacher *</label>
+                    <router-link to="/teachers" class="small fw-semibold text-decoration-none mb-2">Add teacher</router-link>
+                  </div>
                   <select id="assignmentTeacher" v-model.number="newAssignment.teacher_id" class="form-select" required :class="{ 'is-invalid': errors.teacher_id }">
                     <option value="">Select teacher</option>
                     <option v-for="teacher in filteredTeachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
@@ -44,7 +47,10 @@
                 </div>
 
                 <div class="col-md-4">
-                  <label for="assignmentModule" class="form-label">Module *</label>
+                  <div class="d-flex align-items-center justify-content-between gap-2">
+                    <label for="assignmentModule" class="form-label">Module *</label>
+                    <router-link to="/modules" class="small fw-semibold text-decoration-none mb-2">Add module</router-link>
+                  </div>
                   <select id="assignmentModule" v-model.number="newAssignment.module_id" class="form-select" required :class="{ 'is-invalid': errors.module_id }">
                     <option value="">Select module</option>
                     <option v-for="module in modules" :key="module.module_id" :value="module.module_id">
@@ -158,12 +164,18 @@ const loading = ref(false)
 const errors = ref({})
 const formMessage = ref('')
 
+function defaultAcademicYear() {
+  const today = new Date()
+  const startYear = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1
+  return `${startYear}-${startYear + 1}`
+}
+
 const newAssignment = ref({
   teacher_id: '',
   module_id: '',
   class_id: '',
-  academic_year: '2024-2025',
-  term: ''
+  academic_year: defaultAcademicYear(),
+  term: 'Term 1'
 })
 
 const resetAssignmentForm = () => {
@@ -171,8 +183,8 @@ const resetAssignmentForm = () => {
     teacher_id: '',
     module_id: '',
     class_id: '',
-    academic_year: newAssignment.value.academic_year || '2024-2025',
-    term: ''
+    academic_year: newAssignment.value.academic_year || defaultAcademicYear(),
+    term: 'Term 1'
   }
   selectedDepartment.value = ''
   formMessage.value = ''
@@ -242,7 +254,7 @@ const handleAddAssignment = async () => {
         module_id: '',
         class_id: '',
         academic_year: newAssignment.value.academic_year,
-        term: ''
+        term: newAssignment.value.term || 'Term 1'
       }
       formMessage.value = ''
       errors.value = {}

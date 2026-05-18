@@ -84,6 +84,13 @@ const getExportRows = (timetableData, options = {}) => {
   return buildRowsFromEntries(Array.isArray(timetableData) ? timetableData : []);
 };
 
+const getExportMeta = (options = {}) => {
+  const meta = [];
+  if (options.level) meta.push(`Level: ${options.level}`);
+  if (options.roomName) meta.push(`Room: ${options.roomName}`);
+  return meta;
+};
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
 const escapeHtml = (value) => String(value ?? '')
@@ -97,10 +104,11 @@ const cellHtml = (entry) => {
   return escapeHtml(formatCell(entry, '\n')).replace(/\n/g, '<br>');
 };
 
-const buildTimetableHtml = (rows, className) => {
+const buildTimetableHtml = (rows, className, options = {}) => {
   const compact = rows.length > 9;
   const fontSize = compact ? 9 : 11;
   const cellPadding = compact ? 4 : 7;
+  const meta = getExportMeta(options);
   const bodyRows = rows.map((row) => {
     if (row.type === 'break') {
       return `
@@ -128,6 +136,7 @@ const buildTimetableHtml = (rows, className) => {
     html, body { margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; color: #111827; }
     h1 { margin: 0 0 3px; font-size: ${compact ? 18 : 22}px; }
+    .meta { display: flex; gap: 16px; margin: 0 0 ${compact ? 6 : 10}px; color: #1f2937; font-size: ${compact ? 10 : 12}px; font-weight: 700; }
     .generated { margin: 0 0 ${compact ? 8 : 14}px; color: #4b5563; font-size: ${compact ? 10 : 12}px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th { background: #2563eb; color: #fff; font-weight: 700; text-align: center; }
@@ -140,6 +149,7 @@ const buildTimetableHtml = (rows, className) => {
 </head>
 <body>
   <h1>${escapeHtml(className)} - Timetable</h1>
+  ${meta.length ? `<p class="meta">${meta.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}</p>` : ''}
   <p class="generated">Generated on ${escapeHtml(new Date().toLocaleDateString())}</p>
   <table>
     <colgroup>
@@ -162,13 +172,15 @@ const buildTimetableHtml = (rows, className) => {
 
 export const exportToPDF = (timetableData, className = 'Timetable', options = {}) => {
   const rows = getExportRows(timetableData, options);
+  const meta = getExportMeta(options);
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 7;
   const titleY = 13;
-  const generatedY = 19;
-  const startY = 24;
+  const metaY = 19;
+  const generatedY = meta.length ? 24 : 19;
+  const startY = meta.length ? 29 : 24;
   const usableWidth = pageWidth - (margin * 2);
   const usableHeight = pageHeight - startY - margin;
   const estimatedRowHeight = usableHeight / Math.max(rows.length + 1, 1);
@@ -182,6 +194,9 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
   doc.text(`${className} - Timetable`, margin, titleY);
 
   doc.setFontSize(8);
+  if (meta.length) {
+    doc.text(meta.join('    '), margin, metaY);
+  }
   doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, generatedY);
 
   const body = rows.map((row) => {
@@ -251,7 +266,7 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
 
 export const exportToWord = (timetableData, className = 'Timetable', options = {}) => {
   const rows = getExportRows(timetableData, options);
-  const html = buildTimetableHtml(rows, className);
+  const html = buildTimetableHtml(rows, className, options);
   const blob = new Blob([html], { type: 'application/msword;charset=utf-8' });
   const link = document.createElement('a');
 
@@ -269,7 +284,7 @@ export const printTimetable = (timetableData, className = 'Timetable', options =
   if (!printWindow) return;
 
   printWindow.document.open();
-  printWindow.document.write(buildTimetableHtml(rows, className));
+  printWindow.document.write(buildTimetableHtml(rows, className, options));
   printWindow.document.close();
   printWindow.focus();
   printWindow.print();

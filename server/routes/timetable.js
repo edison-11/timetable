@@ -664,7 +664,7 @@ router.post('/generate', auth, [
           day_of_week: item.day_of_week,
           start_time: item.start_time,
           end_time: item.end_time,
-          room_id: roomId,
+          room_id: roomId || classItem.room_id || null,
           module_name: scheduledAssignment.module_name,
           entry_type: 'lesson'
         });

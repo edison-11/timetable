@@ -53,13 +53,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       ORDER BY t.day_of_week, t.start_time
     `);
     return rows;
@@ -75,13 +76,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE t.timetable_id = ?
     `, [id]);
     return rows[0];
@@ -97,13 +99,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE t.class_id = ?
       ORDER BY t.day_of_week, t.start_time
     `, [class_id]);
@@ -120,13 +123,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE a.teacher_id = ?
          OR t.entry_type IN ('break', 'activity')
       ORDER BY t.day_of_week, t.start_time
@@ -144,13 +148,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE t.room_id = ?
       ORDER BY t.day_of_week, t.start_time
     `, [room_id]);
@@ -167,13 +172,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE t.day_of_week = ?
       ORDER BY t.start_time
     `, [day_of_week]);
@@ -273,13 +279,14 @@ class TimetableEntry {
              a.teacher_id,
              tr.name as teacher_name,
              t.module_name,
-             r.room_name,
-             r.room_type
+             COALESCE(r.room_name, cr.room_name) as room_name,
+             COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
+      LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE t.class_id = ?
       ORDER BY FIELD(t.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), t.start_time
     `, [class_id]);
