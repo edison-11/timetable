@@ -19,6 +19,7 @@ const closeSidebar = () => {
   document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
   document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
   document.body.classList.remove('sidebar-open')
+  document.body.classList.remove('sidebar-collapsed')
   document.dispatchEvent(new Event('sidebar:closed'))
 }
 </script>
@@ -36,6 +37,7 @@ const closeSidebar = () => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  transition: margin-left 0.24s ease;
 }
 
 .sidebar-backdrop {
@@ -68,5 +70,11 @@ const closeSidebar = () => {
   .main-wrapper {
     margin-left: 0;
   }
+}
+</style>
+
+<style>
+body.sidebar-collapsed .main-wrapper {
+  margin-left: 0;
 }
 </style>

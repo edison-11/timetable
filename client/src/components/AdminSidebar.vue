@@ -92,6 +92,7 @@ const academicYear = computed(() => {
   flex-direction: column;
   z-index: 200;
   overflow-y: auto;
+  transition: transform 0.24s ease;
 }
 
 .sidebar-brand {
@@ -238,12 +239,18 @@ const academicYear = computed(() => {
 @media (max-width: 768px) {
   .admin-sidebar {
     transform: translateX(-100%);
-    transition: transform 0.24s ease;
     z-index: 300;
   }
 
   .admin-sidebar.mobile-open {
     transform: translateX(0);
   }
+}
+
+</style>
+
+<style>
+body.sidebar-collapsed .admin-sidebar {
+  transform: translateX(-100%);
 }
 </style>

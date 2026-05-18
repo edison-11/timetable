@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from './auth'
+import { useLoadingStore } from './loading'
 
 const getApiBaseUrl = () => {
   const configuredUrl = import.meta.env.VITE_API_URL
@@ -46,6 +47,12 @@ const normalizeApiErrorMessage = (error) => {
 api.interceptors.request.use(
   (config) => {
     const authStore = useAuthStore()
+    const loadingStore = useLoadingStore()
+
+    if (config.showGlobalLoader !== false) {
+      loadingStore.startRequest()
+      config.globalLoaderStarted = true
+    }
 
     let token = authStore.token
 
@@ -68,10 +75,20 @@ api.interceptors.request.use(
 
 // Response interceptor to handle errors globally
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config?.globalLoaderStarted) {
+      useLoadingStore().finishRequest()
+    }
+
+    return response
+  },
 
   (error) => {
     const authStore = useAuthStore()
+
+    if (error.config?.globalLoaderStarted) {
+      useLoadingStore().finishRequest()
+    }
 
     // Normalize validation error messages
     normalizeApiErrorMessage(error)

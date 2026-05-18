@@ -4,54 +4,34 @@
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useLoadingStore } from '@/stores/loading'
 import Preloader from '@/components/Preloader.vue'
 
 const authStore = useAuthStore()
+const loadingStore = useLoadingStore()
 const router = useRouter()
-const isGlobalLoading = ref(true)
-let hideLoaderTimer = null
-
-const showLoader = () => {
-  if (hideLoaderTimer) {
-    clearTimeout(hideLoaderTimer)
-    hideLoaderTimer = null
-  }
-
-  isGlobalLoading.value = true
-}
-
-const hideLoader = (delay = 550) => {
-  if (hideLoaderTimer) clearTimeout(hideLoaderTimer)
-
-  hideLoaderTimer = setTimeout(() => {
-    isGlobalLoading.value = false
-    hideLoaderTimer = null
-  }, delay)
-}
+const isGlobalLoading = computed(() => loadingStore.isLoading)
 
 router.beforeEach((to, from, next) => {
-  if (to.fullPath !== from.fullPath) showLoader()
+  if (to.fullPath !== from.fullPath) loadingStore.startRoute()
   next()
 })
 
 router.afterEach(() => {
-  hideLoader()
+  loadingStore.finishRoute()
 })
 
 router.onError(() => {
-  hideLoader(150)
+  loadingStore.finishRoute()
 })
 
-onMounted(() => {
-  authStore.checkAuth()
-  hideLoader(700)
-})
-
-onBeforeUnmount(() => {
-  if (hideLoaderTimer) clearTimeout(hideLoaderTimer)
+onMounted(async () => {
+  loadingStore.startBoot()
+  await authStore.checkAuth()
+  loadingStore.finishBoot()
 })
 </script>
 

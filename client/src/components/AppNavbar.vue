@@ -223,10 +223,21 @@ const hydrateProfileForm = ({ clearStatus = true } = {}) => {
 }
 
 const toggleSidebar = () => {
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
   sidebarOpen.value = !sidebarOpen.value
-  document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open', sidebarOpen.value)
-  document.querySelector('.sidebar-backdrop')?.classList.toggle('visible', sidebarOpen.value)
-  document.body.classList.toggle('sidebar-open', sidebarOpen.value)
+
+  if (isMobile) {
+    document.body.classList.remove('sidebar-collapsed')
+    document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open', sidebarOpen.value)
+    document.querySelector('.sidebar-backdrop')?.classList.toggle('visible', sidebarOpen.value)
+    document.body.classList.toggle('sidebar-open', sidebarOpen.value)
+    return
+  }
+
+  document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
+  document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
+  document.body.classList.remove('sidebar-open')
+  document.body.classList.toggle('sidebar-collapsed', sidebarOpen.value)
 }
 
 const runSearch = () => {
@@ -457,9 +468,16 @@ const closeMenusOnOutsideClick = (event) => {
 }
 
 const syncSidebarState = () => {
-  const isOpen = document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') || false
+  const isOpen =
+    document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') ||
+    document.body.classList.contains('sidebar-collapsed') ||
+    false
+
   sidebarOpen.value = isOpen
-  document.body.classList.toggle('sidebar-open', isOpen)
+  document.body.classList.toggle(
+    'sidebar-open',
+    document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') || false
+  )
 }
 
 onMounted(() => {
@@ -503,7 +521,7 @@ const logout = () => {
 }
 
 .menu-toggle {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 44px;
@@ -1022,9 +1040,12 @@ const logout = () => {
     gap: 0.75rem;
     padding: 0 1rem;
   }
+}
 
-  .menu-toggle {
-    display: inline-flex;
-  }
+</style>
+
+<style>
+body.sidebar-collapsed .app-navbar {
+  left: 0;
 }
 </style>
