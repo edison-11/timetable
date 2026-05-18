@@ -1,7 +1,9 @@
 <template>
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
-      <div class="brand-mark">TT</div>
+      <div class="brand-mark">
+        <img class="brand-logo" src="/timetable-logo.png" alt="Timetable logo">
+      </div>
       <div class="brand-text">
         <strong>Timetable</strong>
         <span>Admin Panel</span>
@@ -103,6 +105,13 @@ const academicYear = computed(() => {
   font-weight: 800;
   color: white;
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-text strong {

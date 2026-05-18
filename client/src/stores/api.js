@@ -59,10 +59,16 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const authStore = useAuthStore()
-    
-    if (error.response?.status === 401 && !isLoginRequest) {
+    const requestUrl = error.config?.url || ''
+    const isAuthRequest =
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/teacher-auth/login') ||
+      requestUrl.includes('/auth/register') ||
+      requestUrl.includes('/teacher-auth/register')
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       const userType = localStorage.getItem('userType')
-      
+
       if (userType === 'teacher') {
         // Clear teacher auth data
         localStorage.removeItem('token')
@@ -75,7 +81,7 @@ api.interceptors.response.use(
         window.location.href = '/login'
       }
     }
-    
+
     return Promise.reject(error)
   }
 )
