@@ -71,7 +71,7 @@
           <table class="overview-table">
             <thead>
               <tr>
-                <th>Period</th>
+                <th>Slot</th>
                 <th>Time</th>
                 <th v-for="day in days" :key="day">{{ day }}</th>
               </tr>
@@ -254,9 +254,10 @@
 import { computed, onMounted, ref } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import api from '@/stores/api'
+import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const weekRange = ref('May 8 - May 14, 2024')
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const days = FIXED_DAYS
 const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
 const notifications = ref([])
@@ -274,14 +275,6 @@ const icons = {
   chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16V9M12 16V6M16 16v-4"/></svg>',
   plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
 }
-const breakPeriodRules = {
-  enabled: true,
-  periods_before_morning_break: 3,
-  periods_before_lunch: 2,
-  periods_before_afternoon_break: 3,
-  periods_after_afternoon_break: 2
-}
-
 const normalizeTime = (value) => String(value || '').slice(0, 5)
 
 const classOptions = computed(() => {
@@ -417,110 +410,8 @@ const formatTimeRange = (start, end) => {
   return `${normalizeTime(start)} - ${normalizeTime(end)}`
 }
 
-const isBreakEntry = (entry) => entry.entry_type === 'break' || String(entry.module_name || '').toLowerCase().includes('break')
-
-const getBreakType = (label) => {
-  const normalized = String(label || '').toLowerCase()
-  if (normalized.includes('morning')) return 'morning-break'
-  if (normalized.includes('lunch')) return 'lunch-break'
-  return 'evening-break'
-}
-
-const getBreakLabel = (label) => {
-  const normalized = String(label || '').toLowerCase()
-  if (normalized.includes('morning')) return 'MORNING BREAK'
-  if (normalized.includes('lunch')) return 'LUNCH BREAK'
-  return 'EVENING BREAK'
-}
-
-const buildTimetableGridRows = (entries) => {
-  const timeSlots = new Map()
-  entries.filter((entry) => !isBreakEntry(entry)).forEach((entry) => {
-    const start = normalizeTime(entry.start_time)
-    const end = normalizeTime(entry.end_time)
-    if (!start || !end) return
-
-    const key = `${start}-${end}`
-    if (!timeSlots.has(key)) {
-      timeSlots.set(key, { key, type: 'period', start_time: start, end_time: end, entriesByDay: {} })
-    }
-    timeSlots.get(key).entriesByDay[entry.day_of_week] = entry
-  })
-
-  return [...timeSlots.values()]
-    .sort((a, b) => a.start_time.localeCompare(b.start_time))
-    .map((row, index) => ({ ...row, period: index + 1 }))
-}
-
-const buildBreakRows = (entries) => {
-  const breakSlots = new Map()
-  entries.filter(isBreakEntry).forEach((entry) => {
-    const start = normalizeTime(entry.start_time)
-    const end = normalizeTime(entry.end_time)
-    if (!start || !end) return
-
-    const label = getBreakLabel(entry.module_name)
-    const key = `break-${label}-${start}-${end}`
-    if (!breakSlots.has(key)) {
-      breakSlots.set(key, {
-        key,
-        type: 'break',
-        breakType: getBreakType(label),
-        label,
-        start_time: start,
-        end_time: end,
-        entriesByDay: {}
-      })
-    }
-  })
-  return [...breakSlots.values()].sort((a, b) => a.start_time.localeCompare(b.start_time))
-}
-
 const buildTimetableGridWithBreaks = (entries) => {
-  const allRows = buildTimetableGridRows(entries)
-
-  if (!breakPeriodRules.enabled) {
-    let period = 0
-    return [...allRows, ...buildBreakRows(entries)]
-      .sort((a, b) => a.start_time.localeCompare(b.start_time))
-      .map((row) => {
-        if (row.type === 'break') return row
-        period += 1
-        return { ...row, period }
-      })
-  }
-
-  const morningAfter = Number(breakPeriodRules.periods_before_morning_break) || 3
-  const lunchAfter = morningAfter + (Number(breakPeriodRules.periods_before_lunch) || 2)
-  const eveningAfter = lunchAfter + (Number(breakPeriodRules.periods_before_afternoon_break) || 3)
-  const totalRulePeriods = eveningAfter + (Number(breakPeriodRules.periods_after_afternoon_break) || 0)
-  const rows = allRows.slice(0, totalRulePeriods)
-  const breakPoints = [
-    { after: morningAfter, breakType: 'morning-break', label: 'MORNING BREAK' },
-    { after: lunchAfter, breakType: 'lunch-break', label: 'LUNCH BREAK' },
-    { after: eveningAfter, breakType: 'evening-break', label: 'EVENING BREAK' }
-  ]
-  const resultRows = []
-
-  rows.forEach((row, index) => {
-    resultRows.push(row)
-    breakPoints.forEach((breakPoint) => {
-      const nextRow = rows[index + 1]
-      if (index + 1 === breakPoint.after && nextRow) {
-        resultRows.push({
-          key: `${breakPoint.breakType}-${row.end_time}-${nextRow.start_time}`,
-          type: 'break',
-          breakType: breakPoint.breakType,
-          label: breakPoint.label,
-          start_time: row.end_time,
-          end_time: nextRow.start_time,
-          entriesByDay: {}
-        })
-      }
-    })
-  })
-
-  return resultRows
+  return buildFixedTimetableRows(entries, days)
 }
 
 const loadTimetable = async () => {

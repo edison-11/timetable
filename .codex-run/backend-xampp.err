@@ -1,0 +1,356 @@
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\timetable.js:477:82
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\timetable.js:477:82
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'required_room_type' in 'field list'
+    at Module.create (C:\Users\THE 1ST\Desktop\timetable\server\models\Module.js:6:33)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\modules.js:25:35
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'required_room_type' in 'field list'",
+  sql: 'INSERT INTO module (module_name, department, hours_per_year, description, required_room_type) VALUES (?, ?, ?, ?, ?)'
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\classes.js:75:33
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at auth (C:\Users\THE 1ST\Desktop\timetable\server\middleware\auth.js:39:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}
+Error: Unknown column 'c.room_id' in 'on clause'
+    at Class.getAll (C:\Users\THE 1ST\Desktop\timetable\server\models\Class.js:45:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\timetable.js:477:82
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_BAD_FIELD_ERROR',
+  errno: 1054,
+  sqlState: '42S22',
+  sqlMessage: "Unknown column 'c.room_id' in 'on clause'",
+  sql: '\n' +
+    '      \n' +
+    '      SELECT c.*,\n' +
+    '             s.shift_name,\n' +
+    '             d.name as dos_name,\n' +
+    '             sec.section_name,\n' +
+    '             r.room_name,\n' +
+    '             r.room_type,\n' +
+    '             r.capacity as room_capacity,\n' +
+    '             t.name as class_teacher_name,\n' +
+    '             t.department as class_teacher_department\n' +
+    '      FROM class c\n' +
+    '      LEFT JOIN teacher t ON c.class_teacher_id = t.teacher_id\n' +
+    '      LEFT JOIN shift s ON c.shift_id = s.shift_id\n' +
+    '      LEFT JOIN dos d ON c.dos_id = d.dos_id\n' +
+    '      LEFT JOIN section sec ON c.section_id = sec.section_id\n' +
+    '      LEFT JOIN room r ON c.room_id = r.room_id\n' +
+    '    \n' +
+    '      ORDER BY c.level, c.class_name\n' +
+    '    '
+}

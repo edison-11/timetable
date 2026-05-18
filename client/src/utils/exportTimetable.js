@@ -1,8 +1,9 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ical from 'ical-generator';
+import { FIXED_DAYS, buildFixedTimetableRows, isBreakEntry } from './fixedTimetableStructure';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = FIXED_DAYS;
 
 const safeFileName = (value) => String(value || 'Timetable').replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_');
 
@@ -12,10 +13,6 @@ const formatTimeRange = (start, end) => {
   const formattedStart = formatTime(start);
   const formattedEnd = formatTime(end);
   return formattedStart || formattedEnd ? `${formattedStart} - ${formattedEnd}` : '-';
-};
-
-const isBreakEntry = (entry) => {
-  return entry?.entry_type === 'break' || String(entry?.module_name || '').toLowerCase().includes('break');
 };
 
 const getBreakLabel = (entryOrLabel) => {
@@ -40,43 +37,7 @@ const formatCell = (entry, separator = '\n') => {
 };
 
 const buildRowsFromEntries = (entries) => {
-  const timeSlots = new Map();
-
-  entries.forEach((entry) => {
-    const start = formatTime(entry.start_time);
-    const end = formatTime(entry.end_time);
-    if (!start || !end) return;
-
-    const key = `${isBreakEntry(entry) ? 'break' : 'period'}-${start}-${end}`;
-    if (!timeSlots.has(key)) {
-      timeSlots.set(key, {
-        key,
-        type: isBreakEntry(entry) ? 'break' : 'period',
-        label: isBreakEntry(entry) ? getBreakLabel(entry) : '',
-        start_time: start,
-        end_time: end,
-        entriesByDay: {}
-      });
-    }
-
-    if (!isBreakEntry(entry)) {
-      timeSlots.get(key).entriesByDay[entry.day_of_week] = entry;
-    }
-  });
-
-  let period = 0;
-  return Array.from(timeSlots.values())
-    .sort((a, b) => {
-      const timeDiff = a.start_time.localeCompare(b.start_time);
-      if (timeDiff !== 0) return timeDiff;
-      if (a.type === b.type) return 0;
-      return a.type === 'break' ? -1 : 1;
-    })
-    .map((row) => {
-      if (row.type === 'break') return row;
-      period += 1;
-      return { ...row, period };
-    });
+  return buildFixedTimetableRows(entries, DAYS);
 };
 
 const getExportRows = (timetableData, options = {}) => {
@@ -159,7 +120,7 @@ const buildTimetableHtml = (rows, className, options = {}) => {
     </colgroup>
     <thead>
       <tr>
-        <th>Period</th>
+        <th>Slot</th>
         <th>Time</th>
         ${DAYS.map((day) => `<th>${escapeHtml(day)}</th>`).join('')}
       </tr>
@@ -220,7 +181,7 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
   });
 
   autoTable(doc, {
-    head: [['Period', 'Time', ...DAYS]],
+    head: [['Slot', 'Time', ...DAYS]],
     body,
     startY,
     margin: { top: margin, right: margin, bottom: margin, left: margin },
