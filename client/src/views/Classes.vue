@@ -72,7 +72,17 @@
             </div>
 
             <div>
-              <label class="form-label">Full Name (Class Teacher)</label>
+              <label class="form-label">Shift</label>
+              <select v-model="classForm.shift_id" class="form-control">
+                <option value="">No shift</option>
+                <option v-for="shift in shifts" :key="shift.shift_id" :value="shift.shift_id">
+                  {{ shift.shift_name }} ({{ formatTime(shift.start_time) }} - {{ formatTime(shift.end_time) }})
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="form-label">Class Teacher</label>
               <select v-model="classForm.class_teacher_id" class="form-control">
                 <option value="">Not assigned</option>
                 <option v-for="teacher in teachers" :key="teacher.teacher_id" :value="teacher.teacher_id">
@@ -113,7 +123,8 @@
               <th>Academic Year</th>
               <th>Section</th>
               <th>Room</th>
-              <th>Full Name</th>
+              <th>Shift</th>
+              <th>Class Teacher</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -121,9 +132,10 @@
             <tr v-for="cls in filteredClasses" :key="cls.class_id">
               <td><strong>{{ cls.class_name }}</strong></td>
               <td>{{ cls.level }}</td>
-              <td>{{ cls.academic_year || '—' }}</td>
+              <td>{{ cls.academic_year || '-' }}</td>
               <td>{{ cls.section_name || 'No section' }}</td>
               <td>{{ cls.room_name || 'No room' }}</td>
+              <td>{{ cls.shift_name || 'No shift' }}</td>
               <td>{{ cls.class_teacher_name || 'Not assigned' }}</td>
               <td class="actions-cell">
                 <button class="btn-edit" @click="openEditForm(cls)">Edit</button>
@@ -133,7 +145,7 @@
               </td>
             </tr>
             <tr v-if="!filteredClasses.length">
-              <td colspan="7" class="empty-row">
+              <td colspan="8" class="empty-row">
                 {{ loading ? 'Loading classes...' : 'No classes found' }}
               </td>
             </tr>
@@ -142,7 +154,6 @@
       </div>
 
       <div v-if="!classesList.length && !loading" class="empty-state">
-        <span>📚</span>
         <p>No classes created yet</p>
         <button class="btn-primary" @click="openAddForm">Add your first class</button>
       </div>
@@ -159,6 +170,7 @@ const classesList = ref([])
 const teachers = ref([])
 const sections = ref([])
 const rooms = ref([])
+const shifts = ref([])
 const searchQuery = ref('')
 const levelFilter = ref('')
 const showForm = ref(false)
@@ -176,6 +188,7 @@ const emptyClassForm = () => ({
   academic_year: '',
   section_id: '',
   room_id: '',
+  shift_id: '',
   class_teacher_id: ''
 })
 
@@ -192,7 +205,9 @@ const filteredClasses = computed(() => {
       cls.class_name?.toLowerCase().includes(query) ||
       cls.level?.toLowerCase().includes(query) ||
       cls.class_teacher_name?.toLowerCase().includes(query) ||
-      cls.section_name?.toLowerCase().includes(query)
+      cls.section_name?.toLowerCase().includes(query) ||
+      cls.room_name?.toLowerCase().includes(query) ||
+      cls.shift_name?.toLowerCase().includes(query)
     const matchesLevel = !levelFilter.value || cls.level === levelFilter.value
     return matchesSearch && matchesLevel
   })
@@ -214,6 +229,7 @@ const buildPayload = () => ({
   academic_year: classForm.value.academic_year.trim(),
   section_id: nullableId(classForm.value.section_id),
   room_id: nullableId(classForm.value.room_id),
+  shift_id: nullableId(classForm.value.shift_id),
   class_teacher_id: nullableId(classForm.value.class_teacher_id)
 })
 
@@ -232,6 +248,7 @@ const openEditForm = (cls) => {
     academic_year: cls.academic_year || '',
     section_id: cls.section_id || '',
     room_id: cls.room_id || '',
+    shift_id: cls.shift_id || '',
     class_teacher_id: cls.class_teacher_id || ''
   }
   showForm.value = true
@@ -316,16 +333,20 @@ const loadClasses = async () => {
 }
 
 const loadOptions = async () => {
-  const [teacherRes, sectionRes, roomRes] = await Promise.allSettled([
+  const [teacherRes, sectionRes, roomRes, shiftRes] = await Promise.allSettled([
     api.get('/teachers'),
     api.get('/sections'),
-    api.get('/rooms')
+    api.get('/rooms'),
+    api.get('/shifts')
   ])
 
   if (teacherRes.status === 'fulfilled') teachers.value = teacherRes.value.data.teachers || []
   if (sectionRes.status === 'fulfilled') sections.value = sectionRes.value.data.sections || []
   if (roomRes.status === 'fulfilled') rooms.value = roomRes.value.data.rooms || []
+  if (shiftRes.status === 'fulfilled') shifts.value = shiftRes.value.data.shifts || []
 }
+
+const formatTime = (value) => String(value || '').slice(0, 5)
 
 onMounted(async () => {
   await Promise.all([loadClasses(), loadOptions()])

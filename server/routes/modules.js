@@ -11,7 +11,8 @@ router.post('/', auth, [
   body('module_name').trim().notEmpty().withMessage('Module name is required'),
   body('department').trim().notEmpty().withMessage('Department is required'),
   body('hours_per_year').isInt({ min: 1 }).withMessage('Hours per year must be a positive integer'),
-  body('description').optional().trim()
+  body('description').optional().trim(),
+  body('required_room_type').optional({ nullable: true, checkFalsy: true }).trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -19,9 +20,9 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { module_name, department, hours_per_year, description } = req.body;
+    const { module_name, department, hours_per_year, description, required_room_type } = req.body;
 
-    const moduleId = await Module.create({ module_name, department, hours_per_year, description });
+    const moduleId = await Module.create({ module_name, department, hours_per_year, description, required_room_type });
     const module = await Module.findById(moduleId);
 
     await Notification.create({
@@ -94,7 +95,8 @@ router.put('/:id', auth, [
   body('module_name').optional().trim().notEmpty(),
   body('department').optional().trim().notEmpty(),
   body('hours_per_year').optional().isInt({ min: 1 }),
-  body('description').optional().trim()
+  body('description').optional().trim(),
+  body('required_room_type').optional({ nullable: true, checkFalsy: true }).trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -102,13 +104,14 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { module_name, department, hours_per_year, description } = req.body;
+    const { module_name, department, hours_per_year, description, required_room_type } = req.body;
     const updateData = {};
     
     if (module_name) updateData.module_name = module_name;
     if (department) updateData.department = department;
     if (hours_per_year) updateData.hours_per_year = hours_per_year;
     if (description !== undefined) updateData.description = description;
+    if (required_room_type !== undefined) updateData.required_room_type = required_room_type;
 
     await Module.update(req.params.id, updateData);
     const updatedModule = await Module.findById(req.params.id);

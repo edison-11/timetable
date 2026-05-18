@@ -2,10 +2,10 @@ const pool = require('../config/database');
 
 class Module {
   static async create(moduleData) {
-    const { module_name, department = 'SSOD', hours_per_year, description } = moduleData;
+    const { module_name, department = 'SSOD', hours_per_year, description, required_room_type = null } = moduleData;
     const [result] = await pool.execute(
-      'INSERT INTO module (module_name, department, hours_per_year, description) VALUES (?, ?, ?, ?)',
-      [module_name, department, hours_per_year, description]
+      'INSERT INTO module (module_name, department, hours_per_year, description, required_room_type) VALUES (?, ?, ?, ?, ?)',
+      [module_name, department, hours_per_year, description, required_room_type || null]
     );
     return result.insertId;
   }
@@ -28,10 +28,11 @@ class Module {
     const department = moduleData.department ?? currentModule.department;
     const hours_per_year = moduleData.hours_per_year ?? currentModule.hours_per_year;
     const description = moduleData.description ?? currentModule.description;
+    const required_room_type = moduleData.required_room_type ?? currentModule.required_room_type;
 
     await pool.execute(
-      'UPDATE module SET module_name = ?, department = ?, hours_per_year = ?, description = ? WHERE module_id = ?',
-      [module_name, department, hours_per_year, description, id]
+      'UPDATE module SET module_name = ?, department = ?, hours_per_year = ?, description = ?, required_room_type = ? WHERE module_id = ?',
+      [module_name, department, hours_per_year, description, required_room_type || null, id]
     );
   }
 

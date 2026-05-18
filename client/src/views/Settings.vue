@@ -83,7 +83,7 @@
                         <input v-model="breakItem.end_time" type="time" class="form-control" required>
                       </div>
                       <div class="break-remove">
-                        <button type="button" class="btn-outline-danger" @click="removeBreak(index)">✕</button>
+                        <button type="button" class="btn-outline-danger" @click="removeBreak(index)">Remove</button>
                       </div>
                     </div>
                   </div>
