@@ -252,7 +252,7 @@ const handleAddAssignment = async () => {
     if (error.response?.status === 401) {
       formMessage.value = 'Authentication required. Please login again.'
       setTimeout(() => {
-        window.location.href = '/login'
+        window.location.hash = '#/login'
       }, 2000)
     } else if (error.response?.status === 400) {
       if (error.response?.data?.errors?.length) {

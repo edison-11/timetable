@@ -1,6 +1,7 @@
 <template>
   <div class="app-layout">
     <AdminSidebar />
+    <div class="sidebar-backdrop" @click="closeSidebar"></div>
     <div class="main-wrapper">
       <AppNavbar />
       <main class="main-content">
@@ -13,6 +14,13 @@
 <script setup>
 import AdminSidebar from './AdminSidebar.vue'
 import AppNavbar from './AppNavbar.vue'
+
+const closeSidebar = () => {
+  document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
+  document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
+  document.body.classList.remove('sidebar-open')
+  document.dispatchEvent(new Event('sidebar:closed'))
+}
 </script>
 
 <style scoped>
@@ -24,10 +32,29 @@ import AppNavbar from './AppNavbar.vue'
 
 .main-wrapper {
   flex: 1;
-  margin-left: 240px;
+  margin-left: 260px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: rgba(15, 23, 42, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+:global(body.sidebar-open) {
+  overflow: hidden;
 }
 
 .main-content {

@@ -90,13 +90,13 @@ api.interceptors.response.use(
         localStorage.removeItem('teacher')
         localStorage.removeItem('userType')
 
-        window.location.href = '/teacher/login'
+        window.location.hash = '#/teacher/login'
       }
 
       // Admin logout handling
       else {
         authStore.logout()
-        window.location.href = '/login'
+        window.location.hash = '#/login'
       }
     }
 

@@ -2,7 +2,7 @@
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
       <div class="brand-mark">
-        <img class="brand-logo" src="/timetable-logo.png" alt="Timetable logo">
+        <img class="brand-logo" :src="logoUrl" alt="Timetable logo">
       </div>
       <div class="brand-text">
         <strong>Timetable</strong>
@@ -17,6 +17,7 @@
         :to="item.path"
         class="nav-item"
         :class="{ active: route.path === item.path }"
+        @click="closeMobileSidebar"
       >
         <span class="nav-icon" v-html="item.icon"></span>
         <span class="nav-label">{{ item.name }}</span>
@@ -35,6 +36,14 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+const logoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
+
+const closeMobileSidebar = () => {
+  document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
+  document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
+  document.body.classList.remove('sidebar-open')
+  document.dispatchEvent(new Event('sidebar:closed'))
+}
 
 const icons = {
   dashboard: '<svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-3H4v3Z"/></svg>',
@@ -74,11 +83,11 @@ const academicYear = computed(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 240px;
+  width: 260px;
   height: 100vh;
-  background: #f8f9fa;
-  border-right: 1px solid #e9ecef;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 251, 255, 0.99) 100%);
+  border-right: 1px solid #dbe5f3;
+  box-shadow: 16px 0 34px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 200;
@@ -88,23 +97,25 @@ const academicYear = computed(() => {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem 1rem;
-  border-bottom: 1px solid #e9ecef;
+  gap: 0.95rem;
+  padding: 1.4rem 1.15rem 1.2rem;
+  border-bottom: 1px solid #e3ebf7;
   margin-bottom: 1rem;
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  flex: 0 0 68px;
+  width: 68px;
+  height: 68px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  border-radius: 8px;
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
   font-weight: 800;
-  color: white;
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+  color: #2563eb;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.16);
 }
 
 .brand-logo {
@@ -112,70 +123,84 @@ const academicYear = computed(() => {
   height: 100%;
   object-fit: contain;
   display: block;
+  padding: 5px;
 }
 
 .brand-text strong {
   display: block;
-  font-size: 0.95rem;
-  color: #2c3e50;
-  font-weight: 700;
+  font-size: 1.02rem;
+  color: #172033;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .brand-text span {
-  font-size: 0.7rem;
-  color: #7f8c8d;
-  font-weight: 600;
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.5rem;
+  padding: 0 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 40px;
-  padding: 0.65rem 0.75rem;
+  min-height: 46px;
+  padding: 0.72rem 0.8rem;
   border-radius: 8px;
-  color: #495057;
+  color: #415169;
   text-decoration: none;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-left: 3px solid transparent;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  font-size: 0.88rem;
+  font-weight: 750;
+  border: 1px solid transparent;
 }
 
 .nav-item:hover {
-  background: #e9ecef;
-  color: #3498db;
-  border-left-color: #3498db;
+  background: #eef6ff;
+  color: #1d4ed8;
+  border-color: #d7e7ff;
   transform: translateX(3px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   color: white;
-  border-left-color: #2980b9;
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+  border-color: #2563eb;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
 }
 
 .nav-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #eef2f7;
+  color: #334155;
+}
+
+.nav-item.active .nav-icon {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
 }
 
 .nav-icon :deep(svg) {
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -184,9 +209,9 @@ const academicYear = computed(() => {
 }
 
 .academic-card {
-  margin: 1rem;
+  margin: 1rem 0.9rem 1.2rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #e8f4f8 0%, #dbeafe 100%);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   text-align: center;
@@ -213,7 +238,8 @@ const academicYear = computed(() => {
 @media (max-width: 768px) {
   .admin-sidebar {
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
+    transition: transform 0.24s ease;
+    z-index: 300;
   }
 
   .admin-sidebar.mobile-open {

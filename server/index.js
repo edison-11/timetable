@@ -45,13 +45,14 @@ app.use(express.urlencoded({ extended: true }));
 
 const fs = require('fs');
 
+const clientDistPath = path.resolve(__dirname, '../client/dist');
+const clientSourcePath = path.resolve(__dirname, '../client');
+const clientAppPath = fs.existsSync(clientDistPath) ? clientDistPath : clientSourcePath;
+
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-const clientDistPath = path.resolve(__dirname, '../client/dist');
-if (fs.existsSync(clientDistPath)) {
-  app.use(express.static(clientDistPath));
-} else {
+app.use(express.static(clientAppPath));
+if (!fs.existsSync(clientDistPath)) {
   console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
 }
 
@@ -82,13 +83,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Serve static client files from the client directory
-const clientPath = path.resolve(__dirname, '../client');
-app.use(express.static(clientPath));
-
-// SPA fallback - serve index.html for client-side routing
+// SPA fallback - serve the built client when available, otherwise the source client shell
 app.get('*', (req, res) => {
-  const indexPath = path.join(clientPath, 'index.html');
+  const indexPath = path.join(clientAppPath, 'index.html');
   if (fs.existsSync(indexPath)) {
     res.sendFile(indexPath);
   } else {

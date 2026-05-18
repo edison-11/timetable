@@ -10,13 +10,12 @@
           class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-2 brand-login-mark"
           style="width: 64px; height: 64px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
         >
-          <img class="brand-login-logo" src="/timetable-logo.png" alt="School logo" />
+          <img class="brand-login-logo" :src="logoUrl" alt="School logo" />
         </div>
 
         <h1 class="h3 fw-bold text-dark mb-1">Timetable Management System</h1>
 
         <div class="mt-3 d-flex align-items-center justify-content-center gap-2 secure-row">
-          <span class="secure-lock" aria-hidden="true">🔒</span>
           <span class="text-muted small fw-semibold">Secure Login</span>
         </div>
       </div>
@@ -85,8 +84,8 @@
               :aria-label="showPassword ? 'Hide password' : 'Show password'"
               :title="showPassword ? 'Hide password' : 'Show password'"
             >
-              <span v-if="showPassword" aria-hidden="true">🙈</span>
-              <span v-else aria-hidden="true">👁</span>
+              <span v-if="showPassword">Hide</span>
+              <span v-else>Show</span>
             </button>
           </div>
 
@@ -157,6 +156,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const logoUrl = `${import.meta.env.BASE_URL}title-logo.png`
 
 const role = ref('admin') // 'admin' | 'teacher'
 const rememberMe = ref(true)
@@ -251,7 +251,7 @@ const handleLogin = async () => {
   height: 100%;
   object-fit: contain;
   display: block;
-  padding: 6px;
+  padding: 4px;
 }
 
 /* Password toggle alignment fix */
@@ -281,6 +281,48 @@ input.form-control:focus-visible {
   color: #fff;
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
   transition: transform .08s ease, box-shadow .2s ease;
+}
+
+.login-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card.is-loading {
+  pointer-events: none;
+}
+
+.login-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.login-loading-badge {
+  width: 90px;
+  height: 90px;
+  border-radius: 24px;
+  background: #eef5ff;
+  border: 1px solid rgba(37, 99, 235, .15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 16px 32px rgba(37, 99, 235, 0.12);
+}
+
+.login-loading-logo {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  display: block;
 }
 
 .btn-primary-custom:hover {
