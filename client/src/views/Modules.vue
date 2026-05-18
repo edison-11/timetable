@@ -36,6 +36,7 @@
               <tr>
                 <th>Module Name</th>
                 <th>Department</th>
+                <th>Required Room</th>
                 <th>Hours/Year</th>
                 <th>Description</th>
                 <th>Actions</th>
@@ -47,6 +48,7 @@
                 <td>
                   <span class="badge">{{ module.department || 'SSOD' }}</span>
                 </td>
+                <td>{{ module.required_room_type || 'Any room' }}</td>
                 <td>{{ module.hours_per_year }}</td>
                 <td>{{ module.description || 'No description' }}</td>
                 <td>
@@ -62,7 +64,7 @@
                 </td>
               </tr>
               <tr v-if="!filteredModules.length">
-                <td colspan="5" class="text-center py-4">
+                <td colspan="6" class="text-center py-4">
                   No modules found
                 </td>
               </tr>
@@ -115,6 +117,9 @@
                     <datalist id="departmentSuggestions">
                       <option v-for="department in departmentInputSuggestions" :key="department" :value="department" />
                     </datalist>
+                    <datalist id="roomTypeSuggestions">
+                      <option v-for="roomType in roomTypeSuggestions" :key="roomType" :value="roomType" />
+                    </datalist>
                     <div class="invalid-feedback" v-if="errors.department">
                       {{ errors.department }}
                     </div>
@@ -135,6 +140,17 @@
                     <div class="invalid-feedback" v-if="errors.hours_per_year">
                       {{ errors.hours_per_year }}
                     </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="requiredRoomType" class="form-label">Required Room Type</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="requiredRoomType"
+                      v-model="newModule.required_room_type"
+                      list="roomTypeSuggestions"
+                      placeholder="Any room, Computer Lab, Workshop..."
+                    >
                   </div>
                   <div class="col-md-12">
                     <label for="moduleDescription" class="form-label">Description</label>
@@ -226,6 +242,17 @@
                       {{ editErrors.hours_per_year }}
                     </div>
                   </div>
+                  <div class="col-md-6">
+                    <label for="editRequiredRoomType" class="form-label">Required Room Type</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editRequiredRoomType"
+                      v-model="editModule.required_room_type"
+                      list="roomTypeSuggestions"
+                      placeholder="Any room, Computer Lab, Workshop..."
+                    >
+                  </div>
                   <div class="col-md-12">
                     <label for="editModuleDescription" class="form-label">Description</label>
                     <textarea
@@ -267,12 +294,14 @@ const modules = ref([])
 const searchQuery = ref('')
 const selectedDepartment = ref('')
 const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
+const commonRoomTypes = ['Classroom', 'Computer Lab', 'Science Lab', 'Workshop', 'Hall', 'Library']
 
 // Form data
 const newModule = ref({
   module_name: '',
   department: '',
   hours_per_year: '',
+  required_room_type: '',
   description: ''
 })
 
@@ -281,6 +310,7 @@ const editModule = ref({
   module_name: '',
   department: '',
   hours_per_year: '',
+  required_room_type: '',
   description: ''
 })
 
@@ -297,10 +327,12 @@ const filteredModules = computed(() => {
   return modules.value.filter(module => {
     const name = module.module_name || ''
     const department = module.department || 'SSOD'
+    const requiredRoomType = module.required_room_type || ''
     const description = module.description || ''
     const matchesDepartment = !selectedDepartment.value || department === selectedDepartment.value
     const matchesSearch = name.toLowerCase().includes(query) ||
       department.toLowerCase().includes(query) ||
+      requiredRoomType.toLowerCase().includes(query) ||
       description.toLowerCase().includes(query)
 
     return matchesDepartment && matchesSearch
@@ -323,11 +355,17 @@ const departmentFilterOptions = computed(() => {
   return [...new Set([...commonDepartments, ...existingDepartments.value])]
 })
 
+const roomTypeSuggestions = computed(() => {
+  const existingRoomTypes = modules.value.map(module => module.required_room_type).filter(Boolean)
+  return [...new Set([...commonRoomTypes, ...existingRoomTypes])]
+})
+
 const resetForm = () => {
   newModule.value = {
     module_name: '',
     department: '',
     hours_per_year: '',
+    required_room_type: '',
     description: ''
   }
   errors.value = {}
@@ -340,6 +378,7 @@ const resetEditForm = () => {
     module_name: '',
     department: '',
     hours_per_year: '',
+    required_room_type: '',
     description: ''
   }
   editErrors.value = {}
@@ -358,6 +397,7 @@ const openEditModal = (module) => {
     module_name: module.module_name || '',
     department: module.department || 'SSOD',
     hours_per_year: Number(module.hours_per_year),
+    required_room_type: module.required_room_type || '',
     description: module.description || ''
   }
   editErrors.value = {}
@@ -391,6 +431,7 @@ const buildModulePayload = (moduleData) => {
     module_name: moduleData.value.module_name.trim(),
     department: moduleData.value.department.trim(),
     hours_per_year: moduleData.value.hours_per_year,
+    required_room_type: moduleData.value.required_room_type.trim(),
     description: moduleData.value.description.trim()
   }
 }

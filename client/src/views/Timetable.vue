@@ -11,11 +11,10 @@
           <button class="icon-button" type="button" title="Refresh timetable" @click="loadTimetable">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.66 5.66M4 12A8 8 0 0 1 17.66 6.34M17 3v4h4M7 21v-4H3"/></svg>
           </button>
-<<<<<<< HEAD
           <button class="btn-primary" type="button" @click="openAssignmentForm">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
             Add Assignment
-=======
+          </button>
           <button class="btn-secondary" type="button" @click="printTimetable" :disabled="!displayedTimetables.length" title="Print timetable">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
             Print
@@ -27,7 +26,6 @@
           <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
             {{ loading ? 'Working...' : 'Generate' }}
->>>>>>> 4d46d2d4 (all changes made on the teacher's pages)
           </button>
         </div>
       </header>
@@ -294,7 +292,7 @@
         <div class="output-toolbar">
           <div>
             <p class="eyebrow">Generated view</p>
-            <h2>Class Timetables</h2>
+            <h2>Class Timetable</h2>
           </div>
           <div class="output-actions">
             <button class="btn-secondary" type="button" @click="copyTimetableSummary">
@@ -332,9 +330,10 @@
 
         <div v-for="group in displayedTimetables" :key="group.class_id" class="timetable-group">
           <div class="timetable-header">
-            <div>
+            <div class="timetable-meta">
               <strong>{{ group.class_name }}</strong>
-              <span>{{ group.level || 'No level set' }}</span>
+              <span>Level: {{ group.level || 'No level set' }}</span>
+              <span>Room: {{ group.room_name || 'No room set' }}</span>
             </div>
             <div class="timetable-actions">
               <span class="badge">{{ group.entries.length }} entries</span>
@@ -406,11 +405,8 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-<<<<<<< HEAD
-import { exportToPDF, exportToWord, exportToICal, printTimetable } from '@/utils/exportTimetable'
-=======
+import { exportToPDF, exportToWord, exportToICal, printTimetable as printClassTimetable } from '@/utils/exportTimetable'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
->>>>>>> 4d46d2d4 (all changes made on the teacher's pages)
 
 const loading = ref(false)
 const classes = ref([])
@@ -420,12 +416,9 @@ const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const selectedTimetableClassId = ref('')
 const sharedActivities = ref([])
-<<<<<<< HEAD
 const showAssignmentForm = ref(false)
 const activeExportDropdown = ref(null)
-=======
 const exportFormat = ref('csv')
->>>>>>> 4d46d2d4 (all changes made on the teacher's pages)
 let sharedActivityId = 0
 
 const emptyAssignment = () => ({
@@ -539,13 +532,19 @@ const groupedTimetables = computed(() => {
   timetableEntries.value.forEach(entry => {
     if (!entry.module_name || entry.module_name === 'continue') return
     const classId = entry.class_id
+    const classRecord = classes.value.find(cls => String(cls.class_id) === String(classId))
     if (!groups.has(classId)) {
       groups.set(classId, {
         class_id: classId,
-        class_name: entry.class_name,
-        level: entry.level,
+        class_name: entry.class_name || classRecord?.class_name,
+        level: entry.level || classRecord?.level,
+        room_name: entry.room_name || entry.room || classRecord?.room_name,
         entries: []
       })
+    }
+    const group = groups.get(classId)
+    if (!group.room_name && (entry.room_name || entry.room || classRecord?.room_name)) {
+      group.room_name = entry.room_name || entry.room || classRecord?.room_name
     }
     groups.get(classId).entries.push(entry)
   })
@@ -562,9 +561,23 @@ const classesWithTimetables = computed(() => {
 })
 
 const displayedTimetables = computed(() => {
-  if (!selectedTimetableClassId.value) return groupedTimetables.value
-  return groupedTimetables.value.filter(group => String(group.class_id) === String(selectedTimetableClassId.value))
+  const selectedId = selectedTimetableClassId.value || classesWithTimetables.value[0]?.class_id
+  if (!selectedId) return []
+  return groupedTimetables.value.filter(group => String(group.class_id) === String(selectedId))
 })
+
+const ensureSelectedTimetableClass = () => {
+  const availableClasses = classesWithTimetables.value
+  if (!availableClasses.length) {
+    selectedTimetableClassId.value = ''
+    return
+  }
+
+  const hasSelectedClass = availableClasses.some(cls => String(cls.class_id) === String(selectedTimetableClassId.value))
+  if (!hasSelectedClass) {
+    selectedTimetableClassId.value = String(availableClasses[0].class_id)
+  }
+}
 
 const formatTimeRange = (start, end) => {
   if (!start && !end) return '-'
@@ -594,7 +607,7 @@ const handleExportWord = (group) => {
 }
 
 const handlePrint = (group) => {
-  printTimetable(group.entries, group.class_name, { rows: getExportRows(group) })
+  printClassTimetable(group.entries, group.class_name, { rows: getExportRows(group) })
   activeExportDropdown.value = null
 }
 
@@ -1078,6 +1091,7 @@ const loadTimetable = async () => {
   try {
     const res = await api.get('/timetable')
     timetableEntries.value = res.data.timetables || []
+    ensureSelectedTimetableClass()
   } catch (e) { console.error(e) }
 }
 
@@ -1605,6 +1619,17 @@ fieldset:disabled {
   display: block;
   font-size: 1rem;
   font-weight: 900;
+}
+
+.timetable-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+}
+
+.timetable-meta strong {
+  flex-basis: 100%;
 }
 
 .timetable-header span:not(.badge) {

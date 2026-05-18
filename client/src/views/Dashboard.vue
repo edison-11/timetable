@@ -235,7 +235,6 @@
                   <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
                 </div>
               </div>
-            </div>
               <span class="notification-remove" @click.stop="deleteNotification(notification)">x</span>
             </div>
           </div>
