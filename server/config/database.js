@@ -1,57 +1,27 @@
-const sqlite3 = require('sqlite3').verbose();
+const mysql = require('mysql2/promise');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-const dbPath = path.resolve(__dirname, '../../timetable.db');
+require('dotenv').config({
+  path: path.resolve(__dirname, '../../.env')
+});
 
-let db = null;
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'timetable_system',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
 
-// Create a wrapper to provide promise-based interface similar to mysql2/promise
-class SQLitePool {
-  constructor() {
-    this.db = new sqlite3.Database(dbPath, (err) => {
-      if (err) {
-        console.error('Database connection error:', err);
-      } else {
-        console.log('✅ Connected to SQLite database:', dbPath);
-        this.db.run('PRAGMA foreign_keys = ON');
-      }
-    });
-  }
-
-  query(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve([rows || []]);
-      });
-    });
-  }
-
-  execute(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function(err) {
-        if (err) reject(err);
-        else resolve([{ insertId: this.lastID, affectedRows: this.changes }]);
-      });
-    });
-  }
-
-  getConnection() {
-    return Promise.resolve(this);
-  }
-
-  release() {
-    // No-op for SQLite
-  }
-
-  end() {
-    if (this.db) {
-      this.db.close();
-    }
-  }
-}
-
-const pool = new SQLitePool();
+pool.getConnection()
+  .then(connection => {
+    console.log('✅ Connected to MySQL database');
+    connection.release();
+  })
+  .catch(err => {
+    console.error('❌ MySQL connection error:', err.message);
+  });
 
 module.exports = pool;
