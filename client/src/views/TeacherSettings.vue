@@ -1,15 +1,6 @@
 <template>
-  <div class="min-vh-100 bg-light">
-    <!-- Header -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top">
-      <div class="container-fluid">
-        <a class="navbar-brand d-flex align-items-center" @click="goBack" style="cursor: pointer;">
-          <i class="bi bi-arrow-left me-2"></i>
-          Teacher Settings
-        </a>
-      </div>
-    </nav>
-
+  <TeacherLayout>
+  <div class="teacher-settings-page">
     <!-- Main Content -->
     <div class="container py-4">
       <div class="row">
@@ -299,15 +290,15 @@
       </div>
     </div>
   </div>
+  </TeacherLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import TeacherLayout from '@/components/TeacherLayout.vue'
 
-const router = useRouter()
 const authStore = useAuthStore()
 
 const activeTab = ref('profile')
@@ -558,10 +549,6 @@ const resetPassword = () => {
   messages.value.password = ''
 }
 
-const goBack = () => {
-  router.push('/teacher/dashboard')
-}
-
 const confirmDeleteAccount = () => {
   if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
     alert('Account deletion feature coming soon.')
@@ -574,6 +561,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.teacher-settings-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  padding: 1.5rem;
+}
+
 .profile-photo-container {
   position: relative;
 }
