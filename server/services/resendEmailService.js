@@ -1,4 +1,5 @@
-const { Resend } = require('resend');
+const resendPackage = require('resend');
+const Resend = resendPackage.Resend || resendPackage;
 
 let resend = null;
 let initialized = false;
@@ -16,7 +17,7 @@ const initializeResend = () => {
     if (apiKey && apiKey !== 're_your_api_key_here' && apiKey.startsWith('re_')) {
       resend = new Resend(apiKey);
       console.log('✅ Resend email service initialized');
-    } else {
+    } else {n
       console.log('⚠️ Resend API key not configured - emails will log to console');
       if (apiKey) {
         console.log('   API key exists but validation failed. Key length:', apiKey.length, 'Starts with re_?', apiKey.startsWith('re_'));
