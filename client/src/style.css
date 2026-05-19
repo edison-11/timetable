@@ -303,7 +303,11 @@ body {
 
 .admin-page {
   --admin-header-height: 136px;
-  --admin-sidebar-width: 250px;
+  --admin-sidebar-width: 260px;
+}
+
+body.sidebar-collapsed .admin-page {
+  --admin-sidebar-width: 80px;
 }
 
 .admin-page-shell {
@@ -353,6 +357,10 @@ body {
 
 .admin-main {
   margin-left: var(--admin-sidebar-width);
+}
+
+body.sidebar-collapsed .admin-main {
+  margin-left: 80px;
 }
 
 .app-account-trigger {

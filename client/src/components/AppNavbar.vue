@@ -224,20 +224,21 @@ const hydrateProfileForm = ({ clearStatus = true } = {}) => {
 
 const toggleSidebar = () => {
   const isMobile = window.matchMedia('(max-width: 768px)').matches
-  sidebarOpen.value = !sidebarOpen.value
+  const nextState = !sidebarOpen.value
+  sidebarOpen.value = nextState
 
   if (isMobile) {
     document.body.classList.remove('sidebar-collapsed')
-    document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open', sidebarOpen.value)
-    document.querySelector('.sidebar-backdrop')?.classList.toggle('visible', sidebarOpen.value)
-    document.body.classList.toggle('sidebar-open', sidebarOpen.value)
+    document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open', nextState)
+    document.querySelector('.sidebar-backdrop')?.classList.toggle('visible', nextState)
+    document.body.classList.toggle('sidebar-open', nextState)
     return
   }
 
   document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
   document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
   document.body.classList.remove('sidebar-open')
-  document.body.classList.toggle('sidebar-collapsed', sidebarOpen.value)
+  document.body.classList.toggle('sidebar-collapsed', !nextState)
 }
 
 const runSearch = () => {
@@ -468,21 +469,17 @@ const closeMenusOnOutsideClick = (event) => {
 }
 
 const syncSidebarState = () => {
-  const isOpen =
-    document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') ||
-    document.body.classList.contains('sidebar-collapsed') ||
-    false
+  const isMobileOpen = document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') || false
+  const isDesktopCollapsed = document.body.classList.contains('sidebar-collapsed')
 
-  sidebarOpen.value = isOpen
-  document.body.classList.toggle(
-    'sidebar-open',
-    document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') || false
-  )
+  sidebarOpen.value = isMobileOpen || !isDesktopCollapsed
+  document.body.classList.toggle('sidebar-open', isMobileOpen)
 }
 
 onMounted(() => {
   hydrateProfileForm()
   fetchNotifications()
+  syncSidebarState()
   document.addEventListener('click', closeMenusOnOutsideClick)
   document.addEventListener('sidebar:closed', syncSidebarState)
 })
@@ -560,15 +557,15 @@ const logout = () => {
 }
 
 .menu-toggle.active .top {
-  transform: translateY(5px) rotate(45deg);
+  transform: none;
 }
 
 .menu-toggle.active .middle {
-  opacity: 0;
+  opacity: 1;
 }
 
 .menu-toggle.active .bottom {
-  transform: translateY(-5px) rotate(-45deg);
+  transform: none;
 }
 
 .search-bar {
@@ -1046,6 +1043,6 @@ const logout = () => {
 
 <style>
 body.sidebar-collapsed .app-navbar {
-  left: 0;
+  left: 80px;
 }
 </style>
