@@ -470,90 +470,8 @@ router.post('/generate', auth, [
     const skipped = [];
     const classEntryCounts = [];
 
-<<<<<<< HEAD
-    if (shouldReplaceExisting) {
-      for (const classItem of selectedClasses) {
-        await TimetableEntry.deleteByClass(classItem.class_id);
-      }
-    }
 
-    // Build custom breaks and time slots from period and break length fields
-    const buildCustomSchedule = () => {
-      const schedule = [];
-      let currentMinutes = timeToMinutes(calculatedStartTime);
-      
-      // Before morning break periods
-      for (let i = 0; i < periodsBeforeMorningBreak; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      // Morning break
-      schedule.push({
-        type: 'break',
-        break_name: 'Morning Break',
-        start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + morningBreakMinutes)
-      });
-      currentMinutes += morningBreakMinutes;
-      
-      // After break periods
-      for (let i = 0; i < periodsBeforeLunch; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      // Lunch break
-      schedule.push({
-        type: 'break',
-        break_name: 'Lunch Break',
-        start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + lunchBreakMinutes)
-      });
-      currentMinutes += lunchBreakMinutes;
-      
-      // After lunch periods
-      for (let i = 0; i < periodsBeforeAfternoonBreak; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      // Evening break
-      schedule.push({
-        type: 'break',
-        break_name: 'Evening Break',
-        start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + afternoonBreakMinutes)
-      });
-      currentMinutes += afternoonBreakMinutes;
-      
-      // After afternoon break periods
-      for (let i = 0; i < periodsAfterAfternoonBreak; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      return schedule;
-    };
 
-=======
->>>>>>> f294b99aec8fc9815f226912caea52e8ce2689df
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
 
@@ -598,57 +516,13 @@ router.post('/generate', auth, [
           slot_number: item.slot_number
         }));
       });
-<<<<<<< HEAD
-      const generationItems = buildGenerationItems(slots, sharedActivities);
-      const dayBlockState = new Map();
+
 
       for (const item of generationItems) {
-        if (item.type === 'activity') {
-          const timetableId = await TimetableEntry.create({
-            class_id: classItem.class_id,
-            assignment_id: null,
-            day_of_week: item.day_of_week,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            room_id: null,
-            module_name: item.activity_name,
-            entry_type: 'activity'
-          });
-          const timetable = await TimetableEntry.findById(timetableId);
-          generated.push(timetable);
-          classCount += 1;
-          dayBlockState.delete(item.day_of_week);
-          continue;
-        }
 
-=======
-
-      for (const item of generationItems) {
->>>>>>> f294b99aec8fc9815f226912caea52e8ce2689df
         let scheduledAssignment = null;
         let hasConflict = false;
         const currentBlock = dayBlockState.get(item.day_of_week);
-
-<<<<<<< HEAD
-        if (
-          currentBlock
-          && currentBlock.end_time === item.start_time
-          && currentBlock.count < getDesiredBlockSize(currentBlock.assignment)
-          && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))
-        ) {
-          scheduledAssignment = currentBlock.assignment;
-          hasConflict = false;
-        }
-=======
-        for (const assignment of rankAssignments(assignments, scheduledCounts)) {
-          const teacherConflicts = await getTeacherConflictsWithChangeover(
-            assignment.teacher_id,
-            item.day_of_week,
-            item.start_time,
-            item.end_time,
-            0
-          );
->>>>>>> f294b99aec8fc9815f226912caea52e8ce2689df
 
         if (!scheduledAssignment) {
           for (const assignment of rankAssignments(assignments, scheduledCounts)) {
@@ -958,3 +832,4 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 module.exports = router;
+

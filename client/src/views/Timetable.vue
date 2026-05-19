@@ -422,13 +422,9 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-<<<<<<< HEAD
-import { exportToICal } from '@/utils/exportTimetable'
-=======
 import { exportToPDF, exportToWord, exportToICal, printTimetable as printClassTimetable } from '@/utils/exportTimetable'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
 import { FIXED_DAYS, buildFixedTimetableRows, FIXED_TIMETABLE_ROWS } from '@/utils/fixedTimetableStructure'
->>>>>>> f294b99aec8fc9815f226912caea52e8ce2689df
 
 const loading = ref(false)
 const classes = ref([])
@@ -750,13 +746,12 @@ const escapeCsvValue = (value) => {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
-<<<<<<< HEAD
+
 const buildTimetableExportRows = (groups = displayedTimetables.value) => {
   const rows = [['Class', 'Period', 'Time', ...days]]
-=======
-const buildTimetableExportRows = () => {
-  const rows = [['Class', 'Slot', 'Time', ...days]]
->>>>>>> f294b99aec8fc9815f226912caea52e8ce2689df
+
+
+
 
   groups.forEach((group) => {
     buildTimetableGridWithBreaks(group).forEach((row) => {
@@ -1923,3 +1918,4 @@ fieldset:disabled {
   }
 }
 </style>
+
