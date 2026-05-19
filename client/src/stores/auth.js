@@ -24,41 +24,38 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        const userType = credentials.role === 'teacher' ? 'teacher' : 'admin'
-        const endpoint = userType === 'teacher' ? '/teacher-auth/login' : '/auth/login'
+        const response = await api.post('/auth/login', credentials)
 
-        try {
-          const response = await api.post(endpoint, credentials)
-          const { token } = response.data
-          const user = userType === 'teacher' ? response.data.teacher : response.data.user
+        const { token } = response.data
+        const user = response.data.user
+        const loginType = user?.role || response.data.role || 'admin'
+        
+        this.token = token
+        this.user = user
+        this.userType = loginType
+        
+        localStorage.setItem('token', token)
+        localStorage.setItem('userType', loginType)
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`
 
-          this.token = token
-          this.user = user
-          this.userType = userType
-
-          localStorage.setItem('token', token)
-          localStorage.setItem('userType', userType)
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-
-          if (userType === 'teacher') {
-            localStorage.setItem('teacher', JSON.stringify(user))
-            localStorage.removeItem('user')
-          } else {
-            localStorage.setItem('user', JSON.stringify(user))
-            localStorage.removeItem('teacher')
-          }
-
-          return { success: true, userType }
-        } catch (error) {
-          const message =
-            error?.response?.data?.message ||
-            error?.response?.data?.error ||
-            error?.response?.data?.errors?.[0]?.msg ||
-            error?.response?.data?.errors?.[0]?.message ||
-            'Login failed'
-          this.error = message
-          return { success: false, error: message }
+        if (loginType === 'teacher') {
+          localStorage.setItem('teacher', JSON.stringify(user))
+          localStorage.removeItem('user')
+        } else {
+          localStorage.setItem('user', JSON.stringify(user))
+          localStorage.removeItem('teacher')
         }
+        
+        return { success: true, userType: loginType, redirectTo: response.data.redirectTo }
+      } catch (error) {
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          error?.response?.data?.errors?.[0]?.msg ||
+          error?.response?.data?.errors?.[0]?.message ||
+          'Login failed'
+        this.error = message
+        return { success: false, error: message }
       } finally {
         this.loading = false
       }
@@ -70,18 +67,36 @@ export const useAuthStore = defineStore('auth', {
       
       try {
         const response = await api.post('/auth/register', userData)
+        if (response.status === 202) {
+          return {
+            success: true,
+            requiresOtp: true,
+            email: response.data.email,
+            role: response.data.role,
+            expiresInSeconds: response.data.expires_in_seconds,
+            resendCooldownSeconds: response.data.resend_cooldown_seconds
+          }
+        }
+
         const { token, user } = response.data
+        const userType = user?.role || response.data.role || userData.role || 'teacher'
         
         this.token = token
         this.user = user
-        this.userType = 'admin'
+        this.userType = userType
         
         localStorage.setItem('token', token)
-        localStorage.setItem('userType', 'admin')
-        localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('userType', userType)
+        if (userType === 'teacher') {
+          localStorage.setItem('teacher', JSON.stringify(user))
+          localStorage.removeItem('user')
+        } else {
+          localStorage.setItem('user', JSON.stringify(user))
+          localStorage.removeItem('teacher')
+        }
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
-        return { success: true }
+        return { success: true, userType, redirectTo: response.data.redirectTo }
       } catch (error) {
         this.error = error.response?.data?.message || 'Registration failed'
         return { success: false, error: this.error }

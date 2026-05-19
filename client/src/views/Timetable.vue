@@ -230,6 +230,46 @@
             </div>
           </fieldset>
         </article>
+
+        <article class="panel-card">
+          <div class="panel-heading compact">
+            <span class="panel-icon activity-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 6v14M17 6v14M5 20h14M9 10h6M9 14h6"/></svg>
+            </span>
+            <div>
+              <h2>Shared Activities</h2>
+              <p>Assembly, exams, or events placed across selected classes.</p>
+            </div>
+            <button class="btn-secondary" type="button" @click="addSharedActivity">Add Activity</button>
+          </div>
+
+          <div v-if="!sharedActivities.length" class="shared-empty">No shared activities added.</div>
+
+          <div v-for="(activity, index) in sharedActivities" :key="activity.id" class="shared-activity-row">
+            <div>
+              <label class="form-label">Activity</label>
+              <input v-model="activity.activity_name" type="text" class="form-control" placeholder="Assembly">
+            </div>
+            <div>
+              <label class="form-label">Day</label>
+              <select v-model="activity.day_of_week" class="form-select">
+                <option value="all">All selected days</option>
+                <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Start</label>
+              <input v-model="activity.start_time" type="time" class="form-control">
+            </div>
+            <div>
+              <label class="form-label">End</label>
+              <input v-model="activity.end_time" type="time" class="form-control">
+            </div>
+            <button class="btn-danger" type="button" @click="removeSharedActivity(index)" title="Remove activity">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+        </article>
       </section>
 
       <section class="generation-bar">
@@ -360,8 +400,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-import { exportToPDF, exportToWord, exportToICal, printTimetable as printClassTimetable } from '@/utils/exportTimetable'
-import { downloadTimetablePdf } from '@/utils/timetablePdf'
+import { exportToPDF, exportToICal } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const loading = ref(false)
@@ -374,6 +413,9 @@ const selectedTimetableClassId = ref('')
 const showAssignmentForm = ref(false)
 const activeExportDropdown = ref(null)
 const exportFormat = ref('pdf')
+const timetableSettings = ref(null)
+const sharedActivities = ref([])
+let sharedActivityId = 0
 
 const emptyAssignment = () => ({
   class_id: '',
@@ -463,6 +505,38 @@ const openAssignmentForm = () => {
 const closeAssignmentForm = () => {
   showAssignmentForm.value = false
   assignment.value = emptyAssignment()
+}
+
+const addSharedActivity = () => {
+  sharedActivities.value.push({
+    id: ++sharedActivityId,
+    activity_name: '',
+    day_of_week: 'all',
+    start_time: '08:00',
+    end_time: '08:45'
+  })
+}
+
+const removeSharedActivity = (index) => {
+  sharedActivities.value.splice(index, 1)
+}
+
+const getSharedActivityPayload = () => {
+  return sharedActivities.value.flatMap((activity) => {
+    const name = String(activity.activity_name || '').trim()
+    if (!name || !activity.start_time || !activity.end_time) return []
+
+    const selectedDays = activity.day_of_week === 'all'
+      ? [...FIXED_DAYS]
+      : [activity.day_of_week].filter((day) => FIXED_DAYS.includes(day))
+
+    return selectedDays.map((day) => ({
+      activity_name: name,
+      day_of_week: day,
+      start_time: activity.start_time,
+      end_time: activity.end_time
+    }))
+  })
 }
 
 const availableLevels = computed(() => {
@@ -652,18 +726,10 @@ const buildBreakRows = (group) => {
 }
 
 const buildTimetableGridWithBreaks = (group) => {
-  const periodRows = buildTimetableGridRows(group)
-  const breakRows = buildBreakRows(group)
-
-  if (!periodRows.length && !breakRows.length) {
-    return buildFixedTimetableRows(group.entries, days)
-  }
-
-  return [...periodRows, ...breakRows].sort((a, b) => {
-    const startDiff = String(a.start_time || '').localeCompare(String(b.start_time || ''))
-    if (startDiff !== 0) return startDiff
-    if (a.type === b.type) return 0
-    return a.type === 'break' ? 1 : -1
+  return buildFixedTimetableRows(group.entries, days, {
+    ...timetableSettings.value,
+    start_time: generateSettings.value.start_time,
+    period_minutes: generateSettings.value.period_minutes
   })
 }
 
@@ -721,27 +787,57 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/'/g, '&#039;')
 
 const buildTimetableHtml = (groups = displayedTimetables.value) => {
-  const header = ['Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
+  const today = new Date().toLocaleDateString()
   const body = groups.map((group) => {
-    const groupHeader = `<tr class="class-row"><td colspan="${days.length + 1}">${escapeHtml(group.class_name || `Class ${group.class_id}`)}</td></tr>`
+    const className = group.class_name || `Class ${group.class_id}`
+    const level = group.level || 'No level set'
+    const room = group.room_name || 'No room set'
     const rows = buildTimetableGridWithBreaks(group).map((row) => {
       if (row.type === 'break') {
-        return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td><td colspan="${days.length}">${escapeHtml(row.label)}</td></tr>`
+        return `<tr class="break-row ${row.breakType}">
+          <td class="period-cell">${escapeHtml(row.label)}</td>
+          <td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>
+          <td colspan="${days.length}" class="break-label">${escapeHtml(row.label)}</td>
+        </tr>`
       }
 
       const cells = days.map((day) => {
         const entry = row.entriesByDay[day]
         if (!entry) return '<td class="empty-cell"></td>'
         const room = entry.entry_type === 'activity' ? 'Shared activity' : (entry.room_name || entry.room || 'TBA')
-        return `<td><div class="module-cell ${entry.entry_type === 'activity' ? 'activity-cell' : ''}">
+        return `<td class="${entry.entry_type === 'activity' ? 'activity-cell' : ''}">
           <strong>${escapeHtml(entry.module_name || 'Untitled')}</strong>
           <span>${escapeHtml(entry.teacher_name || 'No teacher')}</span>
           <small>${escapeHtml(room)}</small>
-        </div></td>`
+        </td>`
       }).join('')
-      return `<tr><td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>${cells}</tr>`
+      return `<tr>
+        <td class="period-cell">${escapeHtml(row.period || '')}</td>
+        <td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>
+        ${cells}
+      </tr>`
     }).join('')
-    return groupHeader + rows
+
+    return `<section class="timetable-page">
+      <h1>${escapeHtml(className)} - Timetable</h1>
+      <p class="meta">Level: ${escapeHtml(level)} &nbsp;&nbsp; Room: ${escapeHtml(room)}</p>
+      <p class="generated">Generated on ${escapeHtml(today)}</p>
+      <table>
+        <colgroup>
+          <col class="period-col">
+          <col class="time-col">
+          ${days.map(() => '<col class="day-col">').join('')}
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th></th>
+            ${days.map((day) => `<th>${escapeHtml(day)}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </section>`
   }).join('')
 
   return `<!doctype html>
@@ -750,72 +846,41 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
   <meta charset="utf-8">
   <title>Class Timetables</title>
   <style>
-    body { font-family: Arial, sans-serif; color: #111827; }
-    h1 { font-size: 22px; margin-bottom: 12px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #ffffff; font-family: Arial, sans-serif; color: #111827; }
+    .timetable-page { width: 100%; padding: 26px 30px 30px; page-break-after: always; }
+    .timetable-page:last-child { page-break-after: auto; }
+    h1 { font-size: 18px; line-height: 1.2; margin: 0 0 8px; font-weight: 500; }
+    .meta,
+    .generated { margin: 0 0 6px; font-size: 9px; color: #111827; }
+    .generated { margin-bottom: 14px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { border: 1px solid #cbd5e1; padding: 8px; font-size: 12px; vertical-align: top; height: 54px; }
-    th { background: #0f2f5f; color: white; text-align: left; }
-    .class-row td { background: #dbeafe; font-weight: 800; font-size: 14px; }
-    .time-cell { background: #f8fafc; font-weight: 700; }
+    .period-col { width: 6%; }
+    .time-col { width: 10%; }
+    .day-col { width: 16.8%; }
+    th, td { border: 1px solid #d8e4f5; padding: 6px 7px; font-size: 9px; line-height: 1.12; vertical-align: top; height: 42px; }
+    th { background: #2563eb; color: white; text-align: center; font-size: 8px; font-weight: 700; padding: 6px 4px; }
+    td strong,
+    td span,
+    td small { display: block; font-weight: 400; color: #374151; }
+    td strong { color: #374151; }
+    td small { font-size: 8px; text-transform: uppercase; }
+    .period-cell,
+    .time-cell { text-align: center; vertical-align: middle; color: #374151; }
+    .period-cell { font-weight: 500; }
+    .time-cell { white-space: nowrap; }
     .empty-cell { background: #ffffff; }
-    .module-cell { min-height: 42px; padding: 6px; border-left: 5px solid #2563eb; background: #eff6ff; border-radius: 6px; }
-    .module-cell.activity-cell { border-left-color: #16a34a; background: #f0fdf4; }
-    .module-cell strong, .module-cell span, .module-cell small { display: block; }
-    .break-row td { background: #e8f7e9; font-weight: 700; text-align: center; }
-    .break-row.lunch-break td { background: #fff4c7; }
-    .break-row.evening-break td { background: #e9f2ff; }
+    .activity-cell { background: #f0fdf4; }
+    .break-row td { background: #eef4ff; font-weight: 700; text-align: center; vertical-align: middle; height: 38px; }
+    .break-row .period-cell { word-break: break-word; font-size: 8px; }
+    .break-label { letter-spacing: 0; }
+    @page { size: A4 landscape; margin: 0; }
   </style>
 </head>
 <body>
-  <h1>Class Timetables</h1>
-  <table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>
+  ${body}
 </body>
 </html>`
-}
-
-const buildPdfRows = () => {
-  const rows = []
-  displayedTimetables.value.forEach((group) => {
-    rows.push({
-      type: 'group',
-      cells: [
-        { text: group.class_name || `Class ${group.class_id}`, fill: '#dbeafe', bold: true },
-        ...days.map(() => ({ text: '', fill: '#dbeafe' }))
-      ]
-    })
-
-    buildTimetableGridWithBreaks(group).forEach((row) => {
-      if (row.type === 'break') {
-        const fill = row.breakType === 'lunch-break' ? '#fff4c7' : row.breakType === 'evening-break' ? '#e9f2ff' : '#e8f7e9'
-        rows.push({
-          type: 'break',
-          cells: [
-            { text: formatTimeRange(row.start_time, row.end_time), fill, bold: true },
-            ...days.map(() => ({ text: row.label, fill, bold: true }))
-          ]
-        })
-        return
-      }
-
-      rows.push({
-        type: 'period',
-        cells: [
-          { text: formatTimeRange(row.start_time, row.end_time), fill: '#f8fafc', bold: true },
-          ...days.map((day) => {
-            const entry = row.entriesByDay[day]
-            if (!entry) return { text: '', fill: '#ffffff' }
-            const room = entry.entry_type === 'activity' ? 'Shared activity' : (entry.room_name || entry.room || 'TBA')
-            return {
-              text: `${entry.module_name || 'Untitled'}\n${entry.teacher_name || 'No teacher'}\n${room}`,
-              fill: entry.entry_type === 'activity' ? '#f0fdf4' : '#eff6ff',
-              bold: true
-            }
-          })
-        ]
-      })
-    })
-  })
-  return rows
 }
 
 const getExportBaseName = (groups = displayedTimetables.value) => {
@@ -864,8 +929,14 @@ const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) =
   const selectedFormat = String(format || 'csv').toLowerCase()
 
   if (selectedFormat === 'pdf') {
-    openPdfPrintWindow(groups)
-    assignmentMessage.value = 'Use Save as PDF in the print dialog.'
+    groups.forEach((group) => {
+      exportToPDF(
+        group.entries,
+        group.class_name || `Class ${group.class_id}`,
+        getExportOptions(group)
+      )
+    })
+    assignmentMessage.value = groups.length > 1 ? 'PDF timetables downloaded.' : 'PDF timetable downloaded.'
   } else if (selectedFormat === 'xls') {
     downloadBlob(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
     assignmentMessage.value = 'Excel timetable downloaded.'
@@ -956,13 +1027,14 @@ const generateTimetable = async () => {
       class_id: generateSettings.value.class_id,
       level: generateSettings.value.level,
       replace_existing: generateSettings.value.replace_existing,
-      days: [...FIXED_DAYS],
       start_time: generateSettings.value.start_time,
+      period_minutes: generateSettings.value.period_minutes,
+      days: [...FIXED_DAYS],
       end_time: generateSettings.value.end_time,
       status: generateSettings.value.status,
-      period_minutes: generateSettings.value.period_minutes,
       teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
-      break_period_rules: { ...generateSettings.value.break_period_rules }
+      break_period_rules: { ...generateSettings.value.break_period_rules },
+      shared_activities: getSharedActivityPayload()
     }
 
     const response = await api.post('/timetable/generate', payload)
@@ -1000,8 +1072,24 @@ const loadModules = async () => {
   } catch (e) { console.error(e) }
 }
 
+const loadTimetableSettings = async () => {
+  try {
+    const res = await api.get('/settings/timetable')
+    timetableSettings.value = res.data.settings || null
+    if (timetableSettings.value) {
+      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 0)
+      generateSettings.value.break_period_rules = {
+        ...generateSettings.value.break_period_rules,
+        ...(timetableSettings.value.break_period_rules || {})
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 const loadSetupData = async () => {
-  await Promise.all([loadClasses(), loadTeachers(), loadModules()])
+  await Promise.all([loadClasses(), loadTeachers(), loadModules(), loadTimetableSettings()])
 }
 
 const loadTimetable = async () => {

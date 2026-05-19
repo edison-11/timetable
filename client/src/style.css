@@ -1053,3 +1053,148 @@ body:has(.dashboard-frame) .app-account-menu {
     display: none;
   }
 }
+
+/* Admin dark mode */
+body.admin-dark-mode {
+  --app-blue-soft: #172554;
+  --app-border: #263247;
+  --app-surface: #111827;
+  --app-page: #0f172a;
+  --app-text: #e5e7eb;
+  --app-muted: #94a3b8;
+  background: #0f172a;
+  color: #e5e7eb;
+}
+
+body.admin-dark-mode .dashboard-container,
+body.admin-dark-mode .classes-container,
+body.admin-dark-mode .teachers-container,
+body.admin-dark-mode .settings-container,
+body.admin-dark-mode .modules-container,
+body.admin-dark-mode .rooms-container,
+body.admin-dark-mode .sections-container,
+body.admin-dark-mode .shifts-container,
+body.admin-dark-mode .assignments-container,
+body.admin-dark-mode .timetable-container,
+body.admin-dark-mode .p-6,
+body.admin-dark-mode .bg-light,
+body.admin-dark-mode .bg-secondary-50 {
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+}
+
+body.admin-dark-mode .card,
+body.admin-dark-mode .card-custom,
+body.admin-dark-mode .table-wrapper,
+body.admin-dark-mode .form-card,
+body.admin-dark-mode .dashboard-card,
+body.admin-dark-mode .panel,
+body.admin-dark-mode .section,
+body.admin-dark-mode .metric-card,
+body.admin-dark-mode .stat-card,
+body.admin-dark-mode .empty-state,
+body.admin-dark-mode .modal-content,
+body.admin-dark-mode .export-menu,
+body.admin-dark-mode .bg-white {
+  background: #111827 !important;
+  border-color: #263247 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+body.admin-dark-mode h1,
+body.admin-dark-mode h2,
+body.admin-dark-mode h3,
+body.admin-dark-mode h4,
+body.admin-dark-mode h5,
+body.admin-dark-mode h6,
+body.admin-dark-mode .page-header h1,
+body.admin-dark-mode .form-header h2,
+body.admin-dark-mode .section-title,
+body.admin-dark-mode .card-title,
+body.admin-dark-mode .text-dark,
+body.admin-dark-mode .text-secondary-700,
+body.admin-dark-mode .text-secondary-800,
+body.admin-dark-mode .fw-semibold,
+body.admin-dark-mode strong {
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode p,
+body.admin-dark-mode small,
+body.admin-dark-mode .text-muted,
+body.admin-dark-mode .text-secondary-500,
+body.admin-dark-mode .page-header p,
+body.admin-dark-mode .empty-row,
+body.admin-dark-mode .form-label,
+body.admin-dark-mode label {
+  color: #94a3b8 !important;
+}
+
+body.admin-dark-mode .form-control,
+body.admin-dark-mode .form-select,
+body.admin-dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body.admin-dark-mode select,
+body.admin-dark-mode textarea,
+body.admin-dark-mode .filter-select,
+body.admin-dark-mode .search-input,
+body.admin-dark-mode .filter-input,
+body.admin-dark-mode .export-select,
+body.admin-dark-mode .class-select {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+body.admin-dark-mode input::placeholder,
+body.admin-dark-mode textarea::placeholder {
+  color: #64748b !important;
+}
+
+body.admin-dark-mode .table-custom,
+body.admin-dark-mode table {
+  color: #e5e7eb !important;
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode .table-custom thead,
+body.admin-dark-mode .classes-table th,
+body.admin-dark-mode thead,
+body.admin-dark-mode .modal-header,
+body.admin-dark-mode .modal-footer {
+  background: #172033 !important;
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode .table-custom th,
+body.admin-dark-mode .table-custom td,
+body.admin-dark-mode .classes-table th,
+body.admin-dark-mode .classes-table td,
+body.admin-dark-mode th,
+body.admin-dark-mode td {
+  color: #e5e7eb !important;
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode tbody tr:hover,
+body.admin-dark-mode .classes-table tr:hover {
+  background: #172554 !important;
+}
+
+body.admin-dark-mode .btn-secondary,
+body.admin-dark-mode .btn-outline-secondary,
+body.admin-dark-mode .export-menu button {
+  background: #1f2937 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+}
+
+body.admin-dark-mode .alert-success {
+  background: #064e3b !important;
+  color: #bbf7d0 !important;
+}
+
+body.admin-dark-mode .alert-danger {
+  background: #7f1d1d !important;
+  color: #fecaca !important;
+}

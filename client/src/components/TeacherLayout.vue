@@ -1,141 +1,125 @@
 <template>
-  <div :class="['teacher-layout', { 'dark-mode': isDarkMode }]">
-    <!-- Sidebar Navigation -->
-    <aside class="teacher-sidebar" :class="{ 'sidebar-open': sidebarOpen }">
-      <div class="sidebar-header">
-        <div class="logo">
-          <span class="logo-icon">👨‍🏫</span>
-          <span class="logo-text">TeacherHub</span>
+  <div class="teacher-shell" :class="{ 'dark-mode': isDarkMode }">
+    <div class="teacher-sidebar-backdrop" :class="{ visible: sidebarOpen }" @click="closeMobileSidebar"></div>
+
+    <aside class="teacher-sidebar" :class="{ 'mobile-open': sidebarOpen }">
+      <div class="sidebar-brand">
+        <div class="brand-mark">
+          <img class="brand-logo" :src="logoUrl" alt="Timetable logo">
         </div>
-        <button class="sidebar-toggle" @click="toggleSidebar">
-          <i class="bi bi-x-lg"></i>
-        </button>
+        <div class="brand-text">
+          <strong>Timetable</strong>
+          <span>Teacher Panel</span>
+        </div>
       </div>
 
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" aria-label="Teacher navigation">
         <router-link
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
           class="nav-item"
-          :class="{ active: $route.path === item.to }"
+          :class="{ active: isActive(item.to) }"
+          :aria-current="isActive(item.to) ? 'page' : undefined"
+          :title="item.label"
+          @click="closeMobileSidebar"
         >
           <span class="nav-icon" v-html="item.icon"></span>
-          <span class="nav-text">{{ item.label }}</span>
+          <span class="nav-label">{{ item.label }}</span>
         </router-link>
       </nav>
 
-      <!-- Profile Card in Sidebar -->
-      <div class="sidebar-profile">
-        <div class="profile-avatar">
-          <img v-if="teacher?.profile_photo" :src="teacher.profile_photo" :alt="teacher.name" />
-          <div v-else class="avatar-placeholder">{{ getInitials }}</div>
-        </div>
-        <div class="profile-info">
-          <p class="profile-name">{{ teacher?.name }}</p>
-          <p class="profile-dept">{{ teacher?.department }}</p>
-        </div>
-        <button class="profile-menu-btn" @click="showProfileMenu = !showProfileMenu">
-          <i class="bi bi-three-dots-vertical"></i>
-        </button>
-        <div v-if="showProfileMenu" class="profile-menu">
-          <button @click="goToProfile" class="menu-item">
-            <i class="bi bi-person"></i> Profile
-          </button>
-          <button @click="goToSettings" class="menu-item">
-            <i class="bi bi-gear"></i> Settings
-          </button>
-          <button @click="logout" class="menu-item logout">
-            <i class="bi bi-box-arrow-right"></i> Logout
-          </button>
-        </div>
-      </div>
     </aside>
 
-    <!-- Main Content Area -->
     <div class="teacher-main">
-      <!-- Top Navigation Bar -->
       <header class="teacher-navbar">
         <div class="navbar-left">
-          <button class="sidebar-hamburger" @click="toggleSidebar">
-            <i class="bi bi-list"></i>
+          <button
+            class="menu-toggle"
+            type="button"
+            :class="{ active: sidebarOpen }"
+            :aria-expanded="sidebarOpen"
+            aria-label="Toggle teacher navigation"
+            @click="toggleSidebar"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M4 7h16" />
+              <path d="M4 12h16" />
+              <path d="M4 17h16" />
+            </svg>
           </button>
-          <h1 class="page-title">{{ pageTitle }}</h1>
+          <div>
+            <h1 class="page-title">{{ pageTitle }}</h1>
+            <p class="page-subtitle">{{ pageSubtitle }}</p>
+          </div>
         </div>
 
         <div class="navbar-right">
-          <!-- Search Bar -->
           <div class="search-container">
-            <input type="text" placeholder="Search lessons, classes..." class="search-input" />
-            <i class="bi bi-search"></i>
+            <input v-model="searchQuery" type="search" placeholder="Search teacher tools..." @keyup.enter="runSearch">
+            <span class="search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
+            </span>
           </div>
 
-          <!-- Notifications Dropdown -->
-          <div class="notifications-container">
-            <button class="notification-btn" @click="showNotifications = !showNotifications">
-              <i class="bi bi-bell"></i>
+          <div class="notifications-container" ref="notificationsMenu">
+            <button
+              class="icon-button"
+              type="button"
+              title="Notifications"
+              :aria-expanded="showNotifications"
+              @click="toggleNotifications"
+            >
+              <span class="bell-icon" aria-hidden="true"></span>
               <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
             </button>
+
             <div v-if="showNotifications" class="notifications-dropdown">
-              <div class="dropdown-header">Notifications</div>
-              <div class="notifications-list">
-                <div v-if="notifications.length === 0" class="empty-state">
-                  No notifications yet
-                </div>
-                <div
-                  v-for="notif in notifications.slice(0, 5)"
-                  :key="notif.id"
-                  class="notification-item"
-                  :class="{ unread: !notif.read }"
-                >
-                  <div class="notif-content">
-                    <strong>{{ notif.title }}</strong>
-                    <p>{{ notif.message }}</p>
-                    <small>{{ formatTime(notif.created_at) }}</small>
-                  </div>
-                </div>
+              <div class="dropdown-header">
+                <strong>Notifications</strong>
+                <button type="button" @click="markAllRead">Mark read</button>
               </div>
-              <a href="#" class="dropdown-footer">View all notifications</a>
+              <div v-if="!notifications.length" class="empty-state">No notifications yet.</div>
+              <button
+                v-for="notif in notifications.slice(0, 5)"
+                :key="notif.id"
+                type="button"
+                class="notification-item"
+                :class="{ unread: !notif.read }"
+                @click="openNotification(notif)"
+              >
+                <strong>{{ notif.title }}</strong>
+                <span>{{ notif.message }}</span>
+                <small>{{ formatTime(notif.created_at) }}</small>
+              </button>
             </div>
           </div>
 
-          <!-- Theme Toggle -->
-          <button class="theme-toggle" @click="toggleTheme" :title="isDarkMode ? 'Light mode' : 'Dark mode'">
-            <i :class="isDarkMode ? 'bi bi-brightness-high' : 'bi bi-moon'"></i>
+          <button class="icon-button" type="button" :title="isDarkMode ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
+            <span class="theme-icon" :class="{ sun: isDarkMode }"></span>
           </button>
 
-          <!-- Profile Dropdown -->
-          <div class="profile-container">
-            <button class="profile-btn" @click="showProfileDropdown = !showProfileDropdown">
-              <img v-if="teacher?.profile_photo" :src="teacher.profile_photo" :alt="teacher.name" />
-              <div v-else class="avatar-small">{{ getInitials }}</div>
+          <div class="profile-container" ref="profileMenu">
+            <button class="profile-btn" type="button" :aria-expanded="showProfileDropdown" @click="showProfileDropdown = !showProfileDropdown">
+              <img v-if="profileImageUrl" :src="profileImageUrl" :alt="teacherName">
+              <span v-else>{{ getInitials }}</span>
             </button>
+
             <div v-if="showProfileDropdown" class="profile-dropdown">
-              <div class="dropdown-item-group">
-                <p class="dropdown-label">{{ teacher?.name }}</p>
+              <div class="profile-dropdown-header">
+                <strong>{{ teacherName }}</strong>
+                <span>{{ teacherEmail }}</span>
               </div>
-              <router-link to="/teacher/profile" class="dropdown-item">
-                <i class="bi bi-person"></i> My Profile
-              </router-link>
-              <router-link to="/teacher/timetable" class="dropdown-item">
-                <i class="bi bi-calendar"></i> My Timetable
-              </router-link>
-              <router-link to="/teacher/requests" class="dropdown-item">
-                <i class="bi bi-chat-dots"></i> Requests
-              </router-link>
-              <router-link to="/teacher/announcements" class="dropdown-item">
-                <i class="bi bi-megaphone"></i> Announcements
-              </router-link>
-              <hr class="dropdown-divider" />
-              <button @click="logout" class="dropdown-item logout">
-                <i class="bi bi-box-arrow-right"></i> Logout
-              </button>
+              <router-link to="/teacher/profile" class="dropdown-item" @click="showProfileDropdown = false">My Profile</router-link>
+              <router-link to="/teacher/timetable" class="dropdown-item" @click="showProfileDropdown = false">My Timetable</router-link>
+              <router-link to="/teacher/requests" class="dropdown-item" @click="showProfileDropdown = false">Requests</router-link>
+              <router-link to="/teacher/announcements" class="dropdown-item" @click="showProfileDropdown = false">Announcements</router-link>
+              <button type="button" class="dropdown-item danger" @click="logout">Logout</button>
             </div>
           </div>
         </div>
       </header>
 
-      <!-- Page Content -->
       <main class="teacher-content">
         <slot />
       </main>
@@ -144,640 +128,364 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/stores/api'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
+const logoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
 
 const sidebarOpen = ref(false)
 const isDarkMode = ref(false)
+const searchQuery = ref('')
 const showNotifications = ref(false)
-const showProfileMenu = ref(false)
 const showProfileDropdown = ref(false)
+const notificationsMenu = ref(null)
+const profileMenu = ref(null)
 const notifications = ref([])
-const unreadCount = ref(0)
 
 const teacher = computed(() => {
+  if (authStore.currentUserType === 'teacher' && authStore.currentUser) return authStore.currentUser
+
   const storedTeacher = localStorage.getItem('teacher')
-  return storedTeacher ? JSON.parse(storedTeacher) : null
+  if (!storedTeacher) return null
+
+  try {
+    return JSON.parse(storedTeacher)
+  } catch (error) {
+    return null
+  }
 })
 
+const teacherName = computed(() => teacher.value?.name || 'Teacher')
+const teacherEmail = computed(() => teacher.value?.email || 'No email set')
+const profileImageUrl = computed(() => resolveAssetUrl(teacher.value?.profile_photo))
+const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
+
 const getInitials = computed(() => {
-  if (!teacher.value?.name) return 'T'
-  const parts = teacher.value.name.split(' ')
-  return parts.map(p => p[0]).join('').toUpperCase().slice(0, 2)
+  const parts = teacherName.value.trim().split(/\s+/).filter(Boolean)
+  return parts.length ? parts.map(part => part[0]).join('').toUpperCase().slice(0, 2) : 'T'
 })
 
 const pageTitle = computed(() => {
   const routeTitle = {
-    'teacher-dashboard': 'Dashboard',
-    'teacher-timetable': 'My Timetable',
-    'teacher-profile': 'My Profile',
-    'teacher-requests': 'Change Requests',
-    'teacher-announcements': 'Announcements',
-    'teacher-settings': 'Settings'
+    TeacherDashboard: 'Dashboard',
+    TeacherTimetable: 'My Timetable',
+    TeacherProfile: 'My Profile',
+    TeacherRequests: 'Change Requests',
+    TeacherAnnouncements: 'Announcements',
+    TeacherSettings: 'Settings'
   }
-  return routeTitle[router.currentRoute.value.name] || 'Teacher Portal'
+  return routeTitle[route.name] || 'Teacher Portal'
 })
 
-const navItems = [
-  {
-    label: 'Dashboard',
-    to: '/teacher/dashboard',
-    icon: '<i class="bi bi-speedometer2"></i>'
-  },
-  {
-    label: 'My Timetable',
-    to: '/teacher/timetable',
-    icon: '<i class="bi bi-calendar3"></i>'
-  },
-  {
-    label: 'My Profile',
-    to: '/teacher/profile',
-    icon: '<i class="bi bi-person-circle"></i>'
-  },
-  {
-    label: 'Change Requests',
-    to: '/teacher/requests',
-    icon: '<i class="bi bi-chat-dots"></i>'
-  },
-  {
-    label: 'Announcements',
-    to: '/teacher/announcements',
-    icon: '<i class="bi bi-megaphone"></i>'
-  },
-  {
-    label: 'Settings',
-    to: '/teacher/settings',
-    icon: '<i class="bi bi-gear"></i>'
+const pageSubtitle = computed(() => {
+  const subtitles = {
+    TeacherDashboard: 'Your teaching day, classes, and quick actions.',
+    TeacherTimetable: 'Review your weekly lessons and export your schedule.',
+    TeacherProfile: 'Manage your teacher information.',
+    TeacherRequests: 'Send and track timetable change requests.',
+    TeacherAnnouncements: 'Read school updates and notices.',
+    TeacherSettings: 'Update preferences, availability, and security.'
   }
+  return subtitles[route.name] || 'Teacher workspace'
+})
+
+const icons = {
+  dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
+  timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
+  profile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg>',
+  requests: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M8 9h8M8 13h5"/></svg>',
+  announcements: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 18-6v14L3 13v-2Z"/><path d="M11 14v5a2 2 0 0 1-4 0v-6"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
+}
+
+const navItems = [
+  { label: 'Dashboard', to: '/teacher/dashboard', icon: icons.dashboard },
+  { label: 'My Timetable', to: '/teacher/timetable', icon: icons.timetable },
+  { label: 'My Profile', to: '/teacher/profile', icon: icons.profile },
+  { label: 'Change Requests', to: '/teacher/requests', icon: icons.requests },
+  { label: 'Announcements', to: '/teacher/announcements', icon: icons.announcements },
+  { label: 'Settings', to: '/teacher/settings', icon: icons.settings }
 ]
 
+const isActive = (path) => route.path === path
+
+const resolveAssetUrl = (path) => {
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path
+  if (path.startsWith('/uploads/')) return path
+  const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
+  return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+const closeMobileSidebar = () => {
+  sidebarOpen.value = false
+  document.body.classList.remove('teacher-sidebar-open')
+}
+
 const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
+  if (isMobile) {
+    sidebarOpen.value = !sidebarOpen.value
+    document.body.classList.toggle('teacher-sidebar-open', sidebarOpen.value)
+    return
+  }
+
+  document.body.classList.toggle('teacher-sidebar-collapsed')
 }
 
-const toggleTheme = () => {
-  isDarkMode.value = !isDarkMode.value
-  localStorage.setItem('teacherDarkMode', isDarkMode.value)
+const runSearch = () => {
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return
+
+  const destination = navItems.find(item => item.label.toLowerCase().includes(query))
+  if (destination) router.push(destination.to)
 }
 
-const goToProfile = () => {
-  router.push('/teacher/profile')
-  showProfileMenu.value = false
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
+  showProfileDropdown.value = false
 }
 
-const goToSettings = () => {
-  router.push('/teacher/settings')
-  showProfileMenu.value = false
+const markAllRead = () => {
+  notifications.value = notifications.value.map(notification => ({ ...notification, read: true }))
+}
+
+const openNotification = (notification) => {
+  notification.read = true
+  showNotifications.value = false
+  if (notification.path) router.push(notification.path)
 }
 
 const formatTime = (timestamp) => {
   const date = new Date(timestamp)
-  const now = new Date()
-  const diff = Math.floor((now - date) / 1000)
-
-  if (diff < 60) return 'just now'
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (Number.isNaN(diff)) return ''
+  if (diff < 60) return 'Just now'
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
   return date.toLocaleDateString()
 }
 
-const logout = async () => {
+const toggleTheme = () => {
+  isDarkMode.value = !isDarkMode.value
+  localStorage.setItem('teacherDarkMode', JSON.stringify(isDarkMode.value))
+}
+
+const loadNotifications = async () => {
+  try {
+    const response = await api.get('/notifications?limit=5')
+    notifications.value = (response.data.notifications || []).map(notification => ({
+      id: notification.notification_id || notification.id,
+      title: notification.title,
+      message: notification.message,
+      created_at: notification.created_at,
+      path: notification.path || '/teacher/dashboard',
+      read: false
+    }))
+  } catch (error) {
+    notifications.value = []
+  }
+}
+
+const logout = () => {
   authStore.logout()
+  localStorage.removeItem('token')
+  localStorage.removeItem('userType')
+  localStorage.removeItem('teacher')
   router.push('/teacher/login')
 }
 
-onMounted(() => {
+const closeMenusOnOutsideClick = (event) => {
+  if (!notificationsMenu.value?.contains(event.target)) showNotifications.value = false
+  if (!profileMenu.value?.contains(event.target)) showProfileDropdown.value = false
+}
+
+onMounted(async () => {
   const savedTheme = localStorage.getItem('teacherDarkMode')
   if (savedTheme) isDarkMode.value = JSON.parse(savedTheme)
 
-  // Load notifications (can be expanded with API call)
-  notifications.value = [
-    {
-      id: 1,
-      title: 'Timetable Updated',
-      message: 'Your schedule has been updated for next week',
-      created_at: new Date(),
-      read: false
-    },
-    {
-      id: 2,
-      title: 'Room Change',
-      message: 'Class 10-A moved to Room 105',
-      created_at: new Date(Date.now() - 3600000),
-      read: false
-    }
-  ]
-  unreadCount.value = notifications.value.filter(n => !n.read).length
+  await authStore.checkAuth()
+  await loadNotifications()
+
+  document.addEventListener('click', closeMenusOnOutsideClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeMenusOnOutsideClick)
+  document.body.classList.remove('teacher-sidebar-open')
 })
 </script>
 
 <style scoped>
-:root {
-  --teacher-primary: #3498db;
-  --teacher-primary-dark: #2980b9;
-  --teacher-primary-light: #dbeafe;
-  --teacher-accent: #10b981;
-  --teacher-warning: #f39c12;
-  --teacher-danger: #e74c3c;
-  --teacher-bg: #f8f9fa;
-  --teacher-bg-dark: #1f2937;
-  --teacher-text: #2c3e50;
-  --teacher-text-light: #7f8c8d;
-  --teacher-border: #e9ecef;
-  --teacher-surface: #ffffff;
-}
-
-.teacher-layout.dark-mode {
-  --teacher-bg: #0f172a;
-  --teacher-text: #f3f4f6;
-  --teacher-text-light: #d1d5db;
-  --teacher-border: #374151;
-  --teacher-surface: #1e293b;
-}
-
-.teacher-layout {
-  display: flex;
+.teacher-shell {
   min-height: 100vh;
-  background-color: var(--teacher-bg);
-  color: var(--teacher-text);
-  transition: background-color 0.3s, color 0.3s;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #f5f9ff;
+  color: #0f172a;
 }
 
-/* Sidebar */
 .teacher-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 260px;
-  background: #f8f9fa;
-  border-right: 1px solid #e9ecef;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #dbe5f3;
+  box-shadow: 16px 0 34px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
-  padding: 1.5rem 0;
-  position: fixed;
-  left: 0;
-  top: 0;
-  height: 100vh;
-  z-index: 1000;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  z-index: 220;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.24s ease, transform 0.24s ease, box-shadow 0.24s ease;
 }
 
-.sidebar-header {
-  padding: 0 1rem 1.5rem;
+.sidebar-brand {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e9ecef;
-  margin-bottom: 1rem;
+  gap: 0.95rem;
+  padding: 1.35rem 1.1rem 1.1rem;
+  border-bottom: 1px solid #e3ebf7;
+  margin-bottom: 0.9rem;
+  min-height: 88px;
 }
 
-.logo {
+.brand-mark {
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #2c3e50;
+  justify-content: center;
+  background: #eef6ff;
+  border: 1px solid #cfe2ff;
+  border-radius: 14px;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
 }
 
-.logo-icon {
-  font-size: 1.5rem;
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  padding: 6px;
 }
 
-.logo-text {
-  color: #2c3e50;
+.brand-text strong {
+  display: block;
+  font-size: 1.02rem;
+  color: #172033;
   font-weight: 800;
+  line-height: 1.15;
 }
 
-.sidebar-toggle {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #2c3e50;
-  font-size: 1.25rem;
+.brand-text span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .sidebar-nav {
   flex: 1;
+  padding: 0 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0 0.75rem;
+  gap: 0.35rem;
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 0.875rem 1.25rem;
-  margin: 0.25rem 0.75rem;
-  border-radius: 8px;
-  border-left: 4px solid transparent;
-  color: #495057;
+  gap: 0.75rem;
+  min-height: 46px;
+  padding: 0.72rem 0.8rem 0.72rem 1rem;
+  border-radius: 14px;
+  color: #475569;
   text-decoration: none;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
   font-size: 0.88rem;
-  position: relative;
+  font-weight: 750;
+  border: 1px solid transparent;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  width: 3px;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: translateY(-50%) scaleY(0.35);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .nav-item:hover {
-  background: #e9ecef;
-  color: #3498db;
-  border-left-color: #3498db;
+  background: #eef6ff;
+  color: #1d4ed8;
+  border-color: #d7e7ff;
   transform: translateX(3px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  border-left-color: #2980b9;
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
-  font-weight: 700;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.nav-item.active::before {
+  opacity: 1;
+  transform: translateY(-50%) scaleY(1);
 }
 
 .nav-icon {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  font-size: 1.2rem;
-  flex-shrink: 0;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  color: currentColor;
 }
 
-.nav-text {
-  flex: 1;
+.nav-icon :deep(svg) {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-label {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.sidebar-profile {
-  padding: 1rem;
-  border-top: 1px solid #e9ecef;
-  margin-top: auto;
-  background: linear-gradient(135deg, #e8f4f8 0%, #dbeafe 100%);
-  border-radius: 0.75rem;
-  margin: auto 0.75rem 0;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
-}
-
-.profile-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: #3498db;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.profile-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-  font-weight: 800;
-  font-size: 1.1rem;
-}
-
-.profile-info {
-  margin-bottom: 0.75rem;
-}
-
-.profile-name {
-  font-weight: 800;
-  font-size: 0.9rem;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #2c3e50;
-}
-
-.profile-dept {
-  font-size: 0.75rem;
-  color: #7f8c8d;
-  margin: 0.25rem 0 0;
-  font-weight: 700;
-}
-
-.profile-menu-btn {
-  width: 100%;
-  padding: 0.5rem;
-  border: none;
-  background: none;
-  color: #7f8c8d;
-  cursor: pointer;
-  border-radius: 0.375rem;
-  transition: all 0.2s;
-  position: relative;
-}
-
-.profile-menu-btn:hover {
-  background: rgba(52, 152, 219, 0.1);
-  color: #3498db;
-}
-
-.profile-menu {
-  position: absolute;
-  top: 100%;
-  left: 1rem;
-  right: 1rem;
-  background: #ffffff;
-  border: 1px solid var(--teacher-border);
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  z-index: 1001;
-  margin-top: 0.5rem;
-}
-
-.menu-item {
-  width: 100%;
-  text-align: left;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: none;
-  color: #2c3e50;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-  font-weight: 600;
-}
-
-.menu-item:hover {
-  background: #f8f9fa;
-}
-
-.menu-item.logout {
-  color: #e74c3c;
-  font-weight: 700;
-}
-
-/* Main Content Area */
-.teacher-main {
-  flex: 1;
-  margin-left: 260px;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Top Navigation Bar */
-.teacher-navbar {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  border-bottom: 1px solid #34495e;
-  padding: 1rem 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.sidebar-hamburger {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #ffffff;
-  font-size: 1.5rem;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.search-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
-  width: 300px;
-}
-
-.search-input {
-  border: none;
-  background: none;
-  outline: none;
-  flex: 1;
-  color: white;
-}
-
-.search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.search-container i {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 1rem;
-}
-
-.notifications-container {
-  position: relative;
-}
-
-.notification-btn {
-  position: relative;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  cursor: pointer;
-  color: white;
-  font-size: 1.25rem;
-  transition: all 0.2s ease;
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.notification-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-.notification-btn:hover {
-  color: var(--teacher-primary);
-}
-
-.badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--teacher-danger);
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.notifications-dropdown {
-  position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
-  background: #ffffff;
-  border: 1px solid var(--teacher-border);
-  border-radius: 0.75rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
-  min-width: 400px;
-}
-
-.dropdown-header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--teacher-border);
-  font-weight: 800;
-  color: #1f2937;
-}
-
-.notifications-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.notification-item {
-  padding: 1rem;
-  border-bottom: 1px solid var(--teacher-border);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.notification-item:hover {
-  background: #f8f9fa;
-}
-
-.notification-item.unread {
-  background: #e8f4f8;
-}
-
-.notif-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.notif-content strong {
-  color: #1f2937;
-  font-weight: 800;
-}
-
-.notif-content p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #6b7280;
-}
-
-.notif-content small {
-  color: #6b7280;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.empty-state {
-  padding: 2rem;
-  text-align: center;
-  color: #6b7280;
-  font-weight: 600;
-}
-
-.dropdown-footer {
-  display: block;
-  width: 100%;
-  padding: 1rem;
-  text-align: center;
-  border-top: 1px solid var(--teacher-border);
-  color: #3498db;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 800;
-  transition: background 0.2s;
-}
-
-.dropdown-footer:hover {
-  background: #f8f9fa;
-}
-
-.theme-toggle {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: white;
-  font-size: 1.25rem;
-  transition: color 0.2s;
-}
-
-.theme-toggle:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.profile-container {
-  position: relative;
 }
 
 .profile-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background: transparent;
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  transition: border-color 0.2s;
-}
-
-.profile-btn:hover {
-  border-color: rgba(255, 255, 255, 0.5);
+  background: #2563eb;
+  color: #fff;
+  font-weight: 900;
 }
 
 .profile-btn img {
@@ -786,157 +494,456 @@ onMounted(() => {
   object-fit: cover;
 }
 
-.avatar-small {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  color: white;
-  font-weight: 900;
-  font-size: 0.9rem;
-}
-
-.profile-dropdown {
+.profile-dropdown,
+.notifications-dropdown {
   position: absolute;
-  top: calc(100% + 0.5rem);
-  right: 0;
   background: #ffffff;
-  border: 1px solid var(--teacher-border);
-  border-radius: 0.75rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-  z-index: 1001;
-  min-width: 200px;
-}
-
-.dropdown-item-group {
-  padding: 1rem;
-  border-bottom: 1px solid var(--teacher-border);
-}
-
-.dropdown-label {
-  margin: 0;
-  font-weight: 800;
-  font-size: 0.9rem;
-  color: #1f2937;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
+  overflow: hidden;
+  z-index: 260;
 }
 
 .dropdown-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: none;
-  background: none;
-  color: #2c3e50;
-  text-decoration: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: background 0.2s;
+  display: block;
   width: 100%;
+  border: 0;
+  background: #fff;
+  color: #334155;
+  padding: 0.75rem 1rem;
   text-align: left;
-  font-weight: 600;
+  text-decoration: none;
+  font-weight: 750;
+  font-size: 0.86rem;
 }
 
 .dropdown-item:hover {
-  background: #f8f9fa;
+  background: #f8fafc;
 }
 
-.dropdown-item.logout {
-  color: #e74c3c;
-  font-weight: 700;
+.danger {
+  color: #dc2626 !important;
 }
 
-.dropdown-divider {
-  margin: 0.5rem 0;
-  border: none;
-  border-top: 1px solid var(--teacher-border);
+.teacher-main {
+  min-height: 100vh;
+  margin-left: 260px;
+  transition: margin-left 0.24s ease;
+}
+
+.teacher-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 120;
+  min-height: 70px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 0.8rem 2rem;
+}
+
+.navbar-left,
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.menu-toggle,
+.icon-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  background: #f8fafc;
+  border: 1px solid #dbe5f3;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #334155;
+}
+
+.menu-toggle:hover,
+.menu-toggle:focus-visible,
+.icon-button:hover,
+.icon-button:focus-visible {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
+  outline: none;
+}
+
+.menu-toggle svg,
+.search-icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #172033;
+  font-weight: 850;
+}
+
+.page-subtitle {
+  margin: 0.1rem 0 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.search-container {
+  position: relative;
+  width: min(320px, 28vw);
+}
+
+.search-container input {
+  width: 100%;
+  height: 42px;
+  padding: 0 2.7rem 0 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  right: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+.notifications-container,
+.profile-container {
+  position: relative;
+}
+
+.bell-icon {
+  position: relative;
+  width: 16px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-bottom: none;
+  border-radius: 10px 10px 4px 4px;
+}
+
+.bell-icon::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 6px;
+  height: 5px;
+  border-radius: 6px 6px 0 0;
+  border: 2px solid currentColor;
+  border-bottom: none;
+  transform: translateX(-50%);
+}
+
+.bell-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0 5px;
+  border-radius: 999px;
+}
+
+.theme-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset -6px -4px 0 0 currentColor;
+}
+
+.theme-icon.sun {
+  background: currentColor;
+  box-shadow: none;
+}
+
+.profile-btn {
+  width: 42px;
+  height: 42px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.profile-btn span {
+  color: white;
+  font-size: 0.88rem;
+}
+
+.notifications-dropdown {
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: min(340px, calc(100vw - 2rem));
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dropdown-header strong {
+  color: #172033;
+}
+
+.dropdown-header button {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.notification-item {
+  width: 100%;
+  display: grid;
+  gap: 0.15rem;
+  border: 0;
+  border-bottom: 1px solid #eef2f7;
+  background: #fff;
+  padding: 0.85rem 1rem;
+  text-align: left;
+}
+
+.notification-item.unread {
+  background: #eff6ff;
+}
+
+.notification-item strong {
+  color: #172033;
+  font-size: 0.85rem;
+}
+
+.notification-item span,
+.notification-item small,
+.empty-state {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.empty-state {
+  padding: 1rem;
+  text-align: center;
+}
+
+.profile-dropdown {
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: min(240px, calc(100vw - 2rem));
+}
+
+.profile-dropdown-header {
+  display: grid;
+  gap: 0.15rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.profile-dropdown-header strong {
+  color: #172033;
+  font-size: 0.9rem;
+}
+
+.profile-dropdown-header span {
+  color: #64748b;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
 }
 
 .teacher-content {
-  flex: 1;
-  padding: 2rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
+  background: #f5f9ff;
+  min-height: calc(100vh - 70px);
+  padding: 0;
 }
 
-/* Responsive Design */
+.teacher-shell.dark-mode {
+  background: #0f172a;
+}
+
+.teacher-shell.dark-mode .teacher-navbar,
+.teacher-shell.dark-mode .teacher-sidebar,
+.teacher-shell.dark-mode .profile-dropdown,
+.teacher-shell.dark-mode .notifications-dropdown {
+  background: #111827;
+  border-color: #253044;
+}
+
+.teacher-shell.dark-mode .brand-text strong,
+.teacher-shell.dark-mode .page-title,
+.teacher-shell.dark-mode .profile-dropdown-header strong,
+.teacher-shell.dark-mode .notification-item strong {
+  color: #f8fafc;
+}
+
+.teacher-shell.dark-mode .teacher-content,
+.teacher-shell.dark-mode .search-container input,
+.teacher-shell.dark-mode .menu-toggle,
+.teacher-shell.dark-mode .icon-button {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.teacher-sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.teacher-sidebar-backdrop.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 @media (max-width: 1024px) {
   .search-container {
-    width: 200px;
+    display: none;
   }
 }
 
 @media (max-width: 768px) {
   .teacher-sidebar {
-    position: fixed;
-    left: -260px;
-    transition: left 0.3s;
-    z-index: 1002;
+    width: min(84vw, 280px);
+    transform: translateX(-100%);
+    z-index: 230;
   }
 
-  .teacher-sidebar.sidebar-open {
-    left: 0;
+  .teacher-sidebar.mobile-open {
+    transform: translateX(0);
   }
 
   .teacher-main {
     margin-left: 0;
   }
 
-  .sidebar-hamburger {
-    display: block;
+  .teacher-navbar {
+    padding: 0.75rem 1rem;
   }
 
-  .sidebar-toggle {
-    display: block;
-  }
-
-  .navbar-left {
-    gap: 1rem;
-  }
-
-  .page-title {
-    font-size: 1.25rem;
+  .page-subtitle {
+    display: none;
   }
 
   .navbar-right {
-    gap: 1rem;
+    gap: 0.55rem;
   }
 
-  .search-container {
-    display: none;
-  }
-
-  .teacher-navbar {
-    padding: 1rem;
-  }
-
-  .teacher-content {
-    padding: 1rem;
-  }
-
-  .notifications-dropdown,
-  .profile-dropdown {
-    min-width: 300px;
-    right: -1rem;
+  .icon-button,
+  .menu-toggle,
+  .profile-btn {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
   }
 }
+</style>
 
-@media (max-width: 480px) {
-  .teacher-sidebar {
-    width: 100%;
-  }
+<style>
+body.teacher-sidebar-collapsed .teacher-sidebar {
+  width: 80px;
+}
 
-  .logo-text {
-    display: none;
-  }
+.teacher-content {
+  padding: 0 !important;
+}
 
-  .page-title {
-    font-size: 1.1rem;
-  }
+body.teacher-sidebar-collapsed .teacher-main {
+  margin-left: 80px;
+}
 
-  .notifications-dropdown {
-    min-width: calc(100vw - 2rem);
+body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-brand {
+  justify-content: center;
+  min-height: 0;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem 0;
+  gap: 0;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .brand-text,
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-label {
+  opacity: 0;
+  width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .brand-mark {
+  display: none;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-nav {
+  padding-inline: 0.5rem;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+  border-radius: 16px;
+  transform: none;
+  background: transparent;
+  border-color: transparent;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::before {
+  left: 50%;
+  top: auto;
+  bottom: 0.35rem;
+  width: 22px;
+  height: 3px;
+  transform: translateX(-50%) scaleX(0.25);
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item.active::before {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+}
+
+@media (max-width: 768px) {
+  body.teacher-sidebar-collapsed .teacher-main {
+    margin-left: 0;
   }
 }
 </style>

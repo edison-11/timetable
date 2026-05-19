@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "vbrocket.cursor-ai"
+        "vbrocket.cursor-ai",
+        "codeium.codeium-enterprise-updater"
     ]
 }

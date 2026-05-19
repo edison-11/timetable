@@ -11,6 +11,7 @@
     "build": "cd client && npm run build",
     "db:migrate": "node server/migrations/fix-current-schema.js",
     "db:seed": "node server/migrations/seed-demo-data.js",
+    "db:reset-academic": "node server/migrations/reset-academic-demo-data.js",
     "install-all": "npm install && cd client && npm install",
     "start:prod": "node server/index.js"
   },
@@ -39,8 +40,10 @@
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.6.0",
-    "sqlite3": "^6.0.1",
+    "mysql2": "^3.22.3",
+    "nodemailer": "^8.0.7",
+    "resend": "^6.12.3",
+    "semver": "^7.7.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

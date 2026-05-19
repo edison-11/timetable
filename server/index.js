@@ -1,12 +1,15 @@
+const path = require('path');
+const fs = require('fs');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const authRoutes = require('./routes/auth');
 const teacherAuthRoutes = require('./routes/teacher-auth');
+const emailRoutes = require('./routes/email');
 const dosRoutes = require('./routes/dos');
 const teacherRoutes = require('./routes/teachers');
 const moduleRoutes = require('./routes/modules');
@@ -43,14 +46,13 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const fs = require('fs');
+// Static files
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const clientDistPath = path.resolve(__dirname, '../client/dist');
 const clientSourcePath = path.resolve(__dirname, '../client');
 const clientAppPath = fs.existsSync(clientDistPath) ? clientDistPath : clientSourcePath;
 
-// Static files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(express.static(clientAppPath));
 if (!fs.existsSync(clientDistPath)) {
   console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
@@ -59,6 +61,7 @@ if (!fs.existsSync(clientDistPath)) {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/teacher-auth', teacherAuthRoutes);
+app.use('/api/email', emailRoutes);
 app.use('/api/dos', dosRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/modules', moduleRoutes);

@@ -137,27 +137,26 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 7;
-  const titleY = 13;
-  const metaY = 19;
-  const generatedY = meta.length ? 24 : 19;
-  const startY = meta.length ? 29 : 24;
+  const margin = 8;
+  const titleY = 12;
+  const metaY = 18;
+  const generatedY = 23;
+  const startY = 29;
   const usableWidth = pageWidth - (margin * 2);
   const usableHeight = pageHeight - startY - margin;
   const estimatedRowHeight = usableHeight / Math.max(rows.length + 1, 1);
   const fontSize = clamp(estimatedRowHeight * 1.05, 5, 8);
   const cellPadding = clamp(estimatedRowHeight * 0.12, 0.6, 1.8);
-  const periodWidth = 14;
-  const timeWidth = 25;
+  const periodWidth = 13;
+  const timeWidth = 24;
   const dayWidth = (usableWidth - periodWidth - timeWidth) / DAYS.length;
 
-  doc.setFontSize(rows.length > 9 ? 14 : 16);
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
   doc.text(`${className} - Timetable`, margin, titleY);
 
-  doc.setFontSize(8);
-  if (meta.length) {
-    doc.text(meta.join('    '), margin, metaY);
-  }
+  doc.setFontSize(6);
+  doc.text(meta.join('    '), margin, metaY);
   doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, generatedY);
 
   const body = rows.map((row) => {
@@ -181,7 +180,7 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
   });
 
   autoTable(doc, {
-    head: [['Slot', 'Time', ...DAYS]],
+    head: [['Period', '', ...DAYS]],
     body,
     startY,
     margin: { top: margin, right: margin, bottom: margin, left: margin },
@@ -192,20 +191,25 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
     styles: {
       fontSize,
       cellPadding,
-      valign: 'middle',
+      valign: 'top',
       overflow: 'linebreak',
       lineColor: [219, 234, 254],
-      lineWidth: 0.2
+      lineWidth: 0.18,
+      textColor: [55, 65, 81],
+      minCellHeight: 9
     },
     headStyles: {
       fillColor: [37, 99, 235],
       textColor: 255,
       fontStyle: 'bold',
-      halign: 'center'
+      halign: 'center',
+      valign: 'middle',
+      fontSize: 6.5,
+      cellPadding: 1.2
     },
     columnStyles: {
-      0: { cellWidth: periodWidth, halign: 'center' },
-      1: { cellWidth: timeWidth, halign: 'center' },
+      0: { cellWidth: periodWidth, halign: 'center', valign: 'middle' },
+      1: { cellWidth: timeWidth, halign: 'center', valign: 'middle', fontSize: 6.2 },
       2: { cellWidth: dayWidth },
       3: { cellWidth: dayWidth },
       4: { cellWidth: dayWidth },
@@ -218,6 +222,7 @@ export const exportToPDF = (timetableData, className = 'Timetable', options = {}
         data.cell.styles.fillColor = [239, 246, 255];
         data.cell.styles.fontStyle = 'bold';
         data.cell.styles.halign = data.column.index >= 2 ? 'center' : data.cell.styles.halign;
+        data.cell.styles.valign = 'middle';
       }
     }
   });

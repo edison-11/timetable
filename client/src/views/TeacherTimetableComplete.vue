@@ -112,6 +112,7 @@
             <!-- Table Header -->
             <thead>
               <tr class="header-row">
+                <th class="slot-column">Slot</th>
                 <th class="time-column">Time</th>
                 <th
                   v-for="day in days"
@@ -129,59 +130,42 @@
 
             <!-- Table Body -->
             <tbody>
-              <template v-for="(row, rowIdx) in processedTimetable" :key="rowIdx">
+              <template v-for="row in processedTimetable" :key="row.key">
                 <!-- Break/Special Slots -->
                 <tr v-if="row.type === 'break'" class="break-row" :class="row.breakType">
-                  <td colspan="6" class="break-cell">
-                    <div class="break-content">
-                      <i :class="getBreakIcon(row.breakType)"></i>
-                      <span class="break-label">{{ row.label }}</span>
-                      <span class="break-time">{{ row.time }}</span>
-                    </div>
+                  <td class="period-col" :class="row.breakType">
+                    <span class="break-label">{{ row.label }}</span>
                   </td>
+                  <td class="time-col" :class="row.breakType">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
+                  <td :colspan="days.length" class="break-fill" :class="row.breakType"></td>
                 </tr>
 
                 <!-- Period Rows -->
                 <tr v-else class="period-row">
-                  <td class="time-cell">
-                    <span class="period-time">{{ row.time }}</span>
-                    <span class="period-duration">45 mins</span>
-                  </td>
+                  <td class="period-col">{{ row.period }}</td>
+                  <td class="time-col">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
 
                   <!-- Lesson Cells -->
                   <td
                     v-for="day in days"
-                    :key="`${rowIdx}-${day}`"
+                    :key="`${row.key}-${day}`"
                     class="lesson-cell"
                     :class="{ today: isToday(day) }"
                   >
-                    <div v-if="row.lessons[day]" class="lesson-card" :class="row.lessons[day].type">
-                      <div class="lesson-color" :style="{ backgroundColor: row.lessons[day].color }"></div>
-                      <div class="lesson-body">
-                        <h4 class="lesson-subject">{{ row.lessons[day].subject }}</h4>
-                        <p class="lesson-class">
-                          <i class="bi bi-people"></i>
-                          {{ row.lessons[day].class }}
-                        </p>
-                        <p class="lesson-room">
-                          <i class="bi bi-door-closed"></i>
-                          {{ row.lessons[day].room }}
-                        </p>
-                        <div class="lesson-footer">
-                          <small class="lesson-time">{{ row.lessons[day].time }}</small>
-                          <button class="lesson-action" @click="showLessonDetails(row.lessons[day])">
-                            <i class="bi bi-three-dots-vertical"></i>
-                          </button>
-                        </div>
-                      </div>
+                    <div
+                      v-if="row.entriesByDay[day]"
+                      class="module-cell"
+                      :class="{ 'activity-cell': row.entriesByDay[day].entry_type === 'activity' }"
+                      :data-module="row.entriesByDay[day].module_name"
+                      @click="showLessonDetails(toLesson(row.entriesByDay[day]))"
+                    >
+                      <strong>{{ row.entriesByDay[day].module_name }}</strong>
+                      <small>{{ row.entriesByDay[day].class_name || 'General' }}</small>
+                      <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">
+                        {{ row.entriesByDay[day].room_name || row.entriesByDay[day].room || 'TBA' }}
+                      </span>
                     </div>
-
-                    <!-- Free Period -->
-                    <div v-else class="empty-slot">
-                      <button class="free-action" title="Request a lesson for this slot" @click="requestFreeSlot(day, row)">
-                        <i class="bi bi-plus"></i>
-                      </button>
-                    </div>
+                    <span v-else class="empty-slot"></span>
                   </td>
                 </tr>
               </template>
@@ -346,6 +330,7 @@ const showDetailsModal = ref(false)
 const selectedLesson = ref(null)
 const exportFormat = ref('csv')
 const timetableEntries = ref([])
+const timetableSettings = ref(null)
 const loading = ref(false)
 const loadError = ref('')
 
@@ -353,6 +338,10 @@ const days = FIXED_DAYS
 const moduleColors = ['#3b82f6', '#14b8a6', '#f59e0b', '#8b5cf6', '#ec4899', '#22c55e', '#06b6d4', '#f97316']
 
 const currentTeacherId = computed(() => authStore.currentUser?.teacher_id || authStore.currentUser?.id || null)
+const teacherName = computed(() => {
+  const user = authStore.currentUser || {}
+  return user.name || user.full_name || user.teacher_name || user.email || 'Teacher'
+})
 
 const normalizeTime = (time) => String(time || '').slice(0, 5)
 
@@ -373,6 +362,21 @@ const getSubjectColor = (subject) => {
   const key = String(subject || 'Lesson')
   const total = key.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)
   return moduleColors[total % moduleColors.length]
+}
+
+const toLesson = (entry) => {
+  const isSharedActivity = isActivityEntry(entry)
+  return {
+    id: entry.timetable_id,
+    subject: entry.module_name || (isSharedActivity ? 'Shared Activity' : 'Lesson'),
+    class: entry.class_name || 'General',
+    room: entry.room_name || entry.room || 'TBA',
+    type: isSharedActivity ? 'activity' : 'lesson',
+    color: isSharedActivity ? '#16a34a' : getSubjectColor(entry.module_name),
+    duration: formatTimeRange(entry.start_time, entry.end_time),
+    time: formatTimeRange(entry.start_time, entry.end_time),
+    day: entry.day_of_week
+  }
 }
 
 const classes = computed(() => {
@@ -397,57 +401,28 @@ const formattedWeek = computed(() => {
 })
 
 const processedTimetable = computed(() => {
-  return buildFixedTimetableRows(timetableEntries.value, days)
-    .map((row) => {
-      if (row.type === 'break') {
-        return {
-          type: 'break',
-          label: row.label,
-          breakType: getBreakTypeFromLabel(row.label),
-          time: formatTimeRange(row.start_time, row.end_time),
-          start_time: row.start_time
-        }
-      }
+  const visibleEntries = timetableEntries.value.filter((entry) => {
+    const isOwnLesson = String(entry.teacher_id || '') === String(currentTeacherId.value || '')
+    const isSharedActivity = isActivityEntry(entry)
+    const isBreak = isBreakEntry(entry)
+    if (!isOwnLesson && !isSharedActivity && !isBreak) return false
+    if (!isBreak && selectedDay.value && selectedDay.value !== entry.day_of_week) return false
+    if (!isBreak && selectedClass.value && selectedClass.value !== entry.class_name) return false
+    return true
+  })
+  const rows = buildFixedTimetableRows(visibleEntries, days, timetableSettings.value)
 
-      const lessons = {}
-      Object.entries(row.entriesByDay).forEach(([day, entry]) => {
-        const isOwnLesson = String(entry.teacher_id || '') === String(currentTeacherId.value || '')
-        const isSharedActivity = isActivityEntry(entry)
-        if (!isOwnLesson && !isSharedActivity) return
-        if (selectedDay.value && selectedDay.value !== day) return
-        if (selectedClass.value && selectedClass.value !== entry.class_name) return
-
-        const time = formatTimeRange(row.start_time, row.end_time)
-        lessons[day] = {
-          id: entry.timetable_id,
-          subject: entry.module_name || (isSharedActivity ? 'Shared Activity' : 'Lesson'),
-          class: entry.class_name || 'General',
-          room: entry.room_name || 'TBA',
-          type: isSharedActivity ? 'activity' : 'lesson',
-          color: isSharedActivity ? '#16a34a' : getSubjectColor(entry.module_name),
-          duration: time,
-          time,
-          day
-        }
-      })
-
-      return {
-        type: 'period',
-        period: row.period,
-        time: formatTimeRange(row.start_time, row.end_time),
-        start_time: row.start_time,
-        lessons
-      }
-    })
-    .filter(row => row.type !== 'break' || showBreaks.value)
-    .filter(row => row.type === 'break' || showFreeSlots.value || Object.keys(row.lessons).length > 0)
+  return rows.filter((row) => {
+    if (row.type === 'break') return showBreaks.value
+    return showFreeSlots.value || Object.keys(row.entriesByDay).length > 0
+  })
 })
 
 const allLessons = computed(() => {
   const lessons = []
   processedTimetable.value.forEach((row) => {
     if (row.type !== 'break') {
-      Object.values(row.lessons).forEach((lesson) => lessons.push(lesson))
+      Object.values(row.entriesByDay).forEach((entry) => lessons.push(toLesson(entry)))
     }
   })
   return lessons
@@ -473,8 +448,8 @@ const isToday = (day) => {
 
 const getDayLessons = (day) => {
   return processedTimetable.value
-    .filter(row => row.type !== 'break' && row.lessons[day])
-    .map(row => row.lessons[day])
+    .filter(row => row.type !== 'break' && row.entriesByDay[day])
+    .map(row => toLesson(row.entriesByDay[day]))
 }
 
 const getBreakIcon = (breakType) => {
@@ -503,16 +478,17 @@ const escapeCsvValue = (value) => {
 }
 
 const buildExportRows = () => {
-  const rows = [['Time', ...days]]
+  const rows = [['Slot', 'Time', ...days]]
 
   for (const row of processedTimetable.value) {
     if (row.type === 'break') {
-      rows.push([row.time || row.label, ...days.map(() => row.label)])
+      rows.push([row.label, formatTimeRange(row.start_time, row.end_time), ...days.map(() => row.label)])
     } else {
-      const rowData = [row.time]
+      const rowData = [row.period, formatTimeRange(row.start_time, row.end_time)]
       for (const day of days) {
-        if (row.lessons[day]) {
-          rowData.push(`${row.lessons[day].subject} (${row.lessons[day].class}, ${row.lessons[day].room})`)
+        if (row.entriesByDay[day]) {
+          const lesson = toLesson(row.entriesByDay[day])
+          rowData.push(`${lesson.subject} (${lesson.class}, ${lesson.room})`)
         } else {
           rowData.push('')
         }
@@ -537,14 +513,15 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/'/g, '&#039;')
 
 const buildTimetableHtml = () => {
-  const header = ['Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
+  const header = ['Slot', 'Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
   const body = processedTimetable.value.map((row) => {
     if (row.type === 'break') {
-      return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(row.time)}</td><td colspan="${days.length}">${escapeHtml(row.label)}</td></tr>`
+      return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(row.label)}</td><td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td><td colspan="${days.length}"></td></tr>`
     }
 
     const cells = days.map((day) => {
-      const lesson = row.lessons[day]
+      const entry = row.entriesByDay[day]
+      const lesson = entry ? toLesson(entry) : null
       if (!lesson) return '<td class="empty-cell"></td>'
       return `<td><div class="lesson-card ${escapeHtml(lesson.type)}" style="border-left-color:${lesson.color}">
         <strong>${escapeHtml(lesson.subject)}</strong>
@@ -552,23 +529,25 @@ const buildTimetableHtml = () => {
         <small>${escapeHtml(lesson.room)}</small>
       </div></td>`
     }).join('')
-    return `<tr><td class="time-cell">${escapeHtml(row.time)}</td>${cells}</tr>`
+    return `<tr><td class="slot-cell">${escapeHtml(row.period)}</td><td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>${cells}</tr>`
   }).join('')
 
   return `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Teacher Timetable</title>
+  <title>${escapeHtml(teacherName.value)} Timetable</title>
   <style>
+    @page { size: landscape; margin: 10mm; }
     body { font-family: Arial, sans-serif; color: #111827; }
-    h1 { font-size: 22px; margin-bottom: 12px; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .subtitle { margin: 0 0 10px; color: #475569; font-size: 12px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { border: 1px solid #cbd5e1; padding: 8px; font-size: 12px; vertical-align: top; height: 54px; }
+    th, td { border: 1px solid #cbd5e1; padding: 5px; font-size: 10px; vertical-align: top; height: 38px; }
     th { background: #2563eb; color: white; text-align: left; }
     .time-cell { background: #f8fafc; font-weight: 700; }
     .empty-cell { background: #ffffff; }
-    .lesson-card { min-height: 42px; padding: 6px; border-left: 5px solid #3b82f6; background: #eff6ff; border-radius: 6px; }
+    .lesson-card { min-height: 28px; padding: 4px; border-left: 5px solid #3b82f6; background: #eff6ff; border-radius: 6px; }
     .lesson-card.activity { background: #f0fdf4; }
     .lesson-card strong, .lesson-card span, .lesson-card small { display: block; }
     .break-row td { background: #e8f7e9; font-weight: 700; text-align: center; }
@@ -577,7 +556,8 @@ const buildTimetableHtml = () => {
   </style>
 </head>
 <body>
-  <h1>Teacher Timetable</h1>
+  <h1>${escapeHtml(teacherName.value)} Timetable</h1>
+  <p class="subtitle">Weekly timetable - ${escapeHtml(formattedWeek.value)}</p>
   <table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>
 </body>
 </html>`
@@ -589,7 +569,8 @@ const buildPdfRows = () => processedTimetable.value.map((row) => {
     return {
       type: 'break',
       cells: [
-        { text: row.time, fill, bold: true },
+        { text: row.label, fill, bold: true },
+        { text: formatTimeRange(row.start_time, row.end_time), fill, bold: true },
         ...days.map(() => ({ text: row.label, fill, bold: true }))
       ]
     }
@@ -598,9 +579,11 @@ const buildPdfRows = () => processedTimetable.value.map((row) => {
   return {
     type: 'period',
     cells: [
-      { text: row.time, fill: '#f8fafc', bold: true },
+      { text: String(row.period), fill: '#f8fafc', bold: true },
+      { text: formatTimeRange(row.start_time, row.end_time), fill: '#f8fafc', bold: true },
       ...days.map((day) => {
-        const lesson = row.lessons[day]
+        const entry = row.entriesByDay[day]
+        const lesson = entry ? toLesson(entry) : null
         if (!lesson) return { text: '', fill: '#ffffff' }
         return {
           text: `${lesson.subject}\n${lesson.class}\n${lesson.room}`,
@@ -646,10 +629,12 @@ const downloadTimetable = (format = 'csv') => {
 
   if (selectedFormat === 'pdf') {
     downloadTimetablePdf({
-      title: 'Teacher Timetable',
-      headers: ['Time', ...days],
+      title: `${teacherName.value} Timetable`,
+      subtitle: `Weekly timetable - ${formattedWeek.value}`,
+      headers: ['Slot', 'Time', ...days],
       rows: buildPdfRows(),
-      filename: `${baseName}.pdf`
+      filename: `${baseName}.pdf`,
+      fitToOnePage: true
     })
   } else if (selectedFormat === 'xls') {
     downloadFile(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
@@ -691,7 +676,7 @@ const requestFreeSlot = (day, row) => {
     query: {
       type: 'free-slot',
       day,
-      time: row.time
+      time: formatTimeRange(row.start_time, row.end_time)
     }
   })
 }
@@ -706,8 +691,12 @@ const loadTimetable = async () => {
       throw new Error('Teacher profile was not loaded.')
     }
 
-    const response = await api.get(`/timetable/teacher/${teacherId}`)
-    timetableEntries.value = response.data.timetables || []
+    const [settingsResponse, timetableResponse] = await Promise.all([
+      api.get('/settings/timetable').catch(() => ({ data: { settings: null } })),
+      api.get(`/timetable/teacher/${teacherId}`)
+    ])
+    timetableSettings.value = settingsResponse.data.settings || null
+    timetableEntries.value = timetableResponse.data.timetables || []
   } catch (error) {
     loadError.value = error.response?.data?.message || error.message || 'Failed to load timetable.'
   } finally {
@@ -977,12 +966,18 @@ onMounted(async () => {
   background: linear-gradient(90deg, #fef3c7 0%, #fef3c7 100%);
 }
 
-.break-row.lunch {
+.break-row.lunch,
+.break-row.lunch-break {
   background: linear-gradient(90deg, #fecaca 0%, #fecaca 100%);
 }
 
-.break-row.assembly {
+.break-row.assembly,
+.break-row.evening-break {
   background: linear-gradient(90deg, #dbeafe 0%, #dbeafe 100%);
+}
+
+.break-row.morning-break {
+  background: linear-gradient(90deg, #fef3c7 0%, #fef3c7 100%);
 }
 
 .break-cell {
@@ -1029,6 +1024,8 @@ onMounted(async () => {
   background: #f9fafb;
 }
 
+.period-col,
+.time-col,
 .time-cell {
   background: #f9fafb;
   border-right: 1px solid #e5e7eb;
@@ -1036,6 +1033,32 @@ onMounted(async () => {
   text-align: center;
   min-width: 90px;
   font-weight: 600;
+}
+
+.period-col {
+  width: 76px;
+  min-width: 76px;
+  color: #111827;
+}
+
+.time-col {
+  width: 118px;
+  min-width: 118px;
+  color: #374151;
+}
+
+.period-col.morning-break,
+.period-col.lunch-break,
+.period-col.evening-break,
+.time-col.morning-break,
+.time-col.lunch-break,
+.time-col.evening-break,
+.break-fill {
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.break-fill {
+  min-height: 44px;
 }
 
 .period-time {
@@ -1061,6 +1084,49 @@ onMounted(async () => {
 
 .lesson-cell.today {
   background: #f0f9ff;
+}
+
+.module-cell {
+  min-height: 76px;
+  padding: 0.75rem;
+  background: #eff6ff;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  color: #111827;
+  cursor: pointer;
+}
+
+.module-cell strong,
+.module-cell small,
+.module-cell span {
+  display: block;
+}
+
+.module-cell strong {
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.module-cell small {
+  margin-top: 0.35rem;
+  color: #374151;
+}
+
+.module-cell.activity-cell {
+  background: #f0fdf4;
+  border-left-color: #16a34a;
+}
+
+.room-badge {
+  margin-top: 0.45rem;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.empty-slot {
+  display: block;
+  min-height: 76px;
 }
 
 .lesson-card {
@@ -1141,23 +1207,32 @@ onMounted(async () => {
   color: #2563eb;
 }
 
-.empty-slot {
+.free-period {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   padding: 1rem;
-  background: #ffffff;
+  background: #f5f5f5;
   border-radius: 8px;
+  border: 2px dashed #d1d5db;
   text-align: center;
   height: 100%;
   min-height: 80px;
 }
 
+.free-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
 .free-action {
-  background: transparent;
-  color: transparent;
-  border: 1px solid transparent;
+  background: #10b981;
+  color: white;
+  border: none;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -1168,15 +1243,8 @@ onMounted(async () => {
   transition: all 0.3s ease;
 }
 
-.empty-slot:hover .free-action,
-.free-action:focus-visible {
-  background: #f0fdf4;
-  color: #10b981;
-  border-color: #bbf7d0;
-}
-
 .free-action:hover {
-  background: #dcfce7;
+  background: #059669;
   transform: scale(1.1);
 }
 

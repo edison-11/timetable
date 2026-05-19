@@ -13,6 +13,7 @@ const {
   FIXED_TIMETABLE_ROWS,
   FIXED_PERIODS,
   FIXED_BREAKS,
+  buildTimetableRowsFromSettings,
   findFixedPeriod
 } = require('../services/fixedTimetableStructure');
 
@@ -304,35 +305,94 @@ const buildScheduleFromPeriodRules = ({ days, startTime, endTime, periodMinutes,
   };
 };
 
-const rankAssignments = (assignments, scheduledCounts) => {
+const buildWeeklyPeriodTargets = (assignments, totalPeriods) => {
+  if (!assignments.length || totalPeriods <= 0) return new Map();
+
   const totalHours = assignments.reduce((sum, assignment) => {
     return sum + Math.max(Number(assignment.hours_per_year || 1), 1);
   }, 0);
-  const totalScheduled = assignments.reduce((sum, assignment) => {
-    return sum + (scheduledCounts.get(assignment.assignment_id) || 0);
-  }, 0);
+  const targetItems = assignments.map((assignment) => {
+    const weight = Math.max(Number(assignment.hours_per_year || 1), 1);
+    const exactTarget = (weight / totalHours) * totalPeriods;
 
-  return assignments
+    return {
+      assignment,
+      target: Math.floor(exactTarget),
+      remainder: exactTarget - Math.floor(exactTarget)
+    };
+  });
+  let assignedPeriods = targetItems.reduce((sum, item) => sum + item.target, 0);
+
+  targetItems
+    .sort((a, b) => {
+      if (b.remainder !== a.remainder) return b.remainder - a.remainder;
+      return String(a.assignment.module_name || '').localeCompare(String(b.assignment.module_name || ''));
+    })
+    .forEach((item) => {
+      if (assignedPeriods < totalPeriods) {
+        item.target += 1;
+        assignedPeriods += 1;
+      }
+    });
+
+  return new Map(targetItems.map((item) => [item.assignment.assignment_id, item.target]));
+};
+
+const rankAssignmentsByWeeklyTarget = (assignments, scheduledCounts, weeklyTargets, preferredTeacherId = null) => {
+  const underTarget = assignments.filter((assignment) => {
+    const target = weeklyTargets.get(assignment.assignment_id) || 0;
+    return (scheduledCounts.get(assignment.assignment_id) || 0) < target;
+  });
+  const candidates = underTarget.length ? underTarget : assignments;
+
+  return candidates
     .map((assignment) => {
-      const weight = Math.max(Number(assignment.hours_per_year || 1), 1);
-      const expectedShare = weight / totalHours;
-      const actualShare = totalScheduled
-        ? (scheduledCounts.get(assignment.assignment_id) || 0) / totalScheduled
+      const target = weeklyTargets.get(assignment.assignment_id) || 1;
+      const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
+      const remaining = Math.max(target - scheduled, 0);
+      const teacherBonus = preferredTeacherId
+        && Number(assignment.teacher_id) === Number(preferredTeacherId)
+        ? 0.35
         : 0;
 
       return {
         assignment,
-        score: expectedShare - actualShare
+        score: remaining + teacherBonus
       };
     })
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return String(a.assignment.module_name || '').localeCompare(String(b.assignment.module_name || ''));
+    })
     .map((item) => item.assignment);
 };
 
 const getDesiredBlockSize = (assignment) => {
-  const hours = Number(assignment.hours_per_year || 0);
-  if (hours >= 80) return 2;
+  const periodsPerYear = Number(assignment.hours_per_year || 0);
+  if (periodsPerYear > 100) return 3;
+  if (periodsPerYear > 50) return 2;
   return 1;
+};
+
+const getConsecutiveSlots = (items, startIndex, desiredCount) => {
+  const first = items[startIndex];
+  if (!first) return [];
+
+  const slots = [first];
+  for (let offset = 1; offset < desiredCount; offset += 1) {
+    const previous = slots[slots.length - 1];
+    const next = items[startIndex + offset];
+
+    if (!next
+      || next.day_of_week !== first.day_of_week
+      || normalizeTime(previous.end_time) !== normalizeTime(next.start_time)) {
+      break;
+    }
+
+    slots.push(next);
+  }
+
+  return slots;
 };
 
 const isSameAssignmentSoftConflict = (conflict, assignment, classItem, slot) => {
@@ -384,7 +444,8 @@ router.post('/', auth, [
     }
 
     const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term, module_name } = req.body;
-    const fixedPeriod = findFixedPeriod(start_time, end_time);
+    const timetableSettings = await SystemSetting.getTimetableSettings();
+    const fixedPeriod = findFixedPeriod(start_time, end_time, timetableSettings);
 
     if (!fixedPeriod) {
       return res.status(400).json({
@@ -579,6 +640,12 @@ router.post('/generate', auth, [
       ...days.map((day) => generationTemplate.filter((item) => item.day_of_week === day).length),
       0
     );
+    const activeStructure = [...generationTemplate, ...breakTemplate]
+      .sort((a, b) => {
+        const dayDiff = (DAY_ORDER.get(a.day_of_week) ?? 99) - (DAY_ORDER.get(b.day_of_week) ?? 99);
+        if (dayDiff !== 0) return dayDiff;
+        return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
+      });
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
     const selectedClasses = allClasses
@@ -607,7 +674,9 @@ router.post('/generate', auth, [
       }
 
       const scheduledCounts = new Map();
+      const weeklyTargets = buildWeeklyPeriodTargets(assignments, generationTemplate.length);
       const dayBlockState = new Map();
+      const dayTeacherCounts = new Map();
       let classCount = 0;
 
       for (const item of breakTemplate) {
@@ -631,16 +700,93 @@ router.post('/generate', auth, [
       const generationItems = generationTemplate;
 
 
-      for (const item of generationItems) {
-
+      for (let itemIndex = 0; itemIndex < generationItems.length;) {
+        const item = generationItems[itemIndex];
         let scheduledAssignment = null;
+        let selectedSlots = [];
         let hasConflict = false;
         const currentBlock = dayBlockState.get(item.day_of_week);
+        const rankedAssignments = rankAssignmentsByWeeklyTarget(
+          assignments,
+          scheduledCounts,
+          weeklyTargets,
+          currentBlock?.assignment?.teacher_id
+        );
+        const isAdjacentToCurrentBlock = currentBlock
+          && normalizeTime(currentBlock.end_time) === normalizeTime(item.start_time);
+
+        if (currentBlock?.assignment) {
+          const desiredBlockSize = getDesiredBlockSize(currentBlock.assignment);
+          const currentTarget = weeklyTargets.get(currentBlock.assignment.assignment_id) || 0;
+          const currentScheduled = scheduledCounts.get(currentBlock.assignment.assignment_id) || 0;
+          const remainingTarget = currentTarget - currentScheduled;
+          const continuationSlots = getConsecutiveSlots(
+            generationItems,
+            itemIndex,
+            Math.min(desiredBlockSize - currentBlock.count, Math.max(remainingTarget, 0))
+          );
+
+          if (currentBlock.count < desiredBlockSize
+            && remainingTarget > 0
+            && isAdjacentToCurrentBlock
+            && continuationSlots.length
+            && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))) {
+            scheduledAssignment = currentBlock.assignment;
+            selectedSlots = [item];
+            hasConflict = false;
+          }
+        }
 
         if (!scheduledAssignment) {
-          for (const assignment of rankAssignments(assignments, scheduledCounts)) {
-            if (!(await hasBlockingTeacherConflict(assignment, classItem, item, changeoverMinutes))) {
+          for (const assignment of rankedAssignments) {
+            const wouldExceedCurrentBlock = currentBlock?.assignment?.assignment_id === assignment.assignment_id
+              && currentBlock.count >= getDesiredBlockSize(assignment);
+            const teacherCountsForDay = dayTeacherCounts.get(item.day_of_week) || new Map();
+            const teacherAlreadyUsedToday = (teacherCountsForDay.get(assignment.teacher_id) || 0) > 0;
+            const isContinuingSameTeacher = currentBlock?.assignment
+              && isAdjacentToCurrentBlock
+              && Number(currentBlock.assignment.teacher_id) === Number(assignment.teacher_id);
+            const wouldSplitTeacherDay = teacherAlreadyUsedToday && !isContinuingSameTeacher;
+
+            if (wouldExceedCurrentBlock && rankedAssignments.length > 1) {
+              continue;
+            }
+
+            if (wouldSplitTeacherDay) {
+              continue;
+            }
+
+            const desiredBlockSize = getDesiredBlockSize(assignment);
+            const target = weeklyTargets.get(assignment.assignment_id) || 0;
+            const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
+            const remainingTarget = Math.max(target - scheduled, 0);
+            const maxBlockSize = Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
+            let blockSlots = [];
+
+            for (let blockSize = maxBlockSize; blockSize >= 1; blockSize -= 1) {
+              const candidateSlots = getConsecutiveSlots(generationItems, itemIndex, blockSize);
+
+              if (candidateSlots.length !== blockSize) {
+                continue;
+              }
+
+              let hasBlockConflict = false;
+              for (const blockSlot of candidateSlots) {
+                if (await hasBlockingTeacherConflict(assignment, classItem, blockSlot, changeoverMinutes)) {
+                  hasBlockConflict = true;
+                  break;
+                }
+              }
+
+              if (!hasBlockConflict) {
+                blockSlots = candidateSlots;
+                break;
+              }
+            }
+
+            if (blockSlots.length) {
               scheduledAssignment = assignment;
+              selectedSlots = blockSlots;
               hasConflict = false;
               break;
             }
@@ -648,44 +794,57 @@ router.post('/generate', auth, [
         }
 
         if (!scheduledAssignment) {
-          scheduledAssignment = rankAssignments(assignments, scheduledCounts)[0];
-          hasConflict = true;
+          scheduledAssignment = rankedAssignments[0];
+          selectedSlots = scheduledAssignment ? [item] : [];
+          hasConflict = Boolean(scheduledAssignment);
 
           if (!scheduledAssignment) {
+            itemIndex += 1;
             continue;
           }
         }
 
-        const roomId = await findAvailableRoomId(item.day_of_week, item.start_time, item.end_time);
-        const timetableId = await TimetableEntry.create({
-          class_id: classItem.class_id,
-          assignment_id: scheduledAssignment.assignment_id,
-          day_of_week: item.day_of_week,
-          start_time: item.start_time,
-          end_time: item.end_time,
-          room_id: roomId || classItem.room_id || null,
-          module_name: scheduledAssignment.module_name,
-          entry_type: 'lesson',
-          slot_number: item.slot_number,
-          status: timetableStatus,
-          academic_year: scheduledAssignment.academic_year || null,
-          term: scheduledAssignment.term || null
-        });
-        const timetable = await TimetableEntry.findById(timetableId);
-        timetable.has_conflict = hasConflict;
-        generated.push(timetable);
-        scheduledCounts.set(
-          scheduledAssignment.assignment_id,
-          (scheduledCounts.get(scheduledAssignment.assignment_id) || 0) + 1
-        );
-        dayBlockState.set(item.day_of_week, {
-          assignment: scheduledAssignment,
-          end_time: item.end_time,
-          count: currentBlock?.assignment?.assignment_id === scheduledAssignment.assignment_id
-            ? currentBlock.count + 1
-            : 1
-        });
-        classCount += 1;
+        for (const slot of selectedSlots) {
+          const slotCurrentBlock = dayBlockState.get(slot.day_of_week);
+          const roomId = await findAvailableRoomId(slot.day_of_week, slot.start_time, slot.end_time);
+          const timetableId = await TimetableEntry.create({
+            class_id: classItem.class_id,
+            assignment_id: scheduledAssignment.assignment_id,
+            day_of_week: slot.day_of_week,
+            start_time: slot.start_time,
+            end_time: slot.end_time,
+            room_id: roomId || classItem.room_id || null,
+            module_name: scheduledAssignment.module_name,
+            entry_type: 'lesson',
+            slot_number: slot.slot_number,
+            status: timetableStatus,
+            academic_year: scheduledAssignment.academic_year || null,
+            term: scheduledAssignment.term || null
+          });
+          const timetable = await TimetableEntry.findById(timetableId);
+          timetable.has_conflict = hasConflict;
+          generated.push(timetable);
+          scheduledCounts.set(
+            scheduledAssignment.assignment_id,
+            (scheduledCounts.get(scheduledAssignment.assignment_id) || 0) + 1
+          );
+          const teacherCountsForDay = dayTeacherCounts.get(slot.day_of_week) || new Map();
+          teacherCountsForDay.set(
+            scheduledAssignment.teacher_id,
+            (teacherCountsForDay.get(scheduledAssignment.teacher_id) || 0) + 1
+          );
+          dayTeacherCounts.set(slot.day_of_week, teacherCountsForDay);
+          dayBlockState.set(slot.day_of_week, {
+            assignment: scheduledAssignment,
+            end_time: slot.end_time,
+            count: slotCurrentBlock?.assignment?.assignment_id === scheduledAssignment.assignment_id
+              ? slotCurrentBlock.count + 1
+              : 1
+          });
+          classCount += 1;
+        }
+
+        itemIndex += Math.max(selectedSlots.length, 1);
       }
 
       classEntryCounts.push({
@@ -725,7 +884,7 @@ router.post('/generate', auth, [
       generated,
       class_entry_counts: classEntryCounts,
       skipped,
-      structure: FIXED_TIMETABLE_ROWS
+      structure: activeStructure
     });
   } catch (error) {
     console.error(error);

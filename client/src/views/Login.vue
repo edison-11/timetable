@@ -20,28 +20,6 @@
         </div>
       </div>
 
-      <!-- Role selector -->
-      <div class="px-4 pb-2">
-        <div class="d-flex gap-2 role-toggle">
-          <button
-            type="button"
-            class="btn btn-light border fw-semibold flex-fill"
-            :class="{ 'btn-primary-custom': role === 'admin' }"
-            @click="role = 'admin'"
-          >
-            Admin
-          </button>
-          <button
-            type="button"
-            class="btn btn-light border fw-semibold flex-fill"
-            :class="{ 'btn-primary-custom': role === 'teacher' }"
-            @click="role = 'teacher'"
-          >
-            Teacher
-          </button>
-        </div>
-      </div>
-
       <!-- Form -->
       <form @submit.prevent="handleLogin" class="px-4 pb-4">
         <div class="mb-3">
@@ -158,7 +136,6 @@ const router = useRouter()
 const authStore = useAuthStore()
 const logoUrl = `${import.meta.env.BASE_URL}title-logo.png`
 
-const role = ref('admin') // 'admin' | 'teacher'
 const rememberMe = ref(true)
 
 const form = ref({
@@ -216,17 +193,16 @@ const handleLogin = async () => {
   success.value = ''
 
   try {
-    // Keep existing auth contract (form.value) but add role hint if store supports it.
-    // If store ignores it, it won’t break.
-    const payload = { ...form.value, role: role.value, rememberMe: rememberMe.value }
+    // Send only email and password - backend determines role
+    const payload = { ...form.value, rememberMe: rememberMe.value }
 
     const result = await authStore.login(payload)
 
     if (result?.success) {
       success.value = 'Login successful. Redirecting...'
 
-      // Prefer backend userType. Fallback to role selection.
-      const userType = result.userType || role.value
+      // Route based on actual role from backend
+      const userType = result.userType || result.user?.role
       if (userType === 'teacher') {
         await router.push('/teacher/dashboard')
       } else {
