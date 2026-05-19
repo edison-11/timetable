@@ -7,28 +7,34 @@ const {
   sendNotificationEmail,
   sendCustomEmail
 } = require('../services/resendEmailService');
+const { storeOTP, verifyOTP, getRemainingTime, hasPendingOTP } = require('../services/otpService');
 
 const router = express.Router();
 
 /**
  * POST /api/email/send-otp
- * Send OTP verification email
+ * Generate and send OTP verification email
+ * Server automatically generates the OTP code
  * 
  * Body:
- *   - to: string (email address)
- *   - code: string (OTP code)
- *   - purpose: string (registration | reset) [optional]
- *   - expiresInMinutes: number [optional, default: 5]
+ *   - to: string (email address, required)
+ *   - purpose: string (registration | password_reset | email_verification) [optional, default: registration]
+ *   - expiresInMinutes: number [optional, default: 5, max: 60]
+ * 
+ * Response:
+ *   - success: boolean
+ *   - message: string
+ *   - messageId: string (email message ID)
+ *   - expiresIn: number (seconds until OTP expires)
  */
 router.post(
   '/send-otp',
   [
     body('to').isEmail().normalizeEmail().withMessage('Valid email is required'),
-    body('code').trim().isLength({ min: 1 }).withMessage('OTP code is required'),
     body('purpose')
       .optional()
-      .isIn(['registration', 'reset'])
-      .withMessage('Purpose must be registration or reset'),
+      .isIn(['registration', 'password_reset', 'email_verification'])
+      .withMessage('Purpose must be registration, password_reset, or email_verification'),
     body('expiresInMinutes').optional().isInt({ min: 1, max: 60 }).withMessage('Expires must be 1-60 minutes')
   ],
   async (req, res) => {
@@ -38,17 +44,24 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const { to, code, purpose = 'registration', expiresInMinutes = 5 } = req.body;
+      const { to, purpose = 'registration', expiresInMinutes = 5 } = req.body;
 
+      // Generate and store OTP server-side
+      const otpCode = storeOTP(to, expiresInMinutes);
+
+      // Send OTP email
       const result = await sendOtpEmail({
         to,
-        code,
+        code: otpCode,
         purpose,
         expiresInMinutes
       });
 
       if (result.success) {
-        return res.status(200).json(result);
+        return res.status(200).json({
+          ...result,
+          expiresIn: expiresInMinutes * 60 // return in seconds
+        });
       }
 
       if (result.code === 'RESEND_NOT_CONFIGURED') {
@@ -175,6 +188,98 @@ router.post(
     }
   }
 );
+
+/**
+ * POST /api/email/verify-otp
+ * Verify OTP code sent to user's email
+ * 
+ * Body:
+ *   - email: string (email address, required)
+ *   - code: string (6-digit OTP code, required)
+ * 
+ * Response:
+ *   - success: boolean
+ *   - message: string
+ *   - shouldRetry: boolean (can user request a new code)
+ */
+router.post(
+  '/verify-otp',
+  [
+    body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('code')
+      .trim()
+      .matches(/^\d{6}$/)
+      .withMessage('OTP code must be exactly 6 digits')
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+
+      const { email, code } = req.body;
+
+      // Verify OTP
+      const result = verifyOTP(email, code);
+
+      if (result.success) {
+        return res.status(200).json({
+          success: true,
+          message: result.message,
+          verified: true
+        });
+      }
+
+      // Return 400 for invalid OTP, 429 for too many attempts
+      const statusCode = result.shouldRetry ? 400 : 429;
+      return res.status(statusCode).json({
+        success: false,
+        message: result.message,
+        shouldRetry: result.shouldRetry
+      });
+    } catch (error) {
+      console.error('Error in verify-otp endpoint:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  }
+);
+
+/**
+ * GET /api/email/otp-status/:email
+ * Check if OTP is pending for email and get remaining time
+ * 
+ * Params:
+ *   - email: email address
+ * 
+ * Response:
+ *   - hasPending: boolean
+ *   - remainingSeconds: number (null if no pending OTP)
+ */
+router.get('/otp-status/:email', (req, res) => {
+  try {
+    const { email } = req.params;
+
+    // Validate email format
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    const hasPending = hasPendingOTP(email);
+    const remainingTime = hasPending ? getRemainingTime(email) : null;
+
+    return res.status(200).json({
+      hasPending,
+      remainingSeconds: remainingTime
+    });
+  } catch (error) {
+    console.error('Error in otp-status endpoint:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 /**
  * GET /api/email/health
