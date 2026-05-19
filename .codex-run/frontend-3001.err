@@ -1,0 +1,109 @@
+(node:19988) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[2m2:20:00 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/health:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m2:20:01 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/auth/login:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m2:20:15 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error at /api/health:[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:59:06 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue:135:14: Unknown word 9333ea[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue[39m:238:14
+[33m  236|  
+  237|  .submit-btn {9333ea;
+  238|    box-shadow: 0 0 0 4px rgba(147, 51, 234
+     |                ^
+  239|    border: 0;
+  240|    border-radius: 12px;[39m
+      at Input.error (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\input.js:135:16)
+      at Parser.unknownWord (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:595:22)
+      at Parser.other (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:437:12)
+      at Parser.parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:472:16)
+      at parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parse.js:11:12)
+      at new LazyResult (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\lazy-result.js:165:16)
+      at Processor.process (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\processor.js:53:14)
+      at doCompileStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19661:36)
+      at Object.compileStyleAsync (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19581:10)
+      at transformStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2703:41)
+[2m6:59:06 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue:135:14: Unknown word 9333ea[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue[39m:238:14
+[33m  236|  
+  237|  .submit-btn {9333ea;
+  238|    box-shadow: 0 0 0 4px rgba(147, 51, 234
+     |                ^
+  239|    border: 0;
+  240|    border-radius: 12px;[39m
+      at Input.error (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\input.js:135:16)
+      at Parser.unknownWord (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:595:22)
+      at Parser.other (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:437:12)
+      at Parser.parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:472:16)
+      at parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parse.js:11:12)
+      at new LazyResult (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\lazy-result.js:165:16)
+      at Processor.process (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\processor.js:53:14)
+      at doCompileStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19661:36)
+      at Object.compileStyleAsync (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19581:10)
+      at transformStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2703:41)
+[2m6:59:06 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue:135:14: Unknown word 9333ea[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue[39m:238:14
+[33m  236|  
+  237|  .submit-btn {9333ea;
+  238|    box-shadow: 0 0 0 4px rgba(147, 51, 234
+     |                ^
+  239|    border: 0;
+  240|    border-radius: 12px;[39m
+      at Input.error (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\input.js:135:16)
+      at Parser.unknownWord (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:595:22)
+      at Parser.other (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:437:12)
+      at Parser.parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:472:16)
+      at parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parse.js:11:12)
+      at new LazyResult (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\lazy-result.js:165:16)
+      at Processor.process (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\processor.js:53:14)
+      at doCompileStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19661:36)
+      at Object.compileStyleAsync (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19581:10)
+      at transformStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2703:41)
+[2m6:59:07 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue:135:14: Unknown word 9333ea[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue[39m:238:14
+[33m  236|  
+  237|  .submit-btn {9333ea;
+  238|    box-shadow: 0 0 0 4px rgba(147, 51, 234
+     |                ^
+  239|    border: 0;
+  240|    border-radius: 12px;[39m
+      at Input.error (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\input.js:135:16)
+      at Parser.unknownWord (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:595:22)
+      at Parser.other (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:437:12)
+      at Parser.parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:472:16)
+      at parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parse.js:11:12)
+      at new LazyResult (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\lazy-result.js:165:16)
+      at Processor.process (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\processor.js:53:14)
+      at doCompileStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19661:36)
+      at Object.compileStyleAsync (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19581:10)
+      at transformStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2703:41)
+[2m6:59:07 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: C:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue:135:14: Unknown word 9333ea[39m
+  Plugin: [35mvite:vue[39m
+  File: [36mC:/Users/THE 1ST/Desktop/timetable/client/src/views/Login.vue[39m:238:14
+[33m  236|  
+  237|  .submit-btn {9333ea;
+  238|    box-shadow: 0 0 0 4px rgba(147, 51, 234
+     |                ^
+  239|    border: 0;
+  240|    border-radius: 12px;[39m
+      at Input.error (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\input.js:135:16)
+      at Parser.unknownWord (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:595:22)
+      at Parser.other (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:437:12)
+      at Parser.parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parser.js:472:16)
+      at parse (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\parse.js:11:12)
+      at new LazyResult (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\lazy-result.js:165:16)
+      at Processor.process (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\postcss\lib\processor.js:53:14)
+      at doCompileStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19661:36)
+      at Object.compileStyleAsync (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vue\compiler-sfc\dist\compiler-sfc.cjs.js:19581:10)
+      at transformStyle (C:\Users\THE 1ST\Desktop\timetable\client\node_modules\@vitejs\plugin-vue\dist\index.cjs:2703:41)

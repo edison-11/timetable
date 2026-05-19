@@ -1,12 +1,21 @@
+// LOAD ENVIRONMENT VARIABLES FIRST - before any other requires
+const path = require('path');
+const fs = require('fs');
+const envPath = path.resolve(__dirname, '../.env');
+
+const dotenvResult = require('dotenv').config({ path: envPath });
+console.log('DEBUG: Dotenv config result:', dotenvResult.error ? `Error: ${dotenvResult.error.message}` : 'Success');
+console.log('DEBUG: Parsed .env keys:', Object.keys(dotenvResult.parsed || {}).sort());
+console.log('DEBUG: process.env.RESEND_API_KEY =', process.env.RESEND_API_KEY);
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const authRoutes = require('./routes/auth');
 const teacherAuthRoutes = require('./routes/teacher-auth');
+const emailRoutes = require('./routes/email');
 const dosRoutes = require('./routes/dos');
 const teacherRoutes = require('./routes/teachers');
 const moduleRoutes = require('./routes/modules');
@@ -43,8 +52,6 @@ app.use('/api/', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const fs = require('fs');
-
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
@@ -58,6 +65,7 @@ if (fs.existsSync(clientDistPath)) {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/teacher-auth', teacherAuthRoutes);
+app.use('/api/email', emailRoutes);
 app.use('/api/dos', dosRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/modules', moduleRoutes);

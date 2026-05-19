@@ -84,20 +84,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !isLoginRequest) {
       const userType = localStorage.getItem('userType')
 
-      // Teacher logout handling
-      if (userType === 'teacher') {
-        localStorage.removeItem('token')
-        localStorage.removeItem('teacher')
-        localStorage.removeItem('userType')
-
-        window.location.href = '/teacher/login'
-      }
-
-      // Admin logout handling
-      else {
-        authStore.logout()
-        window.location.href = '/login'
-      }
+      authStore.logout()
+      window.location.href = '/login'
     }
 
     return Promise.reject(error)

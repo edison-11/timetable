@@ -4,8 +4,8 @@
     <aside class="teacher-sidebar" :class="{ 'sidebar-open': sidebarOpen }">
       <div class="sidebar-header">
         <div class="logo">
-          <span class="logo-icon">👨‍🏫</span>
-          <span class="logo-text">TeacherHub</span>
+          <span class="logo-icon"><i class="bi bi-mortarboard-fill"></i></span>
+          <span class="logo-text">Teacher Console</span>
         </div>
         <button class="sidebar-toggle" @click="toggleSidebar">
           <i class="bi bi-x-lg"></i>
@@ -18,7 +18,7 @@
           :key="item.to"
           :to="item.to"
           class="nav-item"
-          :class="{ active: $route.path === item.to }"
+          :class="{ active: isNavActive(item) }"
         >
           <span class="nav-icon" v-html="item.icon"></span>
           <span class="nav-text">{{ item.label }}</span>
@@ -60,13 +60,16 @@
           <button class="sidebar-hamburger" @click="toggleSidebar">
             <i class="bi bi-list"></i>
           </button>
-          <h1 class="page-title">{{ pageTitle }}</h1>
+          <div>
+            <h1 class="page-title">{{ pageTitle }}</h1>
+            <p class="page-subtitle">Teacher-level academic workspace</p>
+          </div>
         </div>
 
         <div class="navbar-right">
           <!-- Search Bar -->
           <div class="search-container">
-            <input type="text" placeholder="Search lessons, classes..." class="search-input" />
+            <input type="text" placeholder="Search classes, subjects, time slots" class="search-input" />
             <i class="bi bi-search"></i>
           </div>
 
@@ -95,7 +98,7 @@
                   </div>
                 </div>
               </div>
-              <a href="#" class="dropdown-footer">View all notifications</a>
+              <router-link to="/teacher/dashboard#notifications" class="dropdown-footer">View all notifications</router-link>
             </div>
           </div>
 
@@ -107,6 +110,10 @@
           <!-- Profile Dropdown -->
           <div class="profile-container">
             <button class="profile-btn" @click="showProfileDropdown = !showProfileDropdown">
+              <span class="profile-meta">
+                <strong>{{ teacher?.name || 'Teacher' }}</strong>
+                <small>{{ teacher?.department || 'Faculty' }}</small>
+              </span>
               <img v-if="teacher?.profile_photo" :src="teacher.profile_photo" :alt="teacher.name" />
               <div v-else class="avatar-small">{{ getInitials }}</div>
             </button>
@@ -120,11 +127,11 @@
               <router-link to="/teacher/timetable" class="dropdown-item">
                 <i class="bi bi-calendar"></i> My Timetable
               </router-link>
-              <router-link to="/teacher/requests" class="dropdown-item">
-                <i class="bi bi-chat-dots"></i> Requests
+              <router-link to="/teacher/dashboard#classes" class="dropdown-item">
+                <i class="bi bi-people"></i> Classes
               </router-link>
-              <router-link to="/teacher/announcements" class="dropdown-item">
-                <i class="bi bi-megaphone"></i> Announcements
+              <router-link to="/teacher/dashboard#subjects" class="dropdown-item">
+                <i class="bi bi-book"></i> Subjects
               </router-link>
               <hr class="dropdown-divider" />
               <button @click="logout" class="dropdown-item logout">
@@ -172,12 +179,11 @@ const getInitials = computed(() => {
 
 const pageTitle = computed(() => {
   const routeTitle = {
-    'teacher-dashboard': 'Dashboard',
-    'teacher-timetable': 'My Timetable',
-    'teacher-profile': 'My Profile',
-    'teacher-requests': 'Change Requests',
-    'teacher-announcements': 'Announcements',
-    'teacher-settings': 'Settings'
+    TeacherDashboard: 'Teacher Dashboard',
+    TeacherTimetable: 'My Timetable',
+    TeacherProfile: 'My Profile',
+    TeacherRequests: 'Request Change',
+    TeacherSettings: 'Settings'
   }
   return routeTitle[router.currentRoute.value.name] || 'Teacher Portal'
 })
@@ -194,19 +200,19 @@ const navItems = [
     icon: '<i class="bi bi-calendar3"></i>'
   },
   {
-    label: 'My Profile',
-    to: '/teacher/profile',
-    icon: '<i class="bi bi-person-circle"></i>'
+    label: 'Classes',
+    to: '/teacher/dashboard#classes',
+    icon: '<i class="bi bi-people"></i>'
   },
   {
-    label: 'Change Requests',
-    to: '/teacher/requests',
-    icon: '<i class="bi bi-chat-dots"></i>'
+    label: 'Subjects',
+    to: '/teacher/dashboard#subjects',
+    icon: '<i class="bi bi-book"></i>'
   },
   {
-    label: 'Announcements',
-    to: '/teacher/announcements',
-    icon: '<i class="bi bi-megaphone"></i>'
+    label: 'Notifications',
+    to: '/teacher/dashboard#notifications',
+    icon: '<i class="bi bi-bell"></i>'
   },
   {
     label: 'Settings',
@@ -214,6 +220,13 @@ const navItems = [
     icon: '<i class="bi bi-gear"></i>'
   }
 ]
+
+const isNavActive = (item) => {
+  const [path, hash] = item.to.split('#')
+  const route = router.currentRoute.value
+  if (hash) return route.path === path && route.hash === `#${hash}`
+  return route.path === item.to || (!route.hash && route.path === item.to)
+}
 
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value
@@ -247,7 +260,7 @@ const formatTime = (timestamp) => {
 
 const logout = async () => {
   authStore.logout()
-  router.push('/teacher/login')
+  router.push('/login')
 }
 
 onMounted(() => {
@@ -311,8 +324,8 @@ onMounted(() => {
 /* Sidebar */
 .teacher-sidebar {
   width: 260px;
-  background: #f8f9fa;
-  border-right: 1px solid #e9ecef;
+  background: #0f172a;
+  border-right: 1px solid rgba(148, 163, 184, 0.18);
   display: flex;
   flex-direction: column;
   padding: 1.5rem 0;
@@ -321,7 +334,7 @@ onMounted(() => {
   top: 0;
   height: 100vh;
   z-index: 1000;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 18px 0 45px rgba(15, 23, 42, 0.16);
   overflow-y: auto;
 }
 
@@ -330,7 +343,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
   margin-bottom: 1rem;
 }
 
@@ -340,15 +353,22 @@ onMounted(() => {
   gap: 0.75rem;
   font-weight: 700;
   font-size: 1.1rem;
-  color: #2c3e50;
+  color: #ffffff;
 }
 
 .logo-icon {
-  font-size: 1.5rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  color: #ffffff;
+  font-size: 1.1rem;
 }
 
 .logo-text {
-  color: #2c3e50;
+  color: #ffffff;
   font-weight: 800;
 }
 
@@ -357,7 +377,7 @@ onMounted(() => {
   background: none;
   border: none;
   cursor: pointer;
-  color: #2c3e50;
+  color: #ffffff;
   font-size: 1.25rem;
 }
 
@@ -377,7 +397,7 @@ onMounted(() => {
   margin: 0.25rem 0.75rem;
   border-radius: 8px;
   border-left: 4px solid transparent;
-  color: #495057;
+  color: #cbd5e1;
   text-decoration: none;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -387,17 +407,17 @@ onMounted(() => {
 }
 
 .nav-item:hover {
-  background: #e9ecef;
-  color: #3498db;
-  border-left-color: #3498db;
+  background: rgba(37, 99, 235, 0.14);
+  color: #ffffff;
+  border-left-color: #60a5fa;
   transform: translateX(3px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
+  background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
   color: white;
-  border-left-color: #2980b9;
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+  border-left-color: #93c5fd;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.28);
   font-weight: 700;
 }
 
@@ -420,12 +440,13 @@ onMounted(() => {
 
 .sidebar-profile {
   padding: 1rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
   margin-top: auto;
-  background: linear-gradient(135deg, #e8f4f8 0%, #dbeafe 100%);
-  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 1rem;
   margin: auto 0.75rem 0;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.16);
 }
 
 .profile-avatar {
@@ -470,12 +491,12 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #2c3e50;
+  color: #ffffff;
 }
 
 .profile-dept {
   font-size: 0.75rem;
-  color: #7f8c8d;
+  color: #94a3b8;
   margin: 0.25rem 0 0;
   font-weight: 700;
 }
@@ -546,13 +567,13 @@ onMounted(() => {
 
 /* Top Navigation Bar */
 .teacher-navbar {
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-  border-bottom: 1px solid #34495e;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #e2e8f0;
   padding: 1rem 2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -569,7 +590,7 @@ onMounted(() => {
   background: none;
   border: none;
   cursor: pointer;
-  color: #ffffff;
+  color: #0f172a;
   font-size: 1.5rem;
 }
 
@@ -577,7 +598,14 @@ onMounted(() => {
   margin: 0;
   font-size: 1.5rem;
   font-weight: 800;
-  color: #ffffff;
+  color: #0f172a;
+}
+
+.page-subtitle {
+  margin: 0.15rem 0 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .navbar-right {
@@ -590,9 +618,9 @@ onMounted(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
   padding: 0.5rem 1rem;
   width: 300px;
 }
@@ -602,15 +630,15 @@ onMounted(() => {
   background: none;
   outline: none;
   flex: 1;
-  color: white;
+  color: #0f172a;
 }
 
 .search-input::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+  color: #94a3b8;
 }
 
 .search-container i {
-  color: rgba(255, 255, 255, 0.6);
+  color: #64748b;
   font-size: 1rem;
 }
 
@@ -620,11 +648,11 @@ onMounted(() => {
 
 .notification-btn {
   position: relative;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
   border-radius: 50%;
   cursor: pointer;
-  color: white;
+  color: #0f172a;
   font-size: 1.25rem;
   transition: all 0.2s ease;
   width: 42px;
@@ -635,8 +663,8 @@ onMounted(() => {
 }
 
 .notification-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .notification-btn:hover {
@@ -746,16 +774,17 @@ onMounted(() => {
 }
 
 .theme-toggle {
-  background: none;
-  border: none;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 50%;
   cursor: pointer;
-  color: white;
+  color: #0f172a;
   font-size: 1.25rem;
   transition: color 0.2s;
 }
 
 .theme-toggle:hover {
-  color: rgba(255, 255, 255, 0.8);
+  color: #2563eb;
 }
 
 .profile-container {
@@ -763,32 +792,57 @@ onMounted(() => {
 }
 
 .profile-btn {
-  width: 42px;
+  min-width: 42px;
   height: 42px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid #dbeafe;
   background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  gap: 0.65rem;
   transition: border-color 0.2s;
+  border-radius: 999px;
+  padding: 0.2rem 0.25rem 0.2rem 0.85rem;
 }
 
 .profile-btn:hover {
-  border-color: rgba(255, 255, 255, 0.5);
+  border-color: #2563eb;
 }
 
 .profile-btn img {
-  width: 100%;
-  height: 100%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   object-fit: cover;
 }
 
+.profile-meta {
+  display: grid;
+  text-align: right;
+  line-height: 1.1;
+}
+
+.profile-meta strong {
+  color: #0f172a;
+  font-size: 0.84rem;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-meta small {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .avatar-small {
-  width: 100%;
-  height: 100%;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -857,7 +911,40 @@ onMounted(() => {
 .teacher-content {
   flex: 1;
   padding: 2rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
+  background: #f1f5f9;
+}
+
+.teacher-layout.dark-mode .teacher-navbar {
+  background: rgba(15, 23, 42, 0.96);
+  border-bottom-color: #1e293b;
+}
+
+.teacher-layout.dark-mode .page-title,
+.teacher-layout.dark-mode .profile-meta strong {
+  color: #f8fafc;
+}
+
+.teacher-layout.dark-mode .page-subtitle,
+.teacher-layout.dark-mode .profile-meta small {
+  color: #94a3b8;
+}
+
+.teacher-layout.dark-mode .search-container,
+.teacher-layout.dark-mode .notification-btn,
+.teacher-layout.dark-mode .theme-toggle,
+.teacher-layout.dark-mode .profile-btn {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.teacher-layout.dark-mode .search-input,
+.teacher-layout.dark-mode .notification-btn,
+.teacher-layout.dark-mode .theme-toggle {
+  color: #f8fafc;
+}
+
+.teacher-layout.dark-mode .teacher-content {
+  background: #0f172a;
 }
 
 /* Responsive Design */
@@ -904,6 +991,10 @@ onMounted(() => {
   }
 
   .search-container {
+    display: none;
+  }
+
+  .profile-meta {
     display: none;
   }
 

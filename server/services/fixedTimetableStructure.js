@@ -18,13 +18,154 @@ const FIXED_TIMETABLE_ROWS = [
 
 const normalizeTime = (time) => String(time || '').slice(0, 5);
 
+const timeToMinutes = (time) => {
+  const [hours, minutes] = normalizeTime(time).split(':').map(Number);
+  return (hours * 60) + minutes;
+};
+
+const minutesToTime = (minutes) => {
+  const normalized = ((minutes % 1440) + 1440) % 1440;
+  const hours = String(Math.floor(normalized / 60)).padStart(2, '0');
+  const mins = String(normalized % 60).padStart(2, '0');
+  return `${hours}:${mins}`;
+};
+
+const toPositiveInteger = (value, fallback) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number > 0 ? number : fallback;
+};
+
+const toNonNegativeInteger = (value, fallback) => {
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : fallback;
+};
+
+const getBreakType = (name = '') => {
+  const normalized = String(name).toLowerCase();
+  if (normalized.includes('lunch')) return 'lunch-break';
+  if (normalized.includes('evening') || normalized.includes('afternoon')) return 'evening-break';
+  return 'morning-break';
+};
+
+const makeBreakRow = (breakItem) => ({
+  type: 'break',
+  label: String(breakItem.break_name || 'Break').toUpperCase(),
+  break_name: breakItem.break_name || 'Break',
+  breakType: getBreakType(breakItem.break_name),
+  start_time: normalizeTime(breakItem.start_time),
+  end_time: normalizeTime(breakItem.end_time)
+});
+
+const buildRowsFromPeriodRules = (settings = {}) => {
+  const rules = settings.break_period_rules || {};
+  const periodMinutes = toPositiveInteger(settings.period_minutes, 45);
+  const changeoverMinutes = toNonNegativeInteger(settings.teacher_changeover_minutes, 0);
+  const rows = [];
+  let cursor = timeToMinutes(settings.start_time || '08:00');
+  let slotNumber = 1;
+
+  const addPeriods = (count) => {
+    for (let index = 0; index < count && slotNumber <= 10; index += 1) {
+      const start = cursor;
+      const end = start + periodMinutes;
+      rows.push({
+        type: 'period',
+        slot_number: slotNumber,
+        period: slotNumber,
+        start_time: minutesToTime(start),
+        end_time: minutesToTime(end)
+      });
+      slotNumber += 1;
+      cursor = end + (index < count - 1 ? changeoverMinutes : 0);
+    }
+  };
+
+  const addBreak = (break_name, duration) => {
+    if (slotNumber > 10) return;
+    const start = cursor;
+    const end = start + toPositiveInteger(duration, 30);
+    rows.push(makeBreakRow({
+      break_name,
+      start_time: minutesToTime(start),
+      end_time: minutesToTime(end)
+    }));
+    cursor = end;
+  };
+
+  addPeriods(toPositiveInteger(rules.periods_before_morning_break, 3));
+  addBreak('Morning Break', rules.morning_break_minutes);
+  addPeriods(toPositiveInteger(rules.periods_before_lunch, 2));
+  addBreak('Lunch Break', rules.lunch_break_minutes);
+  addPeriods(toPositiveInteger(rules.periods_before_afternoon_break, 3));
+  addBreak('Evening Break', rules.afternoon_break_minutes);
+  addPeriods(toPositiveInteger(rules.periods_after_afternoon_break, 2));
+
+  while (slotNumber <= 10) addPeriods(1);
+
+  return rows;
+};
+
+const buildRowsFromFixedBreaks = (settings = {}) => {
+  const periodMinutes = toPositiveInteger(settings.period_minutes, 45);
+  const changeoverMinutes = toNonNegativeInteger(settings.teacher_changeover_minutes, 0);
+  const breaks = Array.isArray(settings.timetable_breaks)
+    ? settings.timetable_breaks.map(makeBreakRow).filter((row) => row.start_time && row.end_time)
+    : [];
+  const rows = [];
+  let cursor = timeToMinutes(settings.start_time || '08:00');
+  let slotNumber = 1;
+
+  breaks
+    .sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time))
+    .forEach((breakRow) => {
+      const breakStart = timeToMinutes(breakRow.start_time);
+      while (slotNumber <= 10 && cursor + periodMinutes <= breakStart) {
+        rows.push({
+          type: 'period',
+          slot_number: slotNumber,
+          period: slotNumber,
+          start_time: minutesToTime(cursor),
+          end_time: minutesToTime(cursor + periodMinutes)
+        });
+        slotNumber += 1;
+        cursor += periodMinutes + changeoverMinutes;
+      }
+
+      rows.push(breakRow);
+      cursor = Math.max(cursor, timeToMinutes(breakRow.end_time));
+    });
+
+  while (slotNumber <= 10) {
+    rows.push({
+      type: 'period',
+      slot_number: slotNumber,
+      period: slotNumber,
+      start_time: minutesToTime(cursor),
+      end_time: minutesToTime(cursor + periodMinutes)
+    });
+    slotNumber += 1;
+    cursor += periodMinutes + changeoverMinutes;
+  }
+
+  return rows.sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time));
+};
+
+const buildTimetableRowsFromSettings = (settings = null) => {
+  if (!settings) return FIXED_TIMETABLE_ROWS;
+  return settings.break_period_rules?.enabled
+    ? buildRowsFromPeriodRules(settings)
+    : buildRowsFromFixedBreaks(settings);
+};
+
 const FIXED_PERIODS = FIXED_TIMETABLE_ROWS.filter((row) => row.type === 'period');
 const FIXED_BREAKS = FIXED_TIMETABLE_ROWS.filter((row) => row.type === 'break');
 
-const findFixedPeriod = (startTime, endTime) => {
+const findFixedPeriod = (startTime, endTime, settings = null) => {
   const start = normalizeTime(startTime);
   const end = normalizeTime(endTime);
-  return FIXED_PERIODS.find((row) => row.start_time === start && row.end_time === end) || null;
+  return buildTimetableRowsFromSettings(settings)
+    .filter((row) => row.type === 'period')
+    .find((row) => row.start_time === start && row.end_time === end) || null;
 };
 
 const findFixedRow = (startTime, endTime) => {
@@ -38,6 +179,7 @@ module.exports = {
   FIXED_TIMETABLE_ROWS,
   FIXED_PERIODS,
   FIXED_BREAKS,
+  buildTimetableRowsFromSettings,
   findFixedPeriod,
   findFixedRow,
   normalizeTime

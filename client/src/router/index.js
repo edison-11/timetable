@@ -26,6 +26,24 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/register',
+      name: 'Register',
+      component: () => import('@/views/Register.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
+      path: '/forgot-password',
+      name: 'ForgotPassword',
+      component: () => import('@/views/ForgotPassword.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
+      path: '/reset-password',
+      name: 'ResetPassword',
+      component: () => import('@/views/ResetPassword.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
@@ -88,7 +106,7 @@ const router = createRouter({
     {
       path: '/teacher/register',
       name: 'TeacherRegister',
-      component: () => import('@/views/TeacherRegister.vue')
+      redirect: '/register'
     },
     {
       path: '/teacher/settings',
@@ -99,8 +117,7 @@ const router = createRouter({
     {
       path: '/teacher/login',
       name: 'TeacherLogin',
-      component: () => import('@/views/TeacherLogin.vue'),
-      meta: { requiresGuest: true }
+      redirect: '/login'
     },
     {
       path: '/teacher/dashboard',
@@ -158,7 +175,7 @@ router.beforeEach((to, from, next) => {
   const isTeacher = userType === 'teacher'
   
   if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
-    next('/teacher/login')
+    next('/login')
   } else if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
   } else if (to.meta.requiresGuest && isAuthenticated) {

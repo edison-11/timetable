@@ -95,7 +95,7 @@
             <table class="overview-table">
               <thead>
                 <tr>
-                  <th>Slot</th>
+                  <th>Period</th>
                   <th>Time</th>
                   <th v-for="day in days" :key="day">{{ day }}</th>
                 </tr>
@@ -345,7 +345,6 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
-import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -387,7 +386,7 @@ const settings = ref({
   availableTo: '16:00'
 })
 
-const days = FIXED_DAYS
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 const currentWeek = ref(new Date())
 const weekRange = computed(() => {
@@ -410,8 +409,98 @@ const formatTimeRange = (start, end) => {
   return `${normalizeTime(start)} - ${normalizeTime(end)}`
 }
 
+const isBreakEntry = (entry) => entry.entry_type === 'break' || String(entry.module_name || '').toLowerCase().includes('break')
+const getBreakType = (label) => {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('morning')) return 'morning-break'
+  if (normalized.includes('lunch')) return 'lunch-break'
+  return 'evening-break'
+}
+const getBreakLabel = (label) => {
+  const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('morning')) return 'MORNING BREAK'
+  if (normalized.includes('lunch')) return 'LUNCH BREAK'
+  return 'EVENING BREAK'
+}
+
+const buildTimetableGridRows = (entries) => {
+  const timeSlots = new Map()
+  entries.filter((entry) => !isBreakEntry(entry)).forEach((entry) => {
+    const start = normalizeTime(entry.start_time)
+    const end = normalizeTime(entry.end_time)
+    if (!start || !end) return
+
+    const key = `${start}-${end}`
+    if (!timeSlots.has(key)) {
+      timeSlots.set(key, { key, type: 'period', start_time: start, end_time: end, entriesByDay: {} })
+    }
+    timeSlots.get(key).entriesByDay[entry.day_of_week] = entry
+  })
+
+  return [...timeSlots.values()].sort((a, b) => a.start_time.localeCompare(b.start_time)).map((row, index) => ({ ...row, period: index + 1 }))
+}
+
+const buildBreakRows = (entries) => {
+  const breakSlots = new Map()
+  entries.filter(isBreakEntry).forEach((entry) => {
+    const start = normalizeTime(entry.start_time)
+    const end = normalizeTime(entry.end_time)
+    if (!start || !end) return
+
+    const label = getBreakLabel(entry.module_name)
+    const key = `break-${label}-${start}-${end}`
+    if (!breakSlots.has(key)) {
+      breakSlots.set(key, {
+        key,
+        type: 'break',
+        breakType: getBreakType(label),
+        label,
+        start_time: start,
+        end_time: end,
+        entriesByDay: {}
+      })
+    }
+  })
+
+  return [...breakSlots.values()].sort((a, b) => a.start_time.localeCompare(b.start_time))
+}
+
+const breakRules = {
+  enabled: true,
+  morningAfter: 3,
+  lunchAfter: 5,
+  eveningAfter: 8
+}
+
 const gridRows = computed(() => {
-  return buildFixedTimetableRows(timetableEntries.value, days)
+  const allRows = buildTimetableGridRows(timetableEntries.value)
+  const breakRows = buildBreakRows(timetableEntries.value)
+
+  if (!breakRules.enabled) {
+    let period = 0
+    return [...allRows, ...breakRows].sort((a, b) => a.start_time.localeCompare(b.start_time)).map((row) => {
+      if (row.type === 'break') return row
+      period += 1
+      return { ...row, period }
+    })
+  }
+
+  const rows = allRows.slice(0, breakRules.eveningAfter)
+  const output = []
+  rows.forEach((row, index) => {
+    output.push(row)
+    if (index + 1 === breakRules.morningAfter) {
+      output.push({ key: `break-morning-${row.end_time}`, type: 'break', breakType: 'morning-break', label: 'MORNING BREAK', start_time: row.end_time, end_time: rows[index + 1]?.start_time || row.end_time, entriesByDay: {} })
+    }
+    if (index + 1 === breakRules.lunchAfter) {
+      output.push({ key: `break-lunch-${row.end_time}`, type: 'break', breakType: 'lunch-break', label: 'LUNCH BREAK', start_time: row.end_time, end_time: rows[index + 1]?.start_time || row.end_time, entriesByDay: {} })
+    }
+    if (index + 1 === breakRules.eveningAfter) {
+      output.push({ key: `break-evening-${row.end_time}`, type: 'break', breakType: 'evening-break', label: 'EVENING BREAK', start_time: row.end_time, end_time: rows[index + 1]?.start_time || row.end_time, entriesByDay: {} })
+    }
+  })
+
+  return output
 })
 
 const moduleCount = computed(() => {
@@ -486,7 +575,7 @@ const refreshTimetable = () => {
 }
 
 const buildCSVRows = () => {
-  const header = ['Slot', 'Time', ...days]
+  const header = ['Period', 'Time', ...days]
   const rows = [header]
 
   gridRows.value.forEach((row) => {

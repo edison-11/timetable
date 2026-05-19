@@ -6,3 +6,52 @@
   [32m[1mVITE[22m v4.5.14[39m  [2mready in [0m[1m493[22m[2m[0m ms[22m
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m3001[22m/[39m
+[2m3:06:47 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mdist/index.html[22m
+[2m3:06:47 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/api.js[22m
+[2m3:06:47 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/auth.js[22m
+[2m3:06:47 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m3:08:35 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mdist/index.html[22m
+[2m3:08:35 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/api.js[22m
+[2m3:08:35 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/auth.js[22m
+[2m3:08:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m3:09:35 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mdist/index.html[22m
+[2m3:09:35 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/api.js[22m
+[2m3:09:35 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/auth.js[22m
+[2m3:09:35 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m4:23:49 PM[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\Users\THE 1ST\Desktop\timetable\client\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m4:27:38 PM[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\Users\THE 1ST\Desktop\timetable\client\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m4:38:02 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/auth.js[22m
+[2m4:39:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m4:39:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m4:40:49 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/router/index.js[22m
+[2m4:42:01 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/router/index.js[22m
+[2m4:42:26 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/api.js[22m
+[2m4:54:17 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/router/index.js[22m
+[2m4:54:24 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/auth.js[22m
+[2m5:51:03 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/stores/auth.js[22m
+[2m6:59:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:04 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:06 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:07 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m6:59:46 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:13:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m7:13:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m7:13:53 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m7:16:01 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:16:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:16:18 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:16:37 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:17:14 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:17:24 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue, /src/views/Login.vue?vue&type=style&index=0&scoped=08aaad4e&lang.css[22m
+[2m7:44:11 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/TeacherDashboardComplete.vue, /src/views/TeacherDashboardComplete.vue?vue&type=style&index=0&scoped=2a9e1f54&lang.css[22m
+[2m5:44:58 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m5:44:58 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m5:45:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m5:49:04 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m
+[2m5:49:08 AM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/views/Login.vue[22m

@@ -1,0 +1,209 @@
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Error: Email service is not configured. Missing: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+    at assertEmailConfigured (C:\Users\THE 1ST\Desktop\timetable\server\services\emailService.js:8:19)
+    at createTransporter (C:\Users\THE 1ST\Desktop\timetable\server\services\emailService.js:15:3)
+    at sendOtpEmail (C:\Users\THE 1ST\Desktop\timetable\server\services\emailService.js:34:23)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:316:11 {
+  code: 'EMAIL_NOT_CONFIGURED'
+}
+Error: Email service is not configured. Missing: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+    at assertEmailConfigured (C:\Users\THE 1ST\Desktop\timetable\server\services\emailService.js:8:19)
+    at createTransporter (C:\Users\THE 1ST\Desktop\timetable\server\services\emailService.js:15:3)
+    at sendOtpEmail (C:\Users\THE 1ST\Desktop\timetable\server\services\emailService.js:34:23)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:316:11 {
+  code: 'EMAIL_NOT_CONFIGURED'
+}
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087
+			if (!this.key) throw new Error("Missing API key. Pass it to the constructor `new Resend(\"re_123\")`");
+			               ^
+
+Error: Missing API key. Pass it to the constructor `new Resend("re_123")`
+    at new Resend (C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087:25)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\services\resendEmailService.js:4:16)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14)
+    at Object..js (node:internal/modules/cjs/loader:1961:10)
+    at Module.load (node:internal/modules/cjs/loader:1553:32)
+    at Module._load (node:internal/modules/cjs/loader:1355:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\routes\email.js:9:5)
+
+Node.js v24.15.0
+C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087
+			if (!this.key) throw new Error("Missing API key. Pass it to the constructor `new Resend(\"re_123\")`");
+			               ^
+
+Error: Missing API key. Pass it to the constructor `new Resend("re_123")`
+    at new Resend (C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087:25)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\services\resendEmailService.js:4:16)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14)
+    at Object..js (node:internal/modules/cjs/loader:1961:10)
+    at Module.load (node:internal/modules/cjs/loader:1553:32)
+    at Module._load (node:internal/modules/cjs/loader:1355:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\routes\email.js:9:5)
+
+Node.js v24.15.0
+C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087
+			if (!this.key) throw new Error("Missing API key. Pass it to the constructor `new Resend(\"re_123\")`");
+			               ^
+
+Error: Missing API key. Pass it to the constructor `new Resend("re_123")`
+    at new Resend (C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087:25)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\services\resendEmailService.js:4:16)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14)
+    at Object..js (node:internal/modules/cjs/loader:1961:10)
+    at Module.load (node:internal/modules/cjs/loader:1553:32)
+    at Module._load (node:internal/modules/cjs/loader:1355:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\routes\email.js:9:5)
+
+Node.js v24.15.0
+C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087
+			if (!this.key) throw new Error("Missing API key. Pass it to the constructor `new Resend(\"re_123\")`");
+			               ^
+
+Error: Missing API key. Pass it to the constructor `new Resend("re_123")`
+    at new Resend (C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087:25)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\services\resendEmailService.js:4:16)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14)
+    at Object..js (node:internal/modules/cjs/loader:1961:10)
+    at Module.load (node:internal/modules/cjs/loader:1553:32)
+    at Module._load (node:internal/modules/cjs/loader:1355:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:10:26)
+
+Node.js v24.15.0
+C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087
+			if (!this.key) throw new Error("Missing API key. Pass it to the constructor `new Resend(\"re_123\")`");
+			               ^
+
+Error: Missing API key. Pass it to the constructor `new Resend("re_123")`
+    at new Resend (C:\Users\THE 1ST\Desktop\timetable\node_modules\resend\dist\index.cjs:1087:25)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\services\resendEmailService.js:4:16)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14)
+    at Object..js (node:internal/modules/cjs/loader:1961:10)
+    at Module.load (node:internal/modules/cjs/loader:1553:32)
+    at Module._load (node:internal/modules/cjs/loader:1355:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:10:26)
+
+Node.js v24.15.0
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.
+node:internal/modules/cjs/loader:1479
+  throw err;
+  ^
+
+Error: Cannot find module 'better-sqlite3'
+Require stack:
+- C:\Users\THE 1ST\Desktop\timetable\server\config\database.js
+- C:\Users\THE 1ST\Desktop\timetable\server\models\User.js
+- C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js
+- C:\Users\THE 1ST\Desktop\timetable\server\index.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1073:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1094:12)
+    at Module._load (node:internal/modules/cjs/loader:1262:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\config\database.js:1:18)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\config\\database.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\models\\User.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\routes\\auth.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\index.js'
+  ]
+}
+
+Node.js v24.15.0
+node:internal/modules/cjs/loader:1479
+  throw err;
+  ^
+
+Error: Cannot find module 'better-sqlite3'
+Require stack:
+- C:\Users\THE 1ST\Desktop\timetable\server\config\database.js
+- C:\Users\THE 1ST\Desktop\timetable\server\models\User.js
+- C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js
+- C:\Users\THE 1ST\Desktop\timetable\server\index.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1073:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1094:12)
+    at Module._load (node:internal/modules/cjs/loader:1262:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\config\database.js:1:18)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\config\\database.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\models\\User.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\routes\\auth.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\index.js'
+  ]
+}
+
+Node.js v24.15.0
+node:internal/modules/cjs/loader:1479
+  throw err;
+  ^
+
+Error: Cannot find module 'better-sqlite3'
+Require stack:
+- C:\Users\THE 1ST\Desktop\timetable\server\config\database.js
+- C:\Users\THE 1ST\Desktop\timetable\server\models\User.js
+- C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js
+- C:\Users\THE 1ST\Desktop\timetable\server\index.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1476:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1049:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1073:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1094:12)
+    at Module._load (node:internal/modules/cjs/loader:1262:25)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1576:12)
+    at require (node:internal/modules/helpers:153:16)
+    at Object.<anonymous> (C:\Users\THE 1ST\Desktop\timetable\server\config\database.js:1:18)
+    at Module._compile (node:internal/modules/cjs/loader:1830:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\config\\database.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\models\\User.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\routes\\auth.js',
+    'C:\\Users\\THE 1ST\\Desktop\\timetable\\server\\index.js'
+  ]
+}
+
+Node.js v24.15.0
+Port 5000 is already in use. Stop the existing server or set a different PORT in .env.

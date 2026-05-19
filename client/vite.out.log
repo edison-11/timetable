@@ -8,3 +8,5 @@ Port 3000 is in use, trying another one...
 
   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3001[22m/[39m
 [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+[2m4:23:49 PM[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\Users\THE 1ST\Desktop\timetable\client\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
+[2m4:27:38 PM[22m [36m[1m[vite][22m[39m changed tsconfig file detected: C:\Users\THE 1ST\Desktop\timetable\client\tsconfig.json - Clearing cache and forcing full-reload to ensure TypeScript is compiled with updated config values.
