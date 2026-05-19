@@ -250,6 +250,7 @@ const closeMobileSidebar = () => {
 
 const toggleSidebar = () => {
   const isMobile = window.matchMedia('(max-width: 768px)').matches
+  showProfileMenu.value = false
   if (isMobile) {
     sidebarOpen.value = !sidebarOpen.value
     document.body.classList.toggle('teacher-sidebar-open', sidebarOpen.value)
@@ -297,6 +298,22 @@ const toggleTheme = () => {
   localStorage.setItem('teacherDarkMode', JSON.stringify(isDarkMode.value))
 }
 
+const loadNotifications = async () => {
+  try {
+    const response = await api.get('/notifications?limit=5')
+    notifications.value = (response.data.notifications || []).map(notification => ({
+      id: notification.notification_id || notification.id,
+      title: notification.title,
+      message: notification.message,
+      created_at: notification.created_at,
+      path: notification.path || '/teacher/dashboard',
+      read: false
+    }))
+  } catch (error) {
+    notifications.value = []
+  }
+}
+
 const goToProfile = () => {
   showProfileMenu.value = false
   router.push('/teacher/profile')
@@ -325,25 +342,7 @@ onMounted(async () => {
   if (savedTheme) isDarkMode.value = JSON.parse(savedTheme)
 
   await authStore.checkAuth()
-
-  notifications.value = [
-    {
-      id: 1,
-      title: 'Timetable ready',
-      message: 'Your latest weekly timetable is available.',
-      created_at: new Date(),
-      read: false,
-      path: '/teacher/timetable'
-    },
-    {
-      id: 2,
-      title: 'Profile reminder',
-      message: 'Keep your availability updated for scheduling.',
-      created_at: new Date(Date.now() - 3600000),
-      read: false,
-      path: '/teacher/settings'
-    }
-  ]
+  await loadNotifications()
 
   document.addEventListener('click', closeMenusOnOutsideClick)
 })
@@ -1011,7 +1010,9 @@ body.teacher-sidebar-collapsed .teacher-main {
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-brand {
   justify-content: center;
-  padding-inline: 0.5rem;
+  min-height: 0;
+  margin-bottom: 0.25rem;
+  padding: 0.5rem 0;
   gap: 0;
 }
 
@@ -1028,9 +1029,7 @@ body.teacher-sidebar-collapsed .teacher-sidebar .teacher-card-menu {
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .brand-mark {
-  flex-basis: 48px;
-  width: 48px;
-  height: 48px;
+  display: none;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-nav {
