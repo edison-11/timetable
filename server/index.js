@@ -7,6 +7,7 @@ const dotenvResult = require('dotenv').config({ path: envPath });
 console.log('DEBUG: Dotenv config result:', dotenvResult.error ? `Error: ${dotenvResult.error.message}` : 'Success');
 console.log('DEBUG: Parsed .env keys:', Object.keys(dotenvResult.parsed || {}).sort());
 console.log('DEBUG: process.env.RESEND_API_KEY =', process.env.RESEND_API_KEY);
+console.log('DEBUG: process.env.RESEND_FROM_EMAIL =', process.env.RESEND_FROM_EMAIL);
 
 const express = require('express');
 const cors = require('cors');
