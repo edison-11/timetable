@@ -23,6 +23,16 @@
     </div>
 
     <div class="navbar-right">
+      <button
+        class="dark-mode-toggle"
+        type="button"
+        :title="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'"
+        :aria-pressed="isDarkMode"
+        @click="toggleDarkMode"
+      >
+        <span class="theme-icon" :class="{ sun: isDarkMode }"></span>
+      </button>
+
       <div class="notifications-menu" ref="notificationsMenu">
         <button
           class="notifications-btn"
@@ -169,6 +179,7 @@ const searchQuery = ref('')
 const showNotifications = ref(false)
 const showAccountMenu = ref(false)
 const sidebarOpen = ref(false)
+const isDarkMode = ref(false)
 const notificationsMenu = ref(null)
 const accountMenu = ref(null)
 const selectedProfilePhoto = ref(null)
@@ -239,6 +250,16 @@ const toggleSidebar = () => {
   document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
   document.body.classList.remove('sidebar-open')
   document.body.classList.toggle('sidebar-collapsed', !nextState)
+}
+
+const applyDarkMode = () => {
+  document.body.classList.toggle('admin-dark-mode', isDarkMode.value)
+  localStorage.setItem('adminDarkMode', JSON.stringify(isDarkMode.value))
+}
+
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value
+  applyDarkMode()
 }
 
 const runSearch = () => {
@@ -477,6 +498,8 @@ const syncSidebarState = () => {
 }
 
 onMounted(() => {
+  isDarkMode.value = JSON.parse(localStorage.getItem('adminDarkMode') || 'false')
+  applyDarkMode()
   hydrateProfileForm()
   fetchNotifications()
   syncSidebarState()
@@ -618,6 +641,7 @@ const logout = () => {
   position: relative;
 }
 
+.dark-mode-toggle,
 .notifications-btn {
   position: relative;
   width: 42px;
@@ -633,12 +657,26 @@ const logout = () => {
   transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
+.dark-mode-toggle:hover,
+.dark-mode-toggle:focus-visible,
 .notifications-btn:hover,
 .notifications-btn:focus-visible {
   background: #eff6ff;
   border-color: #93c5fd;
   color: #2563eb;
   outline: none;
+}
+
+.theme-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset -6px -4px 0 0 currentColor;
+}
+
+.theme-icon.sun {
+  background: currentColor;
+  box-shadow: none;
 }
 
 .bell-icon {
@@ -1044,5 +1082,78 @@ const logout = () => {
 <style>
 body.sidebar-collapsed .app-navbar {
   left: 80px;
+}
+
+body.admin-dark-mode .app-navbar {
+  background: #111827;
+  border-bottom-color: #263247;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+body.admin-dark-mode .menu-toggle,
+body.admin-dark-mode .dark-mode-toggle,
+body.admin-dark-mode .notifications-btn {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+body.admin-dark-mode .menu-toggle:hover,
+body.admin-dark-mode .menu-toggle:focus-visible,
+body.admin-dark-mode .menu-toggle.active,
+body.admin-dark-mode .dark-mode-toggle:hover,
+body.admin-dark-mode .dark-mode-toggle:focus-visible,
+body.admin-dark-mode .notifications-btn:hover,
+body.admin-dark-mode .notifications-btn:focus-visible {
+  background: #172554;
+  border-color: #2563eb;
+  color: #bfdbfe;
+}
+
+body.admin-dark-mode .search-bar input,
+body.admin-dark-mode .account-dropdown,
+body.admin-dark-mode .notifications-dropdown {
+  background: #0f172a !important;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+body.admin-dark-mode .search-bar input::placeholder,
+body.admin-dark-mode .search-icon,
+body.admin-dark-mode .account-header small,
+body.admin-dark-mode .notification-item em,
+body.admin-dark-mode .notification-item small,
+body.admin-dark-mode .notification-empty {
+  color: #94a3b8;
+}
+
+body.admin-dark-mode .notifications-header,
+body.admin-dark-mode .account-header {
+  border-color: #263247;
+  color: #f8fafc;
+}
+
+body.admin-dark-mode .account-header strong,
+body.admin-dark-mode .notification-item strong,
+body.admin-dark-mode .profile-form label {
+  color: #f8fafc;
+}
+
+body.admin-dark-mode .notification-item,
+body.admin-dark-mode .profile-form input,
+body.admin-dark-mode .app-account-action {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+body.admin-dark-mode .notification-item:hover,
+body.admin-dark-mode .notification-item:focus-visible,
+body.admin-dark-mode .notification-item.unread {
+  background: #172554;
+}
+
+body.admin-dark-mode .logout-btn {
+  background: #1f2937;
 }
 </style>

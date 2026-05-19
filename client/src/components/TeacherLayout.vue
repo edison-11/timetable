@@ -29,25 +29,6 @@
         </router-link>
       </nav>
 
-      <div class="teacher-card">
-        <div class="teacher-avatar">
-          <img v-if="profileImageUrl" :src="profileImageUrl" :alt="teacherName">
-          <span v-else>{{ getInitials }}</span>
-        </div>
-        <div class="teacher-card-copy">
-          <strong>{{ teacherName }}</strong>
-          <span>{{ teacherDepartment }}</span>
-        </div>
-        <button class="teacher-card-menu" type="button" title="Teacher menu" @click="showProfileMenu = !showProfileMenu">
-          <span></span>
-        </button>
-
-        <div v-if="showProfileMenu" class="sidebar-profile-menu">
-          <button type="button" @click="goToProfile">Profile</button>
-          <button type="button" @click="goToSettings">Settings</button>
-          <button type="button" class="danger" @click="logout">Logout</button>
-        </div>
-      </div>
     </aside>
 
     <div class="teacher-main">
@@ -161,7 +142,6 @@ const sidebarOpen = ref(false)
 const isDarkMode = ref(false)
 const searchQuery = ref('')
 const showNotifications = ref(false)
-const showProfileMenu = ref(false)
 const showProfileDropdown = ref(false)
 const notificationsMenu = ref(null)
 const profileMenu = ref(null)
@@ -182,7 +162,6 @@ const teacher = computed(() => {
 
 const teacherName = computed(() => teacher.value?.name || 'Teacher')
 const teacherEmail = computed(() => teacher.value?.email || 'No email set')
-const teacherDepartment = computed(() => teacher.value?.department || 'Department')
 const profileImageUrl = computed(() => resolveAssetUrl(teacher.value?.profile_photo))
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 
@@ -250,7 +229,6 @@ const closeMobileSidebar = () => {
 
 const toggleSidebar = () => {
   const isMobile = window.matchMedia('(max-width: 768px)').matches
-  showProfileMenu.value = false
   if (isMobile) {
     sidebarOpen.value = !sidebarOpen.value
     document.body.classList.toggle('teacher-sidebar-open', sidebarOpen.value)
@@ -312,16 +290,6 @@ const loadNotifications = async () => {
   } catch (error) {
     notifications.value = []
   }
-}
-
-const goToProfile = () => {
-  showProfileMenu.value = false
-  router.push('/teacher/profile')
-}
-
-const goToSettings = () => {
-  showProfileMenu.value = false
-  router.push('/teacher/settings')
 }
 
 const logout = () => {
@@ -510,20 +478,6 @@ onBeforeUnmount(() => {
   text-overflow: ellipsis;
 }
 
-.teacher-card {
-  position: relative;
-  margin: 1rem 0.9rem 1.2rem;
-  padding: 0.9rem;
-  background: #eef6ff;
-  border: 1px solid #cfe2ff;
-  border-radius: 12px;
-  display: grid;
-  grid-template-columns: 42px 1fr 28px;
-  gap: 0.7rem;
-  align-items: center;
-}
-
-.teacher-avatar,
 .profile-btn {
   display: inline-flex;
   align-items: center;
@@ -534,74 +488,12 @@ onBeforeUnmount(() => {
   font-weight: 900;
 }
 
-.teacher-avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-}
-
-.teacher-avatar img,
 .profile-btn img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.teacher-card-copy {
-  min-width: 0;
-}
-
-.teacher-card-copy strong,
-.teacher-card-copy span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.teacher-card-copy strong {
-  color: #172033;
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.teacher-card-copy span {
-  color: #64748b;
-  font-size: 0.72rem;
-  font-weight: 750;
-}
-
-.teacher-card-menu {
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #64748b;
-  cursor: pointer;
-}
-
-.teacher-card-menu span,
-.teacher-card-menu span::before,
-.teacher-card-menu span::after {
-  display: block;
-  width: 4px;
-  height: 4px;
-  border-radius: 999px;
-  background: currentColor;
-  content: '';
-  margin: 0 auto;
-}
-
-.teacher-card-menu span::before {
-  transform: translateY(-7px);
-}
-
-.teacher-card-menu span::after {
-  transform: translateY(3px);
-}
-
-.sidebar-profile-menu,
 .profile-dropdown,
 .notifications-dropdown {
   position: absolute;
@@ -613,13 +505,6 @@ onBeforeUnmount(() => {
   z-index: 260;
 }
 
-.sidebar-profile-menu {
-  left: 0;
-  right: 0;
-  bottom: calc(100% + 0.5rem);
-}
-
-.sidebar-profile-menu button,
 .dropdown-item {
   display: block;
   width: 100%;
@@ -633,7 +518,6 @@ onBeforeUnmount(() => {
   font-size: 0.86rem;
 }
 
-.sidebar-profile-menu button:hover,
 .dropdown-item:hover {
   background: #f8fafc;
 }
@@ -915,7 +799,6 @@ onBeforeUnmount(() => {
 
 .teacher-shell.dark-mode .teacher-navbar,
 .teacher-shell.dark-mode .teacher-sidebar,
-.teacher-shell.dark-mode .sidebar-profile-menu,
 .teacher-shell.dark-mode .profile-dropdown,
 .teacher-shell.dark-mode .notifications-dropdown {
   background: #111827;
@@ -1017,9 +900,7 @@ body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-brand {
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .brand-text,
-body.teacher-sidebar-collapsed .teacher-sidebar .nav-label,
-body.teacher-sidebar-collapsed .teacher-sidebar .teacher-card-copy,
-body.teacher-sidebar-collapsed .teacher-sidebar .teacher-card-menu {
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-label {
   opacity: 0;
   width: 0;
   margin: 0;
@@ -1058,16 +939,6 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::before {
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item.active::before {
   opacity: 1;
   transform: translateX(-50%) scaleX(1);
-}
-
-body.teacher-sidebar-collapsed .teacher-sidebar .teacher-card {
-  display: flex;
-  justify-content: center;
-  padding: 0.55rem;
-}
-
-body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-profile-menu {
-  display: none;
 }
 
 @media (max-width: 768px) {

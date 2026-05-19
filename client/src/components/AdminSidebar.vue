@@ -386,4 +386,55 @@ body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-label {
 body.sidebar-collapsed .admin-sidebar .nav-item:hover {
   transform: none;
 }
+
+body.admin-dark-mode .admin-sidebar {
+  background: #111827;
+  border-right-color: #263247;
+  box-shadow: 16px 0 34px rgba(0, 0, 0, 0.32);
+}
+
+body.admin-dark-mode .admin-sidebar .sidebar-brand {
+  border-bottom-color: #263247;
+}
+
+body.admin-dark-mode .admin-sidebar .brand-mark,
+body.admin-dark-mode .admin-sidebar .academic-card {
+  background: #172554;
+  border-color: #1e40af;
+}
+
+body.admin-dark-mode .admin-sidebar .brand-text strong {
+  color: #f8fafc;
+}
+
+body.admin-dark-mode .admin-sidebar .brand-text span,
+body.admin-dark-mode .admin-sidebar .academic-card span {
+  color: #94a3b8;
+}
+
+body.admin-dark-mode .admin-sidebar .nav-item {
+  color: #cbd5e1;
+}
+
+body.admin-dark-mode .admin-sidebar .nav-item:hover {
+  background: #172554;
+  border-color: #1d4ed8;
+  color: #bfdbfe;
+}
+
+body.admin-dark-mode .admin-sidebar .nav-item.active {
+  background: #1e3a8a;
+  border-color: #2563eb;
+  color: #dbeafe;
+}
+
+body.admin-dark-mode .admin-sidebar .academic-card strong {
+  color: #bfdbfe;
+}
+
+body.admin-dark-mode.sidebar-collapsed .admin-sidebar .nav-item:hover,
+body.admin-dark-mode.sidebar-collapsed .admin-sidebar .nav-item.active {
+  background: transparent;
+  color: #bfdbfe;
+}
 </style>

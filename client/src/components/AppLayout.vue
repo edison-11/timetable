@@ -29,6 +29,7 @@ const closeSidebar = () => {
   display: flex;
   min-height: 100vh;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
+  transition: background 0.2s ease;
 }
 
 .main-wrapper {
@@ -64,6 +65,12 @@ const closeSidebar = () => {
   padding: 2rem;
   margin-top: 70px;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
+  transition: background 0.2s ease;
+}
+
+:global(body.admin-dark-mode) .app-layout,
+:global(body.admin-dark-mode) .main-content {
+  background: #0f172a;
 }
 
 @media (max-width: 768px) {
