@@ -34,6 +34,8 @@ const run = async () => {
   await addColumnIfMissing('class', 'dos_id', 'dos_id INT NULL AFTER shift_id');
   await addColumnIfMissing('section', 'level', "level VARCHAR(20) NOT NULL DEFAULT 'S1' AFTER section_name");
   await addColumnIfMissing('section', 'description', 'description TEXT NULL AFTER level');
+  await addColumnIfMissing('class', 'room_id', 'room_id INT NULL AFTER section_id');
+  await addColumnIfMissing('module', 'required_room_type', 'required_room_type VARCHAR(50) NULL AFTER description');
 
   if (await columnExists('class', 'teacher_id')) {
     await pool.execute('UPDATE class SET class_teacher_id = COALESCE(class_teacher_id, teacher_id)');
@@ -41,6 +43,7 @@ const run = async () => {
 
   await addColumnIfMissing('assignment', 'academic_year', "academic_year VARCHAR(20) NOT NULL DEFAULT '2024-2025' AFTER class_id");
   await addColumnIfMissing('assignment', 'term', "term VARCHAR(20) NOT NULL DEFAULT 'Term 1' AFTER academic_year");
+  await addColumnIfMissing('assignment', 'shift_id', 'shift_id INT NULL AFTER class_id');
   await addColumnIfMissing('shift', 'teacher_changeover_minutes', 'teacher_changeover_minutes INT NOT NULL DEFAULT 5 AFTER end_time');
 
   await addColumnIfMissing('timetable', 'class_id', 'class_id INT NULL AFTER timetable_id');
@@ -51,6 +54,7 @@ const run = async () => {
   await addColumnIfMissing('timetable', 'room_id', 'room_id INT NULL AFTER end_time');
   await addColumnIfMissing('timetable', 'module_name', 'module_name VARCHAR(255) NULL AFTER room_id');
   await addColumnIfMissing('timetable', 'entry_type', "entry_type VARCHAR(20) NOT NULL DEFAULT 'lesson' AFTER module_name");
+  await addColumnIfMissing('timetable', 'slot_number', 'slot_number INT NULL AFTER entry_type');
 
   if (await columnExists('timetable', 'section_id')) {
     await modifyColumn('timetable', 'section_id INT NULL');

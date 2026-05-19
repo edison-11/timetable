@@ -18,6 +18,10 @@ class TimetableEntry {
       await pool.execute("ALTER TABLE timetable ADD COLUMN entry_type VARCHAR(20) NOT NULL DEFAULT 'lesson' AFTER module_name");
     }
 
+    if (!columnNames.has('slot_number')) {
+      await pool.execute('ALTER TABLE timetable ADD COLUMN slot_number INT NULL AFTER entry_type');
+    }
+
     this.activityColumnsReady = true;
   }
 
@@ -32,12 +36,13 @@ class TimetableEntry {
       end_time,
       room_id,
       module_name,
-      entry_type = 'lesson'
+      entry_type = 'lesson',
+      slot_number = null
     } = timetableData;
     
     const [result] = await pool.execute(
-      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type]
+      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number]
     );
     
     return result.insertId;
@@ -248,10 +253,11 @@ class TimetableEntry {
   }
 
   static async update(id, timetableData) {
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id } = timetableData;
+    await this.ensureActivityColumns();
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type = 'lesson', slot_number = null } = timetableData;
     await pool.execute(
-      'UPDATE timetable SET class_id = ?, assignment_id = ?, day_of_week = ?, start_time = ?, end_time = ?, room_id = ? WHERE timetable_id = ?',
-      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, id]
+      'UPDATE timetable SET class_id = ?, assignment_id = ?, day_of_week = ?, start_time = ?, end_time = ?, room_id = ?, module_name = ?, entry_type = ?, slot_number = ? WHERE timetable_id = ?',
+      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, id]
     );
   }
 

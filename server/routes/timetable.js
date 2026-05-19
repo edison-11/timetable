@@ -8,10 +8,17 @@ const SystemSetting = require('../models/SystemSetting');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const conflictDetectionService = require('../services/conflictDetection');
+const {
+  FIXED_DAYS,
+  FIXED_TIMETABLE_ROWS,
+  FIXED_PERIODS,
+  FIXED_BREAKS,
+  findFixedPeriod
+} = require('../services/fixedTimetableStructure');
 
 const router = express.Router();
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+const DAYS = FIXED_DAYS;
 const DAY_ORDER = new Map(DAYS.map((day, index) => [day, index]));
 
 const normalizeTime = (time) => String(time || '').slice(0, 5);
@@ -275,6 +282,13 @@ router.post('/', auth, [
     }
 
     const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term, module_name } = req.body;
+    const fixedPeriod = findFixedPeriod(start_time, end_time);
+
+    if (!fixedPeriod) {
+      return res.status(400).json({
+        message: 'Timetable structure is fixed. Select one of the fixed period slots.'
+      });
+    }
 
     // Use comprehensive conflict detection service
     const conflicts = await conflictDetectionService.checkAllConflicts({
@@ -302,6 +316,7 @@ router.post('/', auth, [
       end_time, 
       room_id, 
       module_name,
+      slot_number: fixedPeriod.slot_number,
       status: status || 'draft',
       academic_year,
       term
@@ -335,7 +350,7 @@ router.post('/generate', auth, [
   body('days').optional().isArray(),
   body('start_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
   body('end_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
-  body('period_minutes').isInt({ min: 1 }).withMessage('Period minutes must be at least 1'),
+  body('period_minutes').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('Period minutes must be at least 1'),
   body('replace_existing').optional().isBoolean(),
   body('break_period_rules')
     .optional()
@@ -403,77 +418,18 @@ router.post('/generate', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const {
-      class_id,
-      level,
-      start_time,
-      end_time,
-      before_morning_break,
-      morning_break_length,
-      after_break_period,
-      lunch_length,
-      after_lunch_period,
-      noon_break_length,
-      after_noon_break_period,
-      period_minutes,
-      teacher_changeover_minutes
-    } = req.body;
+    const { class_id, level } = req.body;
     const shouldReplaceExisting = req.body.replace_existing !== false;
 
     const days = Array.isArray(req.body.days) && req.body.days.length
       ? req.body.days.filter((day) => DAYS.includes(day))
       : DAYS;
-    const sharedActivities = normalizeSharedActivities(req.body.shared_activities);
 
     if (!days.length) {
       return res.status(400).json({ message: 'At least one valid day is required' });
     }
 
-    // Calculate schedule from period and break length fields if start_time/end_time not provided
-    let calculatedStartTime = start_time;
-    let calculatedEndTime = end_time;
-    
-    if (!calculatedStartTime || !calculatedEndTime) {
-      // Default start time: 8:00 AM
-      calculatedStartTime = '08:00';
-      
-      // Calculate end time based on periods and breaks
-      const totalPeriods = Number(before_morning_break || 3) + Number(after_break_period || 2) + Number(after_lunch_period || 3) + Number(after_noon_break_period || 2);
-      const totalBreakMinutes = Number(morning_break_length || 30) + Number(lunch_length || 45) + Number(noon_break_length || 30);
-      const totalTeachingMinutes = totalPeriods * Number(period_minutes);
-      const totalMinutes = totalTeachingMinutes + totalBreakMinutes;
-      const endHour = 8 + Math.floor(totalMinutes / 60);
-      const endMinute = totalMinutes % 60;
-      calculatedEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
-    }
-
-    const activitiesOutsideGeneratedDays = sharedActivities.filter((activity) => !days.includes(activity.day_of_week));
-    if (activitiesOutsideGeneratedDays.length) {
-      return res.status(400).json({ message: 'Shared activity day must be one of the selected generation days' });
-    }
-
-    if (timeToMinutes(calculatedEndTime) <= timeToMinutes(calculatedStartTime)) {
-      return res.status(400).json({ message: 'End time must be after start time' });
-    }
-
-    const settings = await SystemSetting.getTimetableSettings();
-    const requestBreakRules = req.body.break_period_rules || {};
-    const breakPeriodRules = {
-      ...(settings.break_period_rules || {}),
-      ...requestBreakRules
-    };
-    const periodsBeforeMorningBreak = toPositiveInteger(before_morning_break ?? breakPeriodRules.periods_before_morning_break, 3);
-    const periodsBeforeLunch = toPositiveInteger(after_break_period ?? breakPeriodRules.periods_before_lunch, 2);
-    const periodsBeforeAfternoonBreak = toPositiveInteger(after_lunch_period ?? breakPeriodRules.periods_before_afternoon_break, 3);
-    const periodsAfterAfternoonBreak = toNonNegativeInteger(after_noon_break_period ?? breakPeriodRules.periods_after_afternoon_break, 2);
-    const totalRulePeriods = periodsBeforeMorningBreak
-      + periodsBeforeLunch
-      + periodsBeforeAfternoonBreak
-      + periodsAfterAfternoonBreak;
-    const morningBreakMinutes = toPositiveInteger(morning_break_length ?? breakPeriodRules.morning_break_minutes, 30);
-    const lunchBreakMinutes = toPositiveInteger(lunch_length ?? breakPeriodRules.lunch_break_minutes, 45);
-    const afternoonBreakMinutes = toPositiveInteger(noon_break_length ?? breakPeriodRules.afternoon_break_minutes, 30);
-    const sharedChangeoverMinutes = Number(teacher_changeover_minutes || settings.teacher_changeover_minutes || 5);
+    const totalRulePeriods = FIXED_PERIODS.length;
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
     const selectedClasses = allClasses
@@ -482,81 +438,6 @@ router.post('/generate', auth, [
     const generated = [];
     const skipped = [];
     const classEntryCounts = [];
-
-    // Build custom breaks and time slots from period and break length fields
-    const buildCustomSchedule = () => {
-      const schedule = [];
-      let currentMinutes = timeToMinutes(calculatedStartTime);
-      
-      // Before morning break periods
-      for (let i = 0; i < periodsBeforeMorningBreak; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      // Morning break
-      schedule.push({
-        type: 'break',
-        break_name: 'Morning Break',
-        start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + morningBreakMinutes)
-      });
-      currentMinutes += morningBreakMinutes;
-      
-      // After break periods
-      for (let i = 0; i < periodsBeforeLunch; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      // Lunch break
-      schedule.push({
-        type: 'break',
-        break_name: 'Lunch Break',
-        start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + lunchBreakMinutes)
-      });
-      currentMinutes += lunchBreakMinutes;
-      
-      // After lunch periods
-      for (let i = 0; i < periodsBeforeAfternoonBreak; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      // Evening break
-      schedule.push({
-        type: 'break',
-        break_name: 'Evening Break',
-        start_time: minutesToTime(currentMinutes),
-        end_time: minutesToTime(currentMinutes + afternoonBreakMinutes)
-      });
-      currentMinutes += afternoonBreakMinutes;
-      
-      // After afternoon break periods
-      for (let i = 0; i < periodsAfterAfternoonBreak; i++) {
-        schedule.push({
-          type: 'period',
-          start_time: minutesToTime(currentMinutes),
-          end_time: minutesToTime(currentMinutes + Number(period_minutes))
-        });
-        currentMinutes += Number(period_minutes);
-      }
-      
-      return schedule;
-    };
 
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
@@ -574,14 +455,10 @@ router.post('/generate', auth, [
         continue;
       }
 
-      // Use one shared changeover rule for every class so generation stays consistent across all timetables.
-      const changeoverMinutes = sharedChangeoverMinutes;
-
-      const customSchedule = buildCustomSchedule();
       const scheduledCounts = new Map();
       let classCount = 0;
 
-      const breakItems = customSchedule.filter((item) => item.type === 'break');
+      const breakItems = FIXED_BREAKS;
       for (const day of days) {
         for (const item of breakItems) {
           const timetableId = await TimetableEntry.create({
@@ -592,7 +469,8 @@ router.post('/generate', auth, [
             end_time: item.end_time,
             room_id: null,
             module_name: item.break_name,
-            entry_type: 'break'
+            entry_type: 'break',
+            slot_number: null
           });
           const timetable = await TimetableEntry.findById(timetableId);
           generated.push(timetable);
@@ -600,35 +478,17 @@ router.post('/generate', auth, [
         }
       }
 
-      // Expand the generated daily periods across each selected day.
-      const periodSlots = customSchedule.filter((item) => item.type === 'period');
-      const slots = days.flatMap((day) => {
-        return periodSlots.map((item) => ({
+      const generationItems = days.flatMap((day) => {
+        return FIXED_PERIODS.map((item) => ({
+          type: 'lesson',
           day_of_week: day,
           start_time: item.start_time,
-          end_time: item.end_time
+          end_time: item.end_time,
+          slot_number: item.slot_number
         }));
       });
-      const generationItems = buildGenerationItems(slots, sharedActivities);
 
       for (const item of generationItems) {
-        if (item.type === 'activity') {
-          const timetableId = await TimetableEntry.create({
-            class_id: classItem.class_id,
-            assignment_id: null,
-            day_of_week: item.day_of_week,
-            start_time: item.start_time,
-            end_time: item.end_time,
-            room_id: null,
-            module_name: item.activity_name,
-            entry_type: 'activity'
-          });
-          const timetable = await TimetableEntry.findById(timetableId);
-          generated.push(timetable);
-          classCount += 1;
-          continue;
-        }
-
         let scheduledAssignment = null;
         let hasConflict = false;
 
@@ -638,7 +498,7 @@ router.post('/generate', auth, [
             item.day_of_week,
             item.start_time,
             item.end_time,
-            changeoverMinutes
+            0
           );
 
           if (!teacherConflicts.length) {
@@ -666,7 +526,8 @@ router.post('/generate', auth, [
           end_time: item.end_time,
           room_id: roomId,
           module_name: scheduledAssignment.module_name,
-          entry_type: 'lesson'
+          entry_type: 'lesson',
+          slot_number: item.slot_number
         });
         const timetable = await TimetableEntry.findById(timetableId);
         timetable.has_conflict = hasConflict;
@@ -714,7 +575,8 @@ router.post('/generate', auth, [
       generated_count: generated.length,
       generated,
       class_entry_counts: classEntryCounts,
-      skipped
+      skipped,
+      structure: FIXED_TIMETABLE_ROWS
     });
   } catch (error) {
     console.error(error);
@@ -826,7 +688,7 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term } = req.body;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term, module_name } = req.body;
 
     // Get existing timetable entry
     const existing = await TimetableEntry.findById(req.params.id);
@@ -834,14 +696,46 @@ router.put('/:id', auth, [
       return res.status(404).json({ message: 'Timetable entry not found' });
     }
 
-    // Use existing values if not provided in update
+    const requestedStart = start_time || existing.start_time;
+    const requestedEnd = end_time || existing.end_time;
+    const fixedPeriod = findFixedPeriod(existing.start_time, existing.end_time);
+
+    if (existing.entry_type !== 'break' && !fixedPeriod) {
+      return res.status(400).json({
+        message: 'This timetable entry is outside the fixed structure. Regenerate the timetable before updating it.'
+      });
+    }
+
+    if (
+      (day_of_week && day_of_week !== existing.day_of_week)
+      || (start_time && normalizeTime(start_time) !== normalizeTime(existing.start_time))
+      || (end_time && normalizeTime(end_time) !== normalizeTime(existing.end_time))
+    ) {
+      return res.status(400).json({
+        message: 'Timetable structure is fixed. Update the subject, teacher, room, or status only.'
+      });
+    }
+
+    if (!existing.entry_type || existing.entry_type === 'lesson') {
+      const requestedPeriod = findFixedPeriod(requestedStart, requestedEnd);
+      if (!requestedPeriod) {
+        return res.status(400).json({
+          message: 'Timetable structure is fixed. Select one of the fixed period slots.'
+        });
+      }
+    }
+
+    // Use existing structure values and only update timetable content.
     const updateData = {
       class_id: class_id || existing.class_id,
       assignment_id: assignment_id !== undefined ? assignment_id : existing.assignment_id,
-      day_of_week: day_of_week || existing.day_of_week,
-      start_time: start_time || existing.start_time,
-      end_time: end_time || existing.end_time,
+      day_of_week: existing.day_of_week,
+      start_time: existing.start_time,
+      end_time: existing.end_time,
       room_id: room_id !== undefined ? room_id : existing.room_id,
+      module_name: module_name !== undefined ? module_name : existing.module_name,
+      entry_type: existing.entry_type || 'lesson',
+      slot_number: existing.slot_number || fixedPeriod?.slot_number || null,
       status: status || existing.status,
       academic_year: academic_year || existing.academic_year,
       term: term || existing.term

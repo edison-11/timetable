@@ -8,7 +8,8 @@ async function setupDatabase() {
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
       user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || 'nsengiyumva#2007'
+      password: process.env.DB_PASSWORD ? process.env.DB_PASSWORD.replace(/^["']|["']$/g, '') : '',
+      port: process.env.DB_PORT || 3306
     });
 
     console.log('Connected to MySQL server');

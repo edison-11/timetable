@@ -53,7 +53,7 @@
         <table class="timetable-grid">
           <thead>
             <tr>
-              <th>Period</th>
+              <th>Slot</th>
               <th>Time</th>
               <th>Monday</th>
               <th>Tuesday</th>
@@ -97,6 +97,7 @@ import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { exportToPDF, exportToWord, exportToICal, printTimetable } from '@/utils/exportTimetable'
+import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -107,7 +108,7 @@ const selectedTerm = ref('')
 const academicYears = ref(['2024-2025', '2025-2026'])
 const showExportDropdown = ref(false)
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const days = FIXED_DAYS
 
 const loadStudentInfo = async () => {
   try {
@@ -147,29 +148,7 @@ const formatTimeRange = (start, end) => {
 }
 
 const buildTimetableGrid = () => {
-  const timeSlots = new Map()
-  
-  timetable.value.forEach(entry => {
-    const key = `${entry.start_time}-${entry.end_time}`
-    if (!timeSlots.has(key)) {
-      timeSlots.set(key, {
-        key,
-        start_time: entry.start_time,
-        end_time: entry.end_time,
-        entriesByDay: {}
-      })
-    }
-    timeSlots.get(key).entriesByDay[entry.day_of_week] = entry
-  })
-  
-  const sortedSlots = Array.from(timeSlots.values()).sort((a, b) => 
-    a.start_time.localeCompare(b.start_time)
-  )
-  
-  return sortedSlots.map((slot, index) => ({
-    ...slot,
-    period: index + 1
-  }))
+  return buildFixedTimetableRows(timetable.value, days)
 }
 
 const toggleExportDropdown = () => {

@@ -1,0 +1,113 @@
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at parse (C:\Users\THE 1ST\Desktop\timetable\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\Users\THE 1ST\Desktop\timetable\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+    at invokeCallback (C:\Users\THE 1ST\Desktop\timetable\node_modules\raw-body\index.js:238:16)
+    at done (C:\Users\THE 1ST\Desktop\timetable\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\Users\THE 1ST\Desktop\timetable\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:509:28)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
+SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)
+    at JSON.parse (<anonymous>)
+    at parse (C:\Users\THE 1ST\Desktop\timetable\node_modules\body-parser\lib\types\json.js:92:19)
+    at C:\Users\THE 1ST\Desktop\timetable\node_modules\body-parser\lib\read.js:128:18
+    at AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+    at invokeCallback (C:\Users\THE 1ST\Desktop\timetable\node_modules\raw-body\index.js:238:16)
+    at done (C:\Users\THE 1ST\Desktop\timetable\node_modules\raw-body\index.js:227:7)
+    at IncomingMessage.onEnd (C:\Users\THE 1ST\Desktop\timetable\node_modules\raw-body\index.js:287:7)
+    at IncomingMessage.emit (node:events:509:28)
+    at endReadableNT (node:internal/streams/readable:1729:12)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
+Error: Access denied for user 'root'@'localhost' (using password: NO)
+    at User.findByEmail (C:\Users\THE 1ST\Desktop\timetable\server\models\User.js:47:31)
+    at C:\Users\THE 1ST\Desktop\timetable\server\routes\auth.js:97:29
+    at Layer.handle [as handle_request] (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Users\THE 1ST\Desktop\timetable\node_modules\express\lib\router\route.js:149:13)
+    at middleware (C:\Users\THE 1ST\Desktop\timetable\node_modules\express-validator\lib\middlewares\check.js:16:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5) {
+  code: 'ER_ACCESS_DENIED_ERROR',
+  errno: 1045,
+  sqlState: '28000',
+  sqlMessage: "Access denied for user 'root'@'localhost' (using password: NO)",
+  sql: undefined
+}
