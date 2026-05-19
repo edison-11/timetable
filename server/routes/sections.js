@@ -10,7 +10,9 @@ const router = express.Router();
 router.post('/', auth, [
   body('section_name').trim().notEmpty().withMessage('Section name is required'),
   body('level').trim().notEmpty().withMessage('Level is required'),
-  body('description').optional().trim()
+  body('description').optional().trim(),
+  body('room_id').optional().isInt(),
+  body('class_ids').optional().isArray()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -18,9 +20,9 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { section_name, level, description } = req.body;
+    const { section_name, level, description, room_id, class_ids } = req.body;
 
-    const sectionId = await Section.create({ section_name, level, description });
+    const sectionId = await Section.create({ section_name, level, description, room_id, class_ids });
     const section = await Section.findById(sectionId);
 
     await Notification.create({
@@ -92,7 +94,9 @@ router.get('/:id', auth, async (req, res) => {
 router.put('/:id', auth, [
   body('section_name').optional().trim().notEmpty(),
   body('level').optional().trim().notEmpty(),
-  body('description').optional().trim()
+  body('description').optional().trim(),
+  body('room_id').optional().isInt(),
+  body('class_ids').optional().isArray()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -100,13 +104,18 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { section_name, level, description } = req.body;
+    const { section_name, level, description, room_id, class_ids } = req.body;
+    console.log('PUT /sections/:id received:', { section_name, level, description, room_id, class_ids });
+    
     const updateData = {};
     
     if (section_name) updateData.section_name = section_name;
     if (level) updateData.level = level;
     if (description !== undefined) updateData.description = description;
+    if (room_id !== undefined) updateData.room_id = room_id;
+    if (class_ids !== undefined) updateData.class_ids = class_ids;
 
+    console.log('Updating with:', updateData);
     await Section.update(req.params.id, updateData);
     const updatedSection = await Section.findById(req.params.id);
 

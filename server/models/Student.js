@@ -110,7 +110,7 @@ class Student {
     if (!student || !student.class_id) return [];
 
     const query = `
-      SELECT t.*, c.class_name, m.module_name, r.room_name,
+      SELECT t.*, c.class_name, COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name, r.room_name,
              te.name as teacher_name
       FROM timetable t
       JOIN class c ON t.class_id = c.class_id

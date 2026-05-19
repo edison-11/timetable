@@ -19,7 +19,7 @@ class TimetableComment {
              tt.class_id,
              c.class_name,
              c.level,
-             a.module_name,
+             COALESCE(NULLIF(tt.module_name, ''), m.module_name) as module_name,
              a.academic_year,
              a.term
       FROM timetable_comment tc
@@ -27,6 +27,7 @@ class TimetableComment {
       LEFT JOIN timetable tt ON tc.timetable_id = tt.timetable_id
       LEFT JOIN class c ON tt.class_id = c.class_id
       LEFT JOIN assignment a ON tt.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       ORDER BY tc.comment_date DESC
     `);
     return rows;
@@ -39,7 +40,7 @@ class TimetableComment {
              tt.class_id,
              c.class_name,
              c.level,
-             a.module_name,
+             COALESCE(NULLIF(tt.module_name, ''), m.module_name) as module_name,
              a.academic_year,
              a.term
       FROM timetable_comment tc
@@ -47,6 +48,7 @@ class TimetableComment {
       LEFT JOIN timetable tt ON tc.timetable_id = tt.timetable_id
       LEFT JOIN class c ON tt.class_id = c.class_id
       LEFT JOIN assignment a ON tt.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       WHERE tc.comment_id = ?
     `, [id]);
     return rows[0];
@@ -71,7 +73,7 @@ class TimetableComment {
              tt.class_id,
              c.class_name,
              c.level,
-             a.module_name,
+             COALESCE(NULLIF(tt.module_name, ''), m.module_name) as module_name,
              a.academic_year,
              a.term
       FROM timetable_comment tc
@@ -79,6 +81,7 @@ class TimetableComment {
       LEFT JOIN timetable tt ON tc.timetable_id = tt.timetable_id
       LEFT JOIN class c ON tt.class_id = c.class_id
       LEFT JOIN assignment a ON tt.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       WHERE tc.teacher_id = ?
       ORDER BY tc.comment_date DESC
     `, [teacher_id]);
@@ -92,7 +95,7 @@ class TimetableComment {
              tt.class_id,
              c.class_name,
              c.level,
-             a.module_name,
+             COALESCE(NULLIF(tt.module_name, ''), m.module_name) as module_name,
              a.academic_year,
              a.term
       FROM timetable_comment tc
@@ -100,6 +103,7 @@ class TimetableComment {
       LEFT JOIN timetable tt ON tc.timetable_id = tt.timetable_id
       LEFT JOIN class c ON tt.class_id = c.class_id
       LEFT JOIN assignment a ON tt.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       WHERE tt.class_id = ?
       ORDER BY tc.comment_date DESC
     `, [class_id]);
@@ -124,7 +128,7 @@ class TimetableComment {
              t.name as teacher_name,
              c.class_name,
              c.level,
-             m.module_name
+             COALESCE(NULLIF(tt.module_name, ''), m.module_name) as module_name
       FROM timetable_comment tc
       LEFT JOIN teacher t ON tc.teacher_id = t.teacher_id
       LEFT JOIN timetable tt ON tc.timetable_id = tt.timetable_id

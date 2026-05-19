@@ -24,7 +24,8 @@
             <thead>
               <tr>
                 <th>Level</th>
-                <th>Classes</th>
+                <th>Room</th>
+                <th>Class</th>
                 <th>Description</th>
                 <th>Classes Count</th>
                 <th>Actions</th>
@@ -36,12 +37,22 @@
                 <td>
                   <div class="section-class-list">
                     <div v-for="section in group.sections" :key="section.section_id" class="section-class-row">
-                      <strong>{{ section.section_name }}</strong>
-                      <div class="class-list">
-                        <span v-for="className in section.classes" :key="className" class="class-chip">
-                          {{ className }}
+                      <div class="room-list">
+                        <span class="room-chip">
+                          {{ section.room_name || 'No Room' }}
                         </span>
-                        <span v-if="!section.classes.length" class="empty-note">No classes assigned</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="section-class-list">
+                    <div v-for="section in group.sections" :key="section.section_id" class="section-class-row">
+                      <div class="class-list">
+                        <span v-for="classItem in section.classesWithRooms" :key="classItem.class_id" class="class-chip">
+                          {{ classItem.class_name }}
+                        </span>
+                        <span v-if="!section.classesWithRooms.length" class="empty-note">No classes assigned</span>
                       </div>
                     </div>
                   </div>
@@ -66,7 +77,7 @@
                 </td>
               </tr>
               <tr v-if="!filteredSectionGroups.length">
-                <td colspan="5" class="text-center py-4">No sections found</td>
+                <td colspan="6" class="text-center py-4">No sections found</td>
               </tr>
             </tbody>
           </table>
@@ -101,6 +112,32 @@
                   <label for="sectionDescription" class="form-label">Description</label>
                   <textarea id="sectionDescription" v-model="sectionForm.description" class="form-control" rows="3" placeholder="Optional description"></textarea>
                 </div>
+                <div class="mb-3">
+                  <label for="sectionRoom" class="form-label">Room</label>
+                  <select id="sectionRoom" v-model.number="sectionForm.room_id" class="form-control">
+                    <option :value="null">No room assigned</option>
+                    <option v-for="room in rooms" :key="room.room_id" :value="room.room_id">
+                      {{ room.room_name }} (Capacity: {{ room.capacity }})
+                    </option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label for="sectionClasses" class="form-label">Assign Classes</label>
+                  <div class="form-control" style="height: auto; padding: 0.5rem; max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0;">
+                    <div v-if="!classes.length" class="text-muted" style="padding: 0.5rem;">No classes available</div>
+                    <div v-for="classItem in classes" :key="classItem.class_id" style="padding: 0.5rem; border-bottom: 1px solid #f0f0f0;">
+                      <input 
+                        type="checkbox" 
+                        :id="`class-${classItem.class_id}`"
+                        :value="classItem.class_id" 
+                        v-model.number="sectionForm.selected_class_ids"
+                      >
+                      <label :for="`class-${classItem.class_id}`" style="margin-left: 0.5rem; cursor: pointer;">
+                        {{ classItem.class_name }} ({{ classItem.level }})
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </form>
             </div>
             <div class="modal-footer">
@@ -124,6 +161,8 @@ import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 
 const sections = ref([])
+const classes = ref([])
+const rooms = ref([])
 const searchQuery = ref('')
 const levelFilter = ref('')
 const isEditing = ref(false)
@@ -135,7 +174,9 @@ const emptySectionForm = () => ({
   section_id: null,
   section_name: '',
   level: '',
-  description: ''
+  description: '',
+  room_id: null,
+  selected_class_ids: []
 })
 
 const sectionForm = ref(emptySectionForm())
@@ -173,18 +214,28 @@ const filteredSectionGroups = computed(() => {
       .map(classId => classId.trim())
       .filter(Boolean)
 
-    const classes = String(section.class_names || '')
-      .split(',')
-      .map(className => className.trim())
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b))
+    // Build classesWithRooms by matching class_ids with fetched class data
+    const classesWithRooms = classIds.map(classId => {
+      const classData = classes.value.find(c => String(c.class_id) === String(classId))
+      return {
+        class_id: classId,
+        class_name: classData?.class_name || `Class ${classId}`,
+        room_name: classData?.room_name || 'No Room'
+      }
+    }).sort((a, b) => a.class_name.localeCompare(b.class_name))
 
     const group = groups.get(level)
-    const countKeys = classIds.length ? classIds : classes.length ? classes : [section.section_id || section.section_name]
+    const countKeys = classIds.length ? classIds : [section.section_id || section.section_name]
     countKeys.forEach(classItem => group.classIds.add(classItem))
     group.sections.push({
       ...section,
-      classes
+      room_name: rooms.value.find(r => r.room_id === section.room_id)?.room_name || 'No Room',
+      classes: String(section.class_names || '')
+        .split(',')
+        .map(className => className.trim())
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b)),
+      classesWithRooms
     })
   })
 
@@ -210,11 +261,19 @@ const openAddModal = () => {
 
 const openEditModal = (section) => {
   isEditing.value = true
+  const selectedIds = String(section.class_ids || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean)
+    .map(Number)
+  
   sectionForm.value = {
     section_id: section.section_id,
     section_name: section.section_name || '',
     level: section.level || '',
-    description: section.description || ''
+    description: section.description || '',
+    room_id: section.room_id || null,
+    selected_class_ids: selectedIds
   }
   errors.value = {}
   formMessage.value = ''
@@ -245,7 +304,9 @@ const validateForm = () => {
 const buildPayload = () => ({
   section_name: sectionForm.value.section_name.trim(),
   level: sectionForm.value.level.trim(),
-  description: sectionForm.value.description?.trim() || null
+  description: sectionForm.value.description?.trim() || null,
+  room_id: sectionForm.value.room_id || null,
+  class_ids: sectionForm.value.selected_class_ids.length > 0 ? sectionForm.value.selected_class_ids : null
 })
 
 const saveSection = async () => {
@@ -309,8 +370,14 @@ const showToast = (message, type) => {
 
 const loadData = async () => {
   try {
-    const response = await api.get('/sections/with-count')
-    sections.value = response.data.sections || []
+    const [sectionsResponse, classesResponse, roomsResponse] = await Promise.all([
+      api.get('/sections/with-count'),
+      api.get('/classes'),
+      api.get('/rooms')
+    ])
+    sections.value = sectionsResponse.data.sections || []
+    classes.value = classesResponse.data.classes || []
+    rooms.value = roomsResponse.data.rooms || []
   } catch (error) {
     console.error('Failed to load sections:', error)
     showToast('Failed to load sections.', 'danger')
@@ -427,6 +494,7 @@ onBeforeUnmount(() => {
 }
 
 .class-list,
+.room-list,
 .section-class-list,
 .description-list,
 .section-actions {
@@ -450,6 +518,17 @@ onBeforeUnmount(() => {
   border: 1px solid #bfdbfe;
   border-radius: 999px;
   color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.22rem 0.55rem;
+}
+
+.room-chip {
+  width: fit-content;
+  background: #dbeafe;
+  border: 1px solid #7dd3fc;
+  border-radius: 999px;
+  color: #0369a1;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.22rem 0.55rem;

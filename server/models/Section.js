@@ -2,12 +2,24 @@ const pool = require('../config/database');
 
 class Section {
   static async create(sectionData) {
-    const { section_name, level, description } = sectionData;
+    const { section_name, level, description, room_id, class_ids } = sectionData;
     const [result] = await pool.execute(
-      'INSERT INTO section (section_name, level, description) VALUES (?, ?, ?)',
-      [section_name, level, description]
+      'INSERT INTO section (section_name, level, description, room_id) VALUES (?, ?, ?, ?)',
+      [section_name, level, description, room_id || null]
     );
-    return result.insertId;
+    const sectionId = result.insertId;
+
+    // Link classes to section if provided
+    if (class_ids && Array.isArray(class_ids) && class_ids.length > 0) {
+      for (const classId of class_ids) {
+        await pool.execute(
+          'UPDATE class SET section_id = ? WHERE class_id = ?',
+          [sectionId, classId]
+        );
+      }
+    }
+
+    return sectionId;
   }
 
   static async getAll() {
@@ -29,11 +41,52 @@ class Section {
   }
 
   static async update(id, sectionData) {
-    const { section_name, level, description } = sectionData;
-    await pool.execute(
-      'UPDATE section SET section_name = ?, level = ?, description = ? WHERE section_id = ?',
-      [section_name, level, description, id]
-    );
+    const { section_name, level, description, room_id, class_ids } = sectionData;
+    
+    // Update section fields
+    const updateFields = [];
+    const updateValues = [];
+    
+    if (section_name !== undefined) {
+      updateFields.push('section_name = ?');
+      updateValues.push(section_name);
+    }
+    if (level !== undefined) {
+      updateFields.push('level = ?');
+      updateValues.push(level);
+    }
+    if (description !== undefined) {
+      updateFields.push('description = ?');
+      updateValues.push(description);
+    }
+    if (room_id !== undefined) {
+      updateFields.push('room_id = ?');
+      updateValues.push(room_id || null);
+    }
+
+    if (updateFields.length > 0) {
+      updateValues.push(id);
+      await pool.execute(
+        `UPDATE section SET ${updateFields.join(', ')} WHERE section_id = ?`,
+        updateValues
+      );
+    }
+
+    // Update class-section links if provided
+    if (class_ids && Array.isArray(class_ids)) {
+      // First, remove all classes from this section
+      await pool.execute('UPDATE class SET section_id = NULL WHERE section_id = ?', [id]);
+      
+      // Then add the new classes
+      if (class_ids.length > 0) {
+        for (const classId of class_ids) {
+          await pool.execute(
+            'UPDATE class SET section_id = ? WHERE class_id = ?',
+            [id, classId]
+          );
+        }
+      }
+    }
   }
 
   static async delete(id) {
@@ -47,6 +100,7 @@ class Section {
         s.section_name,
         s.level,
         s.description,
+        s.room_id,
         COALESCE(section_classes.class_count, 0) as class_count,
         section_classes.class_ids,
         section_classes.class_names

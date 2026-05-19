@@ -17,7 +17,7 @@ class SubstitutionLog {
              t1.name as original_teacher_name, 
              t2.name as substitute_teacher_name,
              c.class_name,
-             m.module_name
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name
       FROM substitution_log sl
       JOIN teacher t1 ON sl.original_teacher_id = t1.teacher_id
       JOIN teacher t2 ON sl.substitute_teacher_id = t2.teacher_id
@@ -37,7 +37,7 @@ class SubstitutionLog {
              t1.name as original_teacher_name, 
              t2.name as substitute_teacher_name,
              c.class_name,
-             m.module_name
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name
       FROM substitution_log sl
       JOIN teacher t1 ON sl.original_teacher_id = t1.teacher_id
       JOIN teacher t2 ON sl.substitute_teacher_id = t2.teacher_id

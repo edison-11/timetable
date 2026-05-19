@@ -294,7 +294,7 @@ const visibleEntries = computed(() => {
 const groupedTimetables = computed(() => {
   const groups = new Map()
   timetableEntries.value.forEach((entry) => {
-    if (!entry.module_name || entry.module_name === 'continue') return
+    if (entry.module_name === 'continue') return
     if (!days.includes(entry.day_of_week)) return
 
     const classId = entry.class_id || 'unknown'

@@ -106,11 +106,11 @@ class AbsenceLog {
     const dayOfWeek = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
     
     const query = `
-      SELECT t.*, c.class_name, m.module_name, r.room_name
+      SELECT t.*, c.class_name, COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name, r.room_name
       FROM timetable t
-      JOIN assignment a ON t.assignment_id = a.assignment_id
-      JOIN class c ON t.class_id = c.class_id
-      JOIN module m ON a.module_id = m.module_id
+      LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN class c ON t.class_id = c.class_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN room r ON t.room_id = r.room_id
       WHERE a.teacher_id = ?
         AND t.day_of_week = ?

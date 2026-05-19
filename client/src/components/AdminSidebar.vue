@@ -2,7 +2,7 @@
   <aside class="admin-sidebar">
     <div class="sidebar-brand">
       <div class="brand-mark">
-        <img class="brand-logo" src="/timetable-logo.png" alt="Timetable logo">
+        <img class="brand-logo" :src="logoUrl" alt="Timetable logo">
       </div>
       <div class="brand-text">
         <strong>Timetable</strong>
@@ -10,13 +10,16 @@
       </div>
     </div>
 
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" aria-label="Admin navigation">
       <router-link
         v-for="item in adminSidebarItems"
         :key="item.name"
         :to="item.path"
         class="nav-item"
         :class="{ active: route.path === item.path }"
+        :aria-current="route.path === item.path ? 'page' : undefined"
+        :title="item.name"
+        @click="closeMobileSidebar"
       >
         <span class="nav-icon" v-html="item.icon"></span>
         <span class="nav-label">{{ item.name }}</span>
@@ -35,18 +38,26 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
+const logoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
+
+const closeMobileSidebar = () => {
+  document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
+  document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
+  document.body.classList.remove('sidebar-open')
+  document.dispatchEvent(new Event('sidebar:closed'))
+}
 
 const icons = {
-  dashboard: '<svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm10 7h6V4h-6v16ZM4 20h6v-3H4v3Z"/></svg>',
-  calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
-  classes: '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>',
-  modules: '<svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>',
-  rooms: '<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7M5 10v10h14V10M9 20v-6h6v6"/></svg>',
-  teachers: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>',
-  sections: '<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
-  assignments: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
-  shifts: '<svg viewBox="0 0 24 24"><path d="M12 6v6l4 2M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/></svg>',
-  settings: '<svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
+  dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
+  sections: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6h14M7 12h14M7 18h14"/><path d="M3.5 6h.5M3.5 12h.5M3.5 18h.5"/></svg>',
+  rooms: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg>',
+  shifts: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v6l4 2"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>',
+  teachers: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M19 9h4"/><path d="M21 7v4"/></svg>',
+  modules: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A3.5 3.5 0 0 1 7.5 3H20v18H7.5A3.5 3.5 0 0 0 4 24V6.5Z" transform="translate(0 -1)"/><path d="M8 7h8"/><path d="M8 12h6"/></svg>',
+  classes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 0 4 22v-3Z"/><path d="M8 8h8"/><path d="M8 12h6"/></svg>',
+  assignments: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11h6"/><path d="M9 15h6"/><path d="M8 3h8l4 4v14H8a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"/><path d="M16 3v4h4"/></svg>',
+  timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
+  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
 }
 
 const adminSidebarItems = [
@@ -58,7 +69,7 @@ const adminSidebarItems = [
   { name: 'Subjects', path: '/modules', icon: icons.modules },
   { name: 'Classes', path: '/classes', icon: icons.classes },
   { name: 'Assignments', path: '/assignments', icon: icons.assignments },
-  { name: 'Timetables', path: '/timetable', icon: icons.calendar },
+  { name: 'Timetables', path: '/timetable', icon: icons.timetable },
   { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 
@@ -74,37 +85,42 @@ const academicYear = computed(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 240px;
+  width: 260px;
   height: 100vh;
-  background: #f8f9fa;
-  border-right: 1px solid #e9ecef;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06);
+  background: #ffffff;
+  border-right: 1px solid #dbe5f3;
+  box-shadow: 16px 0 34px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 200;
   overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.24s ease, transform 0.24s ease, box-shadow 0.24s ease;
 }
 
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem 1rem;
-  border-bottom: 1px solid #e9ecef;
-  margin-bottom: 1rem;
+  gap: 0.95rem;
+  padding: 1.35rem 1.1rem 1.1rem;
+  border-bottom: 1px solid #e3ebf7;
+  margin-bottom: 0.9rem;
+  min-height: 88px;
+  transition: padding 0.24s ease, justify-content 0.24s ease;
 }
 
 .brand-mark {
-  width: 38px;
-  height: 38px;
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3498db, #2980b9);
-  border-radius: 8px;
-  font-weight: 800;
-  color: white;
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+  background: #eef6ff;
+  border: 1px solid #cfe2ff;
+  border-radius: 14px;
+  color: #2563eb;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
 }
 
 .brand-logo {
@@ -112,85 +128,123 @@ const academicYear = computed(() => {
   height: 100%;
   object-fit: contain;
   display: block;
+  padding: 6px;
 }
 
 .brand-text strong {
   display: block;
-  font-size: 0.95rem;
-  color: #2c3e50;
-  font-weight: 700;
+  font-size: 1.02rem;
+  color: #172033;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .brand-text span {
-  font-size: 0.7rem;
-  color: #7f8c8d;
-  font-weight: 600;
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.5rem;
+  padding: 0 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .nav-item {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 40px;
-  padding: 0.65rem 0.75rem;
-  border-radius: 8px;
-  color: #495057;
+  min-height: 46px;
+  padding: 0.72rem 0.8rem 0.72rem 1rem;
+  border-radius: 14px;
+  color: #475569;
   text-decoration: none;
-  transition: all 0.3s ease;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-left: 3px solid transparent;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  font-size: 0.88rem;
+  font-weight: 750;
+  border: 1px solid transparent;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  width: 3px;
+  height: 1.45rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transform: translateY(-50%) scaleY(0.35);
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
 .nav-item:hover {
-  background: #e9ecef;
-  color: #3498db;
-  border-left-color: #3498db;
+  background: #eef6ff;
+  color: #1d4ed8;
+  border-color: #d7e7ff;
   transform: translateX(3px);
 }
 
 .nav-item.active {
-  background: linear-gradient(90deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  border-left-color: #2980b9;
-  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
+  background: #dbeafe;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.02);
+}
+
+.nav-item.active::before {
+  opacity: 1;
+  transform: translateY(-50%) scaleY(1);
 }
 
 .nav-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: transparent;
+  color: currentColor;
+  transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
 }
 
 .nav-icon :deep(svg) {
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.1;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
+.nav-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.2s ease, transform 0.2s ease, width 0.2s ease;
+}
+
 .academic-card {
-  margin: 1rem;
+  margin: 1rem 0.9rem 1.2rem;
   padding: 1rem;
-  background: linear-gradient(135deg, #e8f4f8 0%, #dbeafe 100%);
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
+  background: #eef6ff;
+  border: 1px solid #cfe2ff;
+  border-radius: 12px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.08);
 }
 
 .academic-card span {
@@ -204,7 +258,7 @@ const academicYear = computed(() => {
 
 .academic-card strong {
   font-size: 1rem;
-  color: #2980b9;
+  color: #2563eb;
   font-weight: 800;
   display: block;
   margin-top: 0.35rem;
@@ -212,12 +266,124 @@ const academicYear = computed(() => {
 
 @media (max-width: 768px) {
   .admin-sidebar {
+    width: min(84vw, 280px);
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
+    z-index: 300;
   }
 
   .admin-sidebar.mobile-open {
     transform: translateX(0);
   }
+}
+</style>
+
+<style>
+body.sidebar-collapsed .admin-sidebar {
+  width: 80px;
+}
+
+body.sidebar-collapsed .admin-sidebar .sidebar-brand {
+  justify-content: center;
+  padding-inline: 0.5rem;
+}
+
+body.sidebar-collapsed .admin-sidebar .brand-text,
+body.sidebar-collapsed .admin-sidebar .nav-label,
+body.sidebar-collapsed .admin-sidebar .academic-card {
+  opacity: 0;
+  width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateX(-10px);
+}
+
+body.sidebar-collapsed .admin-sidebar .sidebar-brand {
+  gap: 0;
+}
+
+body.sidebar-collapsed .admin-sidebar .brand-mark {
+  flex-basis: 48px;
+  width: 48px;
+  height: 48px;
+}
+
+body.sidebar-collapsed .admin-sidebar .sidebar-nav {
+  padding-inline: 0.5rem;
+  align-items: stretch;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding-inline: 0;
+  padding-left: 0;
+  border-radius: 16px;
+  transform: none;
+  background: transparent;
+  border-color: transparent;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item::before {
+  left: 50%;
+  top: auto;
+  bottom: 0.35rem;
+  width: 22px;
+  height: 3px;
+  transform: translateX(-50%) scaleX(0.25);
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover {
+  background: #f1f5ff;
+  color: #1d4ed8;
+  transform: none;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item.active {
+  background: transparent;
+  color: #2563eb;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item.active::before {
+  opacity: 1;
+  transform: translateX(-50%) scaleX(1);
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-icon {
+  width: 34px;
+  height: 34px;
+  color: #64748b;
+  background: transparent;
+  border-radius: 999px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-icon {
+  color: #1d4ed8;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item.active .nav-icon {
+  color: #2563eb;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-icon,
+body.sidebar-collapsed .admin-sidebar .nav-item.active .nav-icon {
+  background: transparent;
+  transform: scale(1.04);
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover::before {
+  opacity: 0.85;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-label {
+  display: none;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover {
+  transform: none;
 }
 </style>

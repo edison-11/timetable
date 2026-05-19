@@ -233,6 +233,77 @@ const buildBreaksFromPeriodRules = ({ startTime, endTime, periodMinutes, changeo
   return calculatedBreaks;
 };
 
+const buildScheduleFromPeriodRules = ({ days, startTime, endTime, periodMinutes, rules }) => {
+  const dayEnd = timeToMinutes(endTime);
+  const scheduleByDay = new Map();
+  const periodBlocks = [
+    {
+      periods: toPositiveInteger(rules.periods_before_morning_break, 3),
+      break_name: 'Morning Break',
+      break_label: 'MORNING BREAK',
+      break_duration: toPositiveInteger(rules.morning_break_minutes, 15)
+    },
+    {
+      periods: toPositiveInteger(rules.periods_before_lunch, 2),
+      break_name: 'Lunch Break',
+      break_label: 'LUNCH BREAK',
+      break_duration: toPositiveInteger(rules.lunch_break_minutes, 85)
+    },
+    {
+      periods: toPositiveInteger(rules.periods_before_afternoon_break, 3),
+      break_name: 'Evening Break',
+      break_label: 'EVENING BREAK',
+      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 5)
+    },
+    {
+      periods: toNonNegativeInteger(rules.periods_after_afternoon_break, 2)
+    }
+  ];
+
+  days.forEach((day) => {
+    const periods = [];
+    const breaks = [];
+    let cursor = timeToMinutes(startTime);
+    let slotNumber = 1;
+
+    periodBlocks.forEach((block) => {
+      for (let index = 0; index < block.periods; index += 1) {
+        const periodEnd = cursor + periodMinutes;
+        if (periodEnd > dayEnd) return;
+
+        periods.push({
+          type: 'lesson',
+          day_of_week: day,
+          start_time: minutesToTime(cursor),
+          end_time: minutesToTime(periodEnd),
+          slot_number: slotNumber
+        });
+        cursor = periodEnd;
+        slotNumber += 1;
+      }
+
+      if (block.break_name && cursor < dayEnd) {
+        const breakEnd = Math.min(cursor + block.break_duration, dayEnd);
+        breaks.push({
+          day_of_week: day,
+          start_time: minutesToTime(cursor),
+          end_time: minutesToTime(breakEnd),
+          break_name: block.break_name,
+          break_label: block.break_label
+        });
+        cursor = breakEnd;
+      }
+    });
+
+    scheduleByDay.set(day, { periods, breaks });
+  });
+
+  return {
+    periods: days.flatMap((day) => scheduleByDay.get(day)?.periods || []),
+    breaks: days.flatMap((day) => scheduleByDay.get(day)?.breaks || [])
+  };
+};
+
 const rankAssignments = (assignments, scheduledCounts) => {
   const totalHours = assignments.reduce((sum, assignment) => {
     return sum + Math.max(Number(assignment.hours_per_year || 1), 1);
@@ -450,6 +521,7 @@ router.post('/generate', auth, [
     }
 
     const { class_id, level } = req.body;
+    const timetableStatus = req.body.status || 'draft';
     const shouldReplaceExisting = req.body.replace_existing !== false;
 
     const days = Array.isArray(req.body.days) && req.body.days.length
@@ -460,7 +532,53 @@ router.post('/generate', auth, [
       return res.status(400).json({ message: 'At least one valid day is required' });
     }
 
-    const totalRulePeriods = FIXED_PERIODS.length;
+    const periodMinutes = toPositiveInteger(req.body.period_minutes, 45);
+    const changeoverMinutes = toNonNegativeInteger(req.body.teacher_changeover_minutes, 0);
+    const breakRules = req.body.break_period_rules || {};
+    const shouldUsePeriodRules = breakRules.enabled !== false;
+    const ruleSchedule = shouldUsePeriodRules
+      ? buildScheduleFromPeriodRules({
+        days,
+        startTime: req.body.start_time || '08:00',
+        endTime: req.body.end_time || '17:15',
+        periodMinutes,
+        rules: breakRules
+      })
+      : null;
+    const fixedBreaks = FIXED_BREAKS.map((item) => ({
+      start_time: item.start_time,
+      end_time: item.end_time
+    }));
+    const slotCountsByDay = new Map();
+    const defaultGenerationItems = buildSlots({
+      days,
+      startTime: req.body.start_time || '08:00',
+      endTime: req.body.end_time || '17:15',
+      periodMinutes,
+      changeoverMinutes,
+      breaks: fixedBreaks
+    }).map((item) => {
+      const slotNumber = (slotCountsByDay.get(item.day_of_week) || 0) + 1;
+      slotCountsByDay.set(item.day_of_week, slotNumber);
+      return {
+        ...item,
+        type: 'lesson',
+        slot_number: slotNumber
+      };
+    });
+    const generationTemplate = ruleSchedule?.periods?.length ? ruleSchedule.periods : defaultGenerationItems;
+    const breakTemplate = ruleSchedule?.breaks?.length
+      ? ruleSchedule.breaks
+      : days.flatMap((day) => FIXED_BREAKS.map((item) => ({
+        day_of_week: day,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        break_name: item.break_name
+      })));
+    const totalRulePeriods = Math.max(
+      ...days.map((day) => generationTemplate.filter((item) => item.day_of_week === day).length),
+      0
+    );
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
     const selectedClasses = allClasses
@@ -470,7 +588,11 @@ router.post('/generate', auth, [
     const skipped = [];
     const classEntryCounts = [];
 
-
+    if (shouldReplaceExisting) {
+      for (const classItem of selectedClasses) {
+        await TimetableEntry.deleteByClass(classItem.class_id);
+      }
+    }
 
     for (const classItem of selectedClasses) {
       const assignments = await Assignment.getByClass(classItem.class_id);
@@ -485,37 +607,28 @@ router.post('/generate', auth, [
       }
 
       const scheduledCounts = new Map();
+      const dayBlockState = new Map();
       let classCount = 0;
 
-      const breakItems = FIXED_BREAKS;
-      for (const day of days) {
-        for (const item of breakItems) {
+      for (const item of breakTemplate) {
           const timetableId = await TimetableEntry.create({
             class_id: classItem.class_id,
             assignment_id: null,
-            day_of_week: day,
+            day_of_week: item.day_of_week,
             start_time: item.start_time,
             end_time: item.end_time,
             room_id: null,
             module_name: item.break_name,
             entry_type: 'break',
-            slot_number: null
+            slot_number: null,
+            status: timetableStatus
           });
           const timetable = await TimetableEntry.findById(timetableId);
           generated.push(timetable);
           classCount += 1;
-        }
       }
 
-      const generationItems = days.flatMap((day) => {
-        return FIXED_PERIODS.map((item) => ({
-          type: 'lesson',
-          day_of_week: day,
-          start_time: item.start_time,
-          end_time: item.end_time,
-          slot_number: item.slot_number
-        }));
-      });
+      const generationItems = generationTemplate;
 
 
       for (const item of generationItems) {
@@ -553,7 +666,10 @@ router.post('/generate', auth, [
           room_id: roomId || classItem.room_id || null,
           module_name: scheduledAssignment.module_name,
           entry_type: 'lesson',
-          slot_number: item.slot_number
+          slot_number: item.slot_number,
+          status: timetableStatus,
+          academic_year: scheduledAssignment.academic_year || null,
+          term: scheduledAssignment.term || null
         });
         const timetable = await TimetableEntry.findById(timetableId);
         timetable.has_conflict = hasConflict;
@@ -577,7 +693,7 @@ router.post('/generate', auth, [
         class_name: classItem.class_name,
         entries: classCount,
         periods_per_day: totalRulePeriods,
-        expected_entries: generationItems.length + (breakItems.length * days.length)
+        expected_entries: generationItems.length + breakTemplate.length
       });
 
       if (!classCount) {

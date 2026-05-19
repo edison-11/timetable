@@ -22,6 +22,18 @@ class TimetableEntry {
       await pool.execute('ALTER TABLE timetable ADD COLUMN slot_number INT NULL AFTER entry_type');
     }
 
+    if (!columnNames.has('status')) {
+      await pool.execute("ALTER TABLE timetable ADD COLUMN status ENUM('draft', 'published') DEFAULT 'draft' AFTER slot_number");
+    }
+
+    if (!columnNames.has('academic_year')) {
+      await pool.execute('ALTER TABLE timetable ADD COLUMN academic_year VARCHAR(20) NULL AFTER status');
+    }
+
+    if (!columnNames.has('term')) {
+      await pool.execute('ALTER TABLE timetable ADD COLUMN term VARCHAR(20) NULL AFTER academic_year');
+    }
+
     this.activityColumnsReady = true;
   }
 
@@ -37,12 +49,15 @@ class TimetableEntry {
       room_id,
       module_name,
       entry_type = 'lesson',
-      slot_number = null
+      slot_number = null,
+      status = 'draft',
+      academic_year = null,
+      term = null
     } = timetableData;
     
     const [result] = await pool.execute(
-      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number]
+      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term]
     );
     
     return result.insertId;
@@ -57,12 +72,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
@@ -80,12 +96,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
@@ -103,12 +120,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
@@ -127,12 +145,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
@@ -152,12 +171,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
@@ -176,12 +196,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
@@ -260,10 +281,10 @@ class TimetableEntry {
 
   static async update(id, timetableData) {
     await this.ensureActivityColumns();
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type = 'lesson', slot_number = null } = timetableData;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type = 'lesson', slot_number = null, status = 'draft', academic_year = null, term = null } = timetableData;
     await pool.execute(
-      'UPDATE timetable SET class_id = ?, assignment_id = ?, day_of_week = ?, start_time = ?, end_time = ?, room_id = ?, module_name = ?, entry_type = ?, slot_number = ? WHERE timetable_id = ?',
-      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, id]
+      'UPDATE timetable SET class_id = ?, assignment_id = ?, day_of_week = ?, start_time = ?, end_time = ?, room_id = ?, module_name = ?, entry_type = ?, slot_number = ?, status = ?, academic_year = ?, term = ? WHERE timetable_id = ?',
+      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term, id]
     );
   }
 
@@ -284,12 +305,13 @@ class TimetableEntry {
              a.term,
              a.teacher_id,
              tr.name as teacher_name,
-             t.module_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name) as module_name,
              COALESCE(r.room_name, cr.room_name) as room_name,
              COALESCE(r.room_type, cr.room_type) as room_type
       FROM timetable t
       LEFT JOIN class c ON t.class_id = c.class_id
       LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id

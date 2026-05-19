@@ -1,7 +1,18 @@
 <template>
   <header class="app-navbar">
-    <button class="menu-toggle" type="button" @click="toggleSidebar">
-      <span></span><span></span><span></span>
+    <button
+      class="menu-toggle"
+      type="button"
+      :class="{ active: sidebarOpen }"
+      :aria-expanded="sidebarOpen"
+      aria-label="Toggle navigation menu"
+      @click="toggleSidebar"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path class="hamburger-line top" d="M4 7h16" />
+        <path class="hamburger-line middle" d="M4 12h16" />
+        <path class="hamburger-line bottom" d="M4 17h16" />
+      </svg>
     </button>
 
     <div class="search-bar">
@@ -157,6 +168,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const showNotifications = ref(false)
 const showAccountMenu = ref(false)
+const sidebarOpen = ref(false)
 const notificationsMenu = ref(null)
 const accountMenu = ref(null)
 const selectedProfilePhoto = ref(null)
@@ -211,7 +223,22 @@ const hydrateProfileForm = ({ clearStatus = true } = {}) => {
 }
 
 const toggleSidebar = () => {
-  document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open')
+  const isMobile = window.matchMedia('(max-width: 768px)').matches
+  const nextState = !sidebarOpen.value
+  sidebarOpen.value = nextState
+
+  if (isMobile) {
+    document.body.classList.remove('sidebar-collapsed')
+    document.querySelector('.admin-sidebar')?.classList.toggle('mobile-open', nextState)
+    document.querySelector('.sidebar-backdrop')?.classList.toggle('visible', nextState)
+    document.body.classList.toggle('sidebar-open', nextState)
+    return
+  }
+
+  document.querySelector('.admin-sidebar')?.classList.remove('mobile-open')
+  document.querySelector('.sidebar-backdrop')?.classList.remove('visible')
+  document.body.classList.remove('sidebar-open')
+  document.body.classList.toggle('sidebar-collapsed', !nextState)
 }
 
 const runSearch = () => {
@@ -441,14 +468,25 @@ const closeMenusOnOutsideClick = (event) => {
   }
 }
 
+const syncSidebarState = () => {
+  const isMobileOpen = document.querySelector('.admin-sidebar')?.classList.contains('mobile-open') || false
+  const isDesktopCollapsed = document.body.classList.contains('sidebar-collapsed')
+
+  sidebarOpen.value = isMobileOpen || !isDesktopCollapsed
+  document.body.classList.toggle('sidebar-open', isMobileOpen)
+}
+
 onMounted(() => {
   hydrateProfileForm()
   fetchNotifications()
+  syncSidebarState()
   document.addEventListener('click', closeMenusOnOutsideClick)
+  document.addEventListener('sidebar:closed', syncSidebarState)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeMenusOnOutsideClick)
+  document.removeEventListener('sidebar:closed', syncSidebarState)
 })
 
 watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
@@ -466,7 +504,7 @@ const logout = () => {
   position: fixed;
   top: 0;
   right: 0;
-  left: 240px;
+  left: 260px;
   height: 70px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
@@ -480,18 +518,54 @@ const logout = () => {
 }
 
 .menu-toggle {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  background: #f8fafc;
+  border: 1px solid #dbe5f3;
+  border-radius: 10px;
   cursor: pointer;
+  color: #334155;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.menu-toggle span {
-  width: 20px;
-  height: 2px;
-  background: #64748b;
+.menu-toggle:hover,
+.menu-toggle:focus-visible,
+.menu-toggle.active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #2563eb;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.menu-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+.hamburger-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  transition: transform 0.22s ease, opacity 0.18s ease;
+  transform-origin: center;
+}
+
+.menu-toggle.active .top {
+  transform: none;
+}
+
+.menu-toggle.active .middle {
+  opacity: 1;
+}
+
+.menu-toggle.active .bottom {
+  transform: none;
 }
 
 .search-bar {
@@ -960,9 +1034,15 @@ const logout = () => {
 @media (max-width: 768px) {
   .app-navbar {
     left: 0;
+    gap: 0.75rem;
+    padding: 0 1rem;
   }
-  .menu-toggle {
-    display: flex;
-  }
+}
+
+</style>
+
+<style>
+body.sidebar-collapsed .app-navbar {
+  left: 80px;
 }
 </style>

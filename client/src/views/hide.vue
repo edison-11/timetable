@@ -238,7 +238,7 @@ const distributionColors = ['#3b82f6', '#22c55e', '#f97316', '#8b5cf6', '#14b8a6
 
 const filteredTimetable = computed(() => {
   return timetableEntries.value.filter((entry) => {
-    if (!entry.module_name || entry.module_name === 'continue') return false
+    if (entry.module_name === 'continue') return false
     if (selectedClass.value && entry.class_name !== selectedClass.value) return false
 
     const query = searchQuery.value.trim().toLowerCase()

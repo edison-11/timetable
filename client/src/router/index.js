@@ -1,8 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   scrollBehavior(to) {
     if (to.hash) {
       return {
@@ -143,6 +143,10 @@ const router = createRouter({
       name: 'TeacherPortal',
       component: () => import('@/views/TeacherPortal.vue'),
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/login'
     }
   ]
 })

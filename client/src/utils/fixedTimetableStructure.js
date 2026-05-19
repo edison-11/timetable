@@ -21,6 +21,12 @@ export const FIXED_BREAKS = FIXED_TIMETABLE_ROWS.filter((row) => row.type === 'b
 
 export const normalizeTime = (value) => String(value || '').slice(0, 5)
 
+const timeToMinutes = (value) => {
+  const [hours, minutes] = normalizeTime(value).split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  return hours * 60 + minutes
+}
+
 export const isBreakEntry = (entry) => {
   return entry?.entry_type === 'break' || String(entry?.module_name || '').toLowerCase().includes('break')
 }
@@ -31,6 +37,29 @@ export const findFixedPeriod = (startTime, endTime) => {
   return FIXED_PERIODS.find((row) => row.start_time === start && row.end_time === end) || null
 }
 
+const findBestFixedPeriod = (entry) => {
+  const exactPeriod = entry.slot_number
+    ? FIXED_PERIODS.find((row) => Number(row.slot_number) === Number(entry.slot_number))
+    : findFixedPeriod(entry.start_time, entry.end_time)
+
+  if (exactPeriod) return exactPeriod
+
+  const entryStart = timeToMinutes(entry.start_time)
+  const entryEnd = timeToMinutes(entry.end_time)
+  if (entryStart === null || entryEnd === null || entryEnd <= entryStart) return null
+
+  return FIXED_PERIODS
+    .map((period) => {
+      const periodStart = timeToMinutes(period.start_time)
+      const periodEnd = timeToMinutes(period.end_time)
+      const overlap = Math.max(0, Math.min(entryEnd, periodEnd) - Math.max(entryStart, periodStart))
+      const startDistance = Math.abs(entryStart - periodStart)
+      return { period, overlap, startDistance }
+    })
+    .filter((item) => item.overlap > 0)
+    .sort((a, b) => b.overlap - a.overlap || a.startDistance - b.startDistance)[0]?.period || null
+}
+
 export const buildFixedTimetableRows = (entries = [], selectedDays = FIXED_DAYS) => {
   const days = selectedDays.filter((day) => FIXED_DAYS.includes(day))
   const entriesBySlot = new Map()
@@ -38,10 +67,7 @@ export const buildFixedTimetableRows = (entries = [], selectedDays = FIXED_DAYS)
   entries.forEach((entry) => {
     if (!entry?.day_of_week || !days.includes(entry.day_of_week) || isBreakEntry(entry)) return
 
-    const fixedPeriod = entry.slot_number
-      ? FIXED_PERIODS.find((row) => Number(row.slot_number) === Number(entry.slot_number))
-      : findFixedPeriod(entry.start_time, entry.end_time)
-
+    const fixedPeriod = findBestFixedPeriod(entry)
     if (!fixedPeriod) return
 
     const key = `${fixedPeriod.slot_number}-${entry.day_of_week}`
