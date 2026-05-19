@@ -1,22 +1,99 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
+const Teacher = require('../models/Teacher');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { sendOtpEmail } = require('../services/resendEmailService');
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production';
+const OTP_EXPIRY_MS = 5 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS = 45 * 1000;
+const OTP_MAX_RESENDS = 3;
+const OTP_MAX_ATTEMPTS = 5;
+const pendingRegistrations = new Map();
 
-const generateToken = (userId) => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+const generateToken = (user) => {
+  return jwt.sign({
+    userId: user.id,
+    role: user.role,
+    type: user.role,
+    teacherId: user.teacher_id || undefined
+  }, JWT_SECRET, { expiresIn: '7d' });
+};
+
+const publicUser = (user, teacher = null) => ({
+  id: user.id,
+  username: user.username || user.full_name,
+  full_name: user.full_name || user.username,
+  name: user.full_name || user.username,
+  email: user.email,
+  phone: user.phone || teacher?.phone || null,
+  role: user.role,
+  is_verified: Boolean(user.is_verified),
+  profile_photo: user.profile_photo || teacher?.profile_photo || null,
+  teacher_id: teacher?.teacher_id || user.teacher_id || null,
+  department: teacher?.department || null,
+  status: teacher?.status || null,
+  employee_id: teacher?.employee_id || null,
+  module_name: teacher?.module_name || null
+});
+
+const syncTeacherUser = async (teacher, password) => {
+  let user = await User.findByEmail(teacher.email);
+  if (user) return user;
+
+  const userId = await User.create({
+    full_name: teacher.name,
+    username: teacher.name,
+    email: teacher.email,
+    phone: teacher.phone,
+    password,
+    role: 'teacher',
+    is_verified: true
+  });
+
+  return User.findById(userId);
+};
+
+const generateOtpCode = () => String(crypto.randomInt(100000, 1000000));
+
+const sanitizeRegistrationPayload = (payload) => ({
+  full_name: payload.full_name || payload.username,
+  username: payload.username || payload.full_name,
+  email: payload.email,
+  phone: payload.phone,
+  password: payload.password,
+  role: payload.role,
+  department: payload.department,
+  employeeId: payload.employeeId || payload.employee_id,
+  module_name: payload.module_name || payload.subject,
+  qualification: payload.qualification,
+  yearsExperience: payload.yearsExperience || payload.years_experience || 0,
+  availableDays: payload.availableDays || payload.available_days,
+  availableFrom: payload.availableFrom || payload.available_from,
+  availableTo: payload.availableTo || payload.available_to,
+  notes: payload.notes
+});
+
+const handleRouteError = (res, error) => {
+  if (error.code === 'EMAIL_NOT_CONFIGURED') {
+    return res.status(503).json({ message: 'Email OTP service is not configured. Contact the system administrator.' });
+  }
+
+  console.error(error);
+  return res.status(500).json({ message: 'Server error' });
 };
 
 // Create admin user (for initial setup)
 router.post('/create-admin', async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { username, full_name, email, password, phone } = req.body;
     
     if (!username || !email || !password) {
       return res.status(400).json({ message: 'Username, email, and password are required' });
@@ -29,10 +106,10 @@ router.post('/create-admin', async (req, res) => {
     }
 
     // Create admin user
-    const userId = await User.create({ username, email, password, role: 'admin' });
+    const userId = await User.create({ username, full_name: full_name || username, email, phone, password, role: 'admin', is_verified: true });
     const user = await User.findById(userId);
 
-    const token = generateToken(userId);
+    const token = generateToken(user);
 
     res.status(201).json({
       message: 'Admin user created successfully',
@@ -45,12 +122,15 @@ router.post('/create-admin', async (req, res) => {
   }
 });
 
-// Register user
+// Register user: request OTP before creating the account
 router.post('/register', [
-  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('full_name').optional().trim().isLength({ min: 3 }).withMessage('Full name must be at least 3 characters'),
+  body('username').optional().trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('phone').optional().trim(),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').optional().isIn(['admin', 'teacher', 'student'])
+  body('confirmPassword').optional().custom((value, { req }) => !value || value === req.body.password).withMessage('Passwords do not match'),
+  body('role').isIn(['admin', 'teacher']).withMessage('Role must be admin or teacher')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -58,22 +138,64 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password, role = 'student' } = req.body;
+    const { full_name, username, email, phone, password, role } = req.body;
+    const displayName = full_name || username;
+
+    if (!displayName || displayName.trim().length < 3) {
+      return res.status(400).json({ message: 'Full name must be at least 3 characters' });
+    }
 
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const userId = await User.create({ username, email, password, role });
-    const user = await User.findById(userId);
+    if (role === 'teacher') {
+      const existingTeacher = await Teacher.findByEmail(email);
+      if (existingTeacher) {
+        return res.status(400).json({ message: 'Teacher email already registered' });
+      }
+    }
 
-    const token = generateToken(userId);
+    const existingPending = pendingRegistrations.get(email);
+    if (existingPending && Date.now() - existingPending.lastSentAt < OTP_RESEND_COOLDOWN_MS) {
+      return res.status(429).json({ message: 'Please wait before requesting another OTP code.' });
+    }
 
-    res.status(201).json({
-      message: 'User created successfully',
-      token,
-      user
+    const code = generateOtpCode();
+    const codeHash = await bcrypt.hash(code, 10);
+    pendingRegistrations.set(email, {
+      codeHash,
+      expiresAt: Date.now() + OTP_EXPIRY_MS,
+      attempts: 0,
+      resendCount: existingPending ? existingPending.resendCount + 1 : 1,
+      lastSentAt: Date.now(),
+      payload: sanitizeRegistrationPayload({ ...req.body, full_name: displayName, username: displayName })
+    });
+
+    if (pendingRegistrations.get(email).resendCount > OTP_MAX_RESENDS) {
+      pendingRegistrations.delete(email);
+      return res.status(429).json({ message: 'OTP resend limit reached. Please try again later.' });
+    }
+
+    try {
+      await sendOtpEmail({
+        to: email,
+        code,
+        purpose: 'registration',
+        expiresInMinutes: OTP_EXPIRY_MS / 60000
+      });
+    } catch (emailError) {
+      pendingRegistrations.delete(email);
+      throw emailError;
+    }
+
+    res.status(202).json({
+      message: 'OTP sent. Verify your email to create the account.',
+      email,
+      role,
+      expires_in_seconds: OTP_EXPIRY_MS / 1000,
+      resend_cooldown_seconds: OTP_RESEND_COOLDOWN_MS / 1000
     });
   } catch (error) {
     console.error(error);
@@ -81,7 +203,7 @@ router.post('/register', [
   }
 });
 
-// Login user
+// Unified login for Admin and Teacher
 router.post('/login', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').notEmpty().withMessage('Password is required')
@@ -94,32 +216,57 @@ router.post('/login', [
 
     const { email, password } = req.body;
 
-    const user = await User.findByEmail(email);
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    let user = await User.findByEmail(email);
+    let teacher = null;
+
+    if (user) {
+      const isMatch = await User.comparePassword(password, user.password_hash || user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      if (user.role === 'teacher') {
+        teacher = await Teacher.findByEmail(email);
+      }
+    } else {
+      teacher = await Teacher.findByEmail(email);
+      if (!teacher) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      const isTeacherPassword = await Teacher.comparePassword(password, teacher.password);
+      if (!isTeacherPassword) {
+        return res.status(401).json({ message: 'Invalid email or password' });
+      }
+
+      user = await syncTeacherUser(teacher, password);
     }
 
-    const isMatch = await User.comparePassword(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+    if (!['admin', 'teacher'].includes(user.role)) {
+      return res.status(403).json({ message: 'Unsupported account role' });
     }
 
-    if (user.role !== 'admin') {
-      return res.status(403).json({ message: 'Admin access required' });
+    if (user.role === 'teacher') {
+      if (!teacher) teacher = await Teacher.findByEmail(email);
+      if (teacher?.status === 'pending') {
+        return res.status(403).json({ message: 'Your account is pending approval by an administrator' });
+      }
+      if (teacher?.status === 'inactive') {
+        return res.status(403).json({ message: 'Your account is inactive' });
+      }
     }
 
-    const token = generateToken(user.id);
+    await User.touchLastLogin(user.id);
+
+    const token = generateToken({ ...user, teacher_id: teacher?.teacher_id });
 
     res.json({
       message: 'Login successful',
       token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        profile_photo: user.profile_photo || null
-      }
+      user: publicUser(user, teacher),
+      teacher: user.role === 'teacher' ? publicUser(user, teacher) : undefined,
+      role: user.role,
+      redirectTo: user.role === 'admin' ? '/dashboard' : '/teacher/dashboard'
     });
   } catch (error) {
     console.error(error);
@@ -129,14 +276,250 @@ router.post('/login', [
 
 // Get current user
 router.get('/me', auth, async (req, res) => {
+  if (req.user?.role === 'teacher' || req.user?.type === 'teacher') {
+    const teacher = req.user.teacherId ? await Teacher.findById(req.user.teacherId) : await Teacher.findByEmail(req.user.email);
+    const identity = await User.findByEmail(req.user.email);
+    return res.json({ user: publicUser(identity || req.user, teacher), teacher: publicUser(identity || req.user, teacher) });
+  }
+
   res.json({
-    user: req.user
+    user: publicUser(req.user)
   });
 });
 
-router.put('/me', auth, [
-  body('username').trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+    let user = await User.findByEmail(email);
+    if (!user) {
+      const teacher = await Teacher.findByEmail(email);
+      if (teacher) {
+        user = await syncTeacherUser(teacher, crypto.randomBytes(18).toString('hex'));
+      }
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: 'No account found for this email address' });
+    }
+
+    const lastSentAt = user.reset_last_sent_at ? new Date(user.reset_last_sent_at).getTime() : 0;
+    if (lastSentAt && Date.now() - lastSentAt < OTP_RESEND_COOLDOWN_MS) {
+      return res.status(429).json({ message: 'Please wait before requesting another OTP code.' });
+    }
+
+    const currentCount = Number(user.reset_resend_count || 0);
+    if (currentCount >= 3) {
+      return res.status(429).json({ message: 'Reset code resend limit reached. Please contact administration.' });
+    }
+
+    const code = generateOtpCode();
+    const codeHash = await bcrypt.hash(code, 10);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+    await sendOtpEmail({
+      to: email,
+      code,
+      purpose: 'reset',
+      expiresInMinutes: OTP_EXPIRY_MS / 60000
+    });
+    await User.saveResetCode(user.id, codeHash, expiresAt, currentCount + 1);
+
+    res.json({
+      message: 'Reset OTP sent. It expires in 5 minutes.',
+      email,
+      expires_in_seconds: OTP_EXPIRY_MS / 1000,
+      resend_cooldown_seconds: OTP_RESEND_COOLDOWN_MS / 1000
+    });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+router.post('/verify-registration', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('code').trim().isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, code } = req.body;
+    const pending = pendingRegistrations.get(email);
+
+    if (!pending) {
+      return res.status(400).json({ message: 'No pending registration OTP found.' });
+    }
+
+    if (Date.now() > pending.expiresAt) {
+      pendingRegistrations.delete(email);
+      return res.status(400).json({ message: 'OTP expired. Please request a new code.' });
+    }
+
+    pending.attempts += 1;
+    if (pending.attempts > OTP_MAX_ATTEMPTS) {
+      pendingRegistrations.delete(email);
+      return res.status(429).json({ message: 'Too many verification attempts. Please register again.' });
+    }
+
+    const valid = await bcrypt.compare(code, pending.codeHash);
+    if (!valid) {
+      return res.status(400).json({ message: 'Invalid OTP code.' });
+    }
+
+    const data = pending.payload;
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      pendingRegistrations.delete(email);
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    let teacher = null;
+    const userId = await User.create({
+      username: data.full_name,
+      full_name: data.full_name,
+      email: data.email,
+      phone: data.phone,
+      password: data.password,
+      role: data.role,
+      is_verified: true
+    });
+
+    const user = await User.findById(userId);
+
+    if (data.role === 'teacher') {
+      const teacherId = await Teacher.create({
+        name: data.full_name,
+        email: data.email,
+        password: data.password,
+        department: data.department || 'SSOD',
+        status: 'active',
+        date_joined: new Date().toISOString().split('T')[0],
+        employee_id: data.employeeId || null,
+        phone: data.phone,
+        module_name: data.module_name || null,
+        qualification: data.qualification || null,
+        years_experience: data.yearsExperience || 0,
+        available_days: data.availableDays || null,
+        available_from: data.availableFrom || null,
+        available_to: data.availableTo || null,
+        notes: data.notes || null
+      });
+      teacher = await Teacher.findById(teacherId);
+    }
+
+    pendingRegistrations.delete(email);
+    const token = generateToken({ ...user, teacher_id: teacher?.teacher_id });
+
+    res.status(201).json({
+      message: 'OTP verified. Account created successfully.',
+      token,
+      user: publicUser(user, teacher),
+      role: data.role,
+      redirectTo: data.role === 'admin' ? '/dashboard' : '/teacher/dashboard'
+    });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+router.post('/verify-reset-code', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('code').trim().isLength({ min: 6, max: 6 }).withMessage('Reset code must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, code } = req.body;
+    const user = await User.findByEmail(email);
+
+    if (!user || !user.reset_code_hash || user.reset_code_used) {
+      return res.status(400).json({ message: 'Invalid or used reset code' });
+    }
+
+    if (!user.reset_code_expires_at || new Date(user.reset_code_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ message: 'Reset code expired' });
+    }
+
+    if (Number(user.reset_verify_attempts || 0) >= OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ message: 'Too many verification attempts. Request a new OTP.' });
+    }
+
+    const isMatch = await bcrypt.compare(code, user.reset_code_hash);
+    if (!isMatch) {
+      await User.incrementResetAttempts(user.id);
+      return res.status(400).json({ message: 'Invalid reset code' });
+    }
+
+    res.json({ message: 'OTP verified', email, reset_token: jwt.sign({ userId: user.id, purpose: 'password-reset' }, JWT_SECRET, { expiresIn: '5m' }) });
+  } catch (error) {
+    return handleRouteError(res, error);
+  }
+});
+
+router.post('/reset-password', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('code').trim().isLength({ min: 6, max: 6 }).withMessage('Reset code must be 6 digits'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('confirmPassword').optional().custom((value, { req }) => !value || value === req.body.password).withMessage('Passwords do not match')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, code, password } = req.body;
+    const user = await User.findByEmail(email);
+
+    if (!user || !user.reset_code_hash || user.reset_code_used) {
+      return res.status(400).json({ message: 'Invalid or used reset code' });
+    }
+
+    if (!user.reset_code_expires_at || new Date(user.reset_code_expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ message: 'Reset code expired' });
+    }
+
+    if (Number(user.reset_verify_attempts || 0) >= OTP_MAX_ATTEMPTS) {
+      return res.status(429).json({ message: 'Too many verification attempts. Request a new OTP.' });
+    }
+
+    const isMatch = await bcrypt.compare(code, user.reset_code_hash);
+    if (!isMatch) {
+      await User.incrementResetAttempts(user.id);
+      return res.status(400).json({ message: 'Invalid reset code' });
+    }
+
+    await User.updatePassword(user.id, password);
+    await User.markResetCodeUsed(user.id);
+
+    if (user.role === 'teacher') {
+      const teacher = await Teacher.findByEmail(email);
+      if (teacher) await Teacher.update(teacher.teacher_id, { password });
+    }
+
+    res.json({ message: 'Password reset successful. You can now sign in.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/me', auth, [
+  body('username').optional().trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
+  body('full_name').optional().trim().isLength({ min: 3 }).withMessage('Full name must be at least 3 characters'),
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('phone').optional().trim(),
   body('password')
     .optional({ checkFalsy: true })
     .isLength({ min: 6 })
@@ -156,7 +539,13 @@ router.put('/me', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, email, password, profile_photo } = req.body;
+    const { username, full_name, email, phone, password, profile_photo } = req.body;
+    const displayName = full_name || username;
+
+    if (!displayName || displayName.trim().length < 3) {
+      return res.status(400).json({ message: 'Full name must be at least 3 characters' });
+    }
+
     const existingUser = await User.findByEmailExcludingId(email, req.user.id);
 
     if (existingUser) {
@@ -164,8 +553,10 @@ router.put('/me', auth, [
     }
 
     await User.updateProfile(req.user.id, {
-      username,
+      username: displayName,
+      full_name: displayName,
       email,
+      phone,
       password,
       profile_photo
     });

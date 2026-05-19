@@ -24,23 +24,11 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        let response
-        let loginType = 'admin'
-
-        try {
-          response = await api.post('/auth/login', credentials)
-        } catch (error) {
-          // If admin login fails, try teacher login
-          if (error.response?.status === 401 || error.response?.status === 403) {
-            response = await api.post('/teacher-auth/login', credentials)
-            loginType = 'teacher'
-          } else {
-            throw error
-          }
-        }
+        const response = await api.post('/auth/login', credentials)
 
         const { token } = response.data
-        const user = loginType === 'teacher' ? response.data.teacher : response.data.user
+        const user = response.data.user
+        const loginType = user?.role || response.data.role || 'admin'
         
         this.token = token
         this.user = user
@@ -58,7 +46,7 @@ export const useAuthStore = defineStore('auth', {
           localStorage.removeItem('teacher')
         }
         
-        return { success: true, userType: loginType }
+        return { success: true, userType: loginType, redirectTo: response.data.redirectTo }
       } catch (error) {
         const message =
           error?.response?.data?.message ||
@@ -79,18 +67,36 @@ export const useAuthStore = defineStore('auth', {
       
       try {
         const response = await api.post('/auth/register', userData)
+        if (response.status === 202) {
+          return {
+            success: true,
+            requiresOtp: true,
+            email: response.data.email,
+            role: response.data.role,
+            expiresInSeconds: response.data.expires_in_seconds,
+            resendCooldownSeconds: response.data.resend_cooldown_seconds
+          }
+        }
+
         const { token, user } = response.data
+        const userType = user?.role || response.data.role || userData.role || 'teacher'
         
         this.token = token
         this.user = user
-        this.userType = 'admin'
+        this.userType = userType
         
         localStorage.setItem('token', token)
-        localStorage.setItem('userType', 'admin')
-        localStorage.setItem('user', JSON.stringify(user))
+        localStorage.setItem('userType', userType)
+        if (userType === 'teacher') {
+          localStorage.setItem('teacher', JSON.stringify(user))
+          localStorage.removeItem('user')
+        } else {
+          localStorage.setItem('user', JSON.stringify(user))
+          localStorage.removeItem('teacher')
+        }
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`
         
-        return { success: true }
+        return { success: true, userType, redirectTo: response.data.redirectTo }
       } catch (error) {
         this.error = error.response?.data?.message || 'Registration failed'
         return { success: false, error: this.error }

@@ -177,7 +177,8 @@
                     </div>
 
                     <!-- Free Period -->
-                    <div v-else class="empty-slot">
+                    <div v-else class="free-period">
+                      <span class="free-label">Free Period</span>
                       <button class="free-action" title="Request a lesson for this slot" @click="requestFreeSlot(day, row)">
                         <i class="bi bi-plus"></i>
                       </button>
@@ -330,7 +331,6 @@ import TeacherLayout from '@/components/TeacherLayout.vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
-import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -349,7 +349,7 @@ const timetableEntries = ref([])
 const loading = ref(false)
 const loadError = ref('')
 
-const days = FIXED_DAYS
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 const moduleColors = ['#3b82f6', '#14b8a6', '#f59e0b', '#8b5cf6', '#ec4899', '#22c55e', '#06b6d4', '#f97316']
 
 const currentTeacherId = computed(() => authStore.currentUser?.teacher_id || authStore.currentUser?.id || null)
@@ -397,50 +397,61 @@ const formattedWeek = computed(() => {
 })
 
 const processedTimetable = computed(() => {
-  return buildFixedTimetableRows(timetableEntries.value, days)
-    .map((row) => {
-      if (row.type === 'break') {
-        return {
+  const slots = new Map()
+  const breaks = new Map()
+
+  timetableEntries.value.forEach((entry) => {
+    const start = normalizeTime(entry.start_time)
+    const end = normalizeTime(entry.end_time)
+    if (!start || !end) return
+    const key = `${start}-${end}`
+
+    if (isBreakEntry(entry)) {
+      if (!breaks.has(key)) {
+        breaks.set(key, {
           type: 'break',
-          label: row.label,
-          breakType: getBreakTypeFromLabel(row.label),
-          time: formatTimeRange(row.start_time, row.end_time),
-          start_time: row.start_time
-        }
+          label: entry.module_name || 'Break',
+          breakType: getBreakTypeFromLabel(entry.module_name),
+          time: formatTimeRange(start, end),
+          start_time: start
+        })
       }
+      return
+    }
 
-      const lessons = {}
-      Object.entries(row.entriesByDay).forEach(([day, entry]) => {
-        const isOwnLesson = String(entry.teacher_id || '') === String(currentTeacherId.value || '')
-        const isSharedActivity = isActivityEntry(entry)
-        if (!isOwnLesson && !isSharedActivity) return
-        if (selectedDay.value && selectedDay.value !== day) return
-        if (selectedClass.value && selectedClass.value !== entry.class_name) return
-
-        const time = formatTimeRange(row.start_time, row.end_time)
-        lessons[day] = {
-          id: entry.timetable_id,
-          subject: entry.module_name || (isSharedActivity ? 'Shared Activity' : 'Lesson'),
-          class: entry.class_name || 'General',
-          room: entry.room_name || 'TBA',
-          type: isSharedActivity ? 'activity' : 'lesson',
-          color: isSharedActivity ? '#16a34a' : getSubjectColor(entry.module_name),
-          duration: time,
-          time,
-          day
-        }
-      })
-
-      return {
+    if (!slots.has(key)) {
+      slots.set(key, {
         type: 'period',
-        period: row.period,
-        time: formatTimeRange(row.start_time, row.end_time),
-        start_time: row.start_time,
-        lessons
-      }
-    })
-    .filter(row => row.type !== 'break' || showBreaks.value)
-    .filter(row => row.type === 'break' || showFreeSlots.value || Object.keys(row.lessons).length > 0)
+        time: formatTimeRange(start, end),
+        start_time: start,
+        lessons: {}
+      })
+    }
+
+    const isOwnLesson = String(entry.teacher_id || '') === String(currentTeacherId.value || '')
+    const isSharedActivity = isActivityEntry(entry)
+    if (!isOwnLesson && !isSharedActivity) return
+
+    if (selectedDay.value && selectedDay.value !== entry.day_of_week) return
+    if (selectedClass.value && selectedClass.value !== entry.class_name) return
+
+    slots.get(key).lessons[entry.day_of_week] = {
+      id: entry.timetable_id,
+      subject: entry.module_name || (isSharedActivity ? 'Shared Activity' : 'Lesson'),
+      class: entry.class_name || 'General',
+      room: entry.room_name || 'TBA',
+      type: isSharedActivity ? 'activity' : 'lesson',
+      color: isSharedActivity ? '#16a34a' : getSubjectColor(entry.module_name),
+      duration: formatTimeRange(start, end),
+      time: formatTimeRange(start, end),
+      day: entry.day_of_week
+    }
+  })
+
+  const rows = [...slots.values(), ...(showBreaks.value ? [...breaks.values()] : [])]
+    .sort((a, b) => a.start_time.localeCompare(b.start_time))
+
+  return rows.filter(row => row.type === 'break' || showFreeSlots.value || Object.keys(row.lessons).length > 0)
 })
 
 const allLessons = computed(() => {
@@ -1141,23 +1152,32 @@ onMounted(async () => {
   color: #2563eb;
 }
 
-.empty-slot {
+.free-period {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   padding: 1rem;
-  background: #ffffff;
+  background: #f5f5f5;
   border-radius: 8px;
+  border: 2px dashed #d1d5db;
   text-align: center;
   height: 100%;
   min-height: 80px;
 }
 
+.free-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
 .free-action {
-  background: transparent;
-  color: transparent;
-  border: 1px solid transparent;
+  background: #10b981;
+  color: white;
+  border: none;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -1168,15 +1188,8 @@ onMounted(async () => {
   transition: all 0.3s ease;
 }
 
-.empty-slot:hover .free-action,
-.free-action:focus-visible {
-  background: #f0fdf4;
-  color: #10b981;
-  border-color: #bbf7d0;
-}
-
 .free-action:hover {
-  background: #dcfce7;
+  background: #059669;
   transform: scale(1.1);
 }
 

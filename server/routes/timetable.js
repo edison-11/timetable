@@ -13,6 +13,7 @@ const {
   FIXED_TIMETABLE_ROWS,
   FIXED_PERIODS,
   FIXED_BREAKS,
+  buildTimetableRowsFromSettings,
   findFixedPeriod
 } = require('../services/fixedTimetableStructure');
 
@@ -282,7 +283,8 @@ router.post('/', auth, [
     }
 
     const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term, module_name } = req.body;
-    const fixedPeriod = findFixedPeriod(start_time, end_time);
+    const timetableSettings = await SystemSetting.getTimetableSettings();
+    const fixedPeriod = findFixedPeriod(start_time, end_time, timetableSettings);
 
     if (!fixedPeriod) {
       return res.status(400).json({
@@ -429,7 +431,15 @@ router.post('/generate', auth, [
       return res.status(400).json({ message: 'At least one valid day is required' });
     }
 
-    const totalRulePeriods = FIXED_PERIODS.length;
+    const timetableSettings = await SystemSetting.getTimetableSettings();
+    const activeStructure = buildTimetableRowsFromSettings({
+      ...timetableSettings,
+      start_time: req.body.start_time || '08:00',
+      period_minutes: req.body.period_minutes || 45
+    });
+    const activePeriods = activeStructure.filter((row) => row.type === 'period');
+    const activeBreaks = activeStructure.filter((row) => row.type === 'break');
+    const totalRulePeriods = activePeriods.length;
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
     const selectedClasses = allClasses
@@ -458,7 +468,7 @@ router.post('/generate', auth, [
       const scheduledCounts = new Map();
       let classCount = 0;
 
-      const breakItems = FIXED_BREAKS;
+      const breakItems = activeBreaks;
       for (const day of days) {
         for (const item of breakItems) {
           const timetableId = await TimetableEntry.create({
@@ -479,7 +489,7 @@ router.post('/generate', auth, [
       }
 
       const generationItems = days.flatMap((day) => {
-        return FIXED_PERIODS.map((item) => ({
+        return activePeriods.map((item) => ({
           type: 'lesson',
           day_of_week: day,
           start_time: item.start_time,
@@ -498,7 +508,7 @@ router.post('/generate', auth, [
             item.day_of_week,
             item.start_time,
             item.end_time,
-            0
+            timetableSettings.teacher_changeover_minutes
           );
 
           if (!teacherConflicts.length) {
@@ -576,7 +586,7 @@ router.post('/generate', auth, [
       generated,
       class_entry_counts: classEntryCounts,
       skipped,
-      structure: FIXED_TIMETABLE_ROWS
+      structure: activeStructure
     });
   } catch (error) {
     console.error(error);

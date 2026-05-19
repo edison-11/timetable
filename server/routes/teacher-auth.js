@@ -3,12 +3,37 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const Teacher = require('../models/Teacher');
+const Class = require('../models/Class');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production';
+const pendingTeacherRegistrations = new Map();
+
+const createVerificationCode = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const sanitizeRegistrationPayload = (body) => ({
+  name: body.name,
+  email: body.email,
+  password: body.password,
+  department: body.department || 'SSOD',
+  employeeId: body.employeeId,
+  phone: body.phone,
+  module_name: body.module_name,
+  qualification: body.qualification,
+  yearsExperience: body.yearsExperience,
+  availableDays: body.availableDays,
+  availableFrom: body.availableFrom,
+  availableTo: body.availableTo,
+  notes: body.notes
+});
+
+const getRegistrationResponseCode = (code) => {
+  if (process.env.NODE_ENV === 'production') return undefined;
+  return code;
+};
 
 const generateToken = (teacherId, email) => {
   return jwt.sign({ 
@@ -61,6 +86,82 @@ router.post('/register', [
       return res.status(400).json({ message: 'Email already registered' });
     }
 
+    const verificationCode = createVerificationCode();
+    pendingTeacherRegistrations.set(email, {
+      code: verificationCode,
+      expiresAt: Date.now() + (10 * 60 * 1000),
+      attempts: 0,
+      payload: sanitizeRegistrationPayload(req.body)
+    });
+
+    console.log(`Teacher registration verification code for ${email}: ${verificationCode}`);
+
+    return res.status(202).json({
+      message: 'Verification code sent. Enter the code to complete registration.',
+      requires_verification: true,
+      email,
+      verification_expires_minutes: 10,
+      dev_verification_code: getRegistrationResponseCode(verificationCode)
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.post('/verify-registration', [
+  body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
+  body('code').trim().isLength({ min: 6, max: 6 }).withMessage('Verification code must be 6 digits')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, code } = req.body;
+    const pending = pendingTeacherRegistrations.get(email);
+
+    if (!pending) {
+      return res.status(400).json({ message: 'No pending registration found for this email' });
+    }
+
+    if (Date.now() > pending.expiresAt) {
+      pendingTeacherRegistrations.delete(email);
+      return res.status(400).json({ message: 'Verification code expired. Please register again.' });
+    }
+
+    pending.attempts += 1;
+    if (pending.attempts > 5) {
+      pendingTeacherRegistrations.delete(email);
+      return res.status(429).json({ message: 'Too many incorrect verification attempts. Please register again.' });
+    }
+
+    if (String(pending.code) !== String(code).trim()) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    const existingTeacher = await Teacher.findByEmail(email);
+    if (existingTeacher) {
+      pendingTeacherRegistrations.delete(email);
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    const {
+      name,
+      password,
+      department,
+      employeeId,
+      phone,
+      module_name,
+      qualification,
+      yearsExperience,
+      availableDays,
+      availableFrom,
+      availableTo,
+      notes
+    } = pending.payload;
+
     const teacherId = await Teacher.create({
       name,
       email,
@@ -80,6 +181,7 @@ router.post('/register', [
     });
 
     const teacher = await Teacher.findById(teacherId);
+    pendingTeacherRegistrations.delete(email);
 
     await Notification.create({
       type: 'teacher_registered',
@@ -199,6 +301,31 @@ router.get('/me', auth, async (req, res) => {
         available_to: teacher.available_to || null,
         notes: teacher.notes || null
       }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/me/classes', auth, async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    if (!teacherId) {
+      return res.status(401).json({ message: 'Not a teacher account' });
+    }
+
+    const [teachingClasses, allClasses] = await Promise.all([
+      Class.getClassesByTeacher(teacherId),
+      Class.getAll()
+    ]);
+    const headTeacherClasses = allClasses.filter((classItem) => {
+      return String(classItem.class_teacher_id || '') === String(teacherId);
+    });
+
+    res.json({
+      teaching_classes: teachingClasses,
+      head_teacher_classes: headTeacherClasses
     });
   } catch (error) {
     console.error(error);

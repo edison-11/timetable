@@ -287,7 +287,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in FIXED_TIMETABLE_ROWS" :key="`${row.type}-${row.start_time}`" :class="{ 'break-row': row.type === 'break' }">
+            <tr v-for="row in activeTimetableRows" :key="`${row.type}-${row.start_time}`" :class="{ 'break-row': row.type === 'break' }">
               <td>{{ row.type === 'break' ? row.label : row.slot_number }}</td>
               <td>{{ row.start_time }}</td>
               <td>{{ row.end_time }}</td>
@@ -426,7 +426,7 @@ import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import { exportToPDF, exportToWord, exportToICal, printTimetable as printClassTimetable } from '@/utils/exportTimetable'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
-import { FIXED_DAYS, buildFixedTimetableRows, FIXED_TIMETABLE_ROWS } from '@/utils/fixedTimetableStructure'
+import { FIXED_DAYS, buildFixedTimetableRows, buildTimetableRowsFromSettings } from '@/utils/fixedTimetableStructure'
 
 const loading = ref(false)
 const classes = ref([])
@@ -439,6 +439,7 @@ const sharedActivities = ref([])
 const showAssignmentForm = ref(false)
 const activeExportDropdown = ref(null)
 const exportFormat = ref('csv')
+const timetableSettings = ref(null)
 let sharedActivityId = 0
 
 const emptyAssignment = () => ({
@@ -474,6 +475,12 @@ const generateSettings = ref({
 })
 
 const days = FIXED_DAYS
+
+const activeTimetableRows = computed(() => buildTimetableRowsFromSettings({
+  ...timetableSettings.value,
+  start_time: generateSettings.value.start_time,
+  period_minutes: generateSettings.value.period_minutes
+}))
 
 const messageTone = computed(() => {
   const text = assignmentMessage.value.toLowerCase()
@@ -708,7 +715,11 @@ const buildBreakRows = (group) => {
 }
 
 const buildTimetableGridWithBreaks = (group) => {
-  return buildFixedTimetableRows(group.entries, days)
+  return buildFixedTimetableRows(group.entries, days, {
+    ...timetableSettings.value,
+    start_time: generateSettings.value.start_time,
+    period_minutes: generateSettings.value.period_minutes
+  })
 }
 
 const escapeCsvValue = (value) => {
@@ -998,6 +1009,8 @@ const generateTimetable = async () => {
     const payload = {
       class_id: generateSettings.value.class_id,
       level: generateSettings.value.level,
+      start_time: generateSettings.value.start_time,
+      period_minutes: generateSettings.value.period_minutes,
       replace_existing: true,
       days: [...FIXED_DAYS],
       status: generateSettings.value.status
@@ -1038,8 +1051,24 @@ const loadModules = async () => {
   } catch (e) { console.error(e) }
 }
 
+const loadTimetableSettings = async () => {
+  try {
+    const res = await api.get('/settings/timetable')
+    timetableSettings.value = res.data.settings || null
+    if (timetableSettings.value) {
+      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 0)
+      generateSettings.value.break_period_rules = {
+        ...generateSettings.value.break_period_rules,
+        ...(timetableSettings.value.break_period_rules || {})
+      }
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 const loadSetupData = async () => {
-  await Promise.all([loadClasses(), loadTeachers(), loadModules()])
+  await Promise.all([loadClasses(), loadTeachers(), loadModules(), loadTimetableSettings()])
 }
 
 const loadTimetable = async () => {
