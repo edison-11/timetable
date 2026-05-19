@@ -95,7 +95,7 @@
             </div>
           </div>
 
-          <button class="icon-button" type="button" :title="isDarkMode ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
+          <button class="theme-toggle" type="button" :title="isDarkMode ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
             <span class="theme-icon" :class="{ sun: isDarkMode }"></span>
           </button>
 
@@ -271,9 +271,14 @@ const formatTime = (timestamp) => {
   return date.toLocaleDateString()
 }
 
+const applyTheme = () => {
+  document.body.classList.toggle('teacher-dark-mode', isDarkMode.value)
+  localStorage.setItem('teacherDarkMode', JSON.stringify(isDarkMode.value))
+}
+
 const toggleTheme = () => {
   isDarkMode.value = !isDarkMode.value
-  localStorage.setItem('teacherDarkMode', JSON.stringify(isDarkMode.value))
+  applyTheme()
 }
 
 const loadNotifications = async () => {
@@ -308,6 +313,7 @@ const closeMenusOnOutsideClick = (event) => {
 onMounted(async () => {
   const savedTheme = localStorage.getItem('teacherDarkMode')
   if (savedTheme) isDarkMode.value = JSON.parse(savedTheme)
+  applyTheme()
 
   await authStore.checkAuth()
   await loadNotifications()
@@ -318,6 +324,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeMenusOnOutsideClick)
   document.body.classList.remove('teacher-sidebar-open')
+  document.body.classList.remove('teacher-dark-mode')
 })
 </script>
 
@@ -570,10 +577,56 @@ onBeforeUnmount(() => {
   color: #334155;
 }
 
+.theme-toggle {
+  position: relative;
+  width: 68px;
+  height: 36px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #2563eb;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 3px;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06);
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.theme-toggle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.3;
+  transform: translateY(-50%);
+}
+
+.theme-toggle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 11px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid currentColor;
+  border-left-color: transparent;
+  border-radius: 50%;
+  opacity: 0.45;
+  transform: translateY(-50%) rotate(-22deg);
+}
+
 .menu-toggle:hover,
 .menu-toggle:focus-visible,
 .icon-button:hover,
-.icon-button:focus-visible {
+.icon-button:focus-visible,
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
   background: #eff6ff;
   border-color: #93c5fd;
   color: #2563eb;
@@ -681,15 +734,25 @@ onBeforeUnmount(() => {
 }
 
 .theme-icon {
-  width: 18px;
-  height: 18px;
+  position: relative;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  box-shadow: inset -6px -4px 0 0 currentColor;
+  background: #ffffff;
+  box-shadow:
+    inset -7px -4px 0 0 currentColor,
+    0 5px 14px rgba(37, 99, 235, 0.2);
+  transform: translateX(0);
+  transition: transform 0.24s ease, background 0.22s ease, box-shadow 0.22s ease;
 }
 
 .theme-icon.sun {
-  background: currentColor;
-  box-shadow: none;
+  background: #f8fafc;
+  box-shadow:
+    0 0 0 5px rgba(96, 165, 250, 0.12),
+    0 5px 14px rgba(0, 0, 0, 0.24);
+  transform: translateX(31px);
 }
 
 .profile-btn {
@@ -794,7 +857,9 @@ onBeforeUnmount(() => {
 }
 
 .teacher-shell.dark-mode {
-  background: #0f172a;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%);
 }
 
 .teacher-shell.dark-mode .teacher-navbar,
@@ -802,7 +867,7 @@ onBeforeUnmount(() => {
 .teacher-shell.dark-mode .profile-dropdown,
 .teacher-shell.dark-mode .notifications-dropdown {
   background: #111827;
-  border-color: #253044;
+  border-color: #243244;
 }
 
 .teacher-shell.dark-mode .brand-text strong,
@@ -818,6 +883,33 @@ onBeforeUnmount(() => {
 .teacher-shell.dark-mode .icon-button {
   background: #0f172a;
   color: #f8fafc;
+}
+
+.teacher-shell.dark-mode .theme-toggle {
+  background: linear-gradient(135deg, #020617 0%, #111827 100%);
+  border-color: #334155;
+  color: #bfdbfe;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+.teacher-shell.dark-mode .theme-toggle:hover,
+.teacher-shell.dark-mode .theme-toggle:focus-visible {
+  border-color: #60a5fa;
+  color: #bfdbfe;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.05),
+    0 8px 24px rgba(37, 99, 235, 0.24);
+}
+
+.teacher-shell.dark-mode .theme-toggle::before {
+  color: #64748b;
+}
+
+.teacher-shell.dark-mode .theme-toggle::after {
+  color: #bfdbfe;
+  opacity: 1;
 }
 
 .teacher-sidebar-backdrop {
