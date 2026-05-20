@@ -162,35 +162,35 @@
             <h3>Quick Actions</h3>
           </div>
           <div class="actions-list">
-            <router-link to="/timetable" class="action-item">
+            <router-link :to="{ path: '/timetable', query: { action: 'generate' } }" class="action-item">
               <span class="action-icon blue" v-html="icons.plus"></span>
               <div>
                 <strong>Create Timetable</strong>
                 <small>Generate new timetable</small>
               </div>
             </router-link>
-            <router-link to="/classes" class="action-item">
+            <router-link :to="{ path: '/classes', query: { action: 'add' } }" class="action-item">
               <span class="action-icon green" v-html="icons.book"></span>
               <div>
                 <strong>Add Class</strong>
                 <small>Create new class</small>
               </div>
             </router-link>
-            <router-link to="/modules" class="action-item">
+            <router-link :to="{ path: '/modules', query: { action: 'add' } }" class="action-item">
               <span class="action-icon violet" v-html="icons.bookOpen"></span>
               <div>
                 <strong>Add Subject</strong>
                 <small>Create new subject</small>
               </div>
             </router-link>
-            <router-link to="/teachers" class="action-item">
+            <router-link :to="{ path: '/teachers', query: { action: 'add' } }" class="action-item">
               <span class="action-icon amber" v-html="icons.teacher"></span>
               <div>
                 <strong>Add Teacher</strong>
                 <small>Register new teacher</small>
               </div>
             </router-link>
-            <router-link to="/rooms" class="action-item">
+            <router-link :to="{ path: '/rooms', query: { action: 'add' } }" class="action-item">
               <span class="action-icon rose" v-html="icons.room"></span>
               <div>
                 <strong>Add Room</strong>

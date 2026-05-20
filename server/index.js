@@ -28,6 +28,7 @@ const absenceRoutes = require('./routes/absence');
 const substitutionRoutes = require('./routes/substitution');
 const studentRoutes = require('./routes/students');
 const dashboardRoutes = require('./routes/dashboard');
+const { adminAuth } = require('./middleware/adminAuth');
 
 const app = express();
 
@@ -63,14 +64,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/teacher-auth', teacherAuthRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/dos', dosRoutes);
-app.use('/api/teachers', teacherRoutes);
-app.use('/api/modules', moduleRoutes);
-app.use('/api/sections', sectionRoutes);
-app.use('/api/classes', classRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/shifts', shiftRoutes);
+app.use('/api/teachers', adminAuth, teacherRoutes);
+app.use('/api/modules', adminAuth, moduleRoutes);
+app.use('/api/sections', adminAuth, sectionRoutes);
+app.use('/api/classes', adminAuth, classRoutes);
+app.use('/api/rooms', adminAuth, roomRoutes);
+app.use('/api/shifts', adminAuth, shiftRoutes);
 app.use('/api/breaks', breakRoutes);
-app.use('/api/assignments', assignmentRoutes);
+app.use('/api/assignments', adminAuth, assignmentRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/pending', pendingRoutes);
@@ -79,7 +80,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/absence', absenceRoutes);
 app.use('/api/substitution', substitutionRoutes);
 app.use('/api/students', studentRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/dashboard', adminAuth, dashboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -7,6 +7,7 @@ const Room = require('../models/Room');
 const SystemSetting = require('../models/SystemSetting');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { adminAuth } = require('../middleware/adminAuth');
 const conflictDetectionService = require('../services/conflictDetection');
 const {
   FIXED_DAYS,
@@ -444,7 +445,7 @@ const findAvailableRoomId = async (dayOfWeek, startTime, endTime) => {
 };
 
 // Create timetable entry
-router.post('/', auth, [
+router.post('/', adminAuth, [
   body('class_id').isInt().withMessage('Valid class ID is required'),
   body('assignment_id').optional().isInt(),
   body('day_of_week').isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).withMessage('Invalid day of week'),
@@ -525,7 +526,7 @@ router.post('/', auth, [
 });
 
 // Generate timetable entries per class. Classes with the same level remain separate by class_id.
-router.post('/generate', auth, [
+router.post('/generate', adminAuth, [
   body('class_id').optional({ nullable: true, checkFalsy: true }).isInt(),
   body('level').optional({ nullable: true, checkFalsy: true }).trim().notEmpty(),
   body('days').optional().isArray(),
@@ -915,7 +916,7 @@ router.post('/generate', auth, [
 });
 
 // Get all timetable entries
-router.get('/', auth, async (req, res) => {
+router.get('/', adminAuth, async (req, res) => {
   try {
     const timetables = await TimetableEntry.getAll();
     res.json({ timetables });
@@ -964,8 +965,30 @@ router.get('/class/:class_id/weekly', auth, async (req, res) => {
   }
 });
 
+// Get timetable by room
+router.get('/room/:room_id', adminAuth, async (req, res) => {
+  try {
+    const timetables = await TimetableEntry.getByRoom(req.params.room_id);
+    res.json({ timetables });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get timetable by day
+router.get('/day/:day_of_week', adminAuth, async (req, res) => {
+  try {
+    const timetables = await TimetableEntry.getByDay(req.params.day_of_week);
+    res.json({ timetables });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get timetable entry by ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', adminAuth, async (req, res) => {
   try {
     const timetable = await TimetableEntry.findById(req.params.id);
     if (!timetable) {
@@ -978,30 +1001,8 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Get timetable by room
-router.get('/room/:room_id', auth, async (req, res) => {
-  try {
-    const timetables = await TimetableEntry.getByRoom(req.params.room_id);
-    res.json({ timetables });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get timetable by day
-router.get('/day/:day_of_week', auth, async (req, res) => {
-  try {
-    const timetables = await TimetableEntry.getByDay(req.params.day_of_week);
-    res.json({ timetables });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Update timetable entry
-router.put('/:id', auth, [
+router.put('/:id', adminAuth, [
   body('class_id').optional().isInt(),
   body('assignment_id').optional().isInt(),
   body('day_of_week').optional().isIn(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
@@ -1106,7 +1107,7 @@ router.put('/:id', auth, [
 });
 
 // Delete timetable entry
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', adminAuth, async (req, res) => {
   try {
     const timetable = await TimetableEntry.findById(req.params.id);
     if (!timetable) {

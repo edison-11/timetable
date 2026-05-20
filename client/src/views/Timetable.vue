@@ -76,7 +76,7 @@
             <div>
               <div class="field-label-row">
                 <label class="form-label">Teacher</label>
-                <router-link to="/teachers" class="field-link">Add teacher</router-link>
+                <router-link :to="{ path: '/teachers', query: { action: 'add' } }" class="field-link">Add teacher</router-link>
               </div>
               <select v-model="assignment.teacher_id" class="form-select">
                 <option value="">Select Teacher</option>
@@ -86,7 +86,7 @@
             <div>
               <div class="field-label-row">
                 <label class="form-label">Module</label>
-                <router-link to="/modules" class="field-link">Add module</router-link>
+                <router-link :to="{ path: '/modules', query: { action: 'add' } }" class="field-link">Add module</router-link>
               </div>
               <select v-model="assignment.module_id" class="form-select">
                 <option value="">Select Module</option>
@@ -119,7 +119,7 @@
       </div>
 
       <section class="control-grid">
-        <article class="panel-card">
+        <article ref="generationPanel" class="panel-card">
           <div class="panel-heading">
             <span class="panel-icon generate-icon">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 14-5M20 11a8 8 0 0 1-14 5M18 3v5h-5M6 21v-5h5"/></svg>
@@ -425,18 +425,21 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import { exportToPDF, exportToICal } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
+const route = useRoute()
 const loading = ref(false)
 const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
 const timetableEntries = ref([])
 const assignmentMessage = ref('')
+const generationPanel = ref(null)
 const selectedTimetableClassId = ref('')
 const showAssignmentForm = ref(false)
 const showGenerationRules = ref(false)
@@ -1157,6 +1160,13 @@ const loadTimetable = async () => {
 onMounted(async () => {
   await loadSetupData()
   await loadTimetable()
+  if (route.query.action === 'generate') {
+    showGenerationRules.value = true
+    await nextTick()
+    generationPanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } else if (route.query.action === 'assignment') {
+    openAssignmentForm()
+  }
 })
 </script>
 

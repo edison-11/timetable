@@ -90,9 +90,11 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 
+const route = useRoute()
 const rooms = ref([])
 const loading = ref(false)
 const saving = ref(false)
@@ -197,7 +199,10 @@ const deleteRoom = async (room) => {
   }
 }
 
-onMounted(loadRooms)
+onMounted(async () => {
+  await loadRooms()
+  if (route.query.action === 'add') openAddForm()
+})
 </script>
 
 <style scoped>

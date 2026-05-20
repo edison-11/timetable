@@ -304,11 +304,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import { Modal, Toast } from 'bootstrap'
 import AppLayout from '@/components/AppLayout.vue'
 
+const route = useRoute()
 const teachers = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -446,6 +448,13 @@ const handleAddTeacher = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const openAddModal = () => {
+  errors.value = {}
+  showNewTeacherPassword.value = false
+  const modal = document.getElementById('addTeacherModal')
+  Modal.getOrCreateInstance(modal).show()
 }
 
 const showSuccessMessage = (message) => {
@@ -636,8 +645,12 @@ const loadTeachers = async () => {
   }
 }
 
-onMounted(() => {
-  loadTeachers()
+onMounted(async () => {
+  await loadTeachers()
+  if (route.query.action === 'add') {
+    await nextTick()
+    openAddModal()
+  }
 })
 </script>
 

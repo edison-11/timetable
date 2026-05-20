@@ -174,7 +174,7 @@ const router = createRouter({
 })
 
 // Navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const token = localStorage.getItem('token')
   const userType = localStorage.getItem('userType')
@@ -184,6 +184,12 @@ router.beforeEach((to, from, next) => {
   const isTeacher = userType === 'teacher'
   const isStudent = userType === 'student'
   const isAdmin = userType === 'admin'
+
+  const roleHome = () => {
+    if (userType === 'teacher') return '/teacher/dashboard'
+    if (userType === 'student') return '/student/dashboard'
+    return '/login'
+  }
 
   if (to.path === '/login' && isAuthenticated && isTeacher) {
     authStore.logout()
@@ -197,11 +203,22 @@ router.beforeEach((to, from, next) => {
     return
   }
   
-  if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
+  if (to.meta.requiresAdminAuth) {
+    if (!isAuthenticated || !isAdmin) {
+      next(roleHome())
+      return
+    }
+
+    const isStillAdmin = await authStore.checkAuth()
+    if (!isStillAdmin || authStore.currentUserType !== 'admin') {
+      next(roleHome())
+      return
+    }
+
+    next()
+  } else if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
     next('/login')
   } else if (to.meta.requiresStudentAuth && (!isAuthenticated || !isStudent)) {
-    next('/login')
-  } else if (to.meta.requiresAdminAuth && (!isAuthenticated || !isAdmin)) {
     next('/login')
   } else if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')

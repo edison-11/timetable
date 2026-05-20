@@ -163,9 +163,11 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 
+const route = useRoute()
 const classesList = ref([])
 const teachers = ref([])
 const sections = ref([])
@@ -350,6 +352,7 @@ const formatTime = (value) => String(value || '').slice(0, 5)
 
 onMounted(async () => {
   await Promise.all([loadClasses(), loadOptions()])
+  if (route.query.action === 'add') openAddForm()
 })
 </script>
 

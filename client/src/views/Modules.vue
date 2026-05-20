@@ -285,11 +285,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 
+const route = useRoute()
 const modules = ref([])
 const searchQuery = ref('')
 const selectedDepartment = ref('')
@@ -596,8 +598,12 @@ const loadModules = async () => {
   }
 }
 
-onMounted(() => {
-  loadModules()
+onMounted(async () => {
+  await loadModules()
+  if (route.query.action === 'add') {
+    await nextTick()
+    openAddModal()
+  }
 })
 </script>
 
