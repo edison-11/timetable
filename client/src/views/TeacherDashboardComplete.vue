@@ -17,6 +17,25 @@
         </div>
       </section>
 
+      <section class="teaching-strip">
+        <div class="teaching-item">
+          <span>Head teacher</span>
+          <strong>{{ compactList(headTeacherClassNames) }}</strong>
+        </div>
+        <div class="teaching-item">
+          <span>Teaching classes</span>
+          <strong>{{ compactList(teachingClassNames) }}</strong>
+        </div>
+        <div class="teaching-item">
+          <span>Modules</span>
+          <strong>{{ compactList(moduleNames) }}</strong>
+        </div>
+        <div class="teaching-item">
+          <span>Experience</span>
+          <strong>{{ experienceLabel }}</strong>
+        </div>
+      </section>
+
       <!-- Quick Stats -->
       <section class="stats-grid">
         <div class="stat-card today-classes">
@@ -287,6 +306,8 @@ const upcomingClasses = ref([])
 const recentRequests = ref([])
 const announcements = ref([])
 const timetableEntries = ref([])
+const teachingClasses = ref([])
+const headTeacherClasses = ref([])
 
 const teacher = computed(() => {
   if (authStore.currentUserType === 'teacher' && authStore.currentUser) {
@@ -304,6 +325,32 @@ const teacher = computed(() => {
 })
 
 const currentTeacherId = computed(() => teacher.value?.teacher_id || teacher.value?.id || null)
+
+const teachingClassNames = computed(() => {
+  return teachingClasses.value
+    .map((classItem) => classItem.class_name)
+    .filter(Boolean)
+})
+
+const headTeacherClassNames = computed(() => {
+  return headTeacherClasses.value
+    .map((classItem) => classItem.class_name)
+    .filter(Boolean)
+})
+
+const moduleNames = computed(() => {
+  const modules = timetableEntries.value
+    .filter(isTeacherLesson)
+    .map((entry) => entry.module_name)
+    .filter(Boolean)
+  return [...new Set(modules)].sort((a, b) => a.localeCompare(b))
+})
+
+const experienceLabel = computed(() => {
+  const years = Number(teacher.value?.years_experience || teacher.value?.experience || 0)
+  if (!years) return 'Not set'
+  return `${years} ${years === 1 ? 'year' : 'years'}`
+})
 
 const formattedDate = computed(() => {
   const today = new Date()
@@ -353,6 +400,16 @@ const formatTimeRange = (start, end) => `${normalizeTime(start)} - ${normalizeTi
 const isBreakEntry = (entry) => entry?.entry_type === 'break' || String(entry?.module_name || '').toLowerCase().includes('break')
 
 const isTeacherLesson = (entry) => String(entry.teacher_id || '') === String(currentTeacherId.value || '') && !isBreakEntry(entry)
+
+const compactList = (items) => {
+  const values = Array.isArray(items)
+    ? items.filter(Boolean)
+    : String(items || '').split(',').map((item) => item.trim()).filter(Boolean)
+
+  if (!values.length) return 'None'
+  if (values.length <= 2) return values.join(', ')
+  return `${values.slice(0, 2).join(', ')} +${values.length - 2}`
+}
 
 const getNextDateForDay = (dayName) => {
   const dayIndex = schoolDays.indexOf(dayName)
@@ -509,14 +566,21 @@ const loadTeacherDashboardResources = async () => {
     freePeriods.value = 0
     freePeriodsDetail.value = []
     upcomingClasses.value = []
+    teachingClasses.value = []
+    headTeacherClasses.value = []
     pendingRequests.value = 0
     recentRequests.value = []
     announcements.value = []
     return
   }
 
-  const response = await api.get(`/timetable/teacher/${currentTeacherId.value}`)
-  timetableEntries.value = response.data.timetables || []
+  const [timetableResponse, classesResponse] = await Promise.all([
+    api.get(`/timetable/teacher/${currentTeacherId.value}`),
+    api.get('/teacher-auth/me/classes')
+  ])
+  timetableEntries.value = timetableResponse.data.timetables || []
+  teachingClasses.value = classesResponse.data.teaching_classes || []
+  headTeacherClasses.value = classesResponse.data.head_teacher_classes || []
   hydrateDashboardFromTimetable()
 }
 
@@ -529,6 +593,8 @@ onMounted(async () => {
     freePeriods.value = 0
     freePeriodsDetail.value = []
     upcomingClasses.value = []
+    teachingClasses.value = []
+    headTeacherClasses.value = []
     pendingRequests.value = 0
     recentRequests.value = []
     announcements.value = []
@@ -569,6 +635,43 @@ onMounted(async () => {
 .welcome-actions {
   display: flex;
   gap: 1rem;
+}
+
+.teaching-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.teaching-item {
+  min-width: 0;
+  padding: 0.78rem 0.9rem;
+  background: #fff;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.07);
+}
+
+.teaching-item span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.teaching-item strong {
+  display: block;
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .action-btn {
@@ -1154,6 +1257,10 @@ onMounted(async () => {
     flex-direction: column;
   }
 
+  .teaching-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .action-btn {
     width: 100%;
     justify-content: center;
@@ -1190,6 +1297,10 @@ onMounted(async () => {
   }
 
   .quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .teaching-strip {
     grid-template-columns: 1fr;
   }
 
