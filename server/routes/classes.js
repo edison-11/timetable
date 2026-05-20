@@ -206,6 +206,11 @@ router.put('/:id', auth, [
       updateData.section_id = section_id;
     }
 
+    const currentClass = await Class.findById(req.params.id);
+    if (!currentClass) {
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
     await Class.update(req.params.id, updateData);
     const updatedClass = await Class.findById(req.params.id);
 

@@ -36,119 +36,8 @@
         </div>
       </section>
 
-      <!-- Quick Stats -->
-      <section class="stats-grid">
-        <div class="stat-card today-classes">
-          <div class="stat-header">
-            <i class="bi bi-calendar-check"></i>
-            <span class="stat-label">Today's Classes</span>
-          </div>
-          <div class="stat-body">
-            <p class="stat-value">{{ todayClasses.length }}</p>
-            <small>{{ getTodayStatus }}</small>
-          </div>
-          <div class="stat-footer">
-            <span class="badge info">{{ formattedDate }}</span>
-          </div>
-        </div>
-
-        <div class="stat-card weekly-lessons">
-          <div class="stat-header">
-            <i class="bi bi-book"></i>
-            <span class="stat-label">Weekly Lessons</span>
-          </div>
-          <div class="stat-body">
-            <p class="stat-value">{{ weeklyLessons }}</p>
-            <small>Mon - Fri</small>
-          </div>
-          <div class="stat-footer">
-            <span class="badge success">{{ getWeeklyChange }}</span>
-          </div>
-        </div>
-
-        <div class="stat-card free-periods">
-          <div class="stat-header">
-            <i class="bi bi-hourglass-split"></i>
-            <span class="stat-label">Free Periods</span>
-          </div>
-          <div class="stat-body">
-            <p class="stat-value">{{ freePeriods }}</p>
-            <small>This week</small>
-          </div>
-          <div class="stat-footer">
-            <span class="badge warning">Available</span>
-          </div>
-        </div>
-
-        <div class="stat-card pending-requests">
-          <div class="stat-header">
-            <i class="bi bi-clock"></i>
-            <span class="stat-label">Pending Requests</span>
-          </div>
-          <div class="stat-body">
-            <p class="stat-value">{{ pendingRequests }}</p>
-            <small>Awaiting approval</small>
-          </div>
-          <div class="stat-footer">
-            <span class="badge danger">{{ pendingRequests > 0 ? 'Action needed' : 'All clear' }}</span>
-          </div>
-        </div>
-      </section>
-
       <!-- Main Dashboard Grid -->
       <div class="dashboard-grid">
-        <!-- Today's Schedule Section -->
-        <section class="dashboard-card large">
-          <div class="card-header">
-            <div class="header-left">
-              <h2><i class="bi bi-calendar-event"></i> Today's Schedule</h2>
-              <p class="header-date">{{ formattedDate }}</p>
-            </div>
-            <router-link to="/teacher/timetable" class="view-all-link">
-              View Weekly <i class="bi bi-arrow-right"></i>
-            </router-link>
-          </div>
-
-          <div class="card-body">
-            <div v-if="todayClasses.length === 0" class="empty-state">
-              <div class="empty-icon">
-                <i class="bi bi-calendar-check"></i>
-              </div>
-              <h3>No classes today</h3>
-              <p>Enjoy your free day! Time for planning and preparation.</p>
-            </div>
-
-            <div v-else class="schedule-list">
-              <div
-                v-for="lesson in todayClasses"
-                :key="lesson.id"
-                class="schedule-item"
-                :class="lesson.type"
-              >
-                <div class="schedule-time">
-                  <span class="time">{{ formatTime(lesson.start_time) }}</span>
-                  <span class="duration">{{ lesson.duration || '1h' }}</span>
-                </div>
-                <div class="schedule-indicator" :style="{ backgroundColor: getSubjectColor(lesson.subject) }"></div>
-                <div class="schedule-content">
-                  <h4 class="subject-name">{{ lesson.subject }}</h4>
-                  <p class="class-info">
-                    <i class="bi bi-people"></i> {{ lesson.class_name }}
-                  </p>
-                  <p class="room-info">
-                    <i class="bi bi-door-closed"></i> {{ lesson.room || 'TBD' }}
-                  </p>
-                </div>
-                <div class="schedule-actions">
-                  <button class="icon-btn" title="View details">
-                    <i class="bi bi-info-circle"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- Upcoming Classes Section -->
         <section class="dashboard-card">
           <div class="card-header">
@@ -202,60 +91,6 @@
           </div>
         </section>
 
-        <!-- Pending Requests Section -->
-        <section class="dashboard-card">
-          <div class="card-header">
-            <h2><i class="bi bi-chat-dots"></i> Requests</h2>
-            <router-link to="/teacher/requests" class="view-all-link">
-              All <i class="bi bi-arrow-right"></i>
-            </router-link>
-          </div>
-
-          <div class="card-body">
-            <div v-if="pendingRequests === 0" class="empty-text">
-              No pending requests
-            </div>
-
-            <div v-else class="requests-list">
-              <div v-for="req in recentRequests.slice(0, 4)" :key="req.id" class="request-item" :class="req.status">
-                <div class="request-status" :class="req.status">
-                  {{ req.status }}
-                </div>
-                <div class="request-details">
-                  <p class="request-type">{{ req.type }}</p>
-                  <small>{{ req.date }}</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- Announcements Section -->
-        <section class="dashboard-card">
-          <div class="card-header">
-            <h2><i class="bi bi-megaphone"></i> Announcements</h2>
-            <router-link to="/teacher/announcements" class="view-all-link">
-              All <i class="bi bi-arrow-right"></i>
-            </router-link>
-          </div>
-
-          <div class="card-body">
-            <div v-if="announcements.length === 0" class="empty-text">
-              No announcements
-            </div>
-
-            <div v-else class="announcements-list">
-              <div v-for="ann in announcements.slice(0, 3)" :key="ann.id" class="announcement-item" :class="{ unread: !ann.read }">
-                <div class="announcement-header">
-                  <strong>{{ ann.title }}</strong>
-                  <small class="announcement-date">{{ formatDateShort(ann.date) }}</small>
-                </div>
-                <p class="announcement-preview">{{ ann.message.substring(0, 80) }}...</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <!-- Quick Actions Section -->
         <section class="dashboard-card">
           <div class="card-header">
@@ -301,10 +136,7 @@ const todayClasses = ref([])
 const weeklyLessons = ref(0)
 const freePeriods = ref(0)
 const freePeriodsDetail = ref([])
-const pendingRequests = ref(0)
 const upcomingClasses = ref([])
-const recentRequests = ref([])
-const announcements = ref([])
 const timetableEntries = ref([])
 const teachingClasses = ref([])
 const headTeacherClasses = ref([])
@@ -364,16 +196,6 @@ const getGreeting = computed(() => {
   return 'Good evening'
 })
 
-const getTodayStatus = computed(() => {
-  if (todayClasses.value.length === 0) return 'No classes scheduled'
-  return `${todayClasses.value.length} class${todayClasses.value.length !== 1 ? 'es' : ''}`
-})
-
-const getWeeklyChange = computed(() => {
-  const variance = weeklyLessons.value > 20 ? 'High' : weeklyLessons.value > 10 ? 'Normal' : 'Light'
-  return `${variance} load`
-})
-
 const formatTime = (time) => {
   if (!time) return 'TBD'
   return time.substring(0, 5)
@@ -423,20 +245,6 @@ const getNextDateForDay = (dayName) => {
   const date = new Date(today)
   date.setDate(today.getDate() + offset)
   return date
-}
-
-const getSubjectColor = (subject) => {
-  const colors = {
-    'Mathematics': '#3b82f6',
-    'English': '#8b5cf6',
-    'Science': '#10b981',
-    'History': '#f59e0b',
-    'Geography': '#06b6d4',
-    'Physics': '#ec4899',
-    'Chemistry': '#14b8a6',
-    'Biology': '#22c55e'
-  }
-  return colors[subject] || '#6366f1'
 }
 
 const navigateTo = (path) => {
@@ -552,9 +360,6 @@ const hydrateDashboardFromTimetable = () => {
 
   freePeriodsDetail.value = free
   freePeriods.value = free.length
-  pendingRequests.value = 0
-  recentRequests.value = []
-  announcements.value = []
 }
 
 const loadTeacherDashboardResources = async () => {
@@ -568,9 +373,6 @@ const loadTeacherDashboardResources = async () => {
     upcomingClasses.value = []
     teachingClasses.value = []
     headTeacherClasses.value = []
-    pendingRequests.value = 0
-    recentRequests.value = []
-    announcements.value = []
     return
   }
 
@@ -595,9 +397,6 @@ onMounted(async () => {
     upcomingClasses.value = []
     teachingClasses.value = []
     headTeacherClasses.value = []
-    pendingRequests.value = 0
-    recentRequests.value = []
-    announcements.value = []
   }
 })
 </script>
@@ -709,101 +508,6 @@ onMounted(async () => {
   transform: translateY(-2px);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border-left: 5px solid #2563eb;
-}
-
-.stat-card:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
-}
-
-.stat-card.weekly-lessons {
-  border-left-color: #10b981;
-}
-
-.stat-card.free-periods {
-  border-left-color: #f59e0b;
-}
-
-.stat-card.pending-requests {
-  border-left-color: #ef4444;
-}
-
-.stat-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  color: #6b7280;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.stat-header i {
-  font-size: 1.25rem;
-}
-
-.stat-body {
-  margin-bottom: 1rem;
-}
-
-.stat-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 0.25rem;
-}
-
-.stat-card small {
-  color: #9ca3af;
-  font-size: 0.875rem;
-}
-
-.stat-footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.badge.info {
-  background: #dbeafe;
-  color: #0c4a6e;
-}
-
-.badge.success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.badge.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.badge.danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -820,10 +524,6 @@ onMounted(async () => {
 
 .dashboard-card:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-}
-
-.dashboard-card.large {
-  grid-column: 1 / -1;
 }
 
 .card-header {
@@ -847,18 +547,6 @@ onMounted(async () => {
   color: #2563eb;
 }
 
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.header-date {
-  font-size: 0.875rem;
-  color: #9ca3af;
-  margin: 0;
-}
-
 .view-all-link {
   color: #2563eb;
   text-decoration: none;
@@ -879,28 +567,6 @@ onMounted(async () => {
   padding: 1.5rem;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #9ca3af;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  color: #d1d5db;
-  margin-bottom: 1rem;
-}
-
-.empty-state h3 {
-  font-size: 1.125rem;
-  color: #6b7280;
-  margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-  font-size: 0.875rem;
-}
-
 .empty-text {
   text-align: center;
   padding: 2rem 1rem;
@@ -908,100 +574,8 @@ onMounted(async () => {
   font-size: 0.9rem;
 }
 
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.schedule-item {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  border-radius: 8px;
-  background: #f9fafb;
-  border-left: 4px solid #2563eb;
-  transition: all 0.3s ease;
-}
-
-.schedule-item:hover {
-  background: #f3f4f6;
-  border-left-color: #1e40af;
-}
-
-.schedule-time {
-  display: flex;
-  flex-direction: column;
-  min-width: 70px;
-  font-weight: 600;
-}
-
-.schedule-time .time {
-  font-size: 1.125rem;
-  color: #111827;
-}
-
-.schedule-time .duration {
-  font-size: 0.75rem;
-  color: #9ca3af;
-}
-
-.schedule-indicator {
-  width: 4px;
-  border-radius: 2px;
-  margin: 0 0.5rem;
-}
-
-.schedule-content {
-  flex: 1;
-}
-
-.subject-name {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0 0 0.5rem 0;
-  color: #111827;
-}
-
-.class-info,
-.room-info {
-  font-size: 0.875rem;
-  color: #6b7280;
-  margin: 0.25rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.schedule-actions {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.icon-btn {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.icon-btn:hover {
-  background: white;
-  color: #2563eb;
-}
-
 .upcoming-list,
-.free-periods-list,
-.requests-list,
-.announcements-list {
+.free-periods-list {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -1104,104 +678,6 @@ onMounted(async () => {
   transform: scale(1.1);
 }
 
-.request-item {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border-left: 4px solid #d1d5db;
-}
-
-.request-item.pending {
-  border-left-color: #f59e0b;
-}
-
-.request-item.approved {
-  border-left-color: #10b981;
-}
-
-.request-item.rejected {
-  border-left-color: #ef4444;
-}
-
-.request-status {
-  padding: 0.375rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: capitalize;
-  white-space: nowrap;
-}
-
-.request-status.pending {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.request-status.approved {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.request-status.rejected {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.request-details {
-  flex: 1;
-}
-
-.request-type {
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 0.25rem 0;
-}
-
-.request-details small {
-  color: #9ca3af;
-}
-
-.announcement-item {
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border-left: 3px solid #d1d5db;
-  transition: all 0.3s ease;
-}
-
-.announcement-item.unread {
-  background: #f0f9ff;
-  border-left-color: #2563eb;
-}
-
-.announcement-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-}
-
-.announcement-header strong {
-  color: #111827;
-  flex: 1;
-}
-
-.announcement-date {
-  color: #9ca3af;
-  white-space: nowrap;
-  margin-left: 0.5rem;
-}
-
-.announcement-preview {
-  color: #6b7280;
-  font-size: 0.875rem;
-  margin: 0;
-  line-height: 1.4;
-}
-
 .quick-actions {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -1270,14 +746,6 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-card.large {
-    grid-column: 1;
-  }
-
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
   .quick-actions {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1292,10 +760,6 @@ onMounted(async () => {
     font-size: 1.5rem;
   }
 
-  .stat-value {
-    font-size: 2rem;
-  }
-
   .quick-actions {
     grid-template-columns: 1fr;
   }
@@ -1304,12 +768,5 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
-  .schedule-item {
-    flex-wrap: wrap;
-  }
-
-  .schedule-content {
-    width: 100%;
-  }
 }
 </style>
