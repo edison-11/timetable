@@ -29,6 +29,9 @@
         </router-link>
       </nav>
 
+      <div class="sidebar-watch-wrapper">
+        <TeacherPeriodTimer class="sidebar-timer-widget" />
+      </div>
     </aside>
 
     <div class="teacher-main">
@@ -121,7 +124,6 @@
       </header>
 
       <main class="teacher-content">
-        <TeacherPeriodTimer />
         <slot />
       </main>
     </div>
@@ -352,6 +354,32 @@ onBeforeUnmount(() => {
   overflow-y: auto;
   overflow-x: hidden;
   transition: width 0.24s ease, transform 0.24s ease, box-shadow 0.24s ease;
+}
+
+.sidebar-watch-wrapper {
+  padding: 0 0.75rem 1rem;
+}
+
+.sidebar-watch-wrapper :deep(.period-timer) {
+  margin: 0;
+  grid-template-columns: 1fr;
+  padding: 0.9rem 0.9rem;
+}
+
+.sidebar-watch-wrapper :deep(.timer-count) {
+  text-align: left;
+}
+
+.sidebar-watch-wrapper :deep(.alert-options) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.sidebar-watch-wrapper :deep(.vibration-toggle),
+.sidebar-watch-wrapper :deep(.test-alert-button),
+.sidebar-watch-wrapper :deep(.stop-alert-button) {
+  width: 100%;
 }
 
 .sidebar-brand {
@@ -1004,6 +1032,10 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-label {
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .brand-mark {
+  display: none;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-watch-wrapper {
   display: none;
 }
 
