@@ -156,6 +156,18 @@ router.put('/timetable', auth, [
     .optional()
     .isInt({ min: 0 })
     .withMessage('Teacher changeover time must be 0 or more minutes'),
+  body('period_minutes')
+    .optional()
+    .isInt({ min: 1, max: 180 })
+    .withMessage('Period minutes must be between 1 and 180'),
+  body('start_time')
+    .optional()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .withMessage('Invalid timetable start time format (HH:MM)'),
+  body('end_time')
+    .optional()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
+    .withMessage('Invalid timetable end time format (HH:MM)'),
   body('break_start_time')
     .optional()
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)
@@ -231,10 +243,28 @@ router.put('/timetable', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    if (req.body.start_time && req.body.end_time) {
+      const toMinutes = (time) => {
+        const [hours, minutes] = String(time).split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      if (toMinutes(req.body.end_time) <= toMinutes(req.body.start_time)) {
+        return res.status(400).json({
+          message: 'Timetable end time must be after start time'
+        });
+      }
+    }
+
     const settings = await SystemSetting.updateTimetableSettings({
       teacher_changeover_minutes: req.body.teacher_changeover_minutes !== undefined
         ? Number(req.body.teacher_changeover_minutes)
         : undefined,
+      period_minutes: req.body.period_minutes !== undefined
+        ? Number(req.body.period_minutes)
+        : undefined,
+      start_time: req.body.start_time,
+      end_time: req.body.end_time,
       break_start_time: req.body.break_start_time,
       break_end_time: req.body.break_end_time,
       timetable_breaks: Array.isArray(req.body.timetable_breaks)
