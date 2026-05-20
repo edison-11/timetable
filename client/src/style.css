@@ -1198,3 +1198,602 @@ body.admin-dark-mode .alert-danger {
   background: #7f1d1d !important;
   color: #fecaca !important;
 }
+
+/* Dark mode refinement pass */
+body.admin-dark-mode {
+  --bs-body-bg: #020617;
+  --bs-body-color: #e5edf7;
+  --bs-border-color: #243244;
+  --form-border: #334155;
+  --form-border-strong: #4b5f7a;
+  --form-focus: #60a5fa;
+  --form-focus-ring: rgba(96, 165, 250, 0.2);
+  --form-bg: #0b1220;
+  --form-muted-bg: #111827;
+  --form-label: #dbeafe;
+  --form-help: #9fb1c9;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32rem),
+    linear-gradient(135deg, #020617 0%, #0f172a 58%, #111827 100%);
+}
+
+body.admin-dark-mode .main-content,
+body.admin-dark-mode .app-layout,
+body.admin-dark-mode .dashboard-layout,
+body.admin-dark-mode .dashboard-container,
+body.admin-dark-mode .dashboard-sidebar,
+body.admin-dark-mode .classes-container,
+body.admin-dark-mode .teachers-container,
+body.admin-dark-mode .settings-container,
+body.admin-dark-mode .modules-container,
+body.admin-dark-mode .rooms-container,
+body.admin-dark-mode .sections-container,
+body.admin-dark-mode .shifts-container,
+body.admin-dark-mode .assignments-container,
+body.admin-dark-mode .timetable-container,
+body.admin-dark-mode .student-portal,
+body.admin-dark-mode .teacher-portal,
+body.admin-dark-mode .teacher-dashboard,
+body.admin-dark-mode .teacher-timetable,
+body.admin-dark-mode .teacher-settings,
+body.admin-dark-mode .email-example-container {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%) !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode .card,
+body.admin-dark-mode .card-custom,
+body.admin-dark-mode .panel,
+body.admin-dark-mode .panel-card,
+body.admin-dark-mode .dashboard-card,
+body.admin-dark-mode .metric-card,
+body.admin-dark-mode .stat-card,
+body.admin-dark-mode .form-card,
+body.admin-dark-mode .section,
+body.admin-dark-mode .table-wrapper,
+body.admin-dark-mode .table-responsive,
+body.admin-dark-mode .timetable-output-card,
+body.admin-dark-mode .generation-bar,
+body.admin-dark-mode .studio-header,
+body.admin-dark-mode .assignment-modal,
+body.admin-dark-mode .modal-content,
+body.admin-dark-mode .verification-card,
+body.admin-dark-mode .example-section,
+body.admin-dark-mode .quick-action-card,
+body.admin-dark-mode .day-view-section,
+body.admin-dark-mode .compact-view-section,
+body.admin-dark-mode .lesson-card,
+body.admin-dark-mode .day-lesson-card,
+body.admin-dark-mode .compact-lesson-item,
+body.admin-dark-mode .timetable-legend,
+body.admin-dark-mode .free-period,
+body.admin-dark-mode .empty-state,
+body.admin-dark-mode .bg-white,
+body.admin-dark-mode .card-header.bg-white {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+body.admin-dark-mode .panel-header,
+body.admin-dark-mode .panel-heading,
+body.admin-dark-mode .modal-header,
+body.admin-dark-mode .modal-footer,
+body.admin-dark-mode .card-header,
+body.admin-dark-mode .timetable-header,
+body.admin-dark-mode .rules-card-header,
+body.admin-dark-mode .notifications-header,
+body.admin-dark-mode .account-header {
+  background: rgba(17, 24, 39, 0.96) !important;
+  border-color: #243244 !important;
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode h1,
+body.admin-dark-mode h2,
+body.admin-dark-mode h3,
+body.admin-dark-mode h4,
+body.admin-dark-mode h5,
+body.admin-dark-mode h6,
+body.admin-dark-mode .dashboard-title-row h1,
+body.admin-dark-mode .panel-title h3,
+body.admin-dark-mode .metric-copy strong,
+body.admin-dark-mode .room-utilization-head strong,
+body.admin-dark-mode .lesson-subject,
+body.admin-dark-mode .compact-time,
+body.admin-dark-mode .compact-details strong,
+body.admin-dark-mode .day-lesson-start,
+body.admin-dark-mode .day-lesson-content h3,
+body.admin-dark-mode .detail-item p,
+body.admin-dark-mode .module-cell strong,
+body.admin-dark-mode .class-block strong,
+body.admin-dark-mode .action-item strong,
+body.admin-dark-mode .notification strong,
+body.admin-dark-mode .form-header h2,
+body.admin-dark-mode .studio-header h1,
+body.admin-dark-mode .output-toolbar h2,
+body.admin-dark-mode .rules-card-header h2 {
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode p,
+body.admin-dark-mode small,
+body.admin-dark-mode em,
+body.admin-dark-mode .text-muted,
+body.admin-dark-mode .dashboard-title-row p,
+body.admin-dark-mode .metric-copy span,
+body.admin-dark-mode .metric-copy small,
+body.admin-dark-mode .room-utilization-head span,
+body.admin-dark-mode .workload-note,
+body.admin-dark-mode .legend em,
+body.admin-dark-mode .panel-heading p,
+body.admin-dark-mode .studio-subtitle,
+body.admin-dark-mode .generation-bar span,
+body.admin-dark-mode .timetable-header span:not(.badge),
+body.admin-dark-mode .module-cell small,
+body.admin-dark-mode .class-block small,
+body.admin-dark-mode .lesson-class,
+body.admin-dark-mode .lesson-room,
+body.admin-dark-mode .lesson-time,
+body.admin-dark-mode .compact-details small,
+body.admin-dark-mode .day-lesson-duration,
+body.admin-dark-mode .day-lesson-content p,
+body.admin-dark-mode .detail-item label,
+body.admin-dark-mode .empty-state p,
+body.admin-dark-mode .action-item small,
+body.admin-dark-mode .notification small {
+  color: #9fb1c9 !important;
+}
+
+body.admin-dark-mode .form-control,
+body.admin-dark-mode .form-select,
+body.admin-dark-mode .filter-select,
+body.admin-dark-mode .search-input,
+body.admin-dark-mode .search-bar input,
+body.admin-dark-mode .filter-input,
+body.admin-dark-mode .export-select,
+body.admin-dark-mode .class-select,
+body.admin-dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body.admin-dark-mode select,
+body.admin-dark-mode textarea {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+}
+
+body.admin-dark-mode .form-control:focus,
+body.admin-dark-mode .form-select:focus,
+body.admin-dark-mode .filter-select:focus,
+body.admin-dark-mode .search-input:focus,
+body.admin-dark-mode .search-bar input:focus,
+body.admin-dark-mode .filter-input:focus,
+body.admin-dark-mode .export-select:focus,
+body.admin-dark-mode .class-select:focus,
+body.admin-dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+body.admin-dark-mode select:focus,
+body.admin-dark-mode textarea:focus {
+  border-color: #60a5fa !important;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.18) !important;
+}
+
+body.admin-dark-mode input::placeholder,
+body.admin-dark-mode textarea::placeholder {
+  color: #64748b !important;
+}
+
+body.admin-dark-mode table,
+body.admin-dark-mode .table,
+body.admin-dark-mode .table-custom,
+body.admin-dark-mode .overview-table,
+body.admin-dark-mode .classes-table,
+body.admin-dark-mode .timetable-grid,
+body.admin-dark-mode .compact-timetable {
+  background: #0b1220 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode thead,
+body.admin-dark-mode .table-custom thead,
+body.admin-dark-mode .overview-table thead,
+body.admin-dark-mode .timetable-grid th {
+  background: #111827 !important;
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode th,
+body.admin-dark-mode td,
+body.admin-dark-mode .table-custom th,
+body.admin-dark-mode .table-custom td,
+body.admin-dark-mode .overview-table th,
+body.admin-dark-mode .overview-table td,
+body.admin-dark-mode .timetable-grid th,
+body.admin-dark-mode .timetable-grid td,
+body.admin-dark-mode .period-col,
+body.admin-dark-mode .time-col,
+body.admin-dark-mode .time-cell {
+  background-color: transparent !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode tbody tr:hover,
+body.admin-dark-mode .table-custom tbody tr:hover,
+body.admin-dark-mode .overview-table tbody tr:hover,
+body.admin-dark-mode .classes-table tr:hover {
+  background: rgba(37, 99, 235, 0.14) !important;
+}
+
+body.admin-dark-mode .class-block,
+body.admin-dark-mode .module-cell,
+body.admin-dark-mode .lesson-body,
+body.admin-dark-mode .day-lesson-card,
+body.admin-dark-mode .compact-day-time,
+body.admin-dark-mode .room-badge,
+body.admin-dark-mode .week-picker,
+body.admin-dark-mode .day-chip,
+body.admin-dark-mode .day-selector-btn,
+body.admin-dark-mode .action-item,
+body.admin-dark-mode .notification,
+body.admin-dark-mode .notification-item,
+body.admin-dark-mode .export-menu,
+body.admin-dark-mode .export-menu button {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode .class-block,
+body.admin-dark-mode .module-cell {
+  border-left-color: #60a5fa !important;
+}
+
+body.admin-dark-mode .activity-cell,
+body.admin-dark-mode .module-cell.activity-cell {
+  background: rgba(21, 128, 61, 0.18) !important;
+  border-left-color: #22c55e !important;
+}
+
+body.admin-dark-mode .empty-block,
+body.admin-dark-mode .empty-slot,
+body.admin-dark-mode .empty-row,
+body.admin-dark-mode .free-label,
+body.admin-dark-mode .empty-day {
+  color: #64748b !important;
+}
+
+body.admin-dark-mode .btn-secondary,
+body.admin-dark-mode .btn-outline-secondary,
+body.admin-dark-mode .icon-button,
+body.admin-dark-mode .day-selector-btn,
+body.admin-dark-mode .logout-btn {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #dbeafe !important;
+}
+
+body.admin-dark-mode .btn-secondary:hover,
+body.admin-dark-mode .btn-outline-secondary:hover,
+body.admin-dark-mode .icon-button:hover,
+body.admin-dark-mode .day-selector-btn:hover,
+body.admin-dark-mode .day-selector-btn.active,
+body.admin-dark-mode .action-item:hover,
+body.admin-dark-mode .export-menu button:hover {
+  background: #172554 !important;
+  border-color: #3b82f6 !important;
+  color: #bfdbfe !important;
+}
+
+body.admin-dark-mode .status-badge.active,
+body.admin-dark-mode .alert-success,
+body.admin-dark-mode .status-message.success {
+  background: rgba(21, 128, 61, 0.22) !important;
+  color: #bbf7d0 !important;
+  border-color: rgba(34, 197, 94, 0.34) !important;
+}
+
+body.admin-dark-mode .status-badge.pending,
+body.admin-dark-mode .warning-message {
+  background: rgba(180, 83, 9, 0.22) !important;
+  color: #fde68a !important;
+  border-color: rgba(245, 158, 11, 0.34) !important;
+}
+
+body.admin-dark-mode .status-badge.inactive,
+body.admin-dark-mode .alert-danger,
+body.admin-dark-mode .status-message.error,
+body.admin-dark-mode .error-message {
+  background: rgba(153, 27, 27, 0.24) !important;
+  color: #fecaca !important;
+  border-color: rgba(248, 113, 113, 0.34) !important;
+}
+
+body.admin-dark-mode .timetable-break-morning td,
+body.admin-dark-mode .period-col.morning-break,
+body.admin-dark-mode .time-col.morning-break,
+body.admin-dark-mode .break-fill.morning-break {
+  background: rgba(22, 101, 52, 0.24) !important;
+  color: #bbf7d0 !important;
+}
+
+body.admin-dark-mode .timetable-break-lunch td,
+body.admin-dark-mode .period-col.lunch-break,
+body.admin-dark-mode .time-col.lunch-break,
+body.admin-dark-mode .break-fill.lunch-break {
+  background: rgba(146, 64, 14, 0.24) !important;
+  color: #fde68a !important;
+}
+
+body.admin-dark-mode .timetable-break-evening td,
+body.admin-dark-mode .period-col.evening-break,
+body.admin-dark-mode .time-col.evening-break,
+body.admin-dark-mode .break-fill.evening-break,
+body.admin-dark-mode .timetable-break-default td {
+  background: rgba(30, 64, 175, 0.26) !important;
+  color: #bfdbfe !important;
+}
+
+/* Teacher portal dark mode */
+body.teacher-dark-mode {
+  --bs-body-bg: #020617;
+  --bs-body-color: #e5edf7;
+  --bs-border-color: #243244;
+  --form-border: #334155;
+  --form-border-strong: #4b5f7a;
+  --form-focus: #60a5fa;
+  --form-focus-ring: rgba(96, 165, 250, 0.2);
+  --form-bg: #0b1220;
+  --form-label: #dbeafe;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32rem),
+    linear-gradient(135deg, #020617 0%, #0f172a 58%, #111827 100%);
+  color: #e5edf7;
+}
+
+body.teacher-dark-mode .teacher-shell,
+body.teacher-dark-mode .teacher-content,
+body.teacher-dark-mode .dashboard-container,
+body.teacher-dark-mode .timetable-container,
+body.teacher-dark-mode .profile-container,
+body.teacher-dark-mode .requests-container,
+body.teacher-dark-mode .announcements-container,
+body.teacher-dark-mode .settings-container,
+body.teacher-dark-mode .teacher-dashboard,
+body.teacher-dark-mode .teacher-timetable,
+body.teacher-dark-mode .teacher-profile,
+body.teacher-dark-mode .teacher-settings {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%) !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-navbar,
+body.teacher-dark-mode .teacher-sidebar,
+body.teacher-dark-mode .welcome-section,
+body.teacher-dark-mode .dashboard-card,
+body.teacher-dark-mode .stat-card,
+body.teacher-dark-mode .card,
+body.teacher-dark-mode .card-header,
+body.teacher-dark-mode .card-body,
+body.teacher-dark-mode .timetable-header,
+body.teacher-dark-mode .filters-panel,
+body.teacher-dark-mode .timetable-section,
+body.teacher-dark-mode .timetable-wrapper,
+body.teacher-dark-mode .timetable-legend,
+body.teacher-dark-mode .day-view-section,
+body.teacher-dark-mode .compact-view-section,
+body.teacher-dark-mode .lesson-card,
+body.teacher-dark-mode .day-lesson-card,
+body.teacher-dark-mode .compact-lesson-item,
+body.teacher-dark-mode .profile-card,
+body.teacher-dark-mode .profile-section,
+body.teacher-dark-mode .requests-card,
+body.teacher-dark-mode .request-card,
+body.teacher-dark-mode .announcement-card,
+body.teacher-dark-mode .settings-card,
+body.teacher-dark-mode .form-section,
+body.teacher-dark-mode .empty-state,
+body.teacher-dark-mode .profile-dropdown,
+body.teacher-dark-mode .notifications-dropdown {
+  background: rgba(15, 23, 42, 0.94) !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+body.teacher-dark-mode .card-header,
+body.teacher-dark-mode .stat-header,
+body.teacher-dark-mode .dropdown-header,
+body.teacher-dark-mode .profile-dropdown-header,
+body.teacher-dark-mode .header-row,
+body.teacher-dark-mode .day-header,
+body.teacher-dark-mode .filters-header {
+  background: rgba(17, 24, 39, 0.96) !important;
+  border-color: #243244 !important;
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode h1,
+body.teacher-dark-mode h2,
+body.teacher-dark-mode h3,
+body.teacher-dark-mode h4,
+body.teacher-dark-mode h5,
+body.teacher-dark-mode h6,
+body.teacher-dark-mode .page-title,
+body.teacher-dark-mode .welcome-content h1,
+body.teacher-dark-mode .stat-value,
+body.teacher-dark-mode .stat-label,
+body.teacher-dark-mode .subject-name,
+body.teacher-dark-mode .upcoming-subject,
+body.teacher-dark-mode .request-type,
+body.teacher-dark-mode .module-cell strong,
+body.teacher-dark-mode .lesson-subject,
+body.teacher-dark-mode .compact-details strong,
+body.teacher-dark-mode .day-lesson-content h3,
+body.teacher-dark-mode .profile-dropdown-header strong,
+body.teacher-dark-mode .notification-item strong {
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode p,
+body.teacher-dark-mode small,
+body.teacher-dark-mode span,
+body.teacher-dark-mode .page-subtitle,
+body.teacher-dark-mode .welcome-content p,
+body.teacher-dark-mode .header-date,
+body.teacher-dark-mode .subtitle,
+body.teacher-dark-mode .stat-body small,
+body.teacher-dark-mode .class-info,
+body.teacher-dark-mode .room-info,
+body.teacher-dark-mode .upcoming-details small,
+body.teacher-dark-mode .period-time,
+body.teacher-dark-mode .empty-text,
+body.teacher-dark-mode .legend-item,
+body.teacher-dark-mode .module-cell small,
+body.teacher-dark-mode .lesson-class,
+body.teacher-dark-mode .lesson-room,
+body.teacher-dark-mode .compact-details small,
+body.teacher-dark-mode .profile-dropdown-header span,
+body.teacher-dark-mode .notification-item span,
+body.teacher-dark-mode .notification-item small {
+  color: #9fb1c9 !important;
+}
+
+body.teacher-dark-mode .search-container input,
+body.teacher-dark-mode .form-control,
+body.teacher-dark-mode .form-select,
+body.teacher-dark-mode .filter-input,
+body.teacher-dark-mode .export-select,
+body.teacher-dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+body.teacher-dark-mode select,
+body.teacher-dark-mode textarea {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode input::placeholder,
+body.teacher-dark-mode textarea::placeholder {
+  color: #64748b !important;
+}
+
+body.teacher-dark-mode .menu-toggle,
+body.teacher-dark-mode .icon-button,
+body.teacher-dark-mode .view-btn,
+body.teacher-dark-mode .action-btn,
+body.teacher-dark-mode .dropdown-item,
+body.teacher-dark-mode .icon-btn,
+body.teacher-dark-mode .schedule-btn,
+body.teacher-dark-mode .reset-btn,
+body.teacher-dark-mode .day-selector-btn {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #dbeafe !important;
+}
+
+body.teacher-dark-mode .menu-toggle:hover,
+body.teacher-dark-mode .icon-button:hover,
+body.teacher-dark-mode .view-btn:hover,
+body.teacher-dark-mode .view-btn.active,
+body.teacher-dark-mode .action-btn:hover,
+body.teacher-dark-mode .dropdown-item:hover,
+body.teacher-dark-mode .icon-btn:hover,
+body.teacher-dark-mode .schedule-btn:hover,
+body.teacher-dark-mode .reset-btn:hover,
+body.teacher-dark-mode .day-selector-btn:hover,
+body.teacher-dark-mode .day-selector-btn.active {
+  background: #172554 !important;
+  border-color: #3b82f6 !important;
+  color: #bfdbfe !important;
+}
+
+body.teacher-dark-mode .nav-item {
+  color: #cbd5e1 !important;
+}
+
+body.teacher-dark-mode .nav-item:hover {
+  background: #172554 !important;
+  border-color: #1d4ed8 !important;
+  color: #bfdbfe !important;
+}
+
+body.teacher-dark-mode .nav-item.active {
+  background: #1e3a8a !important;
+  border-color: #2563eb !important;
+  color: #dbeafe !important;
+}
+
+body.teacher-dark-mode table,
+body.teacher-dark-mode .timetable-grid {
+  background: #0b1220 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .timetable-grid th,
+body.teacher-dark-mode .timetable-grid td,
+body.teacher-dark-mode .period-col,
+body.teacher-dark-mode .time-col,
+body.teacher-dark-mode .lesson-cell {
+  background-color: transparent !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .timetable-grid thead th,
+body.teacher-dark-mode .header-row th {
+  background: #111827 !important;
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode .module-cell,
+body.teacher-dark-mode .schedule-item,
+body.teacher-dark-mode .upcoming-item,
+body.teacher-dark-mode .free-period-item,
+body.teacher-dark-mode .request-item,
+body.teacher-dark-mode .compact-day-time,
+body.teacher-dark-mode .room-badge,
+body.teacher-dark-mode .notification-item {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .module-cell,
+body.teacher-dark-mode .schedule-item {
+  border-left-color: #60a5fa !important;
+}
+
+body.teacher-dark-mode .module-cell.activity-cell {
+  background: rgba(21, 128, 61, 0.18) !important;
+  border-left-color: #22c55e !important;
+}
+
+body.teacher-dark-mode .break-row.morning-break td,
+body.teacher-dark-mode .period-col.morning-break,
+body.teacher-dark-mode .time-col.morning-break,
+body.teacher-dark-mode .break-fill.morning-break {
+  background: rgba(22, 101, 52, 0.24) !important;
+  color: #bbf7d0 !important;
+}
+
+body.teacher-dark-mode .break-row.lunch-break td,
+body.teacher-dark-mode .period-col.lunch-break,
+body.teacher-dark-mode .time-col.lunch-break,
+body.teacher-dark-mode .break-fill.lunch-break {
+  background: rgba(146, 64, 14, 0.24) !important;
+  color: #fde68a !important;
+}
+
+body.teacher-dark-mode .break-row.evening-break td,
+body.teacher-dark-mode .period-col.evening-break,
+body.teacher-dark-mode .time-col.evening-break,
+body.teacher-dark-mode .break-fill.evening-break {
+  background: rgba(30, 64, 175, 0.26) !important;
+  color: #bfdbfe !important;
+}
