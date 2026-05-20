@@ -1,7 +1,25 @@
 const pool = require('../config/database');
 
 class Class {
+  static schemaReady = false;
+
+  static async columnExists(columnName) {
+    const [rows] = await pool.query('SHOW COLUMNS FROM class LIKE ?', [columnName]);
+    return rows.length > 0;
+  }
+
+  static async ensureSchema() {
+    if (this.schemaReady) return;
+
+    if (!(await this.columnExists('room_id'))) {
+      await pool.query('ALTER TABLE class ADD COLUMN room_id INT NULL AFTER section_id');
+    }
+
+    this.schemaReady = true;
+  }
+
   static async create(classData) {
+    await this.ensureSchema();
     const {
       class_name,
       level,
@@ -42,6 +60,7 @@ class Class {
   }
 
   static async getAll() {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
       ORDER BY c.level, c.class_name
@@ -50,6 +69,7 @@ class Class {
   }
 
   static async findByName(class_name) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?)',
       [class_name]
@@ -58,6 +78,7 @@ class Class {
   }
 
   static async findByNameExcludingId(class_name, id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?) AND class_id <> ?',
       [class_name, id]
@@ -66,6 +87,7 @@ class Class {
   }
 
   static async findBySectionId(section_id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM class WHERE section_id = ?',
       [section_id]
@@ -74,6 +96,7 @@ class Class {
   }
 
   static async findBySectionIdExcludingId(section_id, id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM class WHERE section_id = ? AND class_id <> ?',
       [section_id, id]
@@ -82,6 +105,7 @@ class Class {
   }
 
   static async findByRoomId(room_id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM class WHERE room_id = ?',
       [room_id]
@@ -90,6 +114,7 @@ class Class {
   }
 
   static async findByRoomIdExcludingId(room_id, id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM class WHERE room_id = ? AND class_id <> ?',
       [room_id, id]
@@ -98,6 +123,7 @@ class Class {
   }
 
   static async findById(id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
       WHERE c.class_id = ?
@@ -106,6 +132,7 @@ class Class {
   }
 
   static async getByLevel(level) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
       WHERE c.level = ?
@@ -115,6 +142,7 @@ class Class {
   }
 
   static async getBySection(section_id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
       WHERE c.section_id = ?
@@ -124,6 +152,7 @@ class Class {
   }
 
   static async getByAcademicYear(academic_year) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
       WHERE c.academic_year = ?
@@ -133,6 +162,7 @@ class Class {
   }
 
   static async update(id, classData) {
+    await this.ensureSchema();
     const currentClass = await this.findById(id);
     if (!currentClass) {
       return;
@@ -156,10 +186,12 @@ class Class {
   }
 
   static async delete(id) {
+    await this.ensureSchema();
     await pool.execute('DELETE FROM class WHERE class_id = ?', [id]);
   }
 
   static async getClassesByTeacher(teacher_id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       SELECT DISTINCT c.*,
              s.shift_name,

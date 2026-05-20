@@ -151,8 +151,11 @@ const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 const loadTeacherInfo = async () => {
   try {
-    const response = await api.get('/api/teachers/' + authStore.user?.id)
-    teacher.value = response.data
+    const teacherId = authStore.user?.teacher_id || authStore.user?.id
+    if (!teacherId) return
+
+    const response = await api.get('/teachers/' + teacherId)
+    teacher.value = response.data.teacher || response.data
   } catch (error) {
     console.error('Error loading teacher info:', error)
   }
@@ -163,13 +166,13 @@ const loadSchedule = async () => {
   
   loading.value = true
   try {
-    const response = await api.get(`/api/teachers/${teacher.value.teacher_id}/schedule`, {
+    const response = await api.get(`/timetable/teacher/${teacher.value.teacher_id}`, {
       params: {
         academic_year: selectedAcademicYear.value,
         term: selectedTerm.value
       }
     })
-    schedule.value = response.data
+    schedule.value = response.data.timetables || response.data.schedule || response.data
   } catch (error) {
     console.error('Error loading schedule:', error)
   } finally {
@@ -182,7 +185,7 @@ const loadSubstitutions = async () => {
   
   loadingSubs.value = true
   try {
-    const response = await api.get('/api/substitution', {
+    const response = await api.get('/substitution', {
       params: {
         substitute_teacher_id: teacher.value.teacher_id,
         substitution_date: new Date().toISOString().split('T')[0]

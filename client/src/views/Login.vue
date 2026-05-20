@@ -8,12 +8,12 @@
       <div class="text-center mb-4 p-4 pb-3">
         <div
           class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-2 brand-login-mark"
-          style="width: 64px; height: 64px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
+          style="width: 112px; height: 112px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
         >
           <img class="brand-login-logo" :src="logoUrl" alt="School logo" />
         </div>
 
-        <h1 class="h3 fw-bold text-dark mb-1">Timetable Management System</h1>
+        <h1 class="auth-title text-dark mb-1">Timetable Management System</h1>
 
         <div class="mt-3 d-flex align-items-center justify-content-center gap-2 secure-row">
           <span class="text-muted small fw-semibold">Secure Login</span>
@@ -205,8 +205,10 @@ const handleLogin = async () => {
       const userType = result.userType || result.user?.role
       if (userType === 'teacher') {
         await router.push('/teacher/dashboard')
+      } else if (userType === 'student') {
+        await router.push('/student/dashboard')
       } else {
-        await router.push('/dashboard')
+        await router.push(result.redirectTo || '/dashboard')
       }
       return
     }
@@ -227,7 +229,15 @@ const handleLogin = async () => {
   height: 100%;
   object-fit: contain;
   display: block;
-  padding: 4px;
+  padding: 2px;
+  transform: scale(1.12);
+}
+
+.auth-title {
+  font-size: clamp(1.45rem, 3.2vw, 1.85rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0;
 }
 
 /* Password toggle alignment fix */
@@ -332,11 +342,11 @@ input.form-control:focus-visible {
 
 @media (max-width: 576px) {
   .brand-login-mark {
-    width: 58px !important;
-    height: 58px !important;
+    width: 96px !important;
+    height: 96px !important;
   }
   h1 {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
 }
 </style>

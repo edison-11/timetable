@@ -154,6 +154,17 @@ router.get('/pending', auth, async (req, res) => {
   }
 });
 
+// Get pending teachers (temporary test without auth)
+router.get('/pending-test', async (req, res) => {
+  try {
+    const pendingTeachers = await Teacher.getByStatus('pending');
+    res.json({ pendingTeachers });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get teacher by ID
 router.get('/:id', auth, async (req, res) => {
   try {
@@ -232,17 +243,6 @@ router.delete('/:id', auth, async (req, res) => {
     });
 
     res.json({ message: 'Teacher deleted successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get pending teachers (temporary test without auth)
-router.get('/pending-test', async (req, res) => {
-  try {
-    const pendingTeachers = await Teacher.getByStatus('pending');
-    res.json({ pendingTeachers });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

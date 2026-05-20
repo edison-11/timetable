@@ -46,22 +46,6 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// Get student by ID
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const student = await Student.findById(req.params.id);
-    
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
-
-    res.json(student);
-  } catch (error) {
-    console.error('Error fetching student:', error);
-    res.status(500).json({ message: 'Failed to fetch student' });
-  }
-});
-
 // Get student by user ID (for student portal)
 router.get('/user/:userId', auth, async (req, res) => {
   try {
@@ -74,6 +58,22 @@ router.get('/user/:userId', auth, async (req, res) => {
     res.json(student);
   } catch (error) {
     console.error('Error fetching student by user ID:', error);
+    res.status(500).json({ message: 'Failed to fetch student' });
+  }
+});
+
+// Get student by ID
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    res.json(student);
+  } catch (error) {
+    console.error('Error fetching student:', error);
     res.status(500).json({ message: 'Failed to fetch student' });
   }
 });

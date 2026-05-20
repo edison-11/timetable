@@ -1,7 +1,25 @@
 const pool = require('../config/database');
 
 class Section {
+  static schemaReady = false;
+
+  static async columnExists(columnName) {
+    const [rows] = await pool.query('SHOW COLUMNS FROM section LIKE ?', [columnName]);
+    return rows.length > 0;
+  }
+
+  static async ensureSchema() {
+    if (this.schemaReady) return;
+
+    if (!(await this.columnExists('room_id'))) {
+      await pool.query('ALTER TABLE section ADD COLUMN room_id INT NULL');
+    }
+
+    this.schemaReady = true;
+  }
+
   static async create(sectionData) {
+    await this.ensureSchema();
     const { section_name, level, description, room_id, class_ids } = sectionData;
     const [result] = await pool.execute(
       'INSERT INTO section (section_name, level, description, room_id) VALUES (?, ?, ?, ?)',
@@ -23,16 +41,19 @@ class Section {
   }
 
   static async getAll() {
+    await this.ensureSchema();
     const [rows] = await pool.execute('SELECT * FROM section ORDER BY level, section_name');
     return rows;
   }
 
   static async findById(id) {
+    await this.ensureSchema();
     const [rows] = await pool.execute('SELECT * FROM section WHERE section_id = ?', [id]);
     return rows[0];
   }
 
   static async getByLevel(level) {
+    await this.ensureSchema();
     const [rows] = await pool.execute(
       'SELECT * FROM section WHERE level = ? ORDER BY section_name',
       [level]
@@ -41,6 +62,7 @@ class Section {
   }
 
   static async update(id, sectionData) {
+    await this.ensureSchema();
     const { section_name, level, description, room_id, class_ids } = sectionData;
     
     // Update section fields
@@ -73,7 +95,7 @@ class Section {
     }
 
     // Update class-section links if provided
-    if (class_ids && Array.isArray(class_ids)) {
+    if (Array.isArray(class_ids)) {
       // First, remove all classes from this section
       await pool.execute('UPDATE class SET section_id = NULL WHERE section_id = ?', [id]);
       
@@ -90,10 +112,12 @@ class Section {
   }
 
   static async delete(id) {
+    await this.ensureSchema();
     await pool.execute('DELETE FROM section WHERE section_id = ?', [id]);
   }
 
   static async getSectionsWithClassCount() {
+    await this.ensureSchema();
     const [rows] = await pool.execute(`
       SELECT
         s.section_id,

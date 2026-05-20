@@ -11,8 +11,8 @@ router.post('/', auth, [
   body('section_name').trim().notEmpty().withMessage('Section name is required'),
   body('level').trim().notEmpty().withMessage('Level is required'),
   body('description').optional().trim(),
-  body('room_id').optional().isInt(),
-  body('class_ids').optional().isArray()
+  body('room_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('class_ids').optional({ nullable: true }).isArray()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -95,8 +95,8 @@ router.put('/:id', auth, [
   body('section_name').optional().trim().notEmpty(),
   body('level').optional().trim().notEmpty(),
   body('description').optional().trim(),
-  body('room_id').optional().isInt(),
-  body('class_ids').optional().isArray()
+  body('room_id').optional({ nullable: true, checkFalsy: true }).toInt().isInt(),
+  body('class_ids').optional({ nullable: true }).isArray()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

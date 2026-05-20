@@ -242,7 +242,7 @@ router.post('/login', [
       user = await syncTeacherUser(teacher, password);
     }
 
-    if (!['admin', 'teacher'].includes(user.role)) {
+    if (!['admin', 'teacher', 'student'].includes(user.role)) {
       return res.status(403).json({ message: 'Unsupported account role' });
     }
 
@@ -266,7 +266,11 @@ router.post('/login', [
       user: publicUser(user, teacher),
       teacher: user.role === 'teacher' ? publicUser(user, teacher) : undefined,
       role: user.role,
-      redirectTo: user.role === 'admin' ? '/dashboard' : '/teacher/dashboard'
+      redirectTo: user.role === 'teacher'
+        ? '/teacher/dashboard'
+        : user.role === 'student'
+          ? '/student/dashboard'
+          : '/dashboard'
     });
   } catch (error) {
     console.error(error);
@@ -400,7 +404,7 @@ router.post('/verify-registration', [
         email: data.email,
         password: data.password,
         department: data.department || 'SSOD',
-        status: 'active',
+        status: 'pending',
         date_joined: new Date().toISOString().split('T')[0],
         employee_id: data.employeeId || null,
         phone: data.phone,
@@ -413,9 +417,30 @@ router.post('/verify-registration', [
         notes: data.notes || null
       });
       teacher = await Teacher.findById(teacherId);
+
+      await Notification.create({
+        type: 'teacher_registered',
+        title: `New teacher registered: ${teacher.name}`,
+        message: `${teacher.name} is waiting for approval.`,
+        path: '/teachers',
+        tone: 'green',
+        recipient_role: 'dos'
+      });
     }
 
     pendingRegistrations.delete(email);
+
+    if (data.role === 'teacher') {
+      return res.status(201).json({
+        message: 'Teacher registered successfully. Awaiting admin approval.',
+        requiresApproval: true,
+        user: publicUser(user, teacher),
+        teacher: publicUser(user, teacher),
+        role: 'teacher',
+        redirectTo: '/login'
+      });
+    }
+
     const token = generateToken({ ...user, teacher_id: teacher?.teacher_id });
 
     res.status(201).json({
@@ -423,7 +448,7 @@ router.post('/verify-registration', [
       token,
       user: publicUser(user, teacher),
       role: data.role,
-      redirectTo: data.role === 'admin' ? '/dashboard' : '/teacher/dashboard'
+      redirectTo: data.role === 'student' ? '/student/dashboard' : '/dashboard'
     });
   } catch (error) {
     return handleRouteError(res, error);

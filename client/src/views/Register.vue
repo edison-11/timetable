@@ -8,12 +8,12 @@
       <div class="text-center mb-4 p-4 pb-3">
         <div
           class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-2 brand-login-mark"
-          style="width: 64px; height: 64px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
+          style="width: 112px; height: 112px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
         >
           <img class="brand-login-logo" src="/timetable-logo.png" alt="School logo" />
         </div>
 
-        <h1 class="h3 fw-bold text-dark mb-1">Register Account</h1>
+        <h1 class="auth-title text-dark mb-1">Register Account</h1>
 
         <div class="mt-2 d-flex align-items-center justify-content-center gap-2 secure-row">
           <span class="secure-lock" aria-hidden="true">📝</span>
@@ -194,8 +194,8 @@
           <!-- Success Step -->
           <div v-else key="success" class="text-center py-3">
             <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
-            <h4 class="fw-bold text-success">Account Created!</h4>
-            <p class="text-muted small">Redirecting to your dashboard...</p>
+            <h4 class="fw-bold text-success">{{ successTitle }}</h4>
+            <p class="text-muted small">{{ successDetail }}</p>
           </div>
         </transition>
 
@@ -279,6 +279,8 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 const showPassword = ref(false)
+const successTitle = ref('Account Created!')
+const successDetail = ref('Redirecting to your dashboard...')
 
 const formattedCountdown = computed(() => {
   const minutes = String(Math.floor(countdown.value / 60)).padStart(2, '0')
@@ -350,7 +352,17 @@ const verifyOtp = async () => {
       email: pendingEmail.value,
       code: otpCode.value
     })
-    const { token, user, role, redirectTo } = response.data
+    const { token, user, role, redirectTo, requiresApproval } = response.data
+
+    if (requiresApproval) {
+      successTitle.value = 'Registration Sent!'
+      successDetail.value = 'Your teacher account is waiting for admin approval.'
+      success.value = response.data.message || 'Teacher registered successfully. Awaiting admin approval.'
+      step.value = 'success'
+      setTimeout(() => router.push('/login'), 1600)
+      return
+    }
+
     authStore.token = token
     authStore.user = user
     authStore.userType = role
@@ -404,7 +416,15 @@ onBeforeUnmount(() => {
   height: 100%;
   object-fit: contain;
   display: block;
-  padding: 6px;
+  padding: 2px;
+  transform: scale(1.12);
+}
+
+.auth-title {
+  font-size: clamp(1.45rem, 3.2vw, 1.8rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: 0;
 }
 
 /* Password toggle alignment fix */
@@ -566,11 +586,11 @@ select.form-control:focus-visible {
 
 @media (max-width: 576px) {
   .brand-login-mark {
-    width: 58px !important;
-    height: 58px !important;
+    width: 96px !important;
+    height: 96px !important;
   }
   h1 {
-    font-size: 1.35rem;
+    font-size: 1.45rem;
   }
   .step-indicator {
     margin-bottom: 1rem;

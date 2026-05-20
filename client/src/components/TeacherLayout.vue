@@ -339,7 +339,7 @@ onBeforeUnmount(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 260px;
+  width: 248px;
   height: 100vh;
   background: #ffffff;
   border-right: 1px solid #dbe5f3;
@@ -355,17 +355,18 @@ onBeforeUnmount(() => {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 0.95rem;
-  padding: 1.35rem 1.1rem 1.1rem;
+  gap: 0.8rem;
+  padding: 1.1rem 0.95rem 0.95rem;
   border-bottom: 1px solid #e3ebf7;
   margin-bottom: 0.9rem;
-  min-height: 88px;
+  min-height: 94px;
 }
 
 .brand-mark {
-  flex: 0 0 58px;
-  width: 58px;
-  height: 58px;
+  flex: 0 0 78px;
+  width: 78px;
+  height: 78px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,12 +381,13 @@ onBeforeUnmount(() => {
   height: 100%;
   object-fit: contain;
   display: block;
-  padding: 6px;
+  padding: 0;
+  transform: scale(1.25);
 }
 
 .brand-text strong {
   display: block;
-  font-size: 1.02rem;
+  font-size: 0.95rem;
   color: #172033;
   font-weight: 800;
   line-height: 1.15;
@@ -394,7 +396,7 @@ onBeforeUnmount(() => {
 .brand-text span {
   display: block;
   margin-top: 0.25rem;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   color: #64748b;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -403,7 +405,7 @@ onBeforeUnmount(() => {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.75rem;
+  padding: 0 0.65rem;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -414,13 +416,13 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 46px;
-  padding: 0.72rem 0.8rem 0.72rem 1rem;
-  border-radius: 14px;
+  min-height: 40px;
+  padding: 0.58rem 0.65rem 0.58rem 0.85rem;
+  border-radius: 12px;
   color: #475569;
   text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   font-weight: 750;
   border: 1px solid transparent;
 }
@@ -535,7 +537,7 @@ onBeforeUnmount(() => {
 
 .teacher-main {
   min-height: 100vh;
-  margin-left: 260px;
+  margin-left: 248px;
   transition: margin-left 0.24s ease;
 }
 
@@ -543,15 +545,15 @@ onBeforeUnmount(() => {
   position: sticky;
   top: 0;
   z-index: 120;
-  min-height: 70px;
+  min-height: 62px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
-  padding: 0.8rem 2rem;
+  gap: 1rem;
+  padding: 0.65rem 1.45rem;
 }
 
 .navbar-left,
@@ -567,9 +569,9 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   background: #f8fafc;
   border: 1px solid #dbe5f3;
   border-radius: 10px;
@@ -852,7 +854,7 @@ onBeforeUnmount(() => {
 
 .teacher-content {
   background: #f5f9ff;
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 62px);
   padding: 0;
 }
 
@@ -972,7 +974,7 @@ onBeforeUnmount(() => {
 
 <style>
 body.teacher-sidebar-collapsed .teacher-sidebar {
-  width: 80px;
+  width: 72px;
 }
 
 .teacher-content {
@@ -980,7 +982,7 @@ body.teacher-sidebar-collapsed .teacher-sidebar {
 }
 
 body.teacher-sidebar-collapsed .teacher-main {
-  margin-left: 80px;
+  margin-left: 72px;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-brand {

@@ -47,61 +47,61 @@ const router = createRouter({
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/teachers',
       name: 'Teachers',
       component: () => import('@/views/Teachers.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/modules',
       name: 'Modules',
       component: () => import('@/views/Modules.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/classes',
       name: 'Classes',
       component: () => import('@/views/Classes.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/sections',
       name: 'Sections',
       component: () => import('@/views/Sections.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/shifts',
       name: 'Shifts',
       component: () => import('@/views/Shifts.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/rooms',
       name: 'Rooms',
       component: () => import('@/views/Rooms.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/assignments',
       name: 'Assignments',
       component: () => import('@/views/Assignments.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/timetable',
       name: 'Timetable',
       component: () => import('@/views/Timetable.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/settings',
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/teacher/register',
@@ -152,14 +152,19 @@ const router = createRouter({
     {
       path: '/student-portal',
       name: 'StudentPortal',
+      redirect: '/student/dashboard'
+    },
+    {
+      path: '/student/dashboard',
+      name: 'StudentDashboard',
       component: () => import('@/views/StudentPortal.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresStudentAuth: true }
     },
     {
       path: '/teacher-portal',
       name: 'TeacherPortal',
       component: () => import('@/views/TeacherPortal.vue'),
-      meta: { requiresAuth: true }
+      meta: { requiresAdminAuth: true }
     },
     {
       path: '/:pathMatch(.*)*',
@@ -177,6 +182,8 @@ router.beforeEach((to, from, next) => {
   // Simple authentication check
   const isAuthenticated = !!token
   const isTeacher = userType === 'teacher'
+  const isStudent = userType === 'student'
+  const isAdmin = userType === 'admin'
 
   if (to.path === '/login' && isAuthenticated && isTeacher) {
     authStore.logout()
@@ -192,11 +199,17 @@ router.beforeEach((to, from, next) => {
   
   if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
     next('/login')
+  } else if (to.meta.requiresStudentAuth && (!isAuthenticated || !isStudent)) {
+    next('/login')
+  } else if (to.meta.requiresAdminAuth && (!isAuthenticated || !isAdmin)) {
+    next('/login')
   } else if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
   } else if (to.meta.requiresGuest && isAuthenticated) {
     if (isTeacher) {
       next('/teacher/dashboard')
+    } else if (isStudent) {
+      next('/student/dashboard')
     } else {
       next('/dashboard')
     }

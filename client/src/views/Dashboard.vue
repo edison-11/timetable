@@ -527,8 +527,8 @@ onMounted(() => {
 /* Dashboard Layout */
 .dashboard-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(18rem, 20rem);
-  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 19rem);
+  gap: 1.15rem;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -759,19 +759,19 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.15rem;
   flex-wrap: wrap;
 }
 
 .dashboard-title-row h1 {
-  font-size: 1.5rem;
+  font-size: 1.28rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
 
 .dashboard-title-row p {
   color: #64748b;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 
 .week-picker {
@@ -787,24 +787,24 @@ onMounted(() => {
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.8rem;
+  margin-bottom: 1.15rem;
 }
 
 .metric-card {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
+  gap: 0.65rem;
   background: white;
-  padding: 1rem;
+  padding: 0.8rem;
   border-radius: 8px;
   border: 1px solid #dbeafe;
   box-shadow: 0 10px 28px rgba(37, 99, 235, 0.06);
 }
 
 .metric-icon {
-  width: 45px;
-  height: 45px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -812,14 +812,14 @@ onMounted(() => {
 }
 
 .metric-copy span {
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   text-transform: uppercase;
   color: #64748b;
 }
 
 .metric-copy strong {
   display: block;
-  font-size: 1.3rem;
+  font-size: 1.08rem;
 }
 
 .blue { background: #dbeafe; color: #1d4ed8; }
@@ -833,8 +833,8 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid #dbeafe;
   box-shadow: 0 10px 28px rgba(37, 99, 235, 0.06);
-  padding: 1rem;
-  margin-bottom: 1.5rem;
+  padding: 0.85rem;
+  margin-bottom: 1.1rem;
 }
 
 .panel-header {
@@ -846,7 +846,7 @@ onMounted(() => {
 }
 
 .panel-header h2 {
-  font-size: 1rem;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 
@@ -870,12 +870,12 @@ onMounted(() => {
 .overview-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
 }
 
 .overview-table th, .overview-table td {
   border: 1px solid #e2e8f0;
-  padding: 0.5rem;
+  padding: 0.4rem;
   text-align: left;
   vertical-align: middle;
 }
@@ -1063,7 +1063,7 @@ onMounted(() => {
 }
 
 .room-utilization-head strong {
-  font-size: 2rem;
+  font-size: 1.55rem;
   line-height: 1;
   color: #1d4ed8;
 }

@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', {
           localStorage.removeItem('teacher')
         }
         
-        return { success: true, userType: loginType, redirectTo: response.data.redirectTo }
+        return { success: true, userType: loginType, user, redirectTo: response.data.redirectTo }
       } catch (error) {
         const message =
           error?.response?.data?.message ||
@@ -188,14 +188,14 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.get('/auth/me')
         const user = response.data.user
 
-        if (user?.role !== 'admin') {
+        if (!['admin', 'student'].includes(user?.role)) {
           this.logout()
           return false
         }
 
         this.user = user
-        this.userType = 'admin'
-        localStorage.setItem('userType', 'admin')
+        this.userType = user.role
+        localStorage.setItem('userType', user.role)
         localStorage.setItem('user', JSON.stringify(user))
         localStorage.removeItem('teacher')
         return true

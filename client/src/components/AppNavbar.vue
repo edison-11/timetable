@@ -527,15 +527,15 @@ const logout = () => {
   position: fixed;
   top: 0;
   right: 0;
-  left: 260px;
-  height: 70px;
+  left: 248px;
+  height: 62px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
   backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
+  padding: 0 1.45rem;
   z-index: 100;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
@@ -544,9 +544,9 @@ const logout = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex: 0 0 44px;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
   background: #f8fafc;
   border: 1px solid #dbe5f3;
   border-radius: 10px;
@@ -566,8 +566,8 @@ const logout = () => {
 }
 
 .menu-toggle svg {
-  width: 24px;
-  height: 24px;
+  width: 21px;
+  height: 21px;
 }
 
 .hamburger-line {
@@ -599,7 +599,7 @@ const logout = () => {
 
 .search-bar input {
   width: 100%;
-  height: 42px;
+  height: 36px;
   padding: 0 3rem 0 1rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
@@ -634,7 +634,7 @@ const logout = () => {
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .notifications-menu {
@@ -643,8 +643,8 @@ const logout = () => {
 
 .notifications-btn {
   position: relative;
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   background: #f8fafc;
   border: 1px solid #cbd5e1;
   border-radius: 50%;
@@ -1139,7 +1139,7 @@ const logout = () => {
 
 <style>
 body.sidebar-collapsed .app-navbar {
-  left: 80px;
+  left: 72px;
 }
 
 body.admin-dark-mode .app-navbar {

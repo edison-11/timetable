@@ -34,7 +34,7 @@ const closeSidebar = () => {
 
 .main-wrapper {
   flex: 1;
-  margin-left: 260px;
+  margin-left: 248px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -62,8 +62,8 @@ const closeSidebar = () => {
 
 .main-content {
   flex: 1;
-  padding: 2rem;
-  margin-top: 70px;
+  padding: 1.45rem;
+  margin-top: 62px;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   transition: background 0.2s ease;
 }
@@ -82,6 +82,6 @@ const closeSidebar = () => {
 
 <style>
 body.sidebar-collapsed .main-wrapper {
-  margin-left: 80px;
+  margin-left: 72px;
 }
 </style>

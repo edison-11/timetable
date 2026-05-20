@@ -112,7 +112,13 @@ const days = FIXED_DAYS
 
 const loadStudentInfo = async () => {
   try {
-    const response = await api.get('/api/students/user/' + authStore.user?.id)
+    if (!authStore.user?.id) {
+      await authStore.checkAuth()
+    }
+
+    if (!authStore.user?.id) return
+
+    const response = await api.get('/students/user/' + authStore.user?.id)
     student.value = response.data
     if (student.value?.academic_year) {
       selectedAcademicYear.value = student.value.academic_year
@@ -131,7 +137,7 @@ const loadTimetable = async () => {
     if (selectedAcademicYear.value) params.academic_year = selectedAcademicYear.value
     if (selectedTerm.value) params.term = selectedTerm.value
     
-    const response = await api.get(`/api/students/${student.value.student_id}/timetable`, { params })
+    const response = await api.get(`/students/${student.value.student_id}/timetable`, { params })
     timetable.value = response.data
   } catch (error) {
     console.error('Error loading timetable:', error)
