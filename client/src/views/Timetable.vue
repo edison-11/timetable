@@ -128,60 +128,72 @@
               <h2>Generation Rules</h2>
               <p>Choose scope and period length.</p>
             </div>
+            <button class="btn-secondary panel-toggle-button" type="button" @click="showGenerationRules = !showGenerationRules">
+              {{ showGenerationRules ? 'Hide Fields' : 'Use Fields' }}
+            </button>
           </div>
 
-          <div class="form-grid">
-            <div>
-              <label class="form-label">Class Scope</label>
-              <select v-model="generateSettings.class_id" class="form-select">
-                <option value="">All Classes</option>
-                <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">{{ cls.class_name }}</option>
-              </select>
+          <template v-if="showGenerationRules">
+            <div class="form-grid">
+              <div>
+                <label class="form-label">Class Scope</label>
+                <select v-model="generateSettings.class_id" class="form-select">
+                  <option value="">All Classes</option>
+                  <option v-for="cls in classes" :key="cls.class_id" :value="cls.class_id">{{ cls.class_name }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Level</label>
+                <select v-model="generateSettings.level" class="form-select">
+                  <option value="">All Levels</option>
+                  <option v-for="level in availableLevels" :key="level" :value="level">Level {{ level }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Start Time</label>
+                <input v-model="generateSettings.start_time" type="time" class="form-control">
+              </div>
+              <div>
+                <label class="form-label">End Time</label>
+                <input v-model="generateSettings.end_time" type="time" class="form-control">
+              </div>
+              <div>
+                <label class="form-label">Period Minutes</label>
+                <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="1" max="180">
+              </div>
+              <div>
+                <label class="form-label">Slots</label>
+                <input :value="slotCountLabel" type="text" class="form-control" readonly>
+              </div>
             </div>
-            <div>
-              <label class="form-label">Level</label>
-              <select v-model="generateSettings.level" class="form-select">
-                <option value="">All Levels</option>
-                <option v-for="level in availableLevels" :key="level" :value="level">Level {{ level }}</option>
-              </select>
-            </div>
-            <div>
-              <label class="form-label">Start Time</label>
-              <input v-model="generateSettings.start_time" type="time" class="form-control" readonly>
-            </div>
-            <div>
-              <label class="form-label">End Time</label>
-              <input v-model="generateSettings.end_time" type="time" class="form-control" readonly>
-            </div>
-            <div>
-              <label class="form-label">Period Minutes</label>
-              <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="1" max="180">
-            </div>
-            <div>
-              <label class="form-label">Slots</label>
-              <input :value="slotCountLabel" type="text" class="form-control" readonly>
-            </div>
-          </div>
 
-          <div class="day-picker" aria-label="Generation days">
-            <label v-for="day in days" :key="day" class="day-chip" :class="{ active: generateSettings.selected_days.includes(day) }">
-              <input v-model="generateSettings.selected_days" :value="day" type="checkbox" disabled>
-              {{ day.slice(0, 3) }}
+            <div class="day-picker" aria-label="Generation days">
+              <label v-for="day in days" :key="day" class="day-chip" :class="{ active: generateSettings.selected_days.includes(day) }">
+                <input v-model="generateSettings.selected_days" :value="day" type="checkbox" disabled>
+                {{ day.slice(0, 3) }}
+              </label>
+            </div>
+
+            <label class="replace-toggle">
+              <input v-model="generateSettings.replace_existing" type="checkbox">
+              <span>Replace existing timetable entries when generating</span>
             </label>
-          </div>
 
-          <label class="replace-toggle">
-            <input v-model="generateSettings.replace_existing" type="checkbox">
-            <span>Replace existing timetable entries when generating</span>
-          </label>
-
-          <div class="status-control">
-            <label class="form-label">Timetable Status</label>
-            <select v-model="generateSettings.status" class="form-select">
-              <option value="draft">Draft (Not visible to students)</option>
-              <option value="published">Published (Visible to students)</option>
-            </select>
-            <small class="form-hint">Draft timetables allow you to work on next semester's schedule without affecting current student views.</small>
+            <div class="status-control">
+              <label class="form-label">Timetable Status</label>
+              <select v-model="generateSettings.status" class="form-select">
+                <option value="draft">Draft (Not visible to students)</option>
+                <option value="published">Published (Visible to students)</option>
+              </select>
+              <small class="form-hint">Draft timetables allow you to work on next semester's schedule without affecting current student views.</small>
+            </div>
+          </template>
+          <div v-else class="collapsed-panel-summary">
+            <div>
+              <strong>{{ generationSummary }}</strong>
+              <span>{{ generateSettings.start_time }} - {{ generateSettings.end_time }} · {{ generateSettings.period_minutes }} minute periods · {{ generateSettings.status }}</span>
+            </div>
+            <span class="summary-pill">{{ slotCountLabel }}</span>
           </div>
         </article>
       </section>
@@ -193,13 +205,18 @@
               <h2>Period-Based Break Rules</h2>
               <p>Break placement by teaching period count.</p>
             </div>
-            <div class="form-switch">
-              <input id="periodRulesEnabled" v-model="generateSettings.break_period_rules.enabled" type="checkbox">
-              <label for="periodRulesEnabled">{{ generateSettings.break_period_rules.enabled ? 'On' : 'Off' }}</label>
+            <div class="rules-header-actions">
+              <button class="btn-secondary panel-toggle-button" type="button" @click="showBreakRuleFields = !showBreakRuleFields">
+                {{ showBreakRuleFields ? 'Hide Fields' : 'Use Fields' }}
+              </button>
+              <div class="form-switch">
+                <input id="periodRulesEnabled" v-model="generateSettings.break_period_rules.enabled" type="checkbox">
+                <label for="periodRulesEnabled">{{ generateSettings.break_period_rules.enabled ? 'On' : 'Off' }}</label>
+              </div>
             </div>
           </div>
 
-          <fieldset :disabled="!generateSettings.break_period_rules.enabled" class="period-rules-grid">
+          <fieldset v-if="showBreakRuleFields" :disabled="!generateSettings.break_period_rules.enabled" class="period-rules-grid">
             <div>
               <label class="form-label">Before Morning Break</label>
               <input v-model.number="generateSettings.break_period_rules.periods_before_morning_break" type="number" min="1" class="form-control">
@@ -229,6 +246,17 @@
               <input v-model.number="generateSettings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
             </div>
           </fieldset>
+          <div v-else class="collapsed-panel-summary">
+            <div>
+              <strong>{{ generateSettings.break_period_rules.enabled ? 'Period rules active' : 'Period rules disabled' }}</strong>
+              <span>
+                {{ generateSettings.break_period_rules.periods_before_morning_break }} before morning ·
+                {{ generateSettings.break_period_rules.periods_before_lunch }} before lunch ·
+                {{ generateSettings.break_period_rules.periods_after_afternoon_break }} after evening
+              </span>
+            </div>
+            <span class="summary-pill">{{ slotCountLabel }}</span>
+          </div>
         </article>
 
         <article class="panel-card">
@@ -243,7 +271,7 @@
             <button class="btn-secondary" type="button" @click="addSharedActivity">Add Activity</button>
           </div>
 
-          <div v-if="!sharedActivities.length" class="shared-empty">No shared activities added.</div>
+          <div v-if="!sharedActivities.length" class="shared-empty">No shared activities added</div>
 
           <div v-for="(activity, index) in sharedActivities" :key="activity.id" class="shared-activity-row">
             <div>
@@ -411,6 +439,8 @@ const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const selectedTimetableClassId = ref('')
 const showAssignmentForm = ref(false)
+const showGenerationRules = ref(false)
+const showBreakRuleFields = ref(false)
 const activeExportDropdown = ref(null)
 const exportFormat = ref('pdf')
 const timetableSettings = ref(null)
@@ -481,6 +511,12 @@ const slotCountLabel = computed(() => {
 
   return `${totalSlots || 0} slot${totalSlots === 1 ? '' : 's'}`
 })
+
+const timeToMinutes = (time) => {
+  const [hours, minutes] = String(time || '').split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  return hours * 60 + minutes
+}
 
 const cleanMessage = (message) => {
   return String(message || '')
@@ -1023,6 +1059,13 @@ const addAssignment = async () => {
 const generateTimetable = async () => {
   loading.value = true
   try {
+    const startMinutes = timeToMinutes(generateSettings.value.start_time)
+    const endMinutes = timeToMinutes(generateSettings.value.end_time)
+    if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
+      assignmentMessage.value = 'Error: End time must be after start time.'
+      return
+    }
+
     const payload = {
       class_id: generateSettings.value.class_id,
       level: generateSettings.value.level,
@@ -1036,6 +1079,14 @@ const generateTimetable = async () => {
       break_period_rules: { ...generateSettings.value.break_period_rules },
       shared_activities: getSharedActivityPayload()
     }
+
+    await api.put('/settings/timetable', {
+      start_time: generateSettings.value.start_time,
+      end_time: generateSettings.value.end_time,
+      period_minutes: generateSettings.value.period_minutes,
+      teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
+      break_period_rules: { ...generateSettings.value.break_period_rules }
+    })
 
     const response = await api.post('/timetable/generate', payload)
     assignmentMessage.value = 'Timetable generated. ' + (response.data.generated_count || 0) + ' entries created.'
@@ -1077,6 +1128,9 @@ const loadTimetableSettings = async () => {
     const res = await api.get('/settings/timetable')
     timetableSettings.value = res.data.settings || null
     if (timetableSettings.value) {
+      generateSettings.value.start_time = timetableSettings.value.start_time || generateSettings.value.start_time
+      generateSettings.value.end_time = timetableSettings.value.end_time || generateSettings.value.end_time
+      generateSettings.value.period_minutes = Number(timetableSettings.value.period_minutes || generateSettings.value.period_minutes)
       generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 0)
       generateSettings.value.break_period_rules = {
         ...generateSettings.value.break_period_rules,
@@ -1353,8 +1407,8 @@ button:disabled {
 .control-grid,
 .break-rules-section {
   display: grid;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.9rem;
+  margin-bottom: 0.9rem;
 }
 
 .control-grid {
@@ -1362,19 +1416,20 @@ button:disabled {
 }
 
 .break-rules-section {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+  align-items: stretch;
 }
 
 .panel-card {
-  padding: 1rem;
+  padding: 1rem 1.1rem;
 }
 
 .panel-heading {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
   gap: 0.8rem;
-  align-items: start;
-  margin-bottom: 1rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
 }
 
 .panel-heading.compact {
@@ -1393,6 +1448,54 @@ button:disabled {
   color: #64748b;
   font-size: 0.86rem;
   line-height: 1.4;
+}
+
+.panel-toggle-button {
+  align-self: center;
+  white-space: nowrap;
+  min-height: 42px;
+  padding-inline: 0.95rem;
+}
+
+.collapsed-panel-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #dbe7f5;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f8fbff, #ffffff);
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.collapsed-panel-summary strong,
+.collapsed-panel-summary span {
+  display: block;
+}
+
+.collapsed-panel-summary strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.collapsed-panel-summary > div > span {
+  margin-top: 0.2rem;
+  color: #475569;
+}
+
+.summary-pill {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #075985;
+  font-size: 0.78rem;
+  font-weight: 900;
 }
 
 .form-grid {
@@ -1540,16 +1643,24 @@ button:disabled {
 }
 
 .break-rules-card {
-  padding: 1.35rem;
+  padding: 1rem 1.1rem;
   background: linear-gradient(180deg, #ffffff, #fbfdff);
 }
 
 .rules-card-header {
   display: flex;
-  align-items: start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.rules-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .rules-card-header h2 {
@@ -1561,7 +1672,7 @@ button:disabled {
 }
 
 .rules-card-header p {
-  margin: 0.55rem 0 0;
+  margin: 0.24rem 0 0;
   color: #475569;
   font-size: 0.86rem;
   line-height: 1.4;

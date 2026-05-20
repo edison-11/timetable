@@ -186,6 +186,15 @@ const toNonNegativeInteger = (value, fallback) => {
   return Number.isInteger(number) && number >= 0 ? number : fallback;
 };
 
+const shuffleItems = (items) => {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+};
+
 const addPeriods = (startMinutes, periodCount, periodMinutes, changeoverMinutes) => {
   const totalTeachingMinutes = periodCount * periodMinutes;
   const changeoverCount = changeoverMinutes > 0 ? Math.floor(totalTeachingMinutes / 60) : 0;
@@ -338,7 +347,13 @@ const buildWeeklyPeriodTargets = (assignments, totalPeriods) => {
   return new Map(targetItems.map((item) => [item.assignment.assignment_id, item.target]));
 };
 
-const rankAssignmentsByWeeklyTarget = (assignments, scheduledCounts, weeklyTargets, preferredTeacherId = null) => {
+const rankAssignmentsByWeeklyTarget = (
+  assignments,
+  scheduledCounts,
+  weeklyTargets,
+  preferredTeacherId = null,
+  tieBreakers = new Map()
+) => {
   const underTarget = assignments.filter((assignment) => {
     const target = weeklyTargets.get(assignment.assignment_id) || 0;
     return (scheduledCounts.get(assignment.assignment_id) || 0) < target;
@@ -362,6 +377,9 @@ const rankAssignmentsByWeeklyTarget = (assignments, scheduledCounts, weeklyTarge
     })
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
+      const aTie = tieBreakers.get(a.assignment.assignment_id) || 0;
+      const bTie = tieBreakers.get(b.assignment.assignment_id) || 0;
+      if (bTie !== aTie) return bTie - aTie;
       return String(a.assignment.module_name || '').localeCompare(String(b.assignment.module_name || ''));
     })
     .map((item) => item.assignment);
@@ -661,8 +679,8 @@ router.post('/generate', auth, [
       }
     }
 
-    for (const classItem of selectedClasses) {
-      const assignments = await Assignment.getByClass(classItem.class_id);
+    for (const classItem of shuffleItems(selectedClasses)) {
+      const assignments = shuffleItems(await Assignment.getByClass(classItem.class_id));
 
       if (!assignments.length) {
         skipped.push({
@@ -677,6 +695,9 @@ router.post('/generate', auth, [
       const weeklyTargets = buildWeeklyPeriodTargets(assignments, generationTemplate.length);
       const dayBlockState = new Map();
       const dayTeacherCounts = new Map();
+      const assignmentTieBreakers = new Map(
+        assignments.map((assignment) => [assignment.assignment_id, Math.random()])
+      );
       let classCount = 0;
 
       for (const item of breakTemplate) {
@@ -710,7 +731,8 @@ router.post('/generate', auth, [
           assignments,
           scheduledCounts,
           weeklyTargets,
-          currentBlock?.assignment?.teacher_id
+          currentBlock?.assignment?.teacher_id,
+          assignmentTieBreakers
         );
         const isAdjacentToCurrentBlock = currentBlock
           && normalizeTime(currentBlock.end_time) === normalizeTime(item.start_time);

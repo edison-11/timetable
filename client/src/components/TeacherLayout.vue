@@ -121,6 +121,7 @@
       </header>
 
       <main class="teacher-content">
+        <TeacherPeriodTimer />
         <slot />
       </main>
     </div>
@@ -132,6 +133,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import TeacherPeriodTimer from '@/components/TeacherPeriodTimer.vue'
 
 const router = useRouter()
 const route = useRoute()

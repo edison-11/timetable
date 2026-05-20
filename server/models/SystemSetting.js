@@ -56,6 +56,9 @@ class SystemSetting {
     const teacherChangeoverMinutes = Number(
       await this.get('teacher_changeover_minutes', '5')
     );
+    const periodMinutes = Number(await this.get('period_minutes', '45'));
+    const timetableStartTime = await this.get('timetable_start_time', '08:00');
+    const timetableEndTime = await this.get('timetable_end_time', '17:15');
     const breakStartTime = await this.get('break_start_time', '11:00');
     const breakEndTime = await this.get('break_end_time', '11:30');
     const timetableBreaksValue = await this.get('timetable_breaks', null);
@@ -115,6 +118,11 @@ class SystemSetting {
       teacher_changeover_minutes: Number.isFinite(teacherChangeoverMinutes)
         ? teacherChangeoverMinutes
         : 5,
+      period_minutes: Number.isFinite(periodMinutes) && periodMinutes > 0
+        ? periodMinutes
+        : 45,
+      start_time: timetableStartTime,
+      end_time: timetableEndTime,
       break_start_time: breakStartTime,
       break_end_time: breakEndTime,
       timetable_breaks: timetableBreaks,
@@ -128,6 +136,18 @@ class SystemSetting {
         'teacher_changeover_minutes',
         settings.teacher_changeover_minutes
       );
+    }
+
+    if (settings.period_minutes !== undefined) {
+      await this.set('period_minutes', settings.period_minutes);
+    }
+
+    if (settings.start_time !== undefined) {
+      await this.set('timetable_start_time', settings.start_time);
+    }
+
+    if (settings.end_time !== undefined) {
+      await this.set('timetable_end_time', settings.end_time);
     }
 
     if (settings.break_start_time !== undefined) {
