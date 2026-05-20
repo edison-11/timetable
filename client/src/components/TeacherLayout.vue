@@ -123,6 +123,15 @@
         </div>
       </header>
 
+      <div class="teacher-breadcrumbs" aria-label="Breadcrumb">
+        <router-link to="/teacher/dashboard">Dashboard</router-link>
+        <span v-for="item in breadcrumbs" :key="item.label">
+          <i class="bi bi-chevron-right" aria-hidden="true"></i>
+          <router-link v-if="item.to" :to="item.to">{{ item.label }}</router-link>
+          <span v-else>{{ item.label }}</span>
+        </span>
+      </div>
+
       <main class="teacher-content">
         <slot />
       </main>
@@ -196,6 +205,19 @@ const pageSubtitle = computed(() => {
     TeacherSettings: 'Update preferences, availability, and security.'
   }
   return subtitles[route.name] || 'Teacher workspace'
+})
+
+const breadcrumbs = computed(() => {
+  const breadcrumbMap = {
+    TeacherDashboard: [],
+    TeacherTimetable: [{ label: 'My Timetable', to: '/teacher/timetable' }],
+    TeacherProfile: [{ label: 'My Profile', to: '/teacher/profile' }],
+    TeacherRequests: [{ label: 'Change Requests', to: '/teacher/requests' }],
+    TeacherAnnouncements: [{ label: 'Announcements', to: '/teacher/announcements' }],
+    TeacherSettings: [{ label: 'Settings', to: '/teacher/settings' }]
+  }
+
+  return breadcrumbMap[route.name] || []
 })
 
 const icons = {
@@ -880,6 +902,32 @@ onBeforeUnmount(() => {
   color: #64748b;
   font-size: 0.76rem;
   overflow-wrap: anywhere;
+}
+
+.teacher-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.75rem 1.45rem 0.25rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-wrap: wrap;
+}
+
+.teacher-breadcrumbs a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.teacher-breadcrumbs a:hover {
+  text-decoration: underline;
+}
+
+.teacher-breadcrumbs span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .teacher-content {

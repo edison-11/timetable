@@ -288,11 +288,19 @@
               <h4>Admin Response</h4>
               <p>{{ selectedRequest.admin_response }}</p>
             </div>
+
+            <div v-if="selectedRequest.status === 'rejected'" class="detail-section full-width rejection-help">
+              <h4>What to do next</h4>
+              <p>Review the admin feedback, adjust the request, and resubmit with any missing details addressed.</p>
+            </div>
           </div>
 
           <div class="details-actions">
             <button v-if="selectedRequest.status === 'pending'" class="btn-danger" @click="cancelRequest(selectedRequest.id)">
               <i class="bi bi-trash"></i> Cancel Request
+            </button>
+            <button v-if="selectedRequest.status === 'rejected'" class="btn-primary" @click="resubmitRequest(selectedRequest)">
+              <i class="bi bi-arrow-repeat"></i> Resubmit
             </button>
             <button class="btn-secondary" @click="showDetailsModal = false">
               <i class="bi bi-x"></i> Close
@@ -412,6 +420,23 @@ const cancelRequest = (id) => {
 const viewRequestDetails = (request) => {
   selectedRequest.value = request
   showDetailsModal.value = true
+}
+
+const resubmitRequest = (request) => {
+  if (!request) return
+
+  newRequest.value = {
+    type: request.type || '',
+    lesson_id: request.lesson?.id || '',
+    swap_with: request.swap_with || '',
+    new_room: request.new_room || '',
+    new_time: request.new_time || '',
+    reason: `${request.reason || ''}\n\nResubmitted after review:`,
+    notes: request.notes || ''
+  }
+
+  showDetailsModal.value = false
+  showNewRequestModal.value = true
 }
 
 const loadMockData = () => {
