@@ -32,6 +32,7 @@
       <div class="sidebar-watch-wrapper">
         <TeacherPeriodTimer class="sidebar-timer-widget" />
       </div>
+
     </aside>
 
     <div class="teacher-main">
