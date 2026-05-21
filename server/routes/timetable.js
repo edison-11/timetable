@@ -244,8 +244,7 @@ const buildBreaksFromPeriodRules = ({ startTime, endTime, periodMinutes, changeo
   return calculatedBreaks;
 };
 
-const buildScheduleFromPeriodRules = ({ days, startTime, endTime, periodMinutes, rules }) => {
-  const dayEnd = timeToMinutes(endTime);
+const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeoverMinutes = 0, rules }) => {
   const scheduleByDay = new Map();
   const periodBlocks = [
     {
@@ -278,9 +277,8 @@ const buildScheduleFromPeriodRules = ({ days, startTime, endTime, periodMinutes,
     let slotNumber = 1;
 
     periodBlocks.forEach((block) => {
-      for (let index = 0; index < block.periods; index += 1) {
+      for (let index = 0; index < block.periods && slotNumber <= 10; index += 1) {
         const periodEnd = cursor + periodMinutes;
-        if (periodEnd > dayEnd) return;
 
         periods.push({
           type: 'lesson',
@@ -289,12 +287,12 @@ const buildScheduleFromPeriodRules = ({ days, startTime, endTime, periodMinutes,
           end_time: minutesToTime(periodEnd),
           slot_number: slotNumber
         });
-        cursor = periodEnd;
+        cursor = periodEnd + (index < block.periods - 1 ? changeoverMinutes : 0);
         slotNumber += 1;
       }
 
-      if (block.break_name && cursor < dayEnd) {
-        const breakEnd = Math.min(cursor + block.break_duration, dayEnd);
+      if (block.break_name && slotNumber <= 10) {
+        const breakEnd = cursor + block.break_duration;
         breaks.push({
           day_of_week: day,
           start_time: minutesToTime(cursor),
@@ -305,6 +303,19 @@ const buildScheduleFromPeriodRules = ({ days, startTime, endTime, periodMinutes,
         cursor = breakEnd;
       }
     });
+
+    while (slotNumber <= 10) {
+      const periodEnd = cursor + periodMinutes;
+      periods.push({
+        type: 'lesson',
+        day_of_week: day,
+        start_time: minutesToTime(cursor),
+        end_time: minutesToTime(periodEnd),
+        slot_number: slotNumber
+      });
+      cursor = periodEnd + changeoverMinutes;
+      slotNumber += 1;
+    }
 
     scheduleByDay.set(day, { periods, breaks });
   });
@@ -620,8 +631,8 @@ router.post('/generate', adminAuth, [
       ? buildScheduleFromPeriodRules({
         days,
         startTime: req.body.start_time || '08:00',
-        endTime: req.body.end_time || '17:15',
         periodMinutes,
+        changeoverMinutes,
         rules: breakRules
       })
       : null;
