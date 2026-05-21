@@ -116,10 +116,46 @@ class Teacher {
   }
 
   static async getAll() {
-    await this.ensureProfilePhotoColumn();
-    const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, status, date_joined, profile_photo, created_at FROM teacher ORDER BY created_at DESC'
-    );
+    await this.ensureProfileColumns();
+    const [rows] = await pool.execute(`
+      SELECT
+        t.teacher_id,
+        t.name,
+        t.email,
+        t.department,
+        t.status,
+        t.date_joined,
+        t.profile_photo,
+        t.employee_id,
+        t.phone,
+        t.module_name,
+        t.qualification,
+        t.years_experience,
+        t.created_at,
+        GROUP_CONCAT(DISTINCT head_class.class_name ORDER BY head_class.class_name SEPARATOR ', ') AS head_teacher_classes,
+        GROUP_CONCAT(DISTINCT taught_class.class_name ORDER BY taught_class.class_name SEPARATOR ', ') AS teaching_classes,
+        GROUP_CONCAT(DISTINCT assigned_module.module_name ORDER BY assigned_module.module_name SEPARATOR ', ') AS assigned_modules
+      FROM teacher t
+      LEFT JOIN class head_class ON head_class.class_teacher_id = t.teacher_id
+      LEFT JOIN assignment a ON a.teacher_id = t.teacher_id
+      LEFT JOIN class taught_class ON taught_class.class_id = a.class_id
+      LEFT JOIN module assigned_module ON assigned_module.module_id = a.module_id
+      GROUP BY
+        t.teacher_id,
+        t.name,
+        t.email,
+        t.department,
+        t.status,
+        t.date_joined,
+        t.profile_photo,
+        t.employee_id,
+        t.phone,
+        t.module_name,
+        t.qualification,
+        t.years_experience,
+        t.created_at
+      ORDER BY t.created_at DESC
+    `);
     return rows;
   }
 

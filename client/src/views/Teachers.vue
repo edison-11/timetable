@@ -43,8 +43,7 @@
           <table class="table-custom">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Email</th>
+                <th>Teacher</th>
                 <th>Department</th>
                 <th>Status</th>
                 <th>Date Joined</th>
@@ -53,8 +52,12 @@
             </thead>
             <tbody>
               <tr v-for="teacher in filteredTeachers" :key="teacher.teacher_id">
-                <td class="fw-medium">{{ teacher.name }}</td>
-                <td>{{ teacher.email }}</td>
+                <td>
+                  <div class="teacher-cell">
+                    <strong>{{ teacher.name }}</strong>
+                    <small>{{ teacher.email }}</small>
+                  </div>
+                </td>
                 <td>
                   <span class="badge">{{ teacher.department || 'SSOD' }}</span>
                 </td>
@@ -88,7 +91,7 @@
                 </td>
               </tr>
               <tr v-if="!filteredTeachers.length">
-                <td colspan="6" class="text-center py-4">No teachers found</td>
+                <td colspan="5" class="text-center py-4">No teachers found</td>
               </tr>
             </tbody>
           </table>
@@ -350,9 +353,12 @@ const filteredTeachers = computed(() => {
   return teachers.value.filter(teacher => {
     const department = teacher.department || 'SSOD'
     const query = searchQuery.value.toLowerCase()
-    const matchesSearch = teacher.name.toLowerCase().includes(query) ||
-                         teacher.email.toLowerCase().includes(query) ||
-                         department.toLowerCase().includes(query)
+    const searchable = [
+      teacher.name,
+      teacher.email,
+      department
+    ].filter(Boolean).join(' ').toLowerCase()
+    const matchesSearch = searchable.includes(query)
     const matchesStatus = !statusFilter.value || teacher.status === statusFilter.value
     const matchesDepartment = !departmentFilter.value || department === departmentFilter.value
     return matchesSearch && matchesStatus && matchesDepartment
@@ -424,7 +430,7 @@ const handleAddTeacher = async () => {
     const response = await api.post('/teachers/register', payload)
     
     if (response.data.teacher) {
-      teachers.value.unshift(response.data.teacher)
+      await loadTeachers()
       newTeacher.value = {
         name: '',
         email: '',
@@ -559,10 +565,7 @@ const handleUpdateTeacher = async (event) => {
     const response = await api.put(`/teachers/${editingTeacher.value.teacher_id}`, updateData)
     
     if (response.data.teacher) {
-      const index = teachers.value.findIndex(t => t.teacher_id === editingTeacher.value.teacher_id)
-      if (index !== -1) {
-        teachers.value[index] = response.data.teacher
-      }
+      await loadTeachers()
       const modal = Modal.getInstance(document.getElementById('editTeacherModal'))
       modal.hide()
       editingTeacher.value = {
@@ -604,12 +607,8 @@ const approveTeacher = async (teacher) => {
   approvalLoadingId.value = teacher.teacher_id
 
   try {
-    const response = await api.put(`/teachers/${teacher.teacher_id}/approve`)
-    const updatedTeacher = response.data.teacher
-    const index = teachers.value.findIndex(t => t.teacher_id === teacher.teacher_id)
-    if (index !== -1) {
-      teachers.value[index] = updatedTeacher
-    }
+    await api.put(`/teachers/${teacher.teacher_id}/approve`)
+    await loadTeachers()
     showSuccessMessage('Teacher approved successfully!')
   } catch (error) {
     console.error('Error approving teacher:', error)
@@ -756,14 +755,32 @@ onMounted(async () => {
 
 .table-custom th,
 .table-custom td {
-  padding: 0.75rem;
+  padding: 0.55rem 0.65rem;
   border-bottom: 1px solid #e2e8f0;
   text-align: left;
+  vertical-align: middle;
 }
 
 .table-custom th {
   background: #f8fafc;
   font-weight: 600;
+}
+
+.teacher-cell {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 150px;
+}
+
+.teacher-cell strong {
+  color: #0f172a;
+  font-size: 0.92rem;
+  line-height: 1.15;
+}
+
+.teacher-cell small {
+  color: #64748b;
+  font-size: 0.72rem;
 }
 
 .badge {

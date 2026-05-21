@@ -58,6 +58,13 @@ export const authService = {
   logout: () => api.post('/auth/logout')
 };
 
+export const teacherService = {
+  getAll: () => api.get('/teachers'),
+  register: (data) => api.post('/teachers/register', data),
+  update: (id, data) => api.put(`/teachers/${id}`, data),
+  delete: (id) => api.delete(`/teachers/${id}`)
+};
+
 export const roomService = {
   getAll: () => api.get('/rooms'),
   create: (data) => api.post('/rooms', data),
@@ -67,7 +74,14 @@ export const roomService = {
 
 export const scheduleService = {
   getAll: () => api.get('/schedules'),
-  create: (data) => api.post('/schedules', data)
+  create: (data) => api.post('/schedules', data),
+  delete: (id) => api.delete(`/schedules/${id}`)
+};
+
+export const assignmentService = {
+  getAll: () => api.get('/assignments'),
+  create: (data) => api.post('/assignments', data),
+  delete: (id) => api.delete(`/assignments/${id}`)
 };
 
 export default api;

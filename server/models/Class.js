@@ -168,16 +168,20 @@ class Class {
       return;
     }
 
+    const valueOrCurrent = (field) => (
+      Object.prototype.hasOwnProperty.call(classData, field)
+        ? classData[field]
+        : currentClass[field]
+    );
+
     const class_name = classData.class_name ?? currentClass.class_name;
     const level = classData.level ?? currentClass.level;
-    const section_id = classData.section_id ?? currentClass.section_id;
-    const class_teacher_id = Object.prototype.hasOwnProperty.call(classData, 'class_teacher_id')
-      ? classData.class_teacher_id
-      : currentClass.class_teacher_id;
+    const section_id = valueOrCurrent('section_id');
+    const class_teacher_id = valueOrCurrent('class_teacher_id');
     const academic_year = classData.academic_year ?? currentClass.academic_year;
-    const shift_id = classData.shift_id ?? currentClass.shift_id;
-    const dos_id = classData.dos_id ?? currentClass.dos_id;
-    const room_id = classData.room_id ?? currentClass.room_id;
+    const shift_id = valueOrCurrent('shift_id');
+    const dos_id = valueOrCurrent('dos_id');
+    const room_id = valueOrCurrent('room_id');
 
     await pool.execute(
       'UPDATE class SET class_name = ?, level = ?, academic_year = ?, class_teacher_id = ?, shift_id = ?, dos_id = ?, section_id = ?, room_id = ? WHERE class_id = ?',

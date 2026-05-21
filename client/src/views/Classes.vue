@@ -25,7 +25,7 @@
             <button class="btn-secondary" type="button" @click="closeForm">Cancel</button>
           </div>
 
-          <form class="class-form" @submit.prevent="saveClass">
+          <form class="class-form" novalidate @submit.prevent="saveClass">
             <div>
               <label class="form-label">Class Name *</label>
               <input
@@ -224,6 +224,16 @@ const showMessage = (text, type = 'success') => {
 }
 
 const nullableId = (value) => value === '' || value === null || value === undefined ? null : Number(value)
+const sameId = (left, right) => String(left || '') === String(right || '')
+
+const validateClassForm = () => {
+  if (!classForm.value.class_name.trim()) return 'Class name is required.'
+  if (!classForm.value.level.trim()) return 'Level is required.'
+  if (!classForm.value.academic_year.trim()) return 'Academic year is required.'
+  if (!classForm.value.section_id) return 'Please assign a section to this class.'
+  if (!classForm.value.room_id) return 'Please assign a room to this class.'
+  return ''
+}
 
 const buildPayload = () => ({
   class_name: classForm.value.class_name.trim(),
@@ -263,8 +273,9 @@ const closeForm = () => {
 }
 
 const saveClass = async () => {
-  if (!classForm.value.section_id) {
-    showMessage('Please assign a section to this class.', 'danger')
+  const validationMessage = validateClassForm()
+  if (validationMessage) {
+    showMessage(validationMessage, 'danger')
     return
   }
 
@@ -272,7 +283,7 @@ const saveClass = async () => {
   if (classForm.value.class_teacher_id) {
     const existingClass = classesList.value.find(cls =>
       cls.class_teacher_id === Number(classForm.value.class_teacher_id) &&
-      cls.class_id !== classForm.value.class_id
+      !sameId(cls.class_id, classForm.value.class_id)
     )
     if (existingClass) {
       showMessage('This teacher is already a head teacher for another class. A teacher can only be head teacher for one class.', 'danger')
@@ -282,25 +293,24 @@ const saveClass = async () => {
 
   saving.value = true
   try {
+    const wasEditing = isEditing.value
     const payload = buildPayload()
-    const response = isEditing.value
+    const response = wasEditing
       ? await api.put(`/classes/${classForm.value.class_id}`, payload)
       : await api.post('/classes', payload)
-    const savedClass = response.data.class
 
-    if (isEditing.value) {
-      const index = classesList.value.findIndex(cls => cls.class_id === savedClass.class_id)
-      if (index !== -1) classesList.value.splice(index, 1, savedClass)
-    } else {
+    if (!wasEditing && response.data.class) {
+      const savedClass = response.data.class
       classesList.value.unshift(savedClass)
     }
 
+    await loadClasses()
     window.dispatchEvent(new CustomEvent('classes-updated'))
-    showMessage(isEditing.value ? 'Class updated successfully.' : 'Class added successfully.')
+    showMessage(wasEditing ? 'Class updated successfully.' : 'Class added successfully.')
     closeForm()
   } catch (error) {
-    const validationMessage = error.response?.data?.errors?.[0]?.msg
-    showMessage(validationMessage || error.response?.data?.message || 'Failed to save class.', 'danger')
+    const apiValidationMessage = error.response?.data?.errors?.[0]?.msg
+    showMessage(apiValidationMessage || error.response?.data?.message || 'Failed to save class.', 'danger')
   } finally {
     saving.value = false
   }
