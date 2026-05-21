@@ -224,6 +224,7 @@ const showMessage = (text, type = 'success') => {
 }
 
 const nullableId = (value) => value === '' || value === null || value === undefined ? null : Number(value)
+const sameId = (left, right) => String(left || '') === String(right || '')
 
 const validateClassForm = () => {
   if (!classForm.value.class_name.trim()) return 'Class name is required.'
@@ -282,7 +283,7 @@ const saveClass = async () => {
   if (classForm.value.class_teacher_id) {
     const existingClass = classesList.value.find(cls =>
       cls.class_teacher_id === Number(classForm.value.class_teacher_id) &&
-      cls.class_id !== classForm.value.class_id
+      !sameId(cls.class_id, classForm.value.class_id)
     )
     if (existingClass) {
       showMessage('This teacher is already a head teacher for another class. A teacher can only be head teacher for one class.', 'danger')
@@ -292,21 +293,20 @@ const saveClass = async () => {
 
   saving.value = true
   try {
+    const wasEditing = isEditing.value
     const payload = buildPayload()
-    const response = isEditing.value
+    const response = wasEditing
       ? await api.put(`/classes/${classForm.value.class_id}`, payload)
       : await api.post('/classes', payload)
-    const savedClass = response.data.class
 
-    if (isEditing.value) {
-      const index = classesList.value.findIndex(cls => cls.class_id === savedClass.class_id)
-      if (index !== -1) classesList.value.splice(index, 1, savedClass)
-    } else {
+    if (!wasEditing && response.data.class) {
+      const savedClass = response.data.class
       classesList.value.unshift(savedClass)
     }
 
+    await loadClasses()
     window.dispatchEvent(new CustomEvent('classes-updated'))
-    showMessage(isEditing.value ? 'Class updated successfully.' : 'Class added successfully.')
+    showMessage(wasEditing ? 'Class updated successfully.' : 'Class added successfully.')
     closeForm()
   } catch (error) {
     const apiValidationMessage = error.response?.data?.errors?.[0]?.msg
