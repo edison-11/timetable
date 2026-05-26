@@ -15,6 +15,11 @@
       </svg>
     </button>
 
+    <div class="app-title-block">
+      <strong>Timetable Management System</strong>
+      <span>Admin Dashboard</span>
+    </div>
+
     <div class="search-bar">
       <input v-model="searchQuery" type="search" placeholder="Search anything..." @keyup.enter="runSearch">
       <span class="search-icon" aria-hidden="true">
@@ -535,6 +540,7 @@ const logout = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   padding: 0 1.45rem;
   z-index: 100;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
@@ -589,6 +595,36 @@ const logout = () => {
 
 .menu-toggle.active .bottom {
   transform: none;
+}
+
+.app-title-block {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+  flex: 0 1 390px;
+}
+
+.app-title-block strong {
+  overflow: hidden;
+  color: #111827;
+  font-size: clamp(1.25rem, 2.1vw, 1.85rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-title-block span {
+  overflow: hidden;
+  color: #64748b;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .search-bar {
@@ -1133,6 +1169,19 @@ const logout = () => {
     gap: 0.75rem;
     padding: 0 1rem;
   }
+
+  .app-title-block {
+    flex-basis: auto;
+  }
+
+  .app-title-block strong {
+    font-size: 1.12rem;
+  }
+
+  .app-title-block span,
+  .search-bar {
+    display: none;
+  }
 }
 
 </style>
@@ -1163,6 +1212,14 @@ body.admin-dark-mode .notifications-btn:focus-visible {
   background: #172554;
   border-color: #2563eb;
   color: #bfdbfe;
+}
+
+body.admin-dark-mode .app-title-block strong {
+  color: #f8fafc;
+}
+
+body.admin-dark-mode .app-title-block span {
+  color: #94a3b8;
 }
 
 body.admin-dark-mode .dark-mode-toggle {

@@ -5,7 +5,7 @@
         <div class="d-flex align-items-center justify-content-center mx-auto mb-3 bg-primary rounded-2" style="width: 64px; height: 64px; font-size: 32px;">
           👨‍🏫
         </div>
-        <h1 class="h3 fw-bold text-dark">Teacher Portal</h1>
+        <h1 class="teacher-login-title text-dark">Teacher Portal</h1>
         <p class="text-muted mt-2">Sign in to view your timetable</p>
       </div>
 
@@ -130,6 +130,14 @@ const handleLogin = async () => {
 .form-control-lg {
   padding: 0.75rem 1rem;
   font-size: 1rem;
+}
+
+.teacher-login-title {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 2.65rem);
+  font-weight: 950;
+  line-height: 1.02;
+  letter-spacing: 0;
 }
 
 .btn-primary-custom {

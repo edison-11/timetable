@@ -136,7 +136,7 @@
               <td>{{ cls.section_name || 'No section' }}</td>
               <td>{{ cls.room_name || 'No room' }}</td>
               <td>{{ cls.shift_name || 'No shift' }}</td>
-              <td>{{ cls.class_teacher_name || 'Not assigned' }}</td>
+              <td>{{ getClassTeacherName(cls) }}</td>
               <td class="actions-cell">
                 <button class="btn-edit" @click="openEditForm(cls)">Edit</button>
                 <button class="btn-delete" @click="deleteClass(cls)" :disabled="deletingId === cls.class_id">
@@ -200,13 +200,24 @@ const uniqueSorted = (items) => [...new Set(items.filter(Boolean))].sort((a, b) 
 
 const levelOptions = computed(() => uniqueSorted(classesList.value.map(cls => cls.level)))
 
+const teacherNameById = computed(() => {
+  return new Map(teachers.value.map((teacher) => [String(teacher.teacher_id), teacher.name]))
+})
+
+const getClassTeacherName = (cls) => {
+  if (cls.class_teacher_name) return cls.class_teacher_name
+  if (cls.class_teacher_id) return teacherNameById.value.get(String(cls.class_teacher_id)) || 'Not assigned'
+  return 'Not assigned'
+}
+
 const filteredClasses = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return classesList.value.filter((cls) => {
+    const classTeacherName = getClassTeacherName(cls).toLowerCase()
     const matchesSearch = !query ||
       cls.class_name?.toLowerCase().includes(query) ||
       cls.level?.toLowerCase().includes(query) ||
-      cls.class_teacher_name?.toLowerCase().includes(query) ||
+      classTeacherName.includes(query) ||
       cls.section_name?.toLowerCase().includes(query) ||
       cls.room_name?.toLowerCase().includes(query) ||
       cls.shift_name?.toLowerCase().includes(query)
@@ -245,6 +256,18 @@ const buildPayload = () => ({
   class_teacher_id: nullableId(classForm.value.class_teacher_id)
 })
 
+const upsertClass = (savedClass) => {
+  if (!savedClass?.class_id) return
+
+  const index = classesList.value.findIndex((cls) => sameId(cls.class_id, savedClass.class_id))
+  if (index === -1) {
+    classesList.value.unshift(savedClass)
+    return
+  }
+
+  classesList.value.splice(index, 1, savedClass)
+}
+
 const openAddForm = () => {
   isEditing.value = false
   classForm.value = emptyClassForm()
@@ -282,7 +305,7 @@ const saveClass = async () => {
   // Check if teacher is already head teacher for another class
   if (classForm.value.class_teacher_id) {
     const existingClass = classesList.value.find(cls =>
-      cls.class_teacher_id === Number(classForm.value.class_teacher_id) &&
+      sameId(cls.class_teacher_id, classForm.value.class_teacher_id) &&
       !sameId(cls.class_id, classForm.value.class_id)
     )
     if (existingClass) {
@@ -299,13 +322,7 @@ const saveClass = async () => {
       ? await api.put(`/classes/${classForm.value.class_id}`, payload)
       : await api.post('/classes', payload)
 
-    if (!wasEditing && response.data.class) {
-      const savedClass = response.data.class
-      classesList.value.unshift(savedClass)
-    }
-
-    await loadClasses()
-    window.dispatchEvent(new CustomEvent('classes-updated'))
+    upsertClass(response.data.class)
     showMessage(wasEditing ? 'Class updated successfully.' : 'Class added successfully.')
     closeForm()
   } catch (error) {
@@ -322,8 +339,7 @@ const deleteClass = async (cls) => {
   deletingId.value = cls.class_id
   try {
     await api.delete(`/classes/${cls.class_id}`)
-    await loadClasses()
-    window.dispatchEvent(new CustomEvent('classes-updated'))
+    classesList.value = classesList.value.filter((item) => !sameId(item.class_id, cls.class_id))
     showMessage('Class deleted successfully.')
   } catch (error) {
     showMessage(error.response?.data?.message || 'Failed to delete class.', 'danger')

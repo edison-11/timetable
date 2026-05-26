@@ -68,6 +68,12 @@ const router = createRouter({
       meta: { requiresAdminAuth: true }
     },
     {
+      path: '/students',
+      name: 'Students',
+      component: () => import('@/views/Students.vue'),
+      meta: { requiresAdminAuth: true }
+    },
+    {
       path: '/sections',
       name: 'Sections',
       component: () => import('@/views/Sections.vue'),
@@ -117,7 +123,8 @@ const router = createRouter({
     {
       path: '/teacher/login',
       name: 'TeacherLogin',
-      redirect: '/login'
+      component: () => import('@/views/TeacherLogin.vue'),
+      meta: { requiresGuest: true }
     },
     {
       path: '/teacher/dashboard',
@@ -129,6 +136,12 @@ const router = createRouter({
       path: '/teacher/timetable',
       name: 'TeacherTimetable',
       component: () => import('@/views/TeacherTimetableComplete.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/attendance',
+      name: 'TeacherAttendance',
+      component: () => import('@/views/TeacherAttendance.vue'),
       meta: { requiresTeacherAuth: true }
     },
     {
@@ -191,9 +204,8 @@ router.beforeEach(async (to, from, next) => {
     return '/login'
   }
 
-  if (to.path === '/login' && isAuthenticated && isTeacher) {
-    authStore.logout()
-    next()
+  if ((to.path === '/login' || to.path === '/teacher/login') && isAuthenticated && isTeacher) {
+    next('/teacher/dashboard')
     return
   }
 
@@ -216,8 +228,19 @@ router.beforeEach(async (to, from, next) => {
     }
 
     next()
-  } else if (to.meta.requiresTeacherAuth && (!isAuthenticated || !isTeacher)) {
-    next('/login')
+  } else if (to.meta.requiresTeacherAuth) {
+    if (!isAuthenticated || !isTeacher) {
+      next('/teacher/login')
+      return
+    }
+
+    const isStillTeacher = await authStore.checkAuth()
+    if (!isStillTeacher || authStore.currentUserType !== 'teacher') {
+      next('/teacher/login')
+      return
+    }
+
+    next()
   } else if (to.meta.requiresStudentAuth && (!isAuthenticated || !isStudent)) {
     next('/login')
   } else if (to.meta.requiresAuth && !isAuthenticated) {

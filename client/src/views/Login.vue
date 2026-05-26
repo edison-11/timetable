@@ -234,10 +234,13 @@ const handleLogin = async () => {
 }
 
 .auth-title {
-  font-size: clamp(1.45rem, 3.2vw, 1.85rem);
-  font-weight: 800;
-  line-height: 1.08;
+  max-width: 360px;
+  margin-inline: auto;
+  font-size: clamp(2.45rem, 7vw, 3.45rem);
+  font-weight: 950;
+  line-height: 0.98;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 /* Password toggle alignment fix */
@@ -346,7 +349,7 @@ input.form-control:focus-visible {
     height: 96px !important;
   }
   h1 {
-    font-size: 1.45rem;
+    font-size: 2.2rem;
   }
 }
 </style>

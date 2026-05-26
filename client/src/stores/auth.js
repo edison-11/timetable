@@ -153,9 +153,15 @@ export const useAuthStore = defineStore('auth', {
 
     async checkAuth() {
       const token = this.token || localStorage.getItem('token')
-      const userType = this.userType || localStorage.getItem('userType') || 'admin'
+      const storedUserType = this.userType || localStorage.getItem('userType')
+      const userType = storedUserType || (localStorage.getItem('teacher') ? 'teacher' : localStorage.getItem('user') ? 'admin' : null)
 
       if (!token) {
+        this.logout()
+        return false
+      }
+
+      if (!userType) {
         this.logout()
         return false
       }

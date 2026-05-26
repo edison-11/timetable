@@ -7,12 +7,17 @@ const router = express.Router();
 
 // Create student
 router.post('/', auth, [
-  body('student_number').isString().withMessage('Student number is required'),
-  body('name').isString().withMessage('Name is required'),
-  body('email').isEmail().withMessage('Valid email is required'),
-  body('academic_year').isString().withMessage('Academic year is required'),
-  body('class_id').optional().isInt(),
-  body('section_id').optional().isInt()
+  body('student_number').trim().notEmpty().withMessage('Student number is required'),
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('sex').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('email').optional({ nullable: true, checkFalsy: true }).isEmail().withMessage('Valid student email is required'),
+  body('parent_name').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('parent_email').isEmail().withMessage('Valid parent email is required'),
+  body('parent_phone').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('parent_password').isLength({ min: 6 }).withMessage('Parent password must be at least 6 characters'),
+  body('academic_year').trim().notEmpty().withMessage('Academic year is required'),
+  body('class_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('section_id').optional({ nullable: true, checkFalsy: true }).isInt()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -46,6 +51,104 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+router.get('/teacher/classes', auth, async (req, res) => {
+  try {
+    const teacherId = req.user?.teacherId || req.user?.teacher_id;
+    if (!teacherId) {
+      return res.status(403).json({ message: 'Teacher account required' });
+    }
+
+    const classes = await Student.getTeacherClasses(teacherId);
+    res.json({ classes });
+  } catch (error) {
+    console.error('Error fetching teacher classes:', error);
+    res.status(500).json({ message: 'Failed to fetch teacher classes' });
+  }
+});
+
+router.get('/teacher/classes/:classId/students', auth, async (req, res) => {
+  try {
+    const teacherId = req.user?.teacherId || req.user?.teacher_id;
+    if (!teacherId) {
+      return res.status(403).json({ message: 'Teacher account required' });
+    }
+
+    const students = await Student.getClassStudentsForTeacher(req.params.classId, teacherId);
+    if (!students) {
+      return res.status(403).json({ message: 'You are not assigned to this class' });
+    }
+
+    res.json({ students });
+  } catch (error) {
+    console.error('Error fetching class students:', error);
+    res.status(500).json({ message: 'Failed to fetch class students' });
+  }
+});
+
+router.get('/attendance', auth, async (req, res) => {
+  try {
+    const teacherId = req.user?.teacherId || req.user?.teacher_id || null;
+    if (req.user?.type === 'teacher') {
+      const students = await Student.getClassStudentsForTeacher(req.query.class_id, teacherId);
+      if (!students) {
+        return res.status(403).json({ message: 'You are not assigned to this class' });
+      }
+    }
+
+    const attendance = await Student.getAttendance({
+      class_id: req.query.class_id,
+      attendance_date: req.query.attendance_date,
+      timetable_id: req.query.timetable_id || null,
+      period_label: req.query.period_label || null
+    });
+
+    res.json({ attendance });
+  } catch (error) {
+    console.error('Error fetching attendance:', error);
+    res.status(500).json({ message: 'Failed to fetch attendance' });
+  }
+});
+
+router.post('/attendance', auth, [
+  body('class_id').isInt().withMessage('Class is required'),
+  body('attendance_date').isISO8601().withMessage('Attendance date is required'),
+  body('timetable_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('period_label').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('records').isArray().withMessage('Attendance records are required'),
+  body('records.*.student_id').isInt().withMessage('Student is required'),
+  body('records.*.status').isIn(['present', 'absent', 'late', 'excused']).withMessage('Invalid attendance status'),
+  body('records.*.notes').optional({ nullable: true, checkFalsy: true }).trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const teacherId = req.user?.teacherId || req.user?.teacher_id || null;
+    if (req.user?.type === 'teacher') {
+      const students = await Student.getClassStudentsForTeacher(req.body.class_id, teacherId);
+      if (!students) {
+        return res.status(403).json({ message: 'You are not assigned to this class' });
+      }
+    }
+
+    const saved = await Student.saveAttendance({
+      class_id: req.body.class_id,
+      timetable_id: req.body.timetable_id || null,
+      teacher_id: teacherId,
+      attendance_date: req.body.attendance_date,
+      period_label: req.body.period_label || null,
+      records: req.body.records
+    });
+
+    res.json({ message: 'Attendance saved', attendance: saved });
+  } catch (error) {
+    console.error('Error saving attendance:', error);
+    res.status(500).json({ message: 'Failed to save attendance' });
+  }
+});
+
 // Get student by user ID (for student portal)
 router.get('/user/:userId', auth, async (req, res) => {
   try {
@@ -59,6 +162,21 @@ router.get('/user/:userId', auth, async (req, res) => {
   } catch (error) {
     console.error('Error fetching student by user ID:', error);
     res.status(500).json({ message: 'Failed to fetch student' });
+  }
+});
+
+router.get('/:id/attendance-history', auth, async (req, res) => {
+  try {
+    const attendance = await Student.getAttendanceHistory(req.params.id, {
+      status: req.query.status || undefined,
+      from_date: req.query.from_date || undefined,
+      to_date: req.query.to_date || undefined
+    });
+
+    res.json({ attendance });
+  } catch (error) {
+    console.error('Error fetching student attendance history:', error);
+    res.status(500).json({ message: 'Failed to fetch student attendance history' });
   }
 });
 
@@ -92,11 +210,15 @@ router.get('/:id/timetable', auth, async (req, res) => {
 
 // Update student
 router.put('/:id', auth, [
-  body('name').optional().isString(),
-  body('email').optional().isEmail(),
-  body('class_id').optional().isInt(),
-  body('section_id').optional().isInt(),
-  body('academic_year').optional().isString(),
+  body('name').optional().trim().notEmpty(),
+  body('sex').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('email').optional({ nullable: true, checkFalsy: true }).isEmail(),
+  body('parent_name').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('parent_email').optional({ nullable: true, checkFalsy: true }).isEmail(),
+  body('parent_phone').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('class_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('section_id').optional({ nullable: true, checkFalsy: true }).isInt(),
+  body('academic_year').optional().trim().notEmpty(),
   body('status').optional().isIn(['active', 'inactive', 'graduated'])
 ], async (req, res) => {
   try {

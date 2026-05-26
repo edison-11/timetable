@@ -1,25 +1,31 @@
 <template>
-  <section class="period-timer" :class="{ active: currentLesson, ringing: endAlert.visible }">
+  <section class="period-timer" :class="{ active: sessionInProgress, ringing: endAlert.ringing }">
     <div v-if="endAlert.visible" class="period-alert" role="status">
-      <strong>Period ended</strong>
+      <strong>{{ endAlert.title }}</strong>
       <span>{{ endAlert.message }}</span>
-      <button type="button" @click="dismissEndAlert" title="Dismiss alert">
+      <button type="button" @click="dismissEndAlert" :title="endAlert.ringing ? 'Stop alarm' : 'Dismiss alert'">
         <i class="bi bi-x-lg" aria-hidden="true"></i>
       </button>
     </div>
 
     <div class="stopwatch">
       <div class="top-crown" aria-hidden="true"></div>
-      <button class="case-button lap-button" type="button" title="Test ring now" @click="playBell">LAP</button>
-      <button class="case-button start-button" type="button" title="Test ring in 2 minutes" @click="startTwoMinuteRingTest">
-        START/STOP
-      </button>
 
       <div class="watch-face">
         <div class="screen">
           <div class="screen-top">
-            <strong>{{ currentLesson ? 'CURRENT' : 'NEXT' }}</strong>
-            <span class="battery-icon" aria-hidden="true"><span></span></span>
+            <strong>{{ currentLesson ? 'CURRENT' : sessionInProgress ? 'SESSION' : daySessionEnded ? 'DONE' : 'NEXT' }}</strong>
+            <button
+              class="alarm-toggle"
+              type="button"
+              :class="{ enabled: alarmEnabled }"
+              :aria-pressed="alarmEnabled"
+              :title="alarmEnabled ? 'Turn alarm off' : 'Turn alarm on'"
+              @click="toggleAlarm"
+            >
+              <i :class="alarmEnabled ? 'bi bi-bell-fill' : 'bi bi-bell-slash-fill'" aria-hidden="true"></i>
+              <span>{{ alarmEnabled ? 'ON' : 'OFF' }}</span>
+            </button>
           </div>
 
           <div class="period-summary">
@@ -29,17 +35,17 @@
             <strong>{{ nextSubjectMetric }}</strong>
           </div>
 
-          <div class="timer-display" :aria-label="`${gmtOffsetLabel} ${gmtTime}`">
-            <span class="timer-zone">{{ gmtOffsetLabel }}</span>
-            <span class="timer-local-time">{{ gmtTime }}</span>
+          <div class="timer-display" :aria-label="timerAriaLabel">
+            <span class="timer-zone">{{ sessionStarted ? 'Elapsed time' : 'Starts in' }}</span>
+            <span class="timer-local-time">{{ activeTimerValue }}</span>
           </div>
 
           <div class="timer-caption">{{ timerCaption }}</div>
 
           <div class="watch-metrics">
             <div>
-              <span>{{ gmtOffsetLabel }}</span>
-              <strong>{{ gmtTime }}</strong>
+              <span>{{ sessionInProgress ? 'Day left' : gmtOffsetLabel }}</span>
+              <strong>{{ sessionInProgress ? sessionRemainingTimerValue : gmtTime }}</strong>
             </div>
             <div>
               <span>Class</span>
@@ -51,15 +57,15 @@
             </div>
             <div>
               <span>Start</span>
-              <strong>{{ normalizeTime((currentLesson || nextLesson)?.start_time) || '--:--' }}</strong>
+              <strong>{{ daySessionStartTime || normalizeTime(nextLesson?.start_time) || '--:--' }}</strong>
             </div>
             <div>
               <span>End</span>
-              <strong>{{ normalizeTime((currentLesson || nextLesson)?.end_time) || '--:--' }}</strong>
+              <strong>{{ daySessionEndTime || normalizeTime(nextLesson?.end_time) || '--:--' }}</strong>
             </div>
             <div>
               <span>Status</span>
-              <strong>{{ currentLesson ? 'ON' : 'NEXT' }}</strong>
+              <strong>{{ sessionInProgress ? currentLesson ? 'ON' : 'BREAK' : daySessionEnded ? 'DONE' : 'NEXT' }}</strong>
             </div>
           </div>
 
@@ -70,41 +76,122 @@
       <button
         class="mode-button"
         type="button"
-        :disabled="!nextLesson"
-        @click="goToNextLesson"
-        title="Open next class in timetable"
+        :aria-expanded="showToneMenu"
+        @click="showToneMenu = !showToneMenu"
+        :title="`Alarm voice: ${currentAlarmTone.label}`"
       >
         MODE
       </button>
+
+      <div v-if="showToneMenu" class="tone-menu">
+        <button
+          v-for="(tone, index) in alarmTones"
+          :key="tone.label"
+          type="button"
+          :class="{ active: index === alarmToneIndex }"
+          @click="selectAlarmTone(index)"
+        >
+          {{ tone.label }}
+        </button>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import { buildTimetableRowsFromSettings } from '@/utils/fixedTimetableStructure'
 
-const router = useRouter()
 const authStore = useAuthStore()
 
 const now = ref(new Date())
 const lessons = ref([])
+const timetableSettings = ref(null)
+const alarmEnabled = ref(true)
+const alarmToneIndex = ref(0)
+const showToneMenu = ref(false)
+const audioReady = ref(false)
 const loadError = ref('')
 const endAlert = reactive({
   visible: false,
+  ringing: false,
+  title: 'Period ended',
   message: ''
 })
 
 let clockTimer = null
-let alertTimer = null
-let testRingTimer = null
-let refreshTimer = null
+let alarmRepeatTimer = null
 let previousCurrentId = null
 let audioContext = null
+let lastDayEndedState = false
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const alarmTones = [
+  {
+    label: 'School bell',
+    shortLabel: 'BELL',
+    type: 'square',
+    pulses: [
+      { at: 0, from: 880, to: 1175, duration: 0.34 },
+      { at: 0.42, from: 880, to: 1175, duration: 0.34 },
+      { at: 0.84, from: 880, to: 1175, duration: 0.34 }
+    ]
+  },
+  {
+    label: 'Soft chime',
+    shortLabel: 'CHIME',
+    type: 'sine',
+    pulses: [
+      { at: 0, from: 660, to: 880, duration: 0.5 },
+      { at: 0.56, from: 880, to: 1320, duration: 0.56 }
+    ]
+  },
+  {
+    label: 'Urgent beep',
+    shortLabel: 'BEEP',
+    type: 'triangle',
+    pulses: [
+      { at: 0, from: 1040, to: 1040, duration: 0.18 },
+      { at: 0.26, from: 1040, to: 1040, duration: 0.18 },
+      { at: 0.52, from: 1040, to: 1040, duration: 0.18 },
+      { at: 0.78, from: 1040, to: 1040, duration: 0.18 }
+    ]
+  },
+  {
+    label: 'Digital alarm',
+    shortLabel: 'ALARM',
+    type: 'sawtooth',
+    pulses: [
+      { at: 0, from: 760, to: 980, duration: 0.24 },
+      { at: 0.3, from: 980, to: 760, duration: 0.24 },
+      { at: 0.6, from: 760, to: 980, duration: 0.24 },
+      { at: 0.9, from: 980, to: 760, duration: 0.24 }
+    ]
+  },
+  {
+    label: 'Double ding',
+    shortLabel: 'DING',
+    type: 'sine',
+    pulses: [
+      { at: 0, from: 988, to: 988, duration: 0.42 },
+      { at: 0.5, from: 1318, to: 1318, duration: 0.5 }
+    ]
+  },
+  {
+    label: 'Low buzzer',
+    shortLabel: 'BUZZ',
+    type: 'square',
+    pulses: [
+      { at: 0, from: 220, to: 260, duration: 0.42 },
+      { at: 0.5, from: 220, to: 260, duration: 0.42 },
+      { at: 1, from: 220, to: 260, duration: 0.42 }
+    ]
+  }
+]
+
+const currentAlarmTone = computed(() => alarmTones[alarmToneIndex.value] || alarmTones[0])
 
 const currentTeacherId = computed(() => {
   let cachedTeacher = null
@@ -119,6 +206,13 @@ const currentTeacherId = computed(() => {
 })
 
 const todayName = computed(() => dayNames[now.value.getDay()])
+
+const todayKey = computed(() => {
+  const year = now.value.getFullYear()
+  const month = String(now.value.getMonth() + 1).padStart(2, '0')
+  const day = String(now.value.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+})
 
 const parseTimeToMinutes = (time) => {
   const [hours, minutes] = String(time || '').slice(0, 5).split(':').map(Number)
@@ -172,6 +266,55 @@ const sortedLessons = computed(() => {
     })
 })
 
+const timetableDayRows = computed(() => {
+  return buildTimetableRowsFromSettings(timetableSettings.value)
+    .filter((row) => row.start_time && row.end_time)
+    .slice()
+    .sort((a, b) => normalizeTime(a.start_time).localeCompare(normalizeTime(b.start_time)))
+})
+
+const timetablePeriodRows = computed(() => timetableDayRows.value.filter((row) => row.type === 'period'))
+
+const daySessionStartRow = computed(() => timetablePeriodRows.value[0] || null)
+
+const daySessionEndRow = computed(() => {
+  return timetablePeriodRows.value
+    .slice()
+    .sort((a, b) => normalizeTime(b.end_time).localeCompare(normalizeTime(a.end_time)))[0] || null
+})
+
+const todayDateForTime = (time) => {
+  const minutes = parseTimeToMinutes(time)
+  if (minutes === null) return null
+  const date = new Date(now.value)
+  date.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0)
+  return date
+}
+
+const daySessionStartDate = computed(() => todayDateForTime(daySessionStartRow.value?.start_time))
+
+const daySessionEndDate = computed(() => todayDateForTime(daySessionEndRow.value?.end_time))
+
+const daySessionStartTime = computed(() => normalizeTime(daySessionStartRow.value?.start_time))
+
+const daySessionEndTime = computed(() => normalizeTime(daySessionEndRow.value?.end_time))
+
+const sessionStarted = computed(() => {
+  if (!daySessionStartDate.value) return false
+  return now.value.getTime() >= daySessionStartDate.value.getTime()
+})
+
+const sessionInProgress = computed(() => {
+  if (!daySessionStartDate.value || !daySessionEndDate.value) return false
+  const currentTime = now.value.getTime()
+  return currentTime >= daySessionStartDate.value.getTime() && currentTime < daySessionEndDate.value.getTime()
+})
+
+const daySessionEnded = computed(() => {
+  if (!daySessionEndDate.value) return false
+  return now.value.getTime() >= daySessionEndDate.value.getTime()
+})
+
 const currentLesson = computed(() => {
   const currentMinutes = minutesSinceMidnight(now.value)
   return sortedLessons.value.find((lesson) => {
@@ -198,29 +341,55 @@ const countdownSeconds = computed(() => {
   return Math.max(0, Math.floor((target.getTime() - now.value.getTime()) / 1000))
 })
 
-const countdownParts = computed(() => {
-  const total = countdownSeconds.value
+const sessionStartCountdownSeconds = computed(() => {
+  if (!daySessionStartDate.value) return 0
+  return Math.max(0, Math.floor((daySessionStartDate.value.getTime() - now.value.getTime()) / 1000))
+})
+
+const formatDuration = (totalSeconds) => {
+  const total = Math.max(0, Number(totalSeconds) || 0)
   const hours = Math.floor(total / 3600)
   const minutes = Math.floor((total % 3600) / 60)
   const seconds = total % 60
 
-  return {
-    main: hours > 0
-      ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-      : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`,
-    seconds: hours > 0 ? String(seconds).padStart(2, '0') : ''
-  }
+  return hours > 0
+    ? `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+const sessionDurationSeconds = computed(() => {
+  if (!daySessionStartDate.value || !daySessionEndDate.value) return 0
+  return Math.max(0, Math.floor((daySessionEndDate.value.getTime() - daySessionStartDate.value.getTime()) / 1000))
 })
+
+const sessionElapsedSeconds = computed(() => {
+  if (!daySessionStartDate.value) return 0
+  if (daySessionEnded.value) return sessionDurationSeconds.value
+  return Math.max(0, Math.floor((now.value.getTime() - daySessionStartDate.value.getTime()) / 1000))
+})
+
+const sessionRemainingSeconds = computed(() => {
+  if (!daySessionEndDate.value || !sessionInProgress.value) return 0
+  return Math.max(0, Math.floor((daySessionEndDate.value.getTime() - now.value.getTime()) / 1000))
+})
+
+const activeTimerValue = computed(() => sessionStarted.value
+  ? formatDuration(sessionElapsedSeconds.value)
+  : formatDuration(sessionStartCountdownSeconds.value))
+
+const sessionRemainingTimerValue = computed(() => formatDuration(sessionRemainingSeconds.value))
 
 const timerStatus = computed(() => currentLesson.value ? 'PERIOD TIMER' : 'NEXT PERIOD')
 
 const timerCaption = computed(() => {
-  if (currentLesson.value) return `${currentLesson.value.class_name || 'Class'} ends at ${normalizeTime(currentLesson.value.end_time)}`
+  if (sessionInProgress.value) return `${sessionRemainingTimerValue.value} remaining - day ends at ${daySessionEndTime.value}`
+  if (daySessionEnded.value) return `Day session ended at ${daySessionEndTime.value}`
+  if (daySessionStartTime.value) return `First period starts at ${daySessionStartTime.value}`
   if (nextLesson.value) return `${nextLesson.value.class_name || 'Class'} starts at ${normalizeTime(nextLesson.value.start_time)}`
   return 'No scheduled periods'
 })
 
-const timerAriaLabel = computed(() => `${countdownParts.value.main}:${countdownParts.value.seconds} ${timerCaption.value}`)
+const timerAriaLabel = computed(() => `${activeTimerValue.value} ${timerCaption.value}`)
 
 const gmtTime = computed(() => now.value.toLocaleTimeString('en-GB', {
   hour: '2-digit',
@@ -271,23 +440,85 @@ const nextTimeMetric = computed(() => {
   return `${dayPrefix}${normalizeTime(nextLesson.value.start_time)}`
 })
 
+const alarmStoragePrefix = computed(() => `teacherPeriodAlarm:${currentTeacherId.value || 'unknown'}:${todayKey.value}`)
+
+const alarmFired = (key) => localStorage.getItem(`${alarmStoragePrefix.value}:${key}`) === '1'
+
+const markAlarmFired = (key) => {
+  localStorage.setItem(`${alarmStoragePrefix.value}:${key}`, '1')
+}
+
+const requestNotificationPermission = async () => {
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'default') {
+    try {
+      await Notification.requestPermission()
+    } catch (error) {
+      // Notification permission prompts can be blocked by browser policy.
+    }
+  }
+}
+
+const showBrowserNotification = (title, message) => {
+  if (!alarmEnabled.value || !('Notification' in window) || Notification.permission !== 'granted') return
+
+  try {
+    new Notification(title, {
+      body: message,
+      tag: 'teacher-period-alarm',
+      renotify: true,
+      requireInteraction: true
+    })
+  } catch (error) {
+    // Some browsers block notifications outside secure contexts.
+  }
+}
+
+const showAlarmAlert = (title, message) => {
+  endAlert.title = title
+  endAlert.message = message
+  endAlert.visible = true
+  showBrowserNotification(title, message)
+  startPersistentAlarm()
+}
+
 const showPeriodEndAlert = (lesson) => {
+  const alarmKey = `period-end:${lesson?.timetable_id || `${lesson?.day_of_week}-${lesson?.end_time}`}`
+  if (alarmFired(alarmKey)) return
+  markAlarmFired(alarmKey)
+
   const nextText = nextLesson.value
     ? `Next: ${nextLesson.value.class_name || 'Class'} in ${nextLesson.value.room_name || nextLesson.value.room || 'Room TBA'}.`
     : 'No next class is scheduled.'
 
-  endAlert.message = `${lesson?.class_name || 'Your class'} period has ended. ${nextText}`
-  endAlert.visible = true
-
-  if (alertTimer) window.clearTimeout(alertTimer)
-  alertTimer = window.setTimeout(() => {
-    endAlert.visible = false
-  }, 15000)
-
-  playBell()
+  showAlarmAlert(
+    'Period ended',
+    `${lesson?.class_name || 'Your class'} period has ended. ${nextText} Press X to stop the alarm.`
+  )
 }
 
-const getAudioContext = () => {
+const showPeriodStartAlert = (lesson) => {
+  const alarmKey = `period-start:${lesson?.timetable_id || `${lesson?.day_of_week}-${lesson?.start_time}`}`
+  if (alarmFired(alarmKey)) return
+  markAlarmFired(alarmKey)
+
+  showAlarmAlert(
+    'Period started',
+    `${lesson?.class_name || 'Your class'} period has started. ${lesson?.room_name || lesson?.room ? `Room: ${lesson.room_name || lesson.room}. ` : ''}Press X to stop the alarm.`
+  )
+}
+
+const showDayEndedAlert = () => {
+  if (!daySessionEndTime.value || alarmFired('day-ended')) return
+  markAlarmFired('day-ended')
+
+  showAlarmAlert(
+    'Day ended',
+    `The teaching day ended at ${daySessionEndTime.value}. Press X to stop the alarm.`
+  )
+}
+
+const getAudioContext = async () => {
   const AudioContext = window.AudioContext || window.webkitAudioContext
   if (!AudioContext) return null
 
@@ -296,14 +527,14 @@ const getAudioContext = () => {
   }
 
   if (audioContext.state === 'suspended') {
-    audioContext.resume()
+    await audioContext.resume()
   }
 
   return audioContext
 }
 
-const unlockAudio = () => {
-  const context = getAudioContext()
+const unlockAudio = async () => {
+  const context = await getAudioContext()
   if (!context) return
 
   const oscillator = context.createOscillator()
@@ -313,70 +544,131 @@ const unlockAudio = () => {
   gain.connect(context.destination)
   oscillator.start()
   oscillator.stop(context.currentTime + 0.03)
+  audioReady.value = true
 }
 
-const playBell = () => {
-  const context = getAudioContext()
+const primeAudioFromUserGesture = () => {
+  unlockAudio()
+  requestNotificationPermission()
+}
+
+const playBell = async () => {
+  if (!alarmEnabled.value) return
+
+  if ('vibrate' in navigator) {
+    navigator.vibrate([300, 120, 300, 120, 500])
+  }
+
+  const context = await getAudioContext()
   if (!context) return
 
   try {
     const startTime = context.currentTime
-    const pulses = [0, 0.42, 0.84]
 
-    pulses.forEach((offset) => {
+    currentAlarmTone.value.pulses.forEach((pulse) => {
       const oscillator = context.createOscillator()
       const gain = context.createGain()
-      const start = startTime + offset
+      const start = startTime + pulse.at
 
-      oscillator.type = 'square'
-      oscillator.frequency.setValueAtTime(880, start)
-      oscillator.frequency.setValueAtTime(1175, start + 0.15)
+      oscillator.type = currentAlarmTone.value.type
+      oscillator.frequency.setValueAtTime(pulse.from, start)
+      oscillator.frequency.setValueAtTime(pulse.to, start + Math.min(0.18, pulse.duration / 2))
       gain.gain.setValueAtTime(0.0001, start)
       gain.gain.exponentialRampToValueAtTime(0.32, start + 0.03)
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.32)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + pulse.duration)
       oscillator.connect(gain)
       gain.connect(context.destination)
       oscillator.start(start)
-      oscillator.stop(start + 0.34)
+      oscillator.stop(start + pulse.duration + 0.02)
     })
   } catch (error) {
     // Some browsers block audio until the teacher interacts with the page.
   }
 }
 
+const stopAlarm = () => {
+  endAlert.ringing = false
+
+  if (alarmRepeatTimer) {
+    window.clearInterval(alarmRepeatTimer)
+    alarmRepeatTimer = null
+  }
+
+  if ('vibrate' in navigator) {
+    navigator.vibrate(0)
+  }
+}
+
+const startPersistentAlarm = () => {
+  stopAlarm()
+
+  if (!alarmEnabled.value) return
+
+  endAlert.ringing = true
+  playBell()
+  alarmRepeatTimer = window.setInterval(() => {
+    playBell()
+  }, 2600)
+}
+
 const dismissEndAlert = () => {
+  stopAlarm()
   endAlert.visible = false
 }
 
-const startTwoMinuteRingTest = () => {
-  unlockAudio()
-
-  if (testRingTimer) window.clearTimeout(testRingTimer)
-
-  endAlert.message = 'Test started. The timer will ring in 2 minutes.'
-  endAlert.visible = true
-
-  testRingTimer = window.setTimeout(() => {
-    endAlert.message = 'Test period has ended. This is the same alert teachers will see after a real period.'
-    endAlert.visible = true
-    playBell()
-
-    if (alertTimer) window.clearTimeout(alertTimer)
-    alertTimer = window.setTimeout(() => {
-      endAlert.visible = false
-    }, 15000)
-  }, 120000)
+const toggleAlarm = () => {
+  alarmEnabled.value = !alarmEnabled.value
+  localStorage.setItem('teacherPeriodAlarmEnabled', JSON.stringify(alarmEnabled.value))
+  if (!alarmEnabled.value) stopAlarm()
+  if (alarmEnabled.value) {
+    unlockAudio()
+    requestNotificationPermission()
+  }
 }
 
-const goToNextLesson = () => {
-  if (!nextLesson.value) return
-  router.push({
-    name: 'TeacherTimetable',
-    query: {
-      day: nextLesson.value.day_of_week,
-      class: nextLesson.value.class_name || ''
+const selectAlarmTone = (index) => {
+  alarmToneIndex.value = index
+  localStorage.setItem('teacherPeriodAlarmTone', String(alarmToneIndex.value))
+  showToneMenu.value = false
+  unlockAudio()
+  requestNotificationPermission()
+  playBell()
+}
+
+const minutesUntil = (date) => (date.getTime() - now.value.getTime()) / 60000
+
+const checkMissedAlarms = () => {
+  if (!alarmEnabled.value || !lessons.value.length) return
+
+  if (daySessionEnded.value) {
+    showDayEndedAlert()
+    return
+  }
+
+  if (currentLesson.value) {
+    const start = lessonStartDate(currentLesson.value)
+    if (minutesUntil(start) <= 0 && minutesUntil(start) >= -10) {
+      showPeriodStartAlert(currentLesson.value)
     }
-  })
+    return
+  }
+
+  const endedLesson = sortedLessons.value
+    .filter((lesson) => lesson.day_of_week === todayName.value)
+    .filter((lesson) => {
+      const end = lessonEndDate(lesson)
+      return minutesUntil(end) <= 0 && minutesUntil(end) >= -10
+    })
+    .sort((a, b) => lessonEndDate(b).getTime() - lessonEndDate(a).getTime())[0]
+
+  if (endedLesson) {
+    showPeriodEndAlert(endedLesson)
+  }
+}
+
+const tickClock = () => {
+  now.value = new Date()
+  window.setTimeout(checkMissedAlarms, 0)
 }
 
 const loadTeacherLessons = async () => {
@@ -390,8 +682,12 @@ const loadTeacherLessons = async () => {
   }
 
   try {
-    const response = await api.get(`/timetable/teacher/${teacherId}`, { showGlobalLoader: false })
-    lessons.value = (response.data.timetables || []).filter(isTeacherLesson)
+    const [settingsResponse, timetableResponse] = await Promise.all([
+      api.get('/settings/timetable', { showGlobalLoader: false }).catch(() => ({ data: { settings: null } })),
+      api.get(`/timetable/teacher/${teacherId}`, { showGlobalLoader: false })
+    ])
+    timetableSettings.value = settingsResponse.data.settings || null
+    lessons.value = (timetableResponse.data.timetables || []).filter(isTeacherLesson)
   } catch (error) {
     lessons.value = []
     loadError.value = 'Timer could not load timetable'
@@ -406,27 +702,54 @@ watch(currentLesson, (lesson, previousLesson) => {
     showPeriodEndAlert(previousLesson)
   }
 
+  if (lesson && previousId !== lessonId) {
+    showPeriodStartAlert(lesson)
+  }
+
   previousCurrentId = lessonId
 })
 
+watch(daySessionEnded, (ended) => {
+  if (ended && !lastDayEndedState) {
+    showDayEndedAlert()
+  }
+  lastDayEndedState = ended
+})
+
 onMounted(async () => {
+  const savedAlarm = localStorage.getItem('teacherPeriodAlarmEnabled')
+  if (savedAlarm !== null) {
+    try {
+      alarmEnabled.value = JSON.parse(savedAlarm)
+    } catch (error) {
+      alarmEnabled.value = true
+    }
+  }
+
+  const savedTone = Number(localStorage.getItem('teacherPeriodAlarmTone'))
+  if (Number.isInteger(savedTone) && savedTone >= 0 && savedTone < alarmTones.length) {
+    alarmToneIndex.value = savedTone
+  }
+
   await loadTeacherLessons()
   previousCurrentId = currentLesson.value?.timetable_id || null
+  lastDayEndedState = daySessionEnded.value
+  checkMissedAlarms()
 
-  clockTimer = window.setInterval(() => {
-    now.value = new Date()
-  }, 1000)
-
-  refreshTimer = window.setInterval(() => {
-    loadTeacherLessons()
-  }, 60000)
+  clockTimer = window.setInterval(tickClock, 1000)
+  document.addEventListener('visibilitychange', tickClock)
+  window.addEventListener('pointerdown', primeAudioFromUserGesture, { once: true })
+  window.addEventListener('keydown', primeAudioFromUserGesture, { once: true })
+  window.addEventListener('touchstart', primeAudioFromUserGesture, { once: true })
 })
 
 onBeforeUnmount(() => {
   if (clockTimer) window.clearInterval(clockTimer)
-  if (alertTimer) window.clearTimeout(alertTimer)
-  if (testRingTimer) window.clearTimeout(testRingTimer)
-  if (refreshTimer) window.clearInterval(refreshTimer)
+  document.removeEventListener('visibilitychange', tickClock)
+  window.removeEventListener('pointerdown', primeAudioFromUserGesture)
+  window.removeEventListener('keydown', primeAudioFromUserGesture)
+  window.removeEventListener('touchstart', primeAudioFromUserGesture)
+  stopAlarm()
 })
 </script>
 
@@ -484,28 +807,24 @@ onBeforeUnmount(() => {
 
 .stopwatch {
   position: relative;
-  width: min(100%, 210px);
+  width: min(100%, 176px);
   margin: 0 auto;
-  padding: 0.65rem 0.34rem 0.86rem;
+  padding: 0.45rem 0.26rem 0.68rem;
 }
 
 .top-crown {
   display: none;
 }
 
-.case-button {
-  display: none;
-}
-
 .watch-face {
   position: relative;
   z-index: 1;
-  padding: 1rem 0.78rem 4.1rem;
+  padding: 0.78rem 0.58rem 3.35rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.09), transparent 12%),
     linear-gradient(160deg, #273241 0%, #05080d 78%);
   border: 1px solid #0a0d10;
-  border-radius: 34px;
+  border-radius: 28px;
   box-shadow:
     inset 0 3px 8px rgba(255, 255, 255, 0.12),
     inset 0 -18px 26px rgba(0, 0, 0, 0.88),
@@ -514,14 +833,14 @@ onBeforeUnmount(() => {
 
 .screen {
   overflow: hidden;
-  min-height: 300px;
-  padding: 0.72rem 0.55rem 0.62rem;
+  min-height: 244px;
+  padding: 0.58rem 0.45rem 0.5rem;
   color: #182013;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.26), transparent 22%),
     #d2ddc5;
   border: 4px solid #08101a;
-  border-radius: 26px;
+  border-radius: 22px;
   box-shadow:
     inset 0 2px 8px rgba(255, 255, 255, 0.42),
     inset 0 -7px 12px rgba(15, 23, 42, 0.14);
@@ -531,15 +850,15 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  min-height: 25px;
-  padding-bottom: 0.55rem;
+  min-height: 22px;
+  padding-bottom: 0.42rem;
   border-bottom: 1px solid rgba(31, 42, 17, 0.5);
 }
 
 .screen-top strong {
   overflow: hidden;
   color: #111827;
-  font-size: 0.78rem;
+  font-size: 0.66rem;
   font-weight: 950;
   letter-spacing: 0.08em;
   text-overflow: ellipsis;
@@ -547,31 +866,40 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.battery-icon {
-  position: relative;
-  width: 32px;
-  height: 18px;
-  border: 3px solid #e7efdf;
-  border-radius: 3px;
-  box-shadow: inset 0 0 0 2px rgba(17, 24, 39, 0.42);
+.alarm-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 40px;
+  height: 21px;
+  padding: 0 0.32rem;
+  border: 2px solid rgba(17, 24, 39, 0.45);
+  border-radius: 7px;
+  color: #4b5563;
+  background: rgba(248, 250, 252, 0.58);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  font-size: 0.5rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
-.battery-icon::after {
-  content: '';
-  position: absolute;
-  right: -7px;
-  top: 4px;
-  width: 4px;
-  height: 8px;
-  background: #e7efdf;
-  border-radius: 0 3px 3px 0;
+.alarm-toggle.enabled {
+  color: #111827;
+  background: #eef7df;
+  border-color: rgba(31, 42, 17, 0.55);
 }
 
-.battery-icon span {
-  display: block;
-  width: 74%;
-  height: 100%;
-  background: #e7efdf;
+.alarm-toggle:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+.alarm-toggle i {
+  font-size: 0.62rem;
+  line-height: 1;
 }
 
 .period-summary {
@@ -579,8 +907,8 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.12rem 0.4rem;
-  min-height: 76px;
-  padding: 0.9rem 0 0.65rem;
+  min-height: 58px;
+  padding: 0.68rem 0 0.48rem;
   border-bottom: 3px solid rgba(31, 42, 17, 0.5);
 }
 
@@ -596,7 +924,7 @@ onBeforeUnmount(() => {
 .period-summary span {
   grid-column: 1;
   overflow: hidden;
-  font-size: 0.76rem;
+  font-size: 0.64rem;
   letter-spacing: 0.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -606,9 +934,9 @@ onBeforeUnmount(() => {
   grid-column: 2;
   grid-row: 1 / span 3;
   align-self: center;
-  max-width: 82px;
+  max-width: 68px;
   overflow-wrap: anywhere;
-  font-size: 1rem;
+  font-size: 0.82rem;
   text-align: right;
 }
 
@@ -627,8 +955,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   gap: 0.16rem;
-  min-height: 72px;
-  padding: 0.58rem 0 0.46rem;
+  min-height: 56px;
+  padding: 0.42rem 0 0.35rem;
   border-bottom: 1px solid rgba(31, 42, 17, 0.42);
   text-align: center;
 }
@@ -642,21 +970,21 @@ onBeforeUnmount(() => {
 }
 
 .timer-zone {
-  font-size: 0.62rem;
+  font-size: 0.52rem;
   line-height: 1.05;
   text-transform: uppercase;
 }
 
 .timer-local-time {
-  font-size: clamp(1.08rem, 12cqw, 1.42rem);
+  font-size: clamp(0.96rem, 10cqw, 1.18rem);
   line-height: 1;
 }
 
 .timer-caption {
-  padding: 0.34rem 0 0.5rem;
-  border-bottom: 7px solid #111827;
+  padding: 0.28rem 0 0.38rem;
+  border-bottom: 5px solid #111827;
   color: #1f2a11;
-  font-size: 0.62rem;
+  font-size: 0.52rem;
   font-weight: 950;
   letter-spacing: 0.02em;
   line-height: 1.15;
@@ -671,8 +999,8 @@ onBeforeUnmount(() => {
 
 .watch-metrics div {
   min-width: 0;
-  min-height: 60px;
-  padding: 0.8rem 0.16rem 0.4rem;
+  min-height: 48px;
+  padding: 0.58rem 0.12rem 0.32rem;
   border-right: 1px solid rgba(31, 42, 17, 0.4);
   border-bottom: 1px solid rgba(31, 42, 17, 0.4);
   text-align: center;
@@ -697,7 +1025,7 @@ onBeforeUnmount(() => {
 
 .watch-metrics span {
   color: #26301f;
-  font-size: 0.62rem;
+  font-size: 0.5rem;
   font-weight: 950;
   letter-spacing: 0.01em;
   line-height: 1.15;
@@ -705,9 +1033,9 @@ onBeforeUnmount(() => {
 }
 
 .watch-metrics strong {
-  margin-top: 0.58rem;
+  margin-top: 0.42rem;
   color: #151b12;
-  font-size: 0.76rem;
+  font-size: 0.62rem;
   font-weight: 950;
   line-height: 1.12;
   max-height: 2.3em;
@@ -717,16 +1045,16 @@ onBeforeUnmount(() => {
   position: absolute;
   z-index: 2;
   left: 50%;
-  bottom: 1.2rem;
-  width: 88px;
-  height: 36px;
+  bottom: 0.95rem;
+  width: 74px;
+  height: 30px;
   border: 1px solid #050608;
   border-radius: 18px;
   color: #f8fafc;
   background: linear-gradient(180deg, #303a48 0%, #111827 68%);
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.18), 0 2px 4px rgba(0, 0, 0, 0.42);
   cursor: pointer;
-  font-size: 0.78rem;
+  font-size: 0.66rem;
   font-weight: 950;
   letter-spacing: 0.02em;
   transform: translateX(-50%);
@@ -735,6 +1063,45 @@ onBeforeUnmount(() => {
 .mode-button:disabled {
   opacity: 0.76;
   cursor: default;
+}
+
+.tone-menu {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  bottom: 3.35rem;
+  display: grid;
+  gap: 0.26rem;
+  width: 124px;
+  padding: 0.36rem;
+  border: 1px solid #0f172a;
+  border-radius: 10px;
+  background: #f8fafc;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.3);
+  transform: translateX(-50%);
+}
+
+.tone-menu button {
+  min-height: 28px;
+  border: 1px solid #dbe5f3;
+  border-radius: 7px;
+  color: #111827;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  text-align: center;
+}
+
+.tone-menu button:hover,
+.tone-menu button:focus-visible,
+.tone-menu button.active {
+  border-color: #2563eb;
+  color: #f8fafc;
+  background: #2563eb;
+  outline: none;
 }
 
 .timer-error {
