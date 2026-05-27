@@ -17,6 +17,7 @@
         :to="item.path"
         class="nav-item"
         :class="{ active: route.path === item.path }"
+        :data-label="item.name"
         :aria-current="route.path === item.path ? 'page' : undefined"
         :title="item.name"
         @click="closeMobileSidebar"
@@ -104,17 +105,17 @@ const academicYear = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  padding: 1.1rem 0.95rem 0.95rem;
+  padding: 1.35rem 0.95rem 1.15rem;
   border-bottom: 1px solid #e3ebf7;
   margin-bottom: 0.9rem;
-  min-height: 94px;
+  min-height: 126px;
   transition: padding 0.24s ease, justify-content 0.24s ease;
 }
 
 .brand-mark {
-  flex: 0 0 78px;
-  width: 78px;
-  height: 78px;
+  flex: 0 0 110px;
+  width: 110px;
+  height: 110px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -283,7 +284,8 @@ const academicYear = computed(() => {
 
 <style>
 body.sidebar-collapsed .admin-sidebar {
-  width: 72px;
+  width: 88px;
+  overflow: visible;
 }
 
 body.sidebar-collapsed .admin-sidebar .sidebar-brand {
@@ -389,6 +391,32 @@ body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-label {
 
 body.sidebar-collapsed .admin-sidebar .nav-item:hover {
   transform: none;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 0.65rem);
+  top: 50%;
+  z-index: 600;
+  min-width: max-content;
+  padding: 0.45rem 0.65rem;
+  border-radius: 7px;
+  background: #172033;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+  font-size: 0.78rem;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+body.sidebar-collapsed .admin-sidebar .nav-item:hover::after,
+body.sidebar-collapsed .admin-sidebar .nav-item:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
 }
 
 body.admin-dark-mode .admin-sidebar {

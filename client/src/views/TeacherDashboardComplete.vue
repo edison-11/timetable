@@ -13,6 +13,7 @@
           </button>
           <button class="action-btn secondary-btn" @click="navigateTo('/teacher/requests')">
             <i class="bi bi-chat-dots"></i> My Requests
+            <span v-if="pendingRequestCount" class="request-badge">{{ pendingRequestCount }}</span>
           </button>
         </div>
       </section>
@@ -141,6 +142,7 @@ const upcomingClasses = ref([])
 const timetableEntries = ref([])
 const teachingClasses = ref([])
 const headTeacherClasses = ref([])
+const pendingRequestCount = ref(0)
 
 const teacher = computed(() => {
   if (authStore.currentUserType === 'teacher' && authStore.currentUser) {
@@ -181,7 +183,7 @@ const moduleNames = computed(() => {
 
 const experienceLabel = computed(() => {
   const years = Number(teacher.value?.years_experience || teacher.value?.experience || 0)
-  if (!years) return 'Not set'
+  if (!years) return '0 years'
   return `${years} ${years === 1 ? 'year' : 'years'}`
 })
 
@@ -375,6 +377,19 @@ const loadTeacherDashboardResources = async () => {
   teachingClasses.value = classesResponse.data.teaching_classes || []
   headTeacherClasses.value = classesResponse.data.head_teacher_classes || []
   hydrateDashboardFromTimetable()
+  await loadPendingRequests()
+}
+
+const loadPendingRequests = async () => {
+  try {
+    const requests = JSON.parse(localStorage.getItem('teacherRequests') || '[]')
+    pendingRequestCount.value = requests.filter((request) => {
+      const status = String(request.status || request.request_status || '').toLowerCase()
+      return status === 'pending' || status === 'open'
+    }).length
+  } catch (error) {
+    pendingRequestCount.value = 0
+  }
 }
 
 onMounted(async () => {
@@ -492,11 +507,26 @@ onMounted(async () => {
 .secondary-btn {
   background: white;
   color: #2563eb;
+  position: relative;
 }
 
 .secondary-btn:hover {
   background: #f0f9ff;
   transform: translateY(-2px);
+}
+
+.request-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 900;
 }
 
 .dashboard-grid {
@@ -759,5 +789,52 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 
+}
+
+:global(body.teacher-dark-mode) .dashboard-container {
+  background: #020617;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .dashboard-card,
+:global(body.teacher-dark-mode) .teaching-item {
+  background: #111827;
+  border-color: #243244;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .card-header,
+:global(body.teacher-dark-mode) .upcoming-item,
+:global(body.teacher-dark-mode) .free-period-item,
+:global(body.teacher-dark-mode) .quick-action-btn {
+  background: #0b1220;
+  border-color: #243244;
+}
+
+:global(body.teacher-dark-mode) .card-header h2,
+:global(body.teacher-dark-mode) .teaching-item strong,
+:global(body.teacher-dark-mode) .upcoming-subject,
+:global(body.teacher-dark-mode) .period-day,
+:global(body.teacher-dark-mode) .quick-action-btn {
+  color: #f8fafc;
+}
+
+:global(body.teacher-dark-mode) .teaching-item span,
+:global(body.teacher-dark-mode) .upcoming-details small,
+:global(body.teacher-dark-mode) .period-time,
+:global(body.teacher-dark-mode) .empty-text {
+  color: #cbd5e1;
+}
+
+:global(body.teacher-dark-mode) .upcoming-date {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+
+:global(body.teacher-dark-mode) .upcoming-time,
+:global(body.teacher-dark-mode) .view-all-link,
+:global(body.teacher-dark-mode) .card-header i,
+:global(body.teacher-dark-mode) .quick-action-btn i {
+  color: #93c5fd;
 }
 </style>

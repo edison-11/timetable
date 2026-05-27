@@ -20,6 +20,7 @@
           :to="item.to"
           class="nav-item"
           :class="{ active: isActive(item.to) }"
+          :data-label="item.label"
           :aria-current="isActive(item.to) ? 'page' : undefined"
           :title="item.label"
           @click="closeMobileSidebar"
@@ -74,7 +75,11 @@
               :aria-expanded="showNotifications"
               @click="toggleNotifications"
             >
-              <span class="bell-icon" aria-hidden="true"></span>
+              <span class="bell-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m4 0a3 3 0 1 1-6 0h6Z"/>
+                </svg>
+              </span>
               <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
             </button>
 
@@ -403,16 +408,16 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  padding: 1.1rem 0.95rem 0.95rem;
+  padding: 1.35rem 0.95rem 1.15rem;
   border-bottom: 1px solid #e3ebf7;
   margin-bottom: 0.9rem;
-  min-height: 94px;
+  min-height: 126px;
 }
 
 .brand-mark {
-  flex: 0 0 78px;
-  width: 78px;
-  height: 78px;
+  flex: 0 0 110px;
+  width: 110px;
+  height: 110px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -738,37 +743,19 @@ onBeforeUnmount(() => {
 }
 
 .bell-icon {
-  position: relative;
-  width: 16px;
-  height: 18px;
-  border: 2px solid currentColor;
-  border-bottom: none;
-  border-radius: 10px 10px 4px 4px;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
 }
 
-.bell-icon::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  width: 6px;
-  height: 5px;
-  border-radius: 6px 6px 0 0;
-  border: 2px solid currentColor;
-  border-bottom: none;
-  transform: translateX(-50%);
-}
-
-.bell-icon::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -5px;
-  width: 6px;
-  height: 6px;
-  background: currentColor;
-  border-radius: 50%;
-  transform: translateX(-50%);
+.bell-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .badge {
@@ -1047,7 +1034,8 @@ onBeforeUnmount(() => {
 
 <style>
 body.teacher-sidebar-collapsed .teacher-sidebar {
-  width: 72px;
+  width: 88px;
+  overflow: visible;
 }
 
 .teacher-content {
@@ -1055,14 +1043,14 @@ body.teacher-sidebar-collapsed .teacher-sidebar {
 }
 
 body.teacher-sidebar-collapsed .teacher-main {
-  margin-left: 72px;
+  margin-left: 88px;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-brand {
   justify-content: center;
   min-height: 0;
   margin-bottom: 0.25rem;
-  padding: 0.5rem 0;
+  padding: 0.75rem 0;
   gap: 0;
 }
 
@@ -1077,7 +1065,10 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-label {
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .brand-mark {
-  display: none;
+  flex-basis: 50px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-watch-wrapper {
@@ -1096,6 +1087,32 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item {
   transform: none;
   background: transparent;
   border-color: transparent;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 0.65rem);
+  top: 50%;
+  z-index: 500;
+  min-width: max-content;
+  padding: 0.45rem 0.65rem;
+  border-radius: 7px;
+  background: #172033;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.22);
+  font-size: 0.78rem;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover::after,
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::before {

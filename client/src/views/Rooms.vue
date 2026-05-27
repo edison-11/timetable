@@ -84,6 +84,18 @@
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Room"
+        :description="`Are you sure you want to permanently delete ${deleteDialog.room?.room_name || 'this room'}?`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="Boolean(deletingId)"
+        danger
+        @confirm="confirmDeleteRoom"
+      />
     </div>
   </AppLayout>
 </template>
@@ -93,6 +105,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const route = useRoute()
 const rooms = ref([])
@@ -101,6 +114,7 @@ const saving = ref(false)
 const deletingId = ref(null)
 const isEditing = ref(false)
 const showForm = ref(false)
+const deleteDialog = ref({ open: false, room: null })
 const message = ref('')
 const messageType = ref('success')
 
@@ -142,7 +156,7 @@ const loadRooms = async () => {
     const response = await api.get('/rooms')
     rooms.value = response.data.rooms || []
   } catch (error) {
-    showMessage(error.response?.data?.message || 'Failed to load rooms.', 'danger')
+    showMessage("We couldn't load rooms right now. Please try again.", 'danger')
   } finally {
     loading.value = false
   }
@@ -172,7 +186,7 @@ const saveRoom = async () => {
     closeForm()
   } catch (error) {
     const validationMessage = error.response?.data?.errors?.[0]?.msg
-    showMessage(validationMessage || error.response?.data?.message || 'Failed to save room.', 'danger')
+    showMessage(validationMessage || "We couldn't save this room. Please check the details and try again.", 'danger')
   } finally {
     saving.value = false
   }
@@ -184,16 +198,22 @@ const editRoom = (room) => {
   showForm.value = true
 }
 
-const deleteRoom = async (room) => {
-  if (!confirm(`Delete room "${room.room_name}"?`)) return
+const deleteRoom = (room) => {
+  deleteDialog.value = { open: true, room }
+}
+
+const confirmDeleteRoom = async () => {
+  const room = deleteDialog.value.room
+  if (!room) return
 
   deletingId.value = room.room_id
   try {
     await api.delete(`/rooms/${room.room_id}`)
     rooms.value = rooms.value.filter(item => item.room_id !== room.room_id)
     showMessage('Room deleted successfully.')
+    deleteDialog.value = { open: false, room: null }
   } catch (error) {
-    showMessage(error.response?.data?.message || 'Failed to delete room.', 'danger')
+    showMessage("We couldn't delete this room right now. Please try again.", 'danger')
   } finally {
     deletingId.value = null
   }

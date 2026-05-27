@@ -46,6 +46,10 @@
               <i class="bi bi-funnel"></i>
               <span>Filters</span>
             </button>
+            <button class="action-btn free-toggle-btn" :class="{ active: !showFreeSlots }" @click="showFreeSlots = !showFreeSlots" title="Toggle free periods">
+              <i class="bi bi-eye-slash"></i>
+              <span>{{ showFreeSlots ? 'Hide Free' : 'Show Free' }}</span>
+            </button>
             <button class="action-btn print-btn" @click="printTimetable" title="Print">
               <i class="bi bi-printer"></i>
               <span>Print</span>
@@ -805,6 +809,12 @@ onMounted(async () => {
   border-color: #2563eb;
   color: #2563eb;
   background: #f0f9ff;
+}
+
+.free-toggle-btn.active {
+  border-color: #16a34a;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .export-select {

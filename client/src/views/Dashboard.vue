@@ -18,38 +18,38 @@
 
       <!-- 4 Metric Cards -->
       <div class="metric-grid">
-        <div class="metric-card">
+        <router-link to="/timetable" class="metric-card">
           <div class="metric-icon blue" v-html="icons.calendar"></div>
           <div class="metric-copy">
             <span>Total Timetables</span>
             <strong>{{ dashboardStats.timetables }}</strong>
             <small>All departments</small>
           </div>
-        </div>
-        <div class="metric-card">
+        </router-link>
+        <router-link to="/modules" class="metric-card">
           <div class="metric-icon green" v-html="icons.book"></div>
           <div class="metric-copy">
             <span>Total Subjects</span>
             <strong>{{ dashboardStats.modules }}</strong>
             <small>Across all classes</small>
           </div>
-        </div>
-        <div class="metric-card">
+        </router-link>
+        <router-link to="/teachers" class="metric-card">
           <div class="metric-icon violet" v-html="icons.teacher"></div>
           <div class="metric-copy">
             <span>Total Teachers</span>
             <strong>{{ dashboardStats.teachers }}</strong>
             <small>Active teachers</small>
           </div>
-        </div>
-        <div class="metric-card">
+        </router-link>
+        <router-link to="/rooms" class="metric-card">
           <div class="metric-icon amber" v-html="icons.room"></div>
           <div class="metric-copy">
             <span>Total Rooms</span>
             <strong>{{ dashboardStats.rooms }}</strong>
             <small>Available rooms</small>
           </div>
-        </div>
+        </router-link>
       </div>
 
       <!-- Weekly Timetable Overview - PANEL IMWE GUSA -->
@@ -235,7 +235,11 @@
                   <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
                 </div>
               </div>
-              <span class="notification-remove" @click.stop="deleteNotification(notification)">x</span>
+              <span class="notification-remove" @click.stop="deleteNotification(notification)">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 6l12 12M18 6 6 18"/>
+                </svg>
+              </span>
             </div>
           </div>
         </div>
@@ -817,6 +821,18 @@ onMounted(() => {
   border-radius: 8px;
   border: 1px solid #dbeafe;
   box-shadow: 0 10px 28px rgba(37, 99, 235, 0.06);
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.metric-card:hover,
+.metric-card:focus-visible {
+  border-color: #93c5fd;
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.14);
+  outline: none;
+  transform: translateY(-2px);
 }
 
 .metric-icon {

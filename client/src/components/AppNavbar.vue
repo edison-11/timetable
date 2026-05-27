@@ -47,7 +47,11 @@
           :aria-expanded="showNotifications"
           @click="toggleNotifications"
         >
-          <span class="bell-icon" aria-hidden="true"></span>
+          <span class="bell-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m4 0a3 3 0 1 1-6 0h6Z"/>
+            </svg>
+          </span>
           <span v-if="unreadCount" class="badge">{{ unreadCount }}</span>
       </button>
 
@@ -92,7 +96,9 @@
               @click.stop="deleteNotification(notification)"
               @keyup.enter.stop="deleteNotification(notification)"
             >
-              x
+              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 6l12 12M18 6 6 18"/>
+              </svg>
             </span>
           </div>
 
@@ -127,45 +133,20 @@
             </div>
           </div>
 
-          <form class="profile-form" @submit.prevent="saveProfile">
-            <label>
-              Profile Image
-              <input type="file" accept="image/*" @change="handleProfilePhotoChange">
-            </label>
-
-            <label>
-              {{ isTeacherAccount ? 'Teacher Name' : 'Admin Name' }}
-              <input v-model.trim="profileForm.name" type="text" minlength="3" required>
-            </label>
-
-            <label>
-              Email
-              <input v-model.trim="profileForm.email" type="email" required>
-            </label>
-
-            <label v-if="isTeacherAccount">
-              Department
-              <input v-model.trim="profileForm.department" type="text" required>
-            </label>
-
-            <label>
-              New Password
-              <input v-model="profileForm.password" type="password" minlength="6" placeholder="Leave blank to keep current">
-            </label>
-
-            <p v-if="profileMessage" class="profile-message" :class="{ error: profileError }">
-              {{ profileMessage }}
-            </p>
-
-            <div class="account-actions">
-              <button class="save-profile-btn" type="submit" :disabled="savingProfile">
-                {{ savingProfile ? 'Saving...' : 'Save Profile' }}
-              </button>
-              <button class="logout-btn" type="button" @click="logout">
-                Logout
-              </button>
-            </div>
-          </form>
+          <nav class="account-links" aria-label="Account navigation">
+            <router-link :to="isTeacherAccount ? '/teacher/profile' : '/settings'" class="account-link" @click="showAccountMenu = false">
+              View Profile
+            </router-link>
+            <router-link :to="isTeacherAccount ? '/teacher/settings' : '/settings'" class="account-link" @click="showAccountMenu = false">
+              Settings
+            </router-link>
+            <button class="account-link" type="button" @click="goToDashboardNotifications">
+              Notifications
+            </button>
+            <button class="account-link danger" type="button" @click="logout">
+              Logout
+            </button>
+          </nav>
         </div>
       </div>
     </div>
@@ -187,18 +168,6 @@ const sidebarOpen = ref(false)
 const isDarkMode = ref(false)
 const notificationsMenu = ref(null)
 const accountMenu = ref(null)
-const selectedProfilePhoto = ref(null)
-const profilePreviewUrl = ref('')
-const savingProfile = ref(false)
-const profileMessage = ref('')
-const profileError = ref(false)
-const profileForm = ref({
-  name: '',
-  email: '',
-  department: '',
-  password: '',
-  profile_photo: ''
-})
 const notifications = ref([])
 const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
 
@@ -211,7 +180,7 @@ const profileInitials = computed(() => {
   const name = currentUserName.value.trim()
   return name ? name.slice(0, 1).toUpperCase() : 'A'
 })
-const profileImageUrl = computed(() => profilePreviewUrl.value || resolveAssetUrl(currentUser.value.profile_photo))
+const profileImageUrl = computed(() => resolveAssetUrl(currentUser.value.profile_photo))
 
 const resolveAssetUrl = (path) => {
   if (!path) return ''
@@ -220,22 +189,6 @@ const resolveAssetUrl = (path) => {
 
   const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
   return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
-}
-
-const hydrateProfileForm = ({ clearStatus = true } = {}) => {
-  profileForm.value = {
-    name: currentUser.value.name || currentUser.value.username || '',
-    email: currentUser.value.email || '',
-    department: currentUser.value.department || '',
-    password: '',
-    profile_photo: currentUser.value.profile_photo || ''
-  }
-  selectedProfilePhoto.value = null
-  profilePreviewUrl.value = ''
-  if (clearStatus) {
-    profileMessage.value = ''
-    profileError.value = false
-  }
 }
 
 const toggleSidebar = () => {
@@ -391,97 +344,8 @@ const goToDashboardNotifications = () => {
 }
 
 const toggleAccountMenu = () => {
-  if (!showAccountMenu.value) {
-    hydrateProfileForm()
-  }
-
   showAccountMenu.value = !showAccountMenu.value
   showNotifications.value = false
-}
-
-const handleProfilePhotoChange = (event) => {
-  const file = event.target.files?.[0]
-  if (!file) return
-
-  if (profilePreviewUrl.value.startsWith('blob:')) {
-    URL.revokeObjectURL(profilePreviewUrl.value)
-  }
-
-  selectedProfilePhoto.value = file
-  profilePreviewUrl.value = URL.createObjectURL(file)
-}
-
-const saveProfile = async () => {
-  savingProfile.value = true
-  profileMessage.value = ''
-  profileError.value = false
-
-  try {
-    const displayName = profileForm.value.name.trim()
-    const email = profileForm.value.email.trim()
-    const department = profileForm.value.department.trim()
-
-    if (displayName.length < 3) {
-      throw new Error(`${isTeacherAccount.value ? 'Teacher name' : 'Admin name'} must be at least 3 characters`)
-    }
-
-    if (!email) {
-      throw new Error('Email is required')
-    }
-
-    if (isTeacherAccount.value && !department) {
-      throw new Error('Department is required')
-    }
-
-    let profilePhotoPath = currentUser.value.profile_photo || null
-
-    if (selectedProfilePhoto.value) {
-      const formData = new FormData()
-      formData.append('photo', selectedProfilePhoto.value)
-      const uploadResponse = await api.post('/upload/profile-photo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      profilePhotoPath = uploadResponse.data.photo.path
-    } else if (!profileForm.value.profile_photo) {
-      profilePhotoPath = null
-    }
-
-    const payload = isTeacherAccount.value
-      ? {
-          name: displayName,
-          email,
-          department,
-          profile_photo: profilePhotoPath
-        }
-      : {
-          username: displayName,
-          email,
-          profile_photo: profilePhotoPath
-        }
-
-    if (profileForm.value.password) {
-      payload.password = profileForm.value.password
-    }
-
-    const result = await authStore.updateProfile(payload)
-
-    if (!result.success) {
-      throw new Error(result.error)
-    }
-
-    selectedProfilePhoto.value = null
-    if (profilePreviewUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(profilePreviewUrl.value)
-    }
-    profilePreviewUrl.value = ''
-    profileMessage.value = 'Profile updated successfully'
-    await fetchNotifications()
-  } catch (error) {
-    profileError.value = true
-    profileMessage.value = error.response?.data?.message || error.message || 'Profile update failed'
-  } finally {
-    savingProfile.value = false
-  }
 }
 
 const closeMenusOnOutsideClick = (event) => {
@@ -505,7 +369,6 @@ const syncSidebarState = () => {
 onMounted(() => {
   isDarkMode.value = JSON.parse(localStorage.getItem('adminDarkMode') || 'false')
   applyDarkMode()
-  hydrateProfileForm()
   fetchNotifications()
   syncSidebarState()
   document.addEventListener('click', closeMenusOnOutsideClick)
@@ -607,7 +470,7 @@ const logout = () => {
 .app-title-block strong {
   overflow: hidden;
   color: #111827;
-  font-size: clamp(1.25rem, 2.1vw, 1.85rem);
+  font-size: clamp(1.5rem, 2.8vw, 2.15rem);
   font-weight: 950;
   letter-spacing: 0;
   line-height: 1;
@@ -774,37 +637,19 @@ const logout = () => {
 }
 
 .bell-icon {
-  position: relative;
-  width: 16px;
-  height: 18px;
-  border: 2px solid currentColor;
-  border-bottom: none;
-  border-radius: 10px 10px 4px 4px;
+  display: inline-flex;
+  width: 20px;
+  height: 20px;
 }
 
-.bell-icon::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: 50%;
-  width: 6px;
-  height: 5px;
-  border-radius: 6px 6px 0 0;
-  border: 2px solid currentColor;
-  border-bottom: none;
-  transform: translateX(-50%);
-}
-
-.bell-icon::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -5px;
-  width: 6px;
-  height: 6px;
-  background: currentColor;
-  border-radius: 50%;
-  transform: translateX(-50%);
+.bell-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .badge {
@@ -1077,90 +922,44 @@ const logout = () => {
   overflow: hidden;
 }
 
-.profile-form {
+.account-links {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.35rem;
   padding-top: 0.9rem;
 }
 
-.profile-form label {
-  display: grid;
-  gap: 0.35rem;
-  color: #1f2937;
-  font-size: 0.78rem;
-  font-weight: 800;
-}
-
-.profile-form input {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 0.5rem 0.65rem;
-  color: #1f2937;
-  font: inherit;
-  font-weight: 600;
-  background: #ffffff;
-}
-
-.profile-form input:focus {
-  border-color: #3498db;
-  outline: 3px solid rgba(52, 152, 219, 0.2);
-}
-
-.profile-message {
-  margin: 0;
-  color: #059669;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-
-.profile-message.error {
-  color: #dc2626;
-}
-
-.account-actions {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.75rem;
+.account-link {
+  display: flex;
   align-items: center;
-}
-
-.save-profile-btn,
-.logout-btn {
-  min-height: 38px;
-  border: none;
+  min-height: 42px;
+  width: 100%;
+  border: 0;
   border-radius: 8px;
-  padding: 0 0.85rem;
+  background: transparent;
+  color: #334155;
+  padding: 0 0.8rem;
+  text-align: left;
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 0.88rem;
   cursor: pointer;
-  font-weight: 800;
-  font-size: 0.85rem;
 }
 
-.save-profile-btn {
-  background: #3498db;
-  color: white;
-  transition: background 0.2s ease;
-}
-
-.save-profile-btn:hover:not(:disabled) {
-  background: #2980b9;
-}
-
-.save-profile-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.logout-btn {
+.account-link:hover,
+.account-link:focus-visible {
   background: #f1f5f9;
-  color: #dc2626;
-  font-weight: 800;
-  transition: background 0.2s ease;
+  color: #2563eb;
+  outline: none;
 }
 
-.logout-btn:hover {
+.account-link.danger {
+  color: #dc2626;
+}
+
+.account-link.danger:hover,
+.account-link.danger:focus-visible {
   background: #fee2e2;
+  color: #b91c1c;
 }
 
 @media (max-width: 768px) {
@@ -1188,7 +987,7 @@ const logout = () => {
 
 <style>
 body.sidebar-collapsed .app-navbar {
-  left: 72px;
+  left: 88px;
 }
 
 body.admin-dark-mode .app-navbar {
@@ -1272,13 +1071,12 @@ body.admin-dark-mode .account-header {
 }
 
 body.admin-dark-mode .account-header strong,
-body.admin-dark-mode .notification-item strong,
-body.admin-dark-mode .profile-form label {
+body.admin-dark-mode .notification-item strong {
   color: #f8fafc;
 }
 
 body.admin-dark-mode .notification-item,
-body.admin-dark-mode .profile-form input,
+body.admin-dark-mode .account-link,
 body.admin-dark-mode .app-account-action {
   background: #0f172a;
   color: #e2e8f0;
@@ -1291,7 +1089,13 @@ body.admin-dark-mode .notification-item.unread {
   background: #172554;
 }
 
-body.admin-dark-mode .logout-btn {
-  background: #1f2937;
+body.admin-dark-mode .account-link:hover,
+body.admin-dark-mode .account-link:focus-visible {
+  background: #172554;
+  color: #dbeafe;
+}
+
+body.admin-dark-mode .account-link.danger {
+  color: #fecaca;
 }
 </style>
