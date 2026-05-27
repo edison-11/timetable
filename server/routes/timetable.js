@@ -377,18 +377,26 @@ const rankAssignmentsByWeeklyTarget = (
       const target = weeklyTargets.get(assignment.assignment_id) || 1;
       const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
       const remaining = Math.max(target - scheduled, 0);
+
+      // Heavily prioritize large modules with many periods remaining to claim large blocks early
+      const intensityBonus = target > 4 ? (remaining / target) * 3.5 : 0;
       const teacherBonus = preferredTeacherId
         && Number(assignment.teacher_id) === Number(preferredTeacherId)
-        ? 0.35
+        ? 0.85
         : 0;
+      const blockSizeBonus = getDesiredBlockSize(assignment, weeklyTargets) * 0.6;
+      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 60, 1.0);
 
       return {
         assignment,
-        score: remaining + teacherBonus
+        score: remaining + intensityBonus + teacherBonus + blockSizeBonus + hoursBonus
       };
     })
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
+      const aDesired = getDesiredBlockSize(a.assignment, weeklyTargets);
+      const bDesired = getDesiredBlockSize(b.assignment, weeklyTargets);
+      if (bDesired !== aDesired) return bDesired - aDesired;
       const aTie = tieBreakers.get(a.assignment.assignment_id) || 0;
       const bTie = tieBreakers.get(b.assignment.assignment_id) || 0;
       if (bTie !== aTie) return bTie - aTie;
@@ -397,11 +405,24 @@ const rankAssignmentsByWeeklyTarget = (
     .map((item) => item.assignment);
 };
 
-const getDesiredBlockSize = (assignment) => {
+const getDesiredBlockSize = (assignment, weeklyTargets = null) => {
   const periodsPerYear = Number(assignment.hours_per_year || 0);
+
   if (periodsPerYear > 100) return 3;
-  if (periodsPerYear > 50) return 2;
+  if (periodsPerYear >= 50) return 2;
   return 1;
+};
+
+const areAdjacentLessonSlots = (previous, next) => {
+  if (!previous || !next || previous.day_of_week !== next.day_of_week) return false;
+
+  const previousSlot = Number(previous.slot_number || 0);
+  const nextSlot = Number(next.slot_number || 0);
+  if (previousSlot > 0 && nextSlot > 0) {
+    return nextSlot === previousSlot + 1;
+  }
+
+  return normalizeTime(previous.end_time) === normalizeTime(next.start_time);
 };
 
 const getConsecutiveSlots = (items, startIndex, desiredCount) => {
@@ -413,9 +434,7 @@ const getConsecutiveSlots = (items, startIndex, desiredCount) => {
     const previous = slots[slots.length - 1];
     const next = items[startIndex + offset];
 
-    if (!next
-      || next.day_of_week !== first.day_of_week
-      || normalizeTime(previous.end_time) !== normalizeTime(next.start_time)) {
+    if (!areAdjacentLessonSlots(previous, next)) {
       break;
     }
 
@@ -746,11 +765,10 @@ router.post('/generate', adminAuth, [
           currentBlock?.assignment?.teacher_id,
           assignmentTieBreakers
         );
-        const isAdjacentToCurrentBlock = currentBlock
-          && normalizeTime(currentBlock.end_time) === normalizeTime(item.start_time);
+        const isAdjacentToCurrentBlock = areAdjacentLessonSlots(currentBlock, item);
 
         if (currentBlock?.assignment) {
-          const desiredBlockSize = getDesiredBlockSize(currentBlock.assignment);
+          const desiredBlockSize = getDesiredBlockSize(currentBlock.assignment, weeklyTargets);
           const currentTarget = weeklyTargets.get(currentBlock.assignment.assignment_id) || 0;
           const currentScheduled = scheduledCounts.get(currentBlock.assignment.assignment_id) || 0;
           const remainingTarget = currentTarget - currentScheduled;
@@ -774,7 +792,7 @@ router.post('/generate', adminAuth, [
         if (!scheduledAssignment) {
           for (const assignment of rankedAssignments) {
             const wouldExceedCurrentBlock = currentBlock?.assignment?.assignment_id === assignment.assignment_id
-              && currentBlock.count >= getDesiredBlockSize(assignment);
+              && currentBlock.count >= getDesiredBlockSize(assignment, weeklyTargets);
             const teacherCountsForDay = dayTeacherCounts.get(item.day_of_week) || new Map();
             const teacherAlreadyUsedToday = (teacherCountsForDay.get(assignment.teacher_id) || 0) > 0;
             const isContinuingSameTeacher = currentBlock?.assignment
@@ -790,7 +808,7 @@ router.post('/generate', adminAuth, [
               continue;
             }
 
-            const desiredBlockSize = getDesiredBlockSize(assignment);
+            const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
             const target = weeklyTargets.get(assignment.assignment_id) || 0;
             const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
             const remainingTarget = Math.max(target - scheduled, 0);
@@ -871,6 +889,7 @@ router.post('/generate', adminAuth, [
           dayBlockState.set(slot.day_of_week, {
             assignment: scheduledAssignment,
             end_time: slot.end_time,
+            slot_number: slot.slot_number,
             count: slotCurrentBlock?.assignment?.assignment_id === scheduledAssignment.assignment_id
               ? slotCurrentBlock.count + 1
               : 1
@@ -1141,4 +1160,3 @@ router.delete('/:id', adminAuth, async (req, res) => {
 });
 
 module.exports = router;
-

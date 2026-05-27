@@ -314,7 +314,8 @@ import TeacherLayout from '@/components/TeacherLayout.vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
-import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
+import { buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
+import { SCHOOL_DAYS, getSchoolDayName, getSchoolWeekDate, getMondayOfWeek } from '@/utils/dayHelpers'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -334,7 +335,7 @@ const timetableSettings = ref(null)
 const loading = ref(false)
 const loadError = ref('')
 
-const days = FIXED_DAYS
+const days = SCHOOL_DAYS
 const moduleColors = ['#3b82f6', '#14b8a6', '#f59e0b', '#8b5cf6', '#ec4899', '#22c55e', '#06b6d4', '#f97316']
 
 const currentTeacherId = computed(() => authStore.currentUser?.teacher_id || authStore.currentUser?.id || null)
@@ -389,8 +390,7 @@ const classes = computed(() => {
 
 const formattedWeek = computed(() => {
   const today = new Date()
-  const start = new Date(today)
-  start.setDate(today.getDate() - today.getDay() + 1)
+  const start = getMondayOfWeek(today)
   const end = new Date(start)
   end.setDate(start.getDate() + 4)
 
@@ -429,21 +429,12 @@ const allLessons = computed(() => {
 })
 
 const getDayDate = (day) => {
-  const today = new Date()
-  const start = new Date(today)
-  start.setDate(today.getDate() - today.getDay() + 1)
-
-  const dayIndex = days.indexOf(day)
-  const date = new Date(start)
-  date.setDate(start.getDate() + dayIndex)
-
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const date = getSchoolWeekDate(day, new Date())
+  return date ? date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
 }
 
 const isToday = (day) => {
-  const today = new Date()
-  const todayName = days[today.getDay() === 0 ? 6 : today.getDay() - 1]
-  return day === todayName
+  return day === getSchoolDayName(new Date())
 }
 
 const getDayLessons = (day) => {

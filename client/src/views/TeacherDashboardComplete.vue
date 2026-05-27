@@ -129,6 +129,7 @@ import { useRouter } from 'vue-router'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import { SCHOOL_DAYS, getSchoolDayName, getNextSchoolWeekDate } from '@/utils/dayHelpers'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -212,8 +213,8 @@ const getDayName = (day) => {
   return typeof day === 'number' ? days[day] : day
 }
 
-const schoolDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-const todayName = () => schoolDays[new Date().getDay() - 1] || ''
+const schoolDays = SCHOOL_DAYS
+const todayName = () => getSchoolDayName(new Date()) || ''
 
 const normalizeTime = (time) => String(time || '').slice(0, 5)
 
@@ -234,17 +235,7 @@ const compactList = (items) => {
 }
 
 const getNextDateForDay = (dayName) => {
-  const dayIndex = schoolDays.indexOf(dayName)
-  if (dayIndex === -1) return new Date()
-
-  const today = new Date()
-  const currentSchoolIndex = today.getDay() - 1
-  let offset = dayIndex - currentSchoolIndex
-  if (offset < 0) offset += 7
-
-  const date = new Date(today)
-  date.setDate(today.getDate() + offset)
-  return date
+  return getNextSchoolWeekDate(dayName, new Date()) || new Date()
 }
 
 const navigateTo = (path) => {

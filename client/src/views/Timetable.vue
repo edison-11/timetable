@@ -388,26 +388,30 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in buildTimetableGridWithBreaks(group)" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
+                <tr v-for="row in buildDisplayTimetableGrid(group)" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
                   <td class="period-col" :class="row.breakType">
                     <span v-if="row.type === 'break'" class="break-label">{{ row.label }}</span>
                     <span v-else>{{ row.period }}</span>
                   </td>
                   <td class="time-col" :class="row.breakType">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
                   <td v-if="row.type === 'break'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
-                  <td v-for="day in days" v-else :key="day">
-                    <div
-                      v-if="row.entriesByDay[day]"
-                      class="module-cell"
-                      :class="{ 'activity-cell': row.entriesByDay[day].entry_type === 'activity' }"
-                      :data-module="row.entriesByDay[day].module_name"
-                    >
-                      <strong>{{ row.entriesByDay[day].module_name }}</strong>
-                      <small>{{ row.entriesByDay[day].teacher_name || (row.entriesByDay[day].entry_type === 'activity' ? 'Shared activity' : '') }}</small>
-                      <span v-if="row.entriesByDay[day].entry_type !== 'activity'" class="room-badge">{{ row.entriesByDay[day].room_name || row.entriesByDay[day].room || group.room_name || 'TBA' }}</span>
-                    </div>
-                    <span v-else class="empty-slot"></span>
-                  </td>
+                  <template v-else>
+                    <template v-for="day in days" :key="day">
+                      <td v-if="!row.cellsByDay?.[day]?.skip" :rowspan="row.cellsByDay?.[day]?.rowspan || 1">
+                        <div
+                          v-if="row.cellsByDay?.[day]?.entry"
+                          class="module-cell"
+                          :class="{ 'activity-cell': row.cellsByDay[day].entry.entry_type === 'activity' }"
+                          :data-module="row.cellsByDay[day].entry.module_name"
+                        >
+                          <strong>{{ row.cellsByDay[day].entry.module_name }}</strong>
+                          <small>{{ row.cellsByDay[day].entry.teacher_name || (row.cellsByDay[day].entry.entry_type === 'activity' ? 'Shared activity' : '') }}</small>
+                          <span v-if="row.cellsByDay[day].entry.entry_type !== 'activity'" class="room-badge">{{ row.cellsByDay[day].entry.room_name || row.cellsByDay[day].entry.room || group.room_name || 'TBA' }}</span>
+                        </div>
+                        <span v-else class="empty-slot"></span>
+                      </td>
+                    </template>
+                  </template>
                 </tr>
               </tbody>
             </table>
@@ -429,7 +433,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-import { exportToPDF, exportToICal } from '@/utils/exportTimetable'
+import { exportToPDF, exportMultipleTimetablesToPDF, exportToICal } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const route = useRoute()
@@ -772,6 +776,51 @@ const buildTimetableGridWithBreaks = (group) => {
   })
 }
 
+const areSameDisplayBlock = (first, second) => {
+  if (!first || !second) return false
+  if ((first.entry_type || 'lesson') !== (second.entry_type || 'lesson')) return false
+  if (String(first.assignment_id || '') && String(second.assignment_id || '')) {
+    return String(first.assignment_id) === String(second.assignment_id)
+  }
+  return String(first.module_name || '') === String(second.module_name || '')
+    && String(first.teacher_id || first.teacher_name || '') === String(second.teacher_id || second.teacher_name || '')
+    && String(first.room_id || first.room_name || first.room || '') === String(second.room_id || second.room_name || second.room || '')
+}
+
+const buildDisplayTimetableGrid = (group) => {
+  const rows = buildTimetableGridWithBreaks(group)
+  return rows.map((row, rowIndex) => {
+    if (row.type === 'break') return row
+
+    const cellsByDay = {}
+    days.forEach((day) => {
+      const entry = row.entriesByDay?.[day]
+      if (!entry) {
+        cellsByDay[day] = { entry: null, rowspan: 1, skip: false }
+        return
+      }
+
+      const previousRow = rows[rowIndex - 1]
+      const previousEntry = previousRow?.type === 'period' ? previousRow.entriesByDay?.[day] : null
+      if (areSameDisplayBlock(previousEntry, entry)) {
+        cellsByDay[day] = { entry, rowspan: 1, skip: true }
+        return
+      }
+
+      let rowspan = 1
+      for (let nextIndex = rowIndex + 1; nextIndex < rows.length; nextIndex += 1) {
+        const nextRow = rows[nextIndex]
+        if (nextRow.type !== 'period' || !areSameDisplayBlock(entry, nextRow.entriesByDay?.[day])) break
+        rowspan += 1
+      }
+
+      cellsByDay[day] = { entry, rowspan, skip: false }
+    })
+
+    return { ...row, cellsByDay }
+  })
+}
+
 const escapeCsvValue = (value) => {
   const text = String(value ?? '')
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
@@ -968,13 +1017,20 @@ const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) =
   const selectedFormat = String(format || 'csv').toLowerCase()
 
   if (selectedFormat === 'pdf') {
-    groups.forEach((group) => {
+    if (groups.length === 1) {
+      const group = groups[0]
       exportToPDF(
         group.entries,
         group.class_name || `Class ${group.class_id}`,
         getExportOptions(group)
       )
-    })
+    } else {
+      exportMultipleTimetablesToPDF(
+        groups,
+        getExportBaseName(groups),
+        groups.map((group) => getExportOptions(group))
+      )
+    }
     assignmentMessage.value = groups.length > 1 ? 'PDF timetables downloaded.' : 'PDF timetable downloaded.'
   } else if (selectedFormat === 'xls') {
     downloadBlob(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
@@ -2035,4 +2091,3 @@ fieldset:disabled {
   }
 }
 </style>
-

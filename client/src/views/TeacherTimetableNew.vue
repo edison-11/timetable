@@ -267,6 +267,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import { SCHOOL_DAYS, getSchoolDayName, getSchoolWeekDate } from '@/utils/dayHelpers'
 
 const viewMode = ref('week')
 const showFilters = ref(false)
@@ -275,7 +276,7 @@ const selectedClass = ref('')
 const selectedDayView = ref('Monday')
 const showBreaks = ref(true)
 
-const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+const days = SCHOOL_DAYS
 
 // Sample timetable data
 const timetableData = {
@@ -408,19 +409,12 @@ const allLessons = computed(() => {
 })
 
 const isToday = (day) => {
-  const today = new Date()
-  const dayIndex = days.indexOf(day)
-  const todayIndex = (today.getDay() || 7) - 1
-  return dayIndex === todayIndex
+  return day === getSchoolDayName(new Date())
 }
 
 const getDayDate = (day) => {
-  const today = new Date()
-  const dayIndex = days.indexOf(day)
-  const date = new Date(today)
-  const currentDayOfWeek = (today.getDay() || 7) - 1
-  date.setDate(today.getDate() - currentDayOfWeek + dayIndex)
-  return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' })
+  const date = getSchoolWeekDate(day, new Date())
+  return date ? date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric' }) : ''
 }
 
 const shouldShowRow = (row) => {

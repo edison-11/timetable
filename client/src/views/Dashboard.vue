@@ -243,7 +243,7 @@
         <!-- Academic Year -->
         <div class="academic-card">
           <span>Academic Year</span>
-          <strong>2023 - 2024</strong>
+          <strong>{{ currentAcademicYear }}</strong>
         </div>
       </div>
     </div>
@@ -256,8 +256,25 @@ import AppLayout from '@/components/AppLayout.vue'
 import api from '@/stores/api'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
-const weekRange = ref('May 8 - May 14, 2024')
 const days = FIXED_DAYS
+const today = new Date()
+
+const weekRange = computed(() => {
+  const start = new Date(today)
+  const dayOfWeek = (start.getDay() + 6) % 7
+  start.setDate(start.getDate() - dayOfWeek)
+
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+
+  const formatOptions = { month: 'short', day: 'numeric' }
+  return `${start.toLocaleDateString('en-US', formatOptions)} - ${end.toLocaleDateString('en-US', formatOptions)}`
+})
+
+const currentAcademicYear = computed(() => {
+  const year = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1
+  return `${year} - ${year + 1}`
+})
 const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
 const notifications = ref([])
