@@ -125,6 +125,7 @@
         </button>
 
         <h2>Create New Request</h2>
+        <p v-if="formMessage" class="form-message" role="alert">{{ formMessage }}</p>
 
         <form @submit.prevent="submitRequest" class="request-form">
           <!-- Request Type Selection -->
@@ -309,18 +310,31 @@
         </div>
       </div>
     </div>
+
+    <ConfirmModal
+      v-model="cancelDialog.open"
+      title="Cancel Request"
+      description="Are you sure you want to cancel this request? This cannot be undone."
+      confirm-label="Cancel Request"
+      cancel-label="Keep Request"
+      danger
+      @confirm="confirmCancelRequest"
+    />
   </TeacherLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import api from '@/stores/api'
 
 const activeTab = ref('All')
 const showNewRequestModal = ref(false)
 const showDetailsModal = ref(false)
 const selectedRequest = ref(null)
+const cancelDialog = ref({ open: false, id: null })
+const formMessage = ref('')
 const requests = ref([])
 const availableLessons = ref([])
 const availableRooms = ref(['101', '102', '103', '104', '105', '201', '202', '203', '204', '205'])
@@ -335,6 +349,10 @@ const newRequest = ref({
   reason: '',
   notes: ''
 })
+
+const persistRequests = () => {
+  localStorage.setItem('teacherRequests', JSON.stringify(requests.value))
+}
 
 const filteredRequests = computed(() => {
   if (activeTab.value === 'All') return requests.value
@@ -364,12 +382,13 @@ const formatDateTime = (date) => {
 }
 
 const submitRequest = () => {
+  formMessage.value = ''
   if (
     !newRequest.value.type ||
     !newRequest.value.lesson_id ||
     !newRequest.value.reason
   ) {
-    alert('Please fill in all required fields')
+    formMessage.value = 'Please fill in all required fields.'
     return
   }
 
@@ -388,6 +407,7 @@ const submitRequest = () => {
   }
 
   requests.value.unshift(request)
+  persistRequests()
 
   // Reset form
   newRequest.value = {
@@ -401,20 +421,23 @@ const submitRequest = () => {
   }
 
   showNewRequestModal.value = false
-  alert('Request submitted successfully!')
+  formMessage.value = ''
 }
 
 const cancelRequest = (id) => {
-  if (confirm('Are you sure you want to cancel this request?')) {
-    const index = requests.value.findIndex(r => r.id === id)
-    if (index > -1) {
-      requests.value.splice(index, 1)
-      if (showDetailsModal.value && selectedRequest.value?.id === id) {
-        showDetailsModal.value = false
-      }
-      alert('Request cancelled successfully')
+  cancelDialog.value = { open: true, id }
+}
+
+const confirmCancelRequest = () => {
+  const index = requests.value.findIndex(r => r.id === cancelDialog.value.id)
+  if (index > -1) {
+    requests.value.splice(index, 1)
+    persistRequests()
+    if (showDetailsModal.value && selectedRequest.value?.id === cancelDialog.value.id) {
+      showDetailsModal.value = false
     }
   }
+  cancelDialog.value = { open: false, id: null }
 }
 
 const viewRequestDetails = (request) => {
@@ -440,6 +463,15 @@ const resubmitRequest = (request) => {
 }
 
 const loadMockData = () => {
+  const savedRequests = localStorage.getItem('teacherRequests')
+  if (savedRequests) {
+    try {
+      requests.value = JSON.parse(savedRequests)
+    } catch (error) {
+      requests.value = []
+    }
+  }
+
   availableLessons.value = [
     { id: 1, subject: 'Mathematics', class: '10-A', time: '08:00 - 09:00', room: '101' },
     { id: 2, subject: 'English', class: '10-B', time: '09:00 - 10:00', room: '105' },
@@ -447,6 +479,8 @@ const loadMockData = () => {
     { id: 4, subject: 'Chemistry', class: '11-B', time: '11:30 - 12:30', room: '202' },
     { id: 5, subject: 'Biology', class: '12-A', time: '13:00 - 14:00', room: '301' }
   ]
+
+  if (requests.value.length) return
 
   requests.value = [
     {
@@ -501,6 +535,7 @@ const loadMockData = () => {
       admin_response: 'Cannot accommodate. Please work with admin office.'
     }
   ]
+  persistRequests()
 }
 
 onMounted(() => {
@@ -897,6 +932,15 @@ onMounted(() => {
   font-size: 1.5rem;
   margin: 0 0 1.5rem 0;
   color: #111827;
+}
+
+.form-message {
+  margin: -0.5rem 0 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 750;
 }
 
 .request-form {

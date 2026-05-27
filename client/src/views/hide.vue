@@ -11,7 +11,8 @@
 
         <div class="topbar-actions">
           <button class="notification-button" type="button" aria-label="Notifications">
-            <span class="notification-dot">{{ notificationCount }}</span>
+            <span class="bell-icon" aria-hidden="true" v-html="icons.bell"></span>
+            <span class="notification-count">{{ notificationCount }}</span>
           </button>
 
           <div class="topbar-user" aria-label="Current admin user">
@@ -69,7 +70,7 @@
           <section class="panel timetable-panel">
             <div class="panel-header">
               <div class="panel-title">
-                <span class="section-icon">W</span>
+                <span class="section-icon" v-html="icons.calendar"></span>
                 <h2>Weekly Timetable Overview</h2>
               </div>
               <div class="panel-actions">
@@ -119,7 +120,7 @@
           <div class="insight-grid">
             <section class="panel distribution-panel">
               <div class="panel-title">
-                <span class="section-icon">D</span>
+                <span class="section-icon" v-html="icons.chart"></span>
                 <h2>Timetable Distribution</h2>
               </div>
               <div class="distribution-body">
@@ -138,7 +139,7 @@
 
             <section class="panel room-panel">
               <div class="panel-title">
-                <span class="section-icon">R</span>
+                <span class="section-icon" v-html="icons.room"></span>
                 <h2>Room Utilization</h2>
               </div>
               <div class="utilization-meter">
@@ -160,7 +161,7 @@
 
             <section class="panel workload-panel">
               <div class="panel-title">
-                <span class="section-icon">T</span>
+                <span class="section-icon" v-html="icons.teacher"></span>
                 <h2>Teacher Workload</h2>
               </div>
               <div class="bar-chart">
@@ -176,19 +177,22 @@
         <aside class="dashboard-side">
           <section class="panel side-panel">
             <div class="panel-title">
-              <span class="section-icon">Q</span>
+              <span class="section-icon" v-html="icons.plus"></span>
               <h2>Quick Actions</h2>
             </div>
             <router-link v-for="action in quickActions" :key="action.label" :to="action.path" class="quick-action-row">
-              <span :class="action.tone">{{ action.icon }}</span>
-              <strong>{{ action.label }}</strong>
+              <span class="action-icon" :class="action.tone" v-html="icons[action.icon]"></span>
+              <div>
+                <strong>{{ action.label }}</strong>
+                <small>{{ action.hint }}</small>
+              </div>
             </router-link>
           </section>
 
           <section class="panel side-panel notifications-panel">
             <div class="panel-header compact">
               <div class="panel-title">
-                <span class="section-icon">N</span>
+                <span class="section-icon" v-html="icons.bell"></span>
                 <h2>Notifications</h2>
               </div>
               <button type="button">View All</button>
@@ -446,12 +450,23 @@ const dashboardNotifications = computed(() => {
   return items.slice(0, 4)
 })
 
+const icons = {
+  bell: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m4 0a3 3 0 1 1-6 0h6Z"/></svg>',
+  calendar: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 19V5M9 19V10M14 19V14M19 19V7M4 19h16"/></svg>',
+  room: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 19V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 1-2-2Z"/><path d="M8 9h8M8 13h8"/></svg>',
+  teacher: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM6 20a6 6 0 0 1 12 0"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14"/></svg>',
+  class: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 5h16v14H4z"/><path d="M4 9h16"/></svg>',
+  book: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v16H4z"/><path d="M8 7h8M8 11h8"/></svg>'
+}
+
 const quickActions = [
-  { label: 'Create Timetable', path: '/timetable', icon: '+', tone: 'blue' },
-  { label: 'Add Class', path: '/classes', icon: 'C', tone: 'green' },
-  { label: 'Add Subject', path: '/modules', icon: 'S', tone: 'violet' },
-  { label: 'Add Teacher', path: '/teachers', icon: 'T', tone: 'amber' },
-  { label: 'Assign Workload', path: '/assignments', icon: 'A', tone: 'rose' }
+  { label: 'Create Timetable', path: '/timetable', icon: 'plus', tone: 'blue', hint: 'Generate new timetable' },
+  { label: 'Add Class', path: '/classes', icon: 'class', tone: 'green', hint: 'Create new class' },
+  { label: 'Add Subject', path: '/modules', icon: 'book', tone: 'violet', hint: 'Create new subject' },
+  { label: 'Add Teacher', path: '/teachers', icon: 'teacher', tone: 'amber', hint: 'Register new teacher' },
+  { label: 'Assign Workload', path: '/assignments', icon: 'chart', tone: 'rose', hint: 'Assign classes to teachers' }
 ]
 
 const uniqueSlots = (entries) => {
@@ -571,35 +586,69 @@ onMounted(() => {
 
 .notification-button {
   position: relative;
-  width: 36px;
-  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-width: 56px;
+  height: 44px;
   border: 0;
-  border-radius: 50%;
+  border-radius: 50px;
   background: #eef5ff;
+  padding: 0 0.65rem;
+  cursor: pointer;
 }
 
-.notification-button::before {
-  content: '';
-  position: absolute;
-  inset: 9px 11px;
-  border: 2px solid #5f7194;
-  border-bottom-width: 4px;
-  border-radius: 12px 12px 8px 8px;
+.notification-button:hover,
+.notification-button:focus-visible {
+  background: #dbe9ff;
+  outline: none;
 }
 
-.notification-dot {
-  position: absolute;
-  top: -5px;
-  right: -5px;
+.bell-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+}
+
+.bell-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notification-count {
   min-width: 20px;
   height: 20px;
-  padding: 0 5px;
+  padding: 0 6px;
   border-radius: 999px;
   background: #2377f3;
   color: #fff;
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 20px;
+  text-align: center;
+}
+
+.action-icon,
+.section-icon svg {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+
+.action-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .dashboard-content {

@@ -38,7 +38,17 @@
 
       <div v-if="message" class="notice" :class="messageType">{{ message }}</div>
 
-      <section class="class-strip">
+      <LoadingState v-if="loadingClasses" :rows="3" />
+
+      <ErrorState
+        v-else-if="classesError"
+        title="Unable to Load Classes"
+        description="We're having trouble retrieving your classes right now. Please check your connection or try again."
+        :action-label="loadingClasses ? 'Retrying...' : 'Retry'"
+        @retry="loadClasses"
+      />
+
+      <section v-if="!loadingClasses && classes.length" class="class-strip">
         <button
           v-for="cls in classes"
           :key="cls.class_id"
@@ -51,7 +61,8 @@
         </button>
       </section>
 
-      <section class="attendance-table">
+      <section v-if="!classesError && !loadingClasses" class="attendance-table">
+        <LoadingState v-if="loadingStudents" :rows="5" />
         <table>
           <thead>
             <tr>
@@ -79,9 +90,12 @@
                 <input v-model="attendanceByStudent[student.student_id].notes" placeholder="Optional note">
               </td>
             </tr>
-            <tr v-if="!students.length">
+            <tr v-if="!loadingStudents && !students.length">
               <td colspan="5" class="empty-row">
-                {{ selectedClassId ? 'No students in this class yet.' : 'Choose a class to view students.' }}
+                <EmptyState
+                  :title="selectedClassId ? 'No students found for this class.' : 'Choose a class to view students.'"
+                  :description="selectedClassId ? 'Once students are assigned, they will appear here for attendance marking.' : 'Select a class above to begin marking attendance.'"
+                />
               </td>
             </tr>
           </tbody>
@@ -95,6 +109,9 @@
 import { onMounted, reactive, ref, watch } from 'vue'
 import api from '@/stores/api'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import ErrorState from '@/components/ui/ErrorState.vue'
+import LoadingState from '@/components/ui/LoadingState.vue'
 
 const classes = ref([])
 const students = ref([])
@@ -103,6 +120,9 @@ const attendanceDate = ref(new Date().toISOString().slice(0, 10))
 const periodLabel = ref('Period 1')
 const attendanceByStudent = reactive({})
 const saving = ref(false)
+const loadingClasses = ref(false)
+const loadingStudents = ref(false)
+const classesError = ref(false)
 const message = ref('')
 const messageType = ref('success')
 
@@ -165,10 +185,21 @@ const ensureAttendanceRows = () => {
 }
 
 const loadClasses = async () => {
-  const response = await api.get('/students/teacher/classes')
-  classes.value = response.data.classes || []
-  if (!selectedClassId.value && classes.value.length) {
-    selectedClassId.value = String(classes.value[0].class_id)
+  loadingClasses.value = true
+  classesError.value = false
+  message.value = ''
+  try {
+    const response = await api.get('/students/teacher/classes')
+    classes.value = response.data.classes || []
+    if (!selectedClassId.value && classes.value.length) {
+      selectedClassId.value = String(classes.value[0].class_id)
+    }
+  } catch (error) {
+    classes.value = []
+    students.value = []
+    classesError.value = true
+  } finally {
+    loadingClasses.value = false
   }
 }
 
@@ -177,31 +208,43 @@ const loadStudents = async () => {
   Object.keys(attendanceByStudent).forEach(key => delete attendanceByStudent[key])
   if (!selectedClassId.value) return
 
-  const response = await api.get(`/students/teacher/classes/${selectedClassId.value}/students`)
-  students.value = response.data.students || []
-  ensureAttendanceRows()
-  await loadAttendance()
+  loadingStudents.value = true
+  try {
+    const response = await api.get(`/students/teacher/classes/${selectedClassId.value}/students`)
+    students.value = response.data.students || []
+    ensureAttendanceRows()
+    await loadAttendance()
+  } catch (error) {
+    students.value = []
+    showMessage("We couldn't load the students for this class. Please try again.", 'error')
+  } finally {
+    loadingStudents.value = false
+  }
 }
 
 const loadAttendance = async () => {
   if (!selectedClassId.value || !attendanceDate.value) return
 
-  const response = await api.get('/students/attendance', {
-    params: {
-      class_id: selectedClassId.value,
-      attendance_date: attendanceDate.value,
-      period_label: periodLabel.value
-    }
-  })
+  try {
+    const response = await api.get('/students/attendance', {
+      params: {
+        class_id: selectedClassId.value,
+        attendance_date: attendanceDate.value,
+        period_label: periodLabel.value
+      }
+    })
 
-  ;(response.data.attendance || []).forEach((record) => {
-    attendanceByStudent[record.student_id] = {
-      student_id: record.student_id,
-      status: record.status,
-      notes: record.notes || '',
-      attendance_id: record.attendance_id
-    }
-  })
+    ;(response.data.attendance || []).forEach((record) => {
+      attendanceByStudent[record.student_id] = {
+        student_id: record.student_id,
+        status: record.status,
+        notes: record.notes || '',
+        attendance_id: record.attendance_id
+      }
+    })
+  } catch (error) {
+    showMessage("We couldn't load saved attendance for this period. You can still mark a fresh sheet.", 'error')
+  }
 }
 
 const saveAttendance = async () => {
@@ -223,7 +266,7 @@ const saveAttendance = async () => {
 
     showMessage('Attendance saved')
   } catch (error) {
-    showMessage(error.response?.data?.message || 'Could not save attendance', 'error')
+    showMessage("We couldn't save attendance right now. Please try again.", 'error')
   } finally {
     saving.value = false
   }
@@ -233,11 +276,7 @@ watch(selectedClassId, loadStudents)
 watch([attendanceDate, periodLabel], loadAttendance)
 
 onMounted(async () => {
-  try {
-    await loadClasses()
-  } catch (error) {
-    showMessage(error.response?.data?.message || 'Could not load teacher classes', 'error')
-  }
+  await loadClasses()
 })
 </script>
 
@@ -405,7 +444,6 @@ th {
 }
 
 .empty-row {
-  color: #64748b;
   text-align: center;
 }
 
@@ -415,5 +453,53 @@ th {
     grid-template-columns: 1fr;
     display: grid;
   }
+}
+
+:global(body.teacher-dark-mode) .attendance-page {
+  background: #020617;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .attendance-header,
+:global(body.teacher-dark-mode) .controls-panel,
+:global(body.teacher-dark-mode) .class-strip,
+:global(body.teacher-dark-mode) .attendance-table {
+  background: #111827;
+  border-color: #243244;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .attendance-header h1,
+:global(body.teacher-dark-mode) .table-empty strong {
+  color: #f8fafc;
+}
+
+:global(body.teacher-dark-mode) .attendance-header p,
+:global(body.teacher-dark-mode) label span,
+:global(body.teacher-dark-mode) .table-empty {
+  color: #cbd5e1;
+}
+
+:global(body.teacher-dark-mode) input,
+:global(body.teacher-dark-mode) select,
+:global(body.teacher-dark-mode) .class-strip button {
+  background: #0b1220;
+  border-color: #334155;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) th {
+  background: #0b1220;
+  color: #cbd5e1;
+}
+
+:global(body.teacher-dark-mode) td {
+  border-color: #243244;
+}
+
+:global(body.teacher-dark-mode) .class-strip button.active {
+  background: #172554;
+  color: #dbeafe;
+  border-color: #60a5fa;
 }
 </style>

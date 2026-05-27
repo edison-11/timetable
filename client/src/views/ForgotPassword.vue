@@ -254,11 +254,11 @@ onBeforeUnmount(() => {
   object-fit: contain;
   display: block;
   padding: 2px;
-  transform: scale(1.12);
+  transform: scale(1.15);
 }
 
 .auth-title {
-  font-size: clamp(1.45rem, 3.2vw, 1.8rem);
+  font-size: clamp(1.8rem, 4.2vw, 2.4rem);
   font-weight: 800;
   line-height: 1.08;
   letter-spacing: 0;

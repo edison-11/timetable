@@ -5,28 +5,14 @@
     <div class="container py-4">
       <div class="row">
         <div class="col-lg-8 mx-auto">
+          <div class="settings-intro mb-4">
+            <h1>Settings</h1>
+            <p>Manage application preferences, availability, and account security. Personal details now live in My Profile.</p>
+            <router-link to="/teacher/profile" class="profile-link">Go to My Profile</router-link>
+          </div>
+
           <!-- Tabs Navigation -->
           <ul class="nav nav-tabs mb-4" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                :class="{ active: activeTab === 'profile' }"
-                @click="activeTab = 'profile'"
-                type="button"
-              >
-                <i class="bi bi-person me-2"></i>Profile
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                :class="{ active: activeTab === 'teaching' }"
-                @click="activeTab = 'teaching'"
-                type="button"
-              >
-                <i class="bi bi-book me-2"></i>Teaching Info
-              </button>
-            </li>
             <li class="nav-item" role="presentation">
               <button
                 class="nav-link"
@@ -48,113 +34,6 @@
               </button>
             </li>
           </ul>
-
-          <!-- Profile Tab -->
-          <div v-if="activeTab === 'profile'" class="card shadow-sm">
-            <div class="card-header bg-white border-bottom">
-              <h5 class="card-title mb-0">Personal Information</h5>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="saveProfile">
-                <div class="row mb-4">
-                  <div class="col-md-4 text-center">
-                    <div class="profile-photo-container mb-3">
-                      <img v-if="profilePhotoUrl" :src="profilePhotoUrl" alt="Profile" class="profile-photo">
-                      <div v-else class="profile-photo-placeholder">
-                        {{ profileInitials }}
-                      </div>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      @change="handlePhotoChange"
-                      class="form-control form-control-sm"
-                    >
-                  </div>
-
-                  <div class="col-md-8">
-                    <div class="mb-3">
-                      <label class="form-label">Full Name</label>
-                      <input v-model.trim="formData.name" type="text" class="form-control" required>
-                    </div>
-
-                    <div class="mb-3">
-                      <label class="form-label">Email Address</label>
-                      <input v-model.trim="formData.email" type="email" class="form-control" required>
-                    </div>
-
-                    <div class="mb-3">
-                      <label class="form-label">Department</label>
-                      <input v-model.trim="formData.department" type="text" class="form-control" required>
-                    </div>
-
-                    <div class="mb-3">
-                      <label class="form-label">Employee ID</label>
-                      <input v-model.trim="formData.employee_id" type="text" class="form-control">
-                    </div>
-
-                    <div class="mb-3">
-                      <label class="form-label">Phone Number</label>
-                      <input v-model.trim="formData.phone" type="tel" class="form-control">
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="messages.profile" class="alert" :class="messagesClass.profile" role="alert">
-                  {{ messages.profile }}
-                </div>
-
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary" :disabled="loadingProfile">
-                    <span v-if="loadingProfile">Saving...</span>
-                    <span v-else>Save Changes</span>
-                  </button>
-                  <button type="button" class="btn btn-outline-secondary" @click="resetProfile">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- Teaching Info Tab -->
-          <div v-if="activeTab === 'teaching'" class="card shadow-sm">
-            <div class="card-header bg-white border-bottom">
-              <h5 class="card-title mb-0">Teaching Information</h5>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="saveTeachingInfo">
-                <div class="mb-3">
-                  <label class="form-label">Module / Subject</label>
-                  <input v-model.trim="formData.module_name" type="text" class="form-control" placeholder="Mathematics, Physics, etc.">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Qualification</label>
-                  <input v-model.trim="formData.qualification" type="text" class="form-control" placeholder="MSc, BEd, PhD">
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Years of Experience</label>
-                  <input v-model.number="formData.years_experience" type="number" min="0" class="form-control" placeholder="0">
-                </div>
-
-                <div v-if="messages.teaching" class="alert" :class="messagesClass.teaching" role="alert">
-                  {{ messages.teaching }}
-                </div>
-
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary" :disabled="loadingTeaching">
-                    <span v-if="loadingTeaching">Saving...</span>
-                    <span v-else>Save Changes</span>
-                  </button>
-                  <button type="button" class="btn btn-outline-secondary" @click="resetTeachingInfo">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
 
           <!-- Availability Tab -->
           <div v-if="activeTab === 'availability'" class="card shadow-sm">
@@ -290,6 +169,15 @@
       </div>
     </div>
   </div>
+
+  <ConfirmModal
+    v-model="deleteDialogOpen"
+    title="Delete Account"
+    description="Account deletion is not available yet. This action will be added after account recovery and audit protections are complete."
+    confirm-label="Got it"
+    cancel-label="Close"
+    @confirm="deleteDialogOpen = false"
+  />
   </TeacherLayout>
 </template>
 
@@ -298,26 +186,18 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const authStore = useAuthStore()
 
-const activeTab = ref('profile')
-const loadingProfile = ref(false)
-const loadingTeaching = ref(false)
+const activeTab = ref('availability')
 const loadingAvailability = ref(false)
 const loadingPassword = ref(false)
+const deleteDialogOpen = ref(false)
 
 const availableDaysOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
 
 const formData = ref({
-  name: '',
-  email: '',
-  department: '',
-  employee_id: '',
-  phone: '',
-  module_name: '',
-  qualification: '',
-  years_experience: null,
   available_days: '',
   available_from: '',
   available_to: '',
@@ -330,21 +210,15 @@ const passwordForm = ref({
 })
 
 const messages = ref({
-  profile: '',
-  teaching: '',
   availability: '',
   password: ''
 })
 
 const messagesClass = computed(() => ({
-  profile: messages.value.profile.includes('successfully') ? 'alert-success' : 'alert-danger',
-  teaching: messages.value.teaching.includes('successfully') ? 'alert-success' : 'alert-danger',
   availability: messages.value.availability.includes('successfully') ? 'alert-success' : 'alert-danger',
   password: messages.value.password.includes('successfully') ? 'alert-success' : 'alert-danger'
 }))
 
-const selectedProfilePhoto = ref(null)
-const profilePhotoUrl = ref('')
 const originalFormData = ref({})
 
 const availableDaysArray = computed({
@@ -354,21 +228,8 @@ const availableDaysArray = computed({
   }
 })
 
-const profileInitials = computed(() => {
-  const name = formData.value.name || authStore.currentUser?.name || ''
-  return name ? name.slice(0, 1).toUpperCase() : 'T'
-})
-
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
-
-const resolveAssetUrl = (path) => {
-  if (!path) return ''
-  if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path
-  if (path.startsWith('/uploads/')) return path
-  const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
-  return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
-}
 
 const loadTeacherData = async () => {
   try {
@@ -376,14 +237,6 @@ const loadTeacherData = async () => {
     const teacher = response.data.teacher
 
     formData.value = {
-      name: teacher.name || '',
-      email: teacher.email || '',
-      department: teacher.department || '',
-      employee_id: teacher.employee_id || '',
-      phone: teacher.phone || '',
-      module_name: teacher.module_name || '',
-      qualification: teacher.qualification || '',
-      years_experience: teacher.years_experience || null,
       available_days: teacher.available_days || '',
       available_from: teacher.available_from || '',
       available_to: teacher.available_to || '',
@@ -391,81 +244,9 @@ const loadTeacherData = async () => {
     }
 
     originalFormData.value = JSON.parse(JSON.stringify(formData.value))
-    profilePhotoUrl.value = resolveAssetUrl(teacher.profile_photo)
   } catch (error) {
     console.error('Failed to load teacher data:', error)
-    messages.value.profile = 'Failed to load profile data'
-  }
-}
-
-const handlePhotoChange = (event) => {
-  const file = event.target.files?.[0]
-  if (!file) return
-
-  if (profilePhotoUrl.value.startsWith('blob:')) {
-    URL.revokeObjectURL(profilePhotoUrl.value)
-  }
-
-  selectedProfilePhoto.value = file
-  profilePhotoUrl.value = URL.createObjectURL(file)
-}
-
-const saveProfile = async () => {
-  loadingProfile.value = true
-  messages.value.profile = ''
-
-  try {
-    let profilePhotoPath = authStore.currentUser?.profile_photo || null
-
-    if (selectedProfilePhoto.value) {
-      const uploadFormData = new FormData()
-      uploadFormData.append('photo', selectedProfilePhoto.value)
-      const uploadResponse = await api.post('/upload/profile-photo', uploadFormData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      profilePhotoPath = uploadResponse.data.photo.path
-    }
-
-    await api.put('/teacher-auth/me', {
-      name: formData.value.name,
-      email: formData.value.email,
-      department: formData.value.department,
-      employee_id: formData.value.employee_id,
-      phone: formData.value.phone,
-      profile_photo: profilePhotoPath
-    })
-
-    messages.value.profile = 'Profile updated successfully!'
-    selectedProfilePhoto.value = null
-    if (profilePhotoUrl.value.startsWith('blob:')) {
-      URL.revokeObjectURL(profilePhotoUrl.value)
-      profilePhotoUrl.value = ''
-    }
-    await authStore.checkAuth()
-  } catch (error) {
-    messages.value.profile = error.response?.data?.message || 'Failed to update profile'
-  } finally {
-    loadingProfile.value = false
-  }
-}
-
-const saveTeachingInfo = async () => {
-  loadingTeaching.value = true
-  messages.value.teaching = ''
-
-  try {
-    await api.put('/teacher-auth/me', {
-      module_name: formData.value.module_name,
-      qualification: formData.value.qualification,
-      yearsExperience: formData.value.years_experience
-    })
-
-    messages.value.teaching = 'Teaching information updated successfully!'
-    await authStore.checkAuth()
-  } catch (error) {
-    messages.value.teaching = error.response?.data?.message || 'Failed to update teaching info'
-  } finally {
-    loadingTeaching.value = false
+    messages.value.availability = 'Failed to load settings data'
   }
 }
 
@@ -524,18 +305,6 @@ const savePassword = async () => {
   }
 }
 
-const resetProfile = () => {
-  formData.value = JSON.parse(JSON.stringify(originalFormData.value))
-  messages.value.profile = ''
-}
-
-const resetTeachingInfo = () => {
-  formData.value.module_name = originalFormData.value.module_name
-  formData.value.qualification = originalFormData.value.qualification
-  formData.value.years_experience = originalFormData.value.years_experience
-  messages.value.teaching = ''
-}
-
 const resetAvailability = () => {
   formData.value.available_days = originalFormData.value.available_days
   formData.value.available_from = originalFormData.value.available_from
@@ -550,9 +319,7 @@ const resetPassword = () => {
 }
 
 const confirmDeleteAccount = () => {
-  if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-    alert('Account deletion feature coming soon.')
-  }
+  deleteDialogOpen.value = true
 }
 
 onMounted(() => {
@@ -612,5 +379,69 @@ onMounted(() => {
 
 .alert {
   border-radius: 8px;
+}
+
+.settings-intro {
+  padding: 1.25rem;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+}
+
+.settings-intro h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.45rem;
+}
+
+.settings-intro p {
+  margin: 0 0 0.75rem;
+  color: #64748b;
+}
+
+.profile-link {
+  color: #2563eb;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
+}
+
+:global(body.teacher-dark-mode) .teacher-settings-page {
+  background: #020617;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .settings-intro,
+:global(body.teacher-dark-mode) .card {
+  background: #111827;
+  border-color: #243244;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .settings-intro p,
+:global(body.teacher-dark-mode) .text-muted {
+  color: #cbd5e1 !important;
+}
+
+:global(body.teacher-dark-mode) .card-header {
+  background: #0b1220 !important;
+  border-color: #243244 !important;
+  color: #f8fafc;
+}
+
+:global(body.teacher-dark-mode) .nav-tabs {
+  border-color: #243244;
+}
+
+:global(body.teacher-dark-mode) .nav-tabs .nav-link {
+  color: #cbd5e1;
+}
+
+:global(body.teacher-dark-mode) .nav-tabs .nav-link.active {
+  background: #172554;
+  color: #dbeafe;
+  border-color: #60a5fa;
 }
 </style>

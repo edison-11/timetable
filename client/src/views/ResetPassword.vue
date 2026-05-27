@@ -166,6 +166,7 @@ onMounted(() => {
   object-fit: contain;
   display: block;
   padding: 6px;
+  transform: scale(1.15);
 }
 
 /* Password toggle alignment fix */

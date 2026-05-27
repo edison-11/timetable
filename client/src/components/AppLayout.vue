@@ -82,6 +82,6 @@ const closeSidebar = () => {
 
 <style>
 body.sidebar-collapsed .main-wrapper {
-  margin-left: 72px;
+  margin-left: 88px;
 }
 </style>

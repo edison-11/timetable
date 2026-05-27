@@ -1,259 +1,189 @@
 <template>
-  <div
-    class="min-vh-100 d-flex align-items-center justify-content-center p-3"
-    style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"
-  >
-    <div class="bg-white rounded-3 shadow-lg w-100" style="max-width: 450px;">
-      <!-- Header -->
-      <div class="text-center mb-4 p-4 pb-3">
-        <div
-          class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-2 brand-login-mark"
-          style="width: 112px; height: 112px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
-        >
-          <img class="brand-login-logo" src="/timetable-logo.png" alt="School logo" />
+  <div class="register-page min-vh-100 d-flex align-items-center justify-content-center p-3">
+    <div class="register-card w-100" :class="{ 'is-loading': loading }">
+      <div class="register-card-header">
+        <div class="brand-login-mark">
+          <img class="brand-login-logo" :src="logoUrl" alt="School logo" />
         </div>
-
-        <h1 class="auth-title text-dark mb-1">Register Account</h1>
-
-        <div class="mt-2 d-flex align-items-center justify-content-center gap-2 secure-row">
-          <span class="secure-lock" aria-hidden="true">📝</span>
-          <span class="text-muted small fw-semibold">Teacher Registration</span>
-        </div>
+        <h1 class="brand-title mb-0">Timetable Management System</h1>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="step === 'details' ? requestOtp() : verifyOtp()" class="px-4 pb-4">
-        <!-- Step Indicator -->
-        <div class="step-indicator mb-4">
-          <div class="step" :class="{ active: step === 'details' }">
-            <span>1</span>
-            <small>Details</small>
-          </div>
-          <div class="step-line"></div>
-          <div class="step" :class="{ active: step === 'otp' }">
-            <span>2</span>
-            <small>Verify</small>
-          </div>
-          <div class="step-line"></div>
-          <div class="step" :class="{ active: step === 'success' }">
-            <span>✓</span>
-            <small>Done</small>
-          </div>
-        </div>
+      <form @submit.prevent="step === 'details' ? requestOtp() : verifyOtp()" class="register-form">
+        <template v-if="step === 'details'">
+          <h2 class="form-title">Register</h2>
+          <div class="title-rule"></div>
 
-        <!-- Details Step -->
-        <transition name="fade-slide" mode="out-in">
-          <div v-if="step === 'details'" key="details">
-            <div class="mb-3">
-              <label for="fullName" class="form-label fw-medium">Full Name</label>
+          <div class="register-field">
+            <label for="fullName" class="form-label">Full Name</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon user-icon" aria-hidden="true"></span>
               <input
                 id="fullName"
                 v-model.trim="form.full_name"
                 type="text"
-                placeholder="Full legal name"
+                placeholder="Enter your full name"
                 required
-                class="form-control form-control-lg"
+                class="form-control"
               />
             </div>
+          </div>
 
-            <div class="mb-3">
-              <label for="email" class="form-label fw-medium">Email Address</label>
+          <div class="register-field">
+            <label for="email" class="form-label">Email</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon mail-icon" aria-hidden="true"></span>
               <input
                 id="email"
                 v-model.trim="form.email"
                 type="email"
-                placeholder="name@school.com"
+                placeholder="Enter your email address"
                 required
-                class="form-control form-control-lg"
+                class="form-control"
               />
             </div>
+          </div>
 
-            <div class="mb-3">
-              <label for="phone" class="form-label fw-medium">Phone Number</label>
+          <div class="register-field">
+            <label for="password" class="form-label">Password</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon lock-icon" aria-hidden="true"></span>
               <input
-                id="phone"
-                v-model.trim="form.phone"
-                type="tel"
-                placeholder="+265..."
+                id="password"
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="Enter your password..."
                 required
-                class="form-control form-control-lg"
+                class="form-control"
               />
+              <button
+                type="button"
+                class="password-toggle"
+                @click="showPassword = !showPassword"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                :title="showPassword ? 'Hide password' : 'Show password'"
+              >
+                <span class="eye-icon" :class="{ open: !showPassword }" aria-hidden="true"></span>
+              </button>
             </div>
+          </div>
 
-            <div class="mb-3">
-              <label for="role" class="form-label fw-medium">Role</label>
-              <select v-model="form.role" id="role" required class="form-control form-control-lg">
-                <option value="teacher">Teacher</option>
-                <option value="admin">Admin (DOS)</option>
-              </select>
-            </div>
-
-            <div v-if="form.role === 'teacher'" class="mb-3">
-              <label for="department" class="form-label fw-medium">Department</label>
-              <input
-                id="department"
-                v-model.trim="form.department"
-                type="text"
-                placeholder="Software Development"
-                class="form-control form-control-lg"
-              />
-            </div>
-
-            <div v-if="form.role === 'teacher'" class="mb-3">
-              <label for="subject" class="form-label fw-medium">Primary Subject</label>
-              <input
-                id="subject"
-                v-model.trim="form.module_name"
-                type="text"
-                placeholder="Mathematics"
-                class="form-control form-control-lg"
-              />
-            </div>
-
-            <div v-if="form.role === 'teacher'" class="mb-3">
-              <label for="teacherId" class="form-label fw-medium">Teacher ID</label>
-              <input
-                id="teacherId"
-                v-model.trim="form.employeeId"
-                type="text"
-                placeholder="TCH-001"
-                class="form-control form-control-lg"
-              />
-            </div>
-
-            <div class="mb-3">
-              <label for="password" class="form-label fw-medium">Password</label>
-              <div class="input-group">
-                <input
-                  id="password"
-                  v-model="form.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="Minimum 6 characters"
-                  required
-                  class="form-control form-control-lg"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary password-toggle"
-                  @click="showPassword = !showPassword"
-                >
-                  <span v-if="showPassword" aria-hidden="true">🙈</span>
-                  <span v-else aria-hidden="true">👁</span>
-                </button>
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label for="confirmPassword" class="form-label fw-medium">Confirm Password</label>
+          <div class="register-field">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon lock-icon" aria-hidden="true"></span>
               <input
                 id="confirmPassword"
                 v-model="form.confirmPassword"
-                type="password"
-                placeholder="Repeat password"
+                :type="showConfirmPassword ? 'text' : 'password'"
+                placeholder="Confirm your password"
                 required
-                class="form-control form-control-lg"
+                class="form-control"
               />
+              <button
+                type="button"
+                class="password-toggle"
+                @click="showConfirmPassword = !showConfirmPassword"
+                :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+                :title="showConfirmPassword ? 'Hide password' : 'Show password'"
+              >
+                <span class="eye-icon" :class="{ open: !showConfirmPassword }" aria-hidden="true"></span>
+              </button>
             </div>
           </div>
 
-          <!-- OTP Step -->
-          <div v-else-if="step === 'otp'" key="otp">
-            <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
-              <span>📧</span>
-              <div>
-                <strong>Code sent to {{ pendingEmail }}</strong>
-                <br />
-                <small>Expires in {{ formattedCountdown }}</small>
-              </div>
-            </div>
+          <label class="terms-row">
+            <input type="checkbox" v-model="acceptedTerms" class="terms-check" />
+            <span>
+              I agree to the
+              <a href="#" @click.prevent>Terms of Service</a>
+              and
+              <a href="#" @click.prevent>Privacy Policy</a>
+            </span>
+          </label>
+        </template>
 
-            <label for="otp" class="form-label fw-medium">Enter 6-Digit OTP</label>
-            <div class="otp-grid mb-3" @paste.prevent="handleOtpPaste">
-              <input
-                v-for="(_, index) in otpDigits"
-                :key="index"
-                :ref="el => otpRefs[index] = el"
-                v-model="otpDigits[index]"
-                inputmode="numeric"
-                maxlength="1"
-                @input="handleOtpInput(index)"
-                @keydown.backspace="handleOtpBackspace(index, $event)"
-              />
-            </div>
+        <template v-else-if="step === 'otp'">
+          <h2 class="form-title">Verify Email</h2>
+          <div class="title-rule"></div>
 
-            <button
-              type="button"
-              class="btn btn-link w-100 fw-semibold mb-3"
-              :disabled="resendCooldown > 0 || loading"
-              @click="resendOtp"
-            >
-              {{ resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP' }}
-            </button>
+          <div class="verification-note">
+            <strong>Code sent to {{ pendingEmail }}</strong>
+            <span>Expires in {{ formattedCountdown }}</span>
           </div>
 
-          <!-- Success Step -->
-          <div v-else key="success" class="text-center py-3">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
-            <h4 class="fw-bold text-success">{{ successTitle }}</h4>
-            <p class="text-muted small">{{ successDetail }}</p>
+          <label for="otp" class="form-label">Enter 6-Digit OTP</label>
+          <div class="otp-grid" @paste.prevent="handleOtpPaste">
+            <input
+              v-for="(_, index) in otpDigits"
+              :key="index"
+              :ref="el => otpRefs[index] = el"
+              v-model="otpDigits[index]"
+              inputmode="numeric"
+              maxlength="1"
+              @input="handleOtpInput(index)"
+              @keydown.backspace="handleOtpBackspace(index, $event)"
+            />
           </div>
-        </transition>
 
-        <!-- Error Message -->
+          <button
+            type="button"
+            class="resend-btn"
+            :disabled="resendCooldown > 0 || loading"
+            @click="resendOtp"
+          >
+            {{ resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP' }}
+          </button>
+        </template>
+
+        <template v-else>
+          <div class="success-panel">
+            <div class="success-mark" aria-hidden="true"></div>
+            <h2>{{ successTitle }}</h2>
+            <p>{{ successDetail }}</p>
+          </div>
+        </template>
+
         <div v-if="error" class="alert alert-danger" role="alert">
           {{ error }}
         </div>
 
-        <!-- Success Message -->
         <div v-if="success" class="alert alert-success" role="alert">
           {{ success }}
         </div>
 
-        <!-- Submit Button -->
         <button
           v-if="step !== 'success'"
           type="submit"
           :disabled="loading"
-          class="btn btn-primary-custom btn-lg w-100 fw-semibold"
+          class="btn register-submit w-100"
         >
           <span v-if="loading" class="d-flex align-items-center justify-content-center gap-2">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             {{ step === 'details' ? 'Sending OTP...' : 'Verifying...' }}
           </span>
           <span v-else>
-            {{ step === 'details' ? 'Send OTP' : 'Verify & Create Account' }}
+            {{ step === 'details' ? 'Sign Up' : 'Verify & Create Account' }}
           </span>
         </button>
+
+        <div class="login-row">
+          <span>Already have an account?</span>
+          <router-link to="/login">Log In</router-link>
+        </div>
       </form>
-
-      <!-- Footer Links -->
-      <div class="text-center px-4 pb-4">
-        <p class="small text-muted mb-0">
-          Already have an account?
-          <router-link to="/login" class="text-primary fw-semibold text-decoration-none">
-            Sign in here
-          </router-link>
-        </p>
-      </div>
-
-      <div class="text-center pb-3">
-        <p class="small text-muted mb-0">
-          © 2026 Timetable Management System · All rights reserved
-        </p>
-        <p class="small text-muted mb-0">Version 1.0</p>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const logoUrl = `${import.meta.env.BASE_URL}title-logo.png`
 
 const form = ref({
   full_name: '',
@@ -279,6 +209,8 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 const showPassword = ref(false)
+const showConfirmPassword = ref(false)
+const acceptedTerms = ref(false)
 const successTitle = ref('Account Created!')
 const successDetail = ref('Redirecting to your dashboard...')
 
@@ -293,9 +225,9 @@ const otpCode = computed(() => otpDigits.value.join(''))
 const validate = () => {
   if (form.value.full_name.length < 3) return 'Full name must be at least 3 characters.'
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) return 'Please enter a valid email.'
-  if (!form.value.phone.trim()) return 'Phone number is required.'
   if (form.value.password.length < 6) return 'Password must be at least 6 characters.'
   if (form.value.password !== form.value.confirmPassword) return 'Passwords do not match.'
+  if (!acceptedTerms.value) return 'Please agree to the terms before creating an account.'
   return ''
 }
 
@@ -321,7 +253,13 @@ const requestOtp = async () => {
 
   loading.value = true
   try {
-    const response = await api.post('/auth/register', { ...form.value })
+    const payload = {
+      ...form.value,
+      username: form.value.full_name,
+      phone: form.value.phone || '',
+      role: 'teacher'
+    }
+    const response = await api.post('/auth/register', payload)
     pendingEmail.value = response.data.email
     success.value = response.data.message || 'OTP sent.'
     otpDigits.value = ['', '', '', '', '', '']
@@ -399,10 +337,6 @@ const handleOtpPaste = (event) => {
   otpRefs.value[Math.min(digits.length, 5)]?.focus()
 }
 
-onMounted(() => {
-  // Optional: load saved preference
-})
-
 onBeforeUnmount(() => {
   clearInterval(countdownTimer.value)
   clearInterval(cooldownTimer.value)
@@ -410,190 +344,430 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Keep the logo area consistent and prevent "generic icon" look */
+.register-page {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.56), rgba(248, 250, 252, 0.28) 42%, rgba(255, 255, 255, 0.78)),
+    linear-gradient(180deg, rgba(226, 232, 240, 0.5), rgba(255, 255, 255, 0.36)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%23dfe6ee'/%3E%3Crect y='520' width='1200' height='380' fill='%23bd9a73'/%3E%3Cpath d='M0 710h1200v190H0z' fill='%23d7b58a'/%3E%3Cpath d='M0 548h1200' stroke='%23a57d58' stroke-width='8' opacity='.35'/%3E%3Crect x='70' y='58' width='250' height='430' rx='8' fill='%23eef3f8' opacity='.72'/%3E%3Crect x='360' y='58' width='250' height='430' rx='8' fill='%23f7f9fb' opacity='.72'/%3E%3Crect x='650' y='58' width='250' height='430' rx='8' fill='%23eef3f8' opacity='.76'/%3E%3Crect x='940' y='58' width='250' height='430' rx='8' fill='%23f7f9fb' opacity='.72'/%3E%3Cellipse cx='180' cy='742' rx='260' ry='58' fill='%23445563' opacity='.18'/%3E%3Crect x='-20' y='664' width='410' height='104' rx='10' fill='%23f0f5f9' transform='rotate(-10 -20 664)'/%3E%3Cpath d='M820 510c90-70 205-44 265 16v130H820z' fill='%2398b96f' opacity='.6'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+}
+
+.register-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.register-card {
+  position: relative;
+  z-index: 1;
+  max-width: 580px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.34);
+}
+
+.register-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 30px 46px;
+  background: linear-gradient(180deg, #47617e 0%, #33475f 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.4);
+  color: #fff;
+}
+
+.brand-login-mark {
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
 .brand-login-logo {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
-  padding: 2px;
-  transform: scale(1.12);
+  padding: 5px;
 }
 
-.auth-title {
-  font-size: clamp(1.45rem, 3.2vw, 1.8rem);
-  font-weight: 800;
-  line-height: 1.08;
+.brand-title {
+  color: #fff;
+  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-weight: 850;
+  line-height: 1.12;
   letter-spacing: 0;
 }
 
-/* Password toggle alignment fix */
+.register-form {
+  padding: 24px 46px 32px;
+}
+
+.form-title {
+  margin: 0;
+  color: #3a4050;
+  text-align: center;
+  font-size: 1.85rem;
+  font-weight: 800;
+}
+
+.title-rule {
+  height: 1px;
+  margin: 16px 0 18px;
+  background: #d3dae2;
+}
+
+.register-field {
+  margin-bottom: 18px;
+}
+
+.register-field .form-label,
+.register-form > .form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #253246;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.register-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.register-input-icon {
+  position: absolute;
+  left: 18px;
+  z-index: 2;
+  width: 28px;
+  height: 30px;
+  color: #505a66;
+}
+
+.user-icon::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.user-icon::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  bottom: 1px;
+  width: 23px;
+  height: 14px;
+  border-radius: 14px 14px 3px 3px;
+  background: currentColor;
+}
+
+.mail-icon::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 25px;
+  height: 17px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
+.mail-icon::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  width: 19px;
+  height: 14px;
+  border-left: 3px solid #fff;
+  border-bottom: 3px solid #fff;
+  transform: rotate(-45deg);
+}
+
+.lock-icon::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 1px;
+  width: 14px;
+  height: 15px;
+  border: 4px solid currentColor;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+}
+
+.lock-icon::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  bottom: 1px;
+  width: 23px;
+  height: 18px;
+  border-radius: 4px;
+  background: currentColor;
+}
+
+.register-input-wrap .form-control {
+  min-height: 50px;
+  padding: 0.78rem 4.1rem 0.78rem 4.35rem;
+  border: 1px solid #b9c2cd !important;
+  border-radius: 5px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: #263244;
+  font-size: 1rem;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.08);
+}
+
+.register-input-wrap .form-control::placeholder {
+  color: #677281;
+}
+
+.register-input-wrap .form-control:focus {
+  border-color: #2f7cd8 !important;
+  box-shadow: 0 0 0 4px rgba(47, 124, 216, 0.16), 0 2px 5px rgba(15, 23, 42, 0.08) !important;
+}
+
 .password-toggle {
-  border-top-right-radius: 0.75rem !important;
-  border-bottom-right-radius: 0.75rem !important;
-  height: 100%;
-  display: inline-flex;
+  position: absolute;
+  right: 10px;
+  z-index: 3;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 56px;
-  background: #f8fafc;
+  cursor: pointer;
 }
 
-/* Match focus style across inputs */
-input.form-control:focus,
-input.form-control:focus-visible,
-select.form-control:focus,
-select.form-control:focus-visible {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, .2);
-  outline: none;
+.eye-icon {
+  position: relative;
+  width: 28px;
+  height: 18px;
+  border: 4px solid #505a66;
+  border-radius: 50%;
+  transform: rotate(-6deg);
 }
 
-/* Make buttons feel clickable */
-.btn-primary-custom {
-  background: #2563eb;
-  border-color: #2563eb;
+.eye-icon::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #505a66;
+  transform: translate(-50%, -50%);
+}
+
+.eye-icon:not(.open)::after {
+  content: '';
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 5px;
+  height: 4px;
+  background: #505a66;
+  transform: rotate(32deg);
+}
+
+.terms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 24px;
+  color: #4a5361;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.terms-check {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 4px !important;
+}
+
+.terms-row a,
+.login-row a {
+  color: #2e6faa;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.register-submit {
+  min-height: 58px;
+  margin: 0;
+  border: 1px solid #208742;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #63c980 0%, #21924a 100%);
   color: #fff;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
+  font-size: 1.45rem;
+  font-weight: 850;
+  text-shadow: 0 2px 2px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 8px 14px rgba(22, 101, 52, 0.24);
   transition: transform .08s ease, box-shadow .2s ease;
 }
 
-.btn-primary-custom:hover {
-  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.24);
+.register-submit:hover:not(:disabled) {
   transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(22, 101, 52, 0.28);
 }
 
-.secure-row {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(37, 99, 235, .12);
-  border-radius: 999px;
-  padding: 6px 12px;
-}
-
-.secure-lock {
-  font-size: 14px;
-}
-
-/* Step indicator */
-.step-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-}
-
-.step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.step span {
-  width: 32px;
-  height: 32px;
+.login-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: #e2e8f0;
-  color: #64748b;
-  font-weight: bold;
-  font-size: 0.85rem;
+  gap: 8px;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #d3dae2;
+  color: #6c7582;
+  font-size: 1.06rem;
+  font-weight: 700;
 }
 
-.step.active span {
-  background: #2563eb;
-  color: #fff;
+.verification-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e3a8a;
 }
 
-.step small {
-  font-size: 0.7rem;
-  color: #64748b;
-  font-weight: 600;
+.verification-note span {
+  color: #475569;
+  font-weight: 700;
 }
 
-.step.active small {
-  color: #2563eb;
-}
-
-.step-line {
-  flex: 0.2;
-  height: 2px;
-  background: #e2e8f0;
-  margin: 0 -0.5rem;
-}
-
-.step.active ~ .step-line,
-.step-line {
-  background: #e2e8f0;
-}
-
-/* OTP Grid styling */
 .otp-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: 8px;
+  margin: 10px 0 16px;
 }
 
 .otp-grid input {
   width: 100%;
   aspect-ratio: 1;
-  font-size: 1.3rem;
-  font-weight: bold;
-  text-align: center;
   border: 2px solid #cbd5e1;
-  border-radius: 0.5rem;
-  transition: border-color 0.2s;
+  border-radius: 6px;
+  background: #fff;
+  color: #253246;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: center;
 }
 
 .otp-grid input:focus {
-  border-color: #2563eb;
+  border-color: #2f7cd8;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+  box-shadow: 0 0 0 4px rgba(47, 124, 216, 0.14);
 }
 
-/* Alert styling */
+.resend-btn {
+  width: 100%;
+  margin: 0 0 18px;
+  border: 0;
+  background: transparent;
+  color: #1f72c9;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.success-panel {
+  padding: 18px 0 8px;
+  text-align: center;
+}
+
+.success-mark {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #22c55e;
+  position: relative;
+}
+
+.success-mark::after {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 16px;
+  width: 24px;
+  height: 15px;
+  border-left: 5px solid #fff;
+  border-bottom: 5px solid #fff;
+  transform: rotate(-45deg);
+}
+
+.success-panel h2 {
+  color: #15803d;
+  font-weight: 850;
+}
+
+.success-panel p {
+  color: #64748b;
+  font-weight: 650;
+}
+
 .alert {
-  border-radius: 0.75rem;
+  border-radius: 6px;
   font-size: 0.9rem;
 }
 
-/* Link styling */
-.btn-link {
-  color: #2563eb;
-  text-decoration: none;
-  padding: 0;
-}
-
-.btn-link:hover {
-  text-decoration: underline;
-}
-
-/* Transition animations */
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(8px);
+.register-card.is-loading {
+  pointer-events: none;
 }
 
 @media (max-width: 576px) {
+  .register-card-header {
+    padding: 24px;
+    gap: 12px;
+  }
+
   .brand-login-mark {
-    width: 96px !important;
-    height: 96px !important;
+    flex-basis: 50px;
+    width: 50px;
+    height: 50px;
   }
-  h1 {
-    font-size: 1.45rem;
+
+  .register-form {
+    padding: 22px 22px 26px;
   }
-  .step-indicator {
-    margin-bottom: 1rem;
+
+  .login-row,
+  .terms-row {
+    flex-wrap: wrap;
   }
 }
 </style>
