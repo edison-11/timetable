@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Section = require('../models/Section');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.post('/', auth, [
 
     const { section_name, level, description, room_id, class_ids } = req.body;
 
-    const sectionId = await Section.create({ section_name, level, description, room_id, class_ids });
+    const sectionId = await Section.create({ section_name, level, description, room_id, class_ids, school_id: getRequestSchoolId(req) });
     const section = await Section.findById(sectionId);
 
     await Notification.create({
@@ -46,7 +47,7 @@ router.post('/', auth, [
 // Get all sections
 router.get('/', auth, async (req, res) => {
   try {
-    const sections = await Section.getAll();
+    const sections = await Section.getAll({ school_id: getRequestSchoolId(req) });
     res.json({ sections });
   } catch (error) {
     console.error(error);
@@ -57,7 +58,7 @@ router.get('/', auth, async (req, res) => {
 // Get sections with class count
 router.get('/with-count', auth, async (req, res) => {
   try {
-    const sections = await Section.getSectionsWithClassCount();
+    const sections = await Section.getSectionsWithClassCount({ school_id: getRequestSchoolId(req) });
     res.json({ sections });
   } catch (error) {
     console.error(error);
@@ -68,7 +69,7 @@ router.get('/with-count', auth, async (req, res) => {
 // Get sections by level
 router.get('/level/:level', auth, async (req, res) => {
   try {
-    const sections = await Section.getByLevel(req.params.level);
+    const sections = await Section.getByLevel(req.params.level, { school_id: getRequestSchoolId(req) });
     res.json({ sections });
   } catch (error) {
     console.error(error);
@@ -83,6 +84,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!section) {
       return res.status(404).json({ message: 'Section not found' });
     }
+    if (!enforceSameSchool(req, section)) return res.status(403).json({ message: 'Section belongs to another school' });
     res.json({ section });
   } catch (error) {
     console.error(error);
@@ -105,9 +107,8 @@ router.put('/:id', auth, [
     }
 
     const { section_name, level, description, room_id, class_ids } = req.body;
-    console.log('PUT /sections/:id received:', { section_name, level, description, room_id, class_ids });
-    
     const updateData = {};
+    updateData.school_id = getRequestSchoolId(req);
     
     if (section_name) updateData.section_name = section_name;
     if (level) updateData.level = level;
@@ -115,7 +116,10 @@ router.put('/:id', auth, [
     if (room_id !== undefined) updateData.room_id = room_id;
     if (class_ids !== undefined) updateData.class_ids = class_ids;
 
-    console.log('Updating with:', updateData);
+    const existingSection = await Section.findById(req.params.id);
+    if (!existingSection) return res.status(404).json({ message: 'Section not found' });
+    if (!enforceSameSchool(req, existingSection)) return res.status(403).json({ message: 'Section belongs to another school' });
+
     await Section.update(req.params.id, updateData);
     const updatedSection = await Section.findById(req.params.id);
 
@@ -144,6 +148,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!section) {
       return res.status(404).json({ message: 'Section not found' });
     }
+    if (!enforceSameSchool(req, section)) return res.status(403).json({ message: 'Section belongs to another school' });
 
     await Section.delete(req.params.id);
     await Notification.create({

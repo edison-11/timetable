@@ -150,6 +150,17 @@
           </div>
         </div>
       </div>
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Section"
+        :description="`Delete section ${deleteDialog.section?.section_name || 'this section'} (${deleteDialog.section?.level || ''})? This action cannot be undone.`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="deleteDialog.loading"
+        danger
+        @confirm="confirmDeleteSection"
+      />
     </div>
   </AppLayout>
 </template>
@@ -159,6 +170,7 @@ import { computed, onActivated, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const sections = ref([])
 const classes = ref([])
@@ -167,6 +179,7 @@ const searchQuery = ref('')
 const levelFilter = ref('')
 const isEditing = ref(false)
 const loading = ref(false)
+const deleteDialog = ref({ open: false, section: null, loading: false })
 const errors = ref({})
 const formMessage = ref('')
 
@@ -340,14 +353,23 @@ const saveSection = async () => {
 }
 
 const deleteSection = async (section) => {
-  if (!confirm(`Delete section "${section.section_name}" (${section.level})? This action cannot be undone.`)) return
+  deleteDialog.value = { open: true, section, loading: false }
+}
 
+const confirmDeleteSection = async () => {
+  const section = deleteDialog.value.section
+  if (!section) return
+
+  deleteDialog.value.loading = true
   try {
     await api.delete(`/sections/${section.section_id}`)
     sections.value = sections.value.filter(item => item.section_id !== section.section_id)
     showToast('Section deleted successfully!', 'success')
+    deleteDialog.value = { open: false, section: null, loading: false }
   } catch (error) {
     showToast(error.response?.data?.message || 'Failed to delete section.', 'danger')
+  } finally {
+    deleteDialog.value.loading = false
   }
 }
 

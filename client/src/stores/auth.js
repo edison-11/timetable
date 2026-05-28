@@ -12,7 +12,7 @@ export const useAuthStore = defineStore('auth', {
 
   getters: {
     isAuthenticated: (state) => !!state.token,
-    isAdminAuthenticated: (state) => !!state.token && state.userType === 'admin' && state.user?.role === 'admin',
+    isAdminAuthenticated: (state) => !!state.token && ['super_admin', 'dos'].includes(state.userType),
     isTeacherAuthenticated: (state) => !!state.token && state.userType === 'teacher',
     currentUser: (state) => state.user,
     currentUserType: (state) => state.userType
@@ -194,7 +194,7 @@ export const useAuthStore = defineStore('auth', {
         const response = await api.get('/auth/me')
         const user = response.data.user
 
-        if (!['admin', 'student'].includes(user?.role)) {
+        if (!['super_admin', 'dos', 'student'].includes(user?.role)) {
           this.logout()
           return false
         }

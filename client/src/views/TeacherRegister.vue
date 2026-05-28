@@ -277,7 +277,7 @@
           </form>
 
           <div class="text-center mt-4 text-muted">
-            Already registered? <router-link to="/teacher/login" class="text-decoration-none">Sign in</router-link>
+            Already registered? <router-link to="/login" class="text-decoration-none">Sign in</router-link>
           </div>
         </div>
       </div>
@@ -506,7 +506,7 @@ const handleSubmit = async () => {
       confirmPassword: ''
     }
     currentStep.value = 1
-    setTimeout(() => router.push('/teacher/login'), 1200)
+    setTimeout(() => router.push('/login'), 1200)
   } catch (err) {
     error.value = err.response?.data?.message || 'Registration failed. Please try again.'
     console.error(err)

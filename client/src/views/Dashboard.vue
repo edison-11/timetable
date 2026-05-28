@@ -250,6 +250,17 @@
           <strong>{{ currentAcademicYear }}</strong>
         </div>
       </div>
+      <ConfirmModal
+        v-model="rejectDialog.open"
+        title="Reject Registration"
+        description="Reject this teacher registration request?"
+        confirm-label="Reject"
+        cancel-label="Cancel"
+        loading-label="Rejecting..."
+        :loading="rejectDialog.loading"
+        danger
+        @confirm="confirmRejectPendingTeacher"
+      />
     </div>
   </AppLayout>
 </template>
@@ -257,6 +268,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import api from '@/stores/api'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
@@ -283,6 +295,7 @@ const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
 const timetableSettings = ref(null)
 const notifications = ref([])
+const rejectDialog = ref({ open: false, notification: null, loading: false })
 const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
@@ -541,9 +554,21 @@ const approvePendingTeacher = async (notification) => {
 
 const rejectPendingTeacher = async (notification) => {
   if (!notification.entity_id) return
-  if (!confirm('Reject this teacher registration request?')) return
-  await api.delete(`/teachers/${notification.entity_id}/reject`)
-  await loadNotifications()
+  rejectDialog.value = { open: true, notification, loading: false }
+}
+
+const confirmRejectPendingTeacher = async () => {
+  const notification = rejectDialog.value.notification
+  if (!notification?.entity_id) return
+
+  rejectDialog.value.loading = true
+  try {
+    await api.delete(`/teachers/${notification.entity_id}/reject`)
+    rejectDialog.value = { open: false, notification: null, loading: false }
+    await loadNotifications()
+  } finally {
+    rejectDialog.value.loading = false
+  }
 }
 
 onMounted(() => {

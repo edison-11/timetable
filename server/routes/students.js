@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Student = require('../models/Student');
 const { auth } = require('../middleware/auth');
+const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -25,7 +26,7 @@ router.post('/', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const student = await Student.create(req.body);
+    const student = await Student.create({ ...req.body, school_id: getRequestSchoolId(req) });
     res.status(201).json(student);
   } catch (error) {
     console.error('Error creating student:', error);
@@ -42,6 +43,7 @@ router.get('/', auth, async (req, res) => {
     if (req.query.section_id) filters.section_id = req.query.section_id;
     if (req.query.academic_year) filters.academic_year = req.query.academic_year;
     if (req.query.status) filters.status = req.query.status;
+    filters.school_id = getRequestSchoolId(req);
 
     const students = await Student.findAll(filters);
     res.json(students);
@@ -88,8 +90,9 @@ router.get('/teacher/classes/:classId/students', auth, async (req, res) => {
 router.get('/attendance', auth, async (req, res) => {
   try {
     const teacherId = req.user?.teacherId || req.user?.teacher_id || null;
+    const school_id = getRequestSchoolId(req);
     if (req.user?.type === 'teacher') {
-      const students = await Student.getClassStudentsForTeacher(req.query.class_id, teacherId);
+      const students = await Student.getClassStudentsForTeacher(req.query.class_id, teacherId, { school_id });
       if (!students) {
         return res.status(403).json({ message: 'You are not assigned to this class' });
       }
@@ -99,7 +102,8 @@ router.get('/attendance', auth, async (req, res) => {
       class_id: req.query.class_id,
       attendance_date: req.query.attendance_date,
       timetable_id: req.query.timetable_id || null,
-      period_label: req.query.period_label || null
+      period_label: req.query.period_label || null,
+      school_id
     });
 
     res.json({ attendance });
@@ -126,8 +130,9 @@ router.post('/attendance', auth, [
     }
 
     const teacherId = req.user?.teacherId || req.user?.teacher_id || null;
+    const school_id = getRequestSchoolId(req);
     if (req.user?.type === 'teacher') {
-      const students = await Student.getClassStudentsForTeacher(req.body.class_id, teacherId);
+      const students = await Student.getClassStudentsForTeacher(req.body.class_id, teacherId, { school_id });
       if (!students) {
         return res.status(403).json({ message: 'You are not assigned to this class' });
       }
@@ -139,7 +144,7 @@ router.post('/attendance', auth, [
       teacher_id: teacherId,
       attendance_date: req.body.attendance_date,
       period_label: req.body.period_label || null,
-      records: req.body.records
+      records: req.body.records.map((record) => ({ ...record, school_id }))
     });
 
     res.json({ message: 'Attendance saved', attendance: saved });
@@ -157,6 +162,7 @@ router.get('/user/:userId', auth, async (req, res) => {
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+    if (!enforceSameSchool(req, student)) return res.status(403).json({ message: 'Student belongs to another school' });
 
     res.json(student);
   } catch (error) {
@@ -170,7 +176,8 @@ router.get('/:id/attendance-history', auth, async (req, res) => {
     const attendance = await Student.getAttendanceHistory(req.params.id, {
       status: req.query.status || undefined,
       from_date: req.query.from_date || undefined,
-      to_date: req.query.to_date || undefined
+      to_date: req.query.to_date || undefined,
+      school_id: getRequestSchoolId(req)
     });
 
     res.json({ attendance });
@@ -227,7 +234,11 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const student = await Student.update(req.params.id, req.body);
+    const existingStudent = await Student.findById(req.params.id);
+    if (!existingStudent) return res.status(404).json({ message: 'Student not found' });
+    if (!enforceSameSchool(req, existingStudent)) return res.status(403).json({ message: 'Student belongs to another school' });
+
+    const student = await Student.update(req.params.id, { ...req.body, school_id: getRequestSchoolId(req) });
     res.json(student);
   } catch (error) {
     console.error('Error updating student:', error);
@@ -238,6 +249,10 @@ router.put('/:id', auth, [
 // Delete student
 router.delete('/:id', auth, async (req, res) => {
   try {
+    const existingStudent = await Student.findById(req.params.id);
+    if (!existingStudent) return res.status(404).json({ message: 'Student not found' });
+    if (!enforceSameSchool(req, existingStudent)) return res.status(403).json({ message: 'Student belongs to another school' });
+
     await Student.delete(req.params.id);
     res.json({ message: 'Student deleted successfully' });
   } catch (error) {

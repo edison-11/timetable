@@ -2,6 +2,24 @@ const db = require('../config/database');
 const User = require('./User');
 
 class Student {
+  static schemaReady = false;
+
+  static async columnExists(tableName, columnName) {
+    const [rows] = await db.query(`SHOW COLUMNS FROM ${tableName} LIKE ?`, [columnName]);
+    return rows.length > 0;
+  }
+
+  static async ensureSchema() {
+    if (this.schemaReady) return;
+    if (!(await this.columnExists('student', 'school_id'))) {
+      await db.query('ALTER TABLE student ADD COLUMN school_id INT NULL');
+    }
+    if (!(await this.columnExists('student_attendance', 'school_id'))) {
+      await db.query('ALTER TABLE student_attendance ADD COLUMN school_id INT NULL');
+    }
+    this.schemaReady = true;
+  }
+
   static async createParentUserIfNeeded(studentData) {
     const parentEmail = String(studentData.parent_email || '').trim();
     const parentPassword = String(studentData.parent_password || '').trim();
@@ -20,11 +38,13 @@ class Student {
       phone: studentData.parent_phone,
       password: parentPassword,
       role: 'student',
+      school_id: studentData.school_id || null,
       is_verified: true
     });
   }
 
   static async create(studentData) {
+    await this.ensureSchema();
     const user_id = await this.createParentUserIfNeeded(studentData);
     const {
       student_number,
@@ -36,12 +56,13 @@ class Student {
       parent_phone = null,
       class_id = null,
       section_id = null,
-      academic_year
+      academic_year,
+      school_id = null
     } = studentData;
     const query = `
       INSERT INTO student
-        (user_id, student_number, name, sex, email, parent_name, parent_email, parent_phone, class_id, section_id, academic_year, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        (user_id, student_number, name, sex, email, parent_name, parent_email, parent_phone, class_id, section_id, academic_year, status, school_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
     `;
     const [result] = await db.query(query, [
       user_id,
@@ -54,12 +75,14 @@ class Student {
       parent_phone || null,
       class_id || null,
       section_id || null,
-      academic_year
+      academic_year,
+      school_id || null
     ]);
     return this.findById(result.insertId);
   }
 
   static async findById(studentId) {
+    await this.ensureSchema();
     const query = `
       SELECT s.*, c.class_name, c.class_teacher_id, sec.section_name, sec.level
       FROM student s
@@ -72,6 +95,7 @@ class Student {
   }
 
   static async findByUserId(userId) {
+    await this.ensureSchema();
     const query = `
       SELECT s.*, c.class_name, c.class_teacher_id, sec.section_name, sec.level
       FROM student s
@@ -84,6 +108,7 @@ class Student {
   }
 
   static async findByStudentNumber(studentNumber) {
+    await this.ensureSchema();
     const query = `
       SELECT s.*, c.class_name, c.class_teacher_id, sec.section_name, sec.level
       FROM student s
@@ -96,6 +121,7 @@ class Student {
   }
 
   static async findAll(filters = {}) {
+    await this.ensureSchema();
     let query = `
       SELECT s.*, c.class_name, c.class_teacher_id, sec.section_name, sec.level
       FROM student s
@@ -125,6 +151,11 @@ class Student {
       params.push(filters.status);
     }
 
+    if (filters.school_id) {
+      query += ' AND s.school_id = ?';
+      params.push(filters.school_id);
+    }
+
     query += ' ORDER BY s.name ASC';
 
     const [rows] = await db.query(query, params);
@@ -142,7 +173,8 @@ class Student {
       'class_id',
       'section_id',
       'academic_year',
-      'status'
+      'status',
+      'school_id'
     ];
     const assignments = [];
     const params = [];
@@ -220,21 +252,27 @@ class Student {
     return rows;
   }
 
-  static async getClassStudentsForTeacher(classId, teacherId) {
+  static async getClassStudentsForTeacher(classId, teacherId, filters = {}) {
+    await this.ensureSchema();
+    const schoolClause = filters.school_id ? 'AND c.school_id = ?' : '';
+    const values = [classId, teacherId, teacherId];
+    if (filters.school_id) values.push(filters.school_id);
     const [allowedRows] = await db.query(`
       SELECT c.class_id
       FROM class c
       LEFT JOIN assignment a ON a.class_id = c.class_id
       WHERE c.class_id = ? AND (c.class_teacher_id = ? OR a.teacher_id = ?)
+      ${schoolClause}
       LIMIT 1
-    `, [classId, teacherId, teacherId]);
+    `, values);
 
     if (!allowedRows.length) return null;
 
-    return this.findAll({ class_id: classId, status: 'active' });
+    return this.findAll({ class_id: classId, status: 'active', school_id: filters.school_id });
   }
 
-  static async getAttendance({ class_id, attendance_date, timetable_id = null, period_label = null }) {
+  static async getAttendance({ class_id, attendance_date, timetable_id = null, period_label = null, school_id = null }) {
+    await this.ensureSchema();
     const params = [class_id, attendance_date];
     let filter = 'class_id = ? AND attendance_date = ?';
 
@@ -248,6 +286,11 @@ class Student {
     if (period_label) {
       filter += ' AND period_label = ?';
       params.push(period_label);
+    }
+
+    if (school_id) {
+      filter += ' AND school_id = ?';
+      params.push(school_id);
     }
 
     const [rows] = await db.query(`
@@ -295,6 +338,11 @@ class Student {
       params.push(filters.to_date);
     }
 
+    if (filters.school_id) {
+      query += ' AND sa.school_id = ?';
+      params.push(filters.school_id);
+    }
+
     query += ' ORDER BY sa.attendance_date DESC, t.start_time ASC, sa.period_label ASC';
 
     const [rows] = await db.query(query, params);
@@ -302,6 +350,7 @@ class Student {
   }
 
   static async saveAttendance({ class_id, timetable_id = null, teacher_id, attendance_date, period_label = null, records = [] }) {
+    await this.ensureSchema();
     const saved = [];
 
     for (const record of records) {
@@ -335,7 +384,8 @@ class Student {
         attendance_date,
         period_label || null,
         record.status || 'present',
-        record.notes || null
+        record.notes || null,
+        record.school_id || null
       ];
 
       if (existingRows[0]) {
@@ -364,8 +414,8 @@ class Student {
 
       const [result] = await db.query(`
         INSERT INTO student_attendance
-          (student_id, class_id, timetable_id, teacher_id, attendance_date, period_label, status, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          (student_id, class_id, timetable_id, teacher_id, attendance_date, period_label, status, notes, school_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, values);
 
       saved.push({ ...record, attendance_id: result.insertId || record.attendance_id || null });

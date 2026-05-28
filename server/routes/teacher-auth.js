@@ -23,6 +23,8 @@ const sanitizeRegistrationPayload = (body) => ({
   phone: body.phone,
   module_name: body.module_name,
   qualification: body.qualification,
+  profile_photo: body.profile_photo,
+  national_id: body.national_id,
   yearsExperience: body.yearsExperience,
   availableDays: body.availableDays,
   availableFrom: body.availableFrom,
@@ -47,12 +49,16 @@ const generateToken = (teacherId, email) => {
 router.post('/register', [
   body('name').trim().isLength({ min: 3 }).withMessage('Name must be at least 3 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password')
+    .isStrongPassword({ minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 0 })
+    .withMessage('Password must be at least 8 characters and include uppercase, lowercase, and a number'),
   body('department').optional().trim(),
   body('employeeId').trim().notEmpty().withMessage('Teacher ID is required'),
   body('phone').trim().notEmpty().withMessage('Phone number is required'),
   body('module_name').trim().notEmpty().withMessage('Module or subject is required'),
-  body('qualification').optional().trim(),
+  body('qualification').trim().notEmpty().withMessage('Qualification is required'),
+  body('profile_photo').optional().isString().withMessage('Profile photo must be an uploaded file path'),
+  body('national_id').optional().trim(),
   body('yearsExperience').optional().isInt({ min: 0 }).toInt(),
   body('availableDays').optional().trim(),
   body('availableFrom').optional().isString(),
@@ -74,6 +80,8 @@ router.post('/register', [
       phone,
       module_name,
       qualification,
+      profile_photo,
+      national_id,
       yearsExperience,
       availableDays,
       availableFrom,
@@ -155,6 +163,8 @@ router.post('/verify-registration', [
       phone,
       module_name,
       qualification,
+      profile_photo,
+      national_id,
       yearsExperience,
       availableDays,
       availableFrom,
@@ -170,9 +180,11 @@ router.post('/verify-registration', [
       status: 'pending',
       date_joined: new Date().toISOString().split('T')[0],
       employee_id: employeeId,
+      national_id: national_id || employeeId,
       phone,
       module_name,
       qualification,
+      profile_photo,
       years_experience: yearsExperience,
       available_days: availableDays,
       available_from: availableFrom,
@@ -315,10 +327,11 @@ router.get('/me/classes', auth, async (req, res) => {
     if (!teacherId) {
       return res.status(401).json({ message: 'Not a teacher account' });
     }
+    const school_id = req.user?.school_id || null;
 
     const [teachingClasses, allClasses] = await Promise.all([
-      Class.getClassesByTeacher(teacherId),
-      Class.getAll()
+      Class.getClassesByTeacher(teacherId, { school_id }),
+      Class.getAll({ school_id })
     ]);
     const headTeacherClasses = allClasses.filter((classItem) => {
       return String(classItem.class_teacher_id || '') === String(teacherId);

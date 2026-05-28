@@ -43,6 +43,139 @@
             </div>
           </div>
 
+          <div class="register-grid">
+            <div class="register-field">
+              <label for="phone" class="form-label">Phone Number</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="phone"
+                  v-model.trim="form.phone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  required
+                  class="form-control"
+                />
+              </div>
+            </div>
+
+            <div class="register-field">
+              <label for="department" class="form-label">Department</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="department"
+                  v-model.trim="form.department"
+                  type="text"
+                  placeholder="Department"
+                  required
+                  class="form-control"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="register-field">
+              <label for="qualification" class="form-label">Qualification</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="qualification"
+                  v-model.trim="form.qualification"
+                  type="text"
+                  placeholder="Highest qualification"
+                  required
+                  class="form-control"
+                />
+              </div>
+            </div>
+
+            <div class="register-field">
+              <label for="employeeId" class="form-label">Staff ID</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="employeeId"
+                  v-model.trim="form.employeeId"
+                  type="text"
+                  placeholder="ID number"
+                  required
+                  class="form-control"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="register-field">
+              <label for="nationalId" class="form-label">National ID</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="nationalId"
+                  v-model.trim="form.national_id"
+                  type="text"
+                  placeholder="National ID number"
+                  required
+                  class="form-control"
+                />
+              </div>
+            </div>
+
+            <div class="register-field">
+              <label for="schoolId" class="form-label">Select Your School</label>
+              <div class="register-input-wrap plain-input">
+                <select
+                  id="schoolId"
+                  v-model="form.school_id"
+                  required
+                  class="form-control"
+                >
+                  <option value="">Choose an approved school</option>
+                  <option v-for="school in activeSchools" :key="school.school_id" :value="school.school_id">
+                    {{ school.school_name }}{{ school.school_code ? ` (${school.school_code})` : '' }}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="register-field">
+              <label for="gender" class="form-label">Gender</label>
+              <div class="register-input-wrap plain-input">
+                <select id="gender" v-model="form.gender" required class="form-control">
+                  <option value="">Select gender</option>
+                  <option>Female</option>
+                  <option>Male</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="register-field">
+              <label for="specialization" class="form-label">Subject Specialization</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="specialization"
+                  v-model.trim="form.module_name"
+                  type="text"
+                  placeholder="Subject specialization"
+                  required
+                  class="form-control"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="register-field">
+            <label for="profilePhoto" class="form-label">Profile Photo</label>
+            <input
+              id="profilePhoto"
+              type="file"
+              accept="image/*"
+              required
+              class="form-control file-control"
+              @change="handlePhotoChange"
+            />
+          </div>
+
           <div class="register-field">
             <label for="password" class="form-label">Password</label>
             <div class="register-input-wrap">
@@ -176,7 +309,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
@@ -192,7 +325,13 @@ const form = ref({
   role: 'teacher',
   department: '',
   module_name: '',
+  gender: '',
+  qualification: '',
   employeeId: '',
+  national_id: '',
+  school_id: '',
+  school_registration_number: '',
+  profile_photo: '',
   password: '',
   confirmPassword: ''
 })
@@ -211,6 +350,8 @@ const success = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const acceptedTerms = ref(false)
+const selectedPhoto = ref(null)
+const activeSchools = ref([])
 const successTitle = ref('Account Created!')
 const successDetail = ref('Redirecting to your dashboard...')
 
@@ -225,10 +366,39 @@ const otpCode = computed(() => otpDigits.value.join(''))
 const validate = () => {
   if (form.value.full_name.length < 3) return 'Full name must be at least 3 characters.'
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) return 'Please enter a valid email.'
-  if (form.value.password.length < 6) return 'Password must be at least 6 characters.'
+  if (!form.value.phone) return 'Phone number is required.'
+  if (!form.value.department) return 'Department is required.'
+  if (!form.value.qualification) return 'Qualification is required.'
+  if (!form.value.employeeId) return 'Staff ID is required.'
+  if (!form.value.national_id) return 'National ID is required.'
+  if (!form.value.school_id) return 'Select an approved active school.'
+  if (!form.value.gender) return 'Gender is required.'
+  if (!form.value.module_name) return 'Subject specialization is required.'
+  if (!selectedPhoto.value && !form.value.profile_photo) return 'Profile photo is required.'
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.value.password)) {
+    return 'Password must be at least 8 characters and include uppercase, lowercase, and a number.'
+  }
   if (form.value.password !== form.value.confirmPassword) return 'Passwords do not match.'
   if (!acceptedTerms.value) return 'Please agree to the terms before creating an account.'
   return ''
+}
+
+const handlePhotoChange = (event) => {
+  const file = event.target.files?.[0]
+  selectedPhoto.value = file || null
+  form.value.profile_photo = ''
+}
+
+const uploadRegistrationPhoto = async () => {
+  if (!selectedPhoto.value) return form.value.profile_photo
+
+  const payload = new FormData()
+  payload.append('photo', selectedPhoto.value)
+  const response = await api.post('/upload/registration-photo', payload, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  form.value.profile_photo = response.data.photo?.path || ''
+  return form.value.profile_photo
 }
 
 const startTimers = (expires = 300, cooldown = 45) => {
@@ -253,10 +423,13 @@ const requestOtp = async () => {
 
   loading.value = true
   try {
+    const profilePhoto = await uploadRegistrationPhoto()
     const payload = {
       ...form.value,
       username: form.value.full_name,
       phone: form.value.phone || '',
+      profile_photo: profilePhoto,
+      school_id: form.value.school_id,
       role: 'teacher'
     }
     const response = await api.post('/auth/register', payload)
@@ -341,6 +514,17 @@ onBeforeUnmount(() => {
   clearInterval(countdownTimer.value)
   clearInterval(cooldownTimer.value)
 })
+
+const loadActiveSchools = async () => {
+  try {
+    const response = await api.get('/schools/active')
+    activeSchools.value = response.data.schools || []
+  } catch (error) {
+    activeSchools.value = []
+  }
+}
+
+onMounted(loadActiveSchools)
 </script>
 
 <style scoped>
@@ -433,6 +617,12 @@ onBeforeUnmount(() => {
 
 .register-field {
   margin-bottom: 18px;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .register-field .form-label,
@@ -536,6 +726,19 @@ onBeforeUnmount(() => {
   color: #263244;
   font-size: 1rem;
   box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.08);
+}
+
+.register-input-wrap.plain-input .form-control {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.file-control {
+  min-height: 48px;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #b9c2cd;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.88);
 }
 
 .register-input-wrap .form-control::placeholder {
@@ -768,6 +971,11 @@ onBeforeUnmount(() => {
   .login-row,
   .terms-row {
     flex-wrap: wrap;
+  }
+
+  .register-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
 </style>

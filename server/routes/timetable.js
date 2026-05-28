@@ -8,6 +8,7 @@ const SystemSetting = require('../models/SystemSetting');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { adminAuth } = require('../middleware/adminAuth');
+const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 const conflictDetectionService = require('../services/conflictDetection');
 const {
   FIXED_DAYS,
@@ -480,8 +481,8 @@ const hasBlockingTeacherConflict = async (assignment, classItem, slot, changeove
   });
 };
 
-const findAvailableRoomId = async (dayOfWeek, startTime, endTime) => {
-  const rooms = await Room.getAvailableRooms(startTime, endTime, dayOfWeek);
+const findAvailableRoomId = async (dayOfWeek, startTime, endTime, schoolId = null) => {
+  const rooms = await Room.getAvailableRooms(startTime, endTime, dayOfWeek, { school_id: schoolId });
   return rooms[0]?.room_id || null;
 };
 
@@ -504,6 +505,7 @@ router.post('/', adminAuth, [
     }
 
     const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, status, academic_year, term, module_name } = req.body;
+    const school_id = getRequestSchoolId(req);
     const timetableSettings = await SystemSetting.getTimetableSettings();
     const fixedPeriod = findFixedPeriod(start_time, end_time, timetableSettings);
 
@@ -521,7 +523,8 @@ router.post('/', adminAuth, [
       start_time,
       end_time,
       room_id,
-      timetable_id: null
+      timetable_id: null,
+      school_id
     });
 
     if (conflicts.length > 0) {
@@ -542,7 +545,8 @@ router.post('/', adminAuth, [
       slot_number: fixedPeriod.slot_number,
       status: status || 'draft',
       academic_year,
-      term
+      term,
+      school_id
     });
     const timetable = await TimetableEntry.findById(timetableId);
 
@@ -706,7 +710,8 @@ router.post('/generate', adminAuth, [
         if (dayDiff !== 0) return dayDiff;
         return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
       });
-    const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll();
+    const school_id = getRequestSchoolId(req);
+    const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll({ school_id });
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
     const selectedClasses = allClasses
       .filter(Boolean)
@@ -717,12 +722,12 @@ router.post('/generate', adminAuth, [
 
     if (shouldReplaceExisting) {
       for (const classItem of selectedClasses) {
-        await TimetableEntry.deleteByClass(classItem.class_id);
+        await TimetableEntry.deleteByClass(classItem.class_id, { school_id });
       }
     }
 
     for (const classItem of shuffleItems(selectedClasses)) {
-      const assignments = shuffleItems(await Assignment.getByClass(classItem.class_id));
+      const assignments = shuffleItems(await Assignment.getByClass(classItem.class_id, { school_id }));
 
       if (!assignments.length) {
         skipped.push({
@@ -753,7 +758,8 @@ router.post('/generate', adminAuth, [
             module_name: item.break_name,
             entry_type: 'break',
             slot_number: null,
-            status: timetableStatus
+            status: timetableStatus,
+            school_id
           });
           const timetable = await TimetableEntry.findById(timetableId);
           generated.push(timetable);
@@ -870,7 +876,7 @@ router.post('/generate', adminAuth, [
 
         for (const slot of selectedSlots) {
           const slotCurrentBlock = dayBlockState.get(slot.day_of_week);
-          const roomId = await findAvailableRoomId(slot.day_of_week, slot.start_time, slot.end_time);
+          const roomId = await findAvailableRoomId(slot.day_of_week, slot.start_time, slot.end_time, school_id);
           const timetableId = await TimetableEntry.create({
             class_id: classItem.class_id,
             assignment_id: scheduledAssignment.assignment_id,
@@ -883,7 +889,8 @@ router.post('/generate', adminAuth, [
             slot_number: slot.slot_number,
             status: timetableStatus,
             academic_year: scheduledAssignment.academic_year || null,
-            term: scheduledAssignment.term || null
+            term: scheduledAssignment.term || null,
+            school_id
           });
           const timetable = await TimetableEntry.findById(timetableId);
           timetable.has_conflict = hasConflict;
@@ -960,7 +967,7 @@ router.post('/generate', adminAuth, [
 // Get all timetable entries
 router.get('/', adminAuth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getAll();
+    const timetables = await TimetableEntry.getAll({ school_id: getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -977,7 +984,8 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
       return res.status(403).json({ message: 'You can only view your own timetable' });
     }
 
-    const timetables = await TimetableEntry.getByTeacher(requestedTeacherId);
+    const school_id = req.user?.school_id || null;
+    const timetables = await TimetableEntry.getByTeacher(requestedTeacherId, { school_id });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -988,7 +996,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
 // Get timetable by class
 router.get('/class/:class_id', auth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByClass(req.params.class_id);
+    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: req.user?.school_id || getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -1010,7 +1018,7 @@ router.get('/class/:class_id/weekly', auth, async (req, res) => {
 // Get timetable by room
 router.get('/room/:room_id', adminAuth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByRoom(req.params.room_id);
+    const timetables = await TimetableEntry.getByRoom(req.params.room_id, { school_id: getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -1021,7 +1029,7 @@ router.get('/room/:room_id', adminAuth, async (req, res) => {
 // Get timetable by day
 router.get('/day/:day_of_week', adminAuth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByDay(req.params.day_of_week);
+    const timetables = await TimetableEntry.getByDay(req.params.day_of_week, { school_id: getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -1036,6 +1044,7 @@ router.get('/:id', adminAuth, async (req, res) => {
     if (!timetable) {
       return res.status(404).json({ message: 'Timetable entry not found' });
     }
+    if (!enforceSameSchool(req, timetable)) return res.status(403).json({ message: 'Timetable entry belongs to another school' });
     res.json({ timetable });
   } catch (error) {
     console.error(error);
@@ -1068,6 +1077,7 @@ router.put('/:id', adminAuth, [
     if (!existing) {
       return res.status(404).json({ message: 'Timetable entry not found' });
     }
+    if (!enforceSameSchool(req, existing)) return res.status(403).json({ message: 'Timetable entry belongs to another school' });
 
     const requestedStart = start_time || existing.start_time;
     const requestedEnd = end_time || existing.end_time;
@@ -1111,7 +1121,8 @@ router.put('/:id', adminAuth, [
       slot_number: existing.slot_number || fixedPeriod?.slot_number || null,
       status: status || existing.status,
       academic_year: academic_year || existing.academic_year,
-      term: term || existing.term
+      term: term || existing.term,
+      school_id: getRequestSchoolId(req)
     };
 
     // Use comprehensive conflict detection service for updates
@@ -1155,6 +1166,7 @@ router.delete('/:id', adminAuth, async (req, res) => {
     if (!timetable) {
       return res.status(404).json({ message: 'Timetable entry not found' });
     }
+    if (!enforceSameSchool(req, timetable)) return res.status(403).json({ message: 'Timetable entry belongs to another school' });
 
     await TimetableEntry.delete(req.params.id);
     await Notification.create({

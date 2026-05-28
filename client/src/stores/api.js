@@ -107,7 +107,7 @@ api.interceptors.response.use(
         localStorage.removeItem('teacher')
         localStorage.removeItem('userType')
 
-        window.location.hash = '#/teacher/login'
+        window.location.hash = '#/login'
       }
 
       // Admin logout handling
@@ -115,6 +115,13 @@ api.interceptors.response.use(
         authStore.logout()
         window.location.hash = '#/login'
       }
+    }
+
+    if (error.response?.status === 403 && ['SCHOOL_ACCESS_DISABLED', 'ACCOUNT_NOT_ACTIVE', 'SCHOOL_CONTEXT_REQUIRED'].includes(error.response?.data?.code)) {
+      const reason = error.response.data.school_status || (error.response.data.code === 'ACCOUNT_NOT_ACTIVE' ? 'account' : 'deactivated')
+      const message = encodeURIComponent(error.response.data.message || 'Please contact system administration.')
+      authStore.logout()
+      window.location.hash = `#/account-status?reason=${encodeURIComponent(reason)}&message=${message}`
     }
 
     return Promise.reject(error)

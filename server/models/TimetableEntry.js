@@ -34,6 +34,10 @@ class TimetableEntry {
       await pool.execute('ALTER TABLE timetable ADD COLUMN term VARCHAR(20) NULL AFTER academic_year');
     }
 
+    if (!columnNames.has('school_id')) {
+      await pool.execute('ALTER TABLE timetable ADD COLUMN school_id INT NULL');
+    }
+
     this.activityColumnsReady = true;
   }
 
@@ -52,18 +56,26 @@ class TimetableEntry {
       slot_number = null,
       status = 'draft',
       academic_year = null,
-      term = null
+      term = null,
+      school_id = null
     } = timetableData;
     
     const [result] = await pool.execute(
-      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term]
+      'INSERT INTO timetable (class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term, school_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [class_id, assignment_id || null, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term, school_id || null]
     );
     
     return result.insertId;
   }
 
-  static async getAll() {
+  static async getAll(filters = {}) {
+    await this.ensureActivityColumns();
+    const where = [];
+    const values = [];
+    if (filters.school_id) {
+      where.push('t.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -82,12 +94,14 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
       ORDER BY t.day_of_week, t.start_time
-    `);
+    `, values);
     return rows;
   }
 
   static async findById(id) {
+    await this.ensureActivityColumns();
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -111,7 +125,14 @@ class TimetableEntry {
     return rows[0];
   }
 
-  static async getByClass(class_id) {
+  static async getByClass(class_id, filters = {}) {
+    await this.ensureActivityColumns();
+    const where = ['t.class_id = ?'];
+    const values = [class_id];
+    if (filters.school_id) {
+      where.push('t.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -130,13 +151,17 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
-      WHERE t.class_id = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY t.day_of_week, t.start_time
-    `, [class_id]);
+    `, values);
     return rows;
   }
 
-  static async getByTeacher(teacher_id) {
+  static async getByTeacher(teacher_id, filters = {}) {
+    await this.ensureActivityColumns();
+    const schoolClause = filters.school_id ? 'AND t.school_id = ?' : '';
+    const values = [teacher_id];
+    if (filters.school_id) values.push(filters.school_id);
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -156,13 +181,20 @@ class TimetableEntry {
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
       WHERE a.teacher_id = ?
-         OR t.entry_type IN ('break', 'activity')
+      ${schoolClause}
       ORDER BY t.day_of_week, t.start_time
-    `, [teacher_id]);
+    `, values);
     return rows;
   }
 
-  static async getByRoom(room_id) {
+  static async getByRoom(room_id, filters = {}) {
+    await this.ensureActivityColumns();
+    const where = ['t.room_id = ?'];
+    const values = [room_id];
+    if (filters.school_id) {
+      where.push('t.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -181,13 +213,20 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
-      WHERE t.room_id = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY t.day_of_week, t.start_time
-    `, [room_id]);
+    `, values);
     return rows;
   }
 
-  static async getByDay(day_of_week) {
+  static async getByDay(day_of_week, filters = {}) {
+    await this.ensureActivityColumns();
+    const where = ['t.day_of_week = ?'];
+    const values = [day_of_week];
+    if (filters.school_id) {
+      where.push('t.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -206,9 +245,9 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
-      WHERE t.day_of_week = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY t.start_time
-    `, [day_of_week]);
+    `, values);
     return rows;
   }
 
@@ -281,10 +320,10 @@ class TimetableEntry {
 
   static async update(id, timetableData) {
     await this.ensureActivityColumns();
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type = 'lesson', slot_number = null, status = 'draft', academic_year = null, term = null } = timetableData;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type = 'lesson', slot_number = null, status = 'draft', academic_year = null, term = null, school_id = null } = timetableData;
     await pool.execute(
-      'UPDATE timetable SET class_id = ?, assignment_id = ?, day_of_week = ?, start_time = ?, end_time = ?, room_id = ?, module_name = ?, entry_type = ?, slot_number = ?, status = ?, academic_year = ?, term = ? WHERE timetable_id = ?',
-      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term, id]
+      'UPDATE timetable SET class_id = ?, assignment_id = ?, day_of_week = ?, start_time = ?, end_time = ?, room_id = ?, module_name = ?, entry_type = ?, slot_number = ?, status = ?, academic_year = ?, term = ?, school_id = COALESCE(?, school_id) WHERE timetable_id = ?',
+      [class_id, assignment_id, day_of_week, start_time, end_time, room_id, module_name, entry_type, slot_number, status, academic_year, term, school_id || null, id]
     );
   }
 
@@ -292,8 +331,11 @@ class TimetableEntry {
     await pool.execute('DELETE FROM timetable WHERE timetable_id = ?', [id]);
   }
 
-  static async deleteByClass(class_id) {
-    await pool.execute('DELETE FROM timetable WHERE class_id = ?', [class_id]);
+  static async deleteByClass(class_id, filters = {}) {
+    const schoolClause = filters.school_id ? ' AND school_id = ?' : '';
+    const values = [class_id];
+    if (filters.school_id) values.push(filters.school_id);
+    await pool.execute(`DELETE FROM timetable WHERE class_id = ?${schoolClause}`, values);
   }
 
   static async getWeeklySchedule(class_id) {

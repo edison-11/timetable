@@ -1,6 +1,7 @@
 const express = require('express');
 const TimetableEntry = require('../models/TimetableEntry');
 const Room = require('../models/Room');
+const { getRequestSchoolId } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -16,7 +17,11 @@ const isBreakModule = (moduleName) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const [timetables, rooms] = await Promise.all([TimetableEntry.getAll(), Room.getAll()]);
+    const school_id = getRequestSchoolId(req);
+    const [timetables, rooms] = await Promise.all([
+      TimetableEntry.getAll({ school_id }),
+      Room.getAll({ school_id })
+    ]);
 
     // 1) Timetable Distribution (by module_name)
     const moduleCounts = new Map();

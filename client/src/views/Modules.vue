@@ -280,6 +280,17 @@
           </div>
         </div>
       </div>
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Module"
+        :description="`Delete ${deleteDialog.module?.module_name || 'this module'}? This action cannot be undone.`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="Boolean(deleteLoadingId)"
+        danger
+        @confirm="confirmDeleteModule"
+      />
     </div>
   </AppLayout>
 </template>
@@ -290,6 +301,7 @@ import { useRoute } from 'vue-router'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const route = useRoute()
 const modules = ref([])
@@ -319,6 +331,7 @@ const editModule = ref({
 const loading = ref(false)
 const editLoading = ref(false)
 const deleteLoadingId = ref(null)
+const deleteDialog = ref({ open: false, module: null })
 const errors = ref({})
 const editErrors = ref({})
 const formMessage = ref('')
@@ -522,10 +535,12 @@ const handleEditModule = async () => {
 }
 
 const handleDeleteModule = async (module) => {
-  const confirmed = window.confirm(`Delete "${module.module_name}"?`)
-  if (!confirmed) {
-    return
-  }
+  deleteDialog.value = { open: true, module }
+}
+
+const confirmDeleteModule = async () => {
+  const module = deleteDialog.value.module
+  if (!module) return
 
   deleteLoadingId.value = module.module_id
 
@@ -533,6 +548,7 @@ const handleDeleteModule = async (module) => {
     await api.delete(`/modules/${module.module_id}`)
     modules.value = modules.value.filter(item => item.module_id !== module.module_id)
     showSuccessMessage('Module deleted successfully!')
+    deleteDialog.value = { open: false, module: null }
   } catch (error) {
     console.error('Error deleting module:', error)
     showErrorMessage(error.response?.data?.message || 'Failed to delete module. Please try again.')

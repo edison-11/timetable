@@ -91,6 +91,17 @@
           </div>
         </div>
       </div>
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Shift"
+        :description="`Delete shift ${deleteDialog.shift?.shift_name || 'this shift'}?`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="deleteDialog.loading"
+        danger
+        @confirm="confirmDeleteShift"
+      />
     </div>
   </AppLayout>
 </template>
@@ -100,6 +111,7 @@ import { onMounted, ref } from 'vue'
 import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const shifts = ref([])
 const shiftForm = ref({
@@ -112,6 +124,7 @@ const isEditing = ref(false)
 const currentShift = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const deleteDialog = ref({ open: false, shift: null, loading: false })
 const formMessage = ref('')
 const modalMessage = ref('')
 
@@ -192,12 +205,22 @@ const saveShift = async () => {
 }
 
 const deleteShift = async (shift) => {
-  if (!confirm(`Delete shift "${shift.shift_name}"?`)) return
+  deleteDialog.value = { open: true, shift, loading: false }
+}
+
+const confirmDeleteShift = async () => {
+  const shift = deleteDialog.value.shift
+  if (!shift) return
+
+  deleteDialog.value.loading = true
   try {
     await api.delete(`/shifts/${shift.shift_id}`)
     shifts.value = shifts.value.filter(s => s.shift_id !== shift.shift_id)
+    deleteDialog.value = { open: false, shift: null, loading: false }
   } catch (error) {
     formMessage.value = error.response?.data?.message || 'Failed to delete shift.'
+  } finally {
+    deleteDialog.value.loading = false
   }
 }
 

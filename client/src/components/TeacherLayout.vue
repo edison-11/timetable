@@ -227,6 +227,9 @@ const icons = {
   dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
   timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
   attendance: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-5"/><path d="M5 4h14v16H5z"/><path d="M8 17h8"/></svg>',
+  classes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 0 4 22v-3Z"/><path d="M8 8h8"/><path d="M8 12h6"/></svg>',
+  marks: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8M8 12h8M8 17h5"/><path d="M5 3h14v18H5z"/></svg>',
+  announcements: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11v2a2 2 0 0 0 2 2h2l5 4V5L8 9H6a2 2 0 0 0-2 2Z"/><path d="M17 9a3 3 0 0 1 0 6"/></svg>',
   profile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg>',
   settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
 }
@@ -234,12 +237,15 @@ const icons = {
 const navItems = [
   { label: 'Dashboard', to: '/teacher/dashboard', icon: icons.dashboard },
   { label: 'My Timetable', to: '/teacher/timetable', icon: icons.timetable },
+  { label: 'My Classes', to: '/teacher/dashboard#classes', icon: icons.classes },
   { label: 'Attendance', to: '/teacher/attendance', icon: icons.attendance },
+  { label: 'Marks', to: '/teacher/requests', icon: icons.marks },
+  { label: 'Announcements', to: '/teacher/announcements', icon: icons.announcements },
   { label: 'My Profile', to: '/teacher/profile', icon: icons.profile },
   { label: 'Settings', to: '/teacher/settings', icon: icons.settings }
 ]
 
-const isActive = (path) => route.path === path
+const isActive = (path) => String(path).includes('#') ? route.fullPath === path : route.path === path
 
 const resolveAssetUrl = (path) => {
   if (!path) return ''
@@ -329,7 +335,7 @@ const logout = () => {
   localStorage.removeItem('token')
   localStorage.removeItem('userType')
   localStorage.removeItem('teacher')
-  router.push('/teacher/login')
+  router.push('/login')
 }
 
 const closeMenusOnOutsideClick = (event) => {
@@ -515,19 +521,19 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 30px;
-  width: 30px;
-  height: 30px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
   color: currentColor;
 }
 
 .nav-icon :deep(svg) {
-  width: 19px;
-  height: 19px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.1;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -707,9 +713,9 @@ onBeforeUnmount(() => {
 
 .page-subtitle {
   margin: 0.1rem 0 0;
-  color: #64748b;
+  color: var(--text-secondary, #64748b);
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 400;
 }
 
 .search-container {
@@ -1107,6 +1113,20 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::after {
   pointer-events: none;
   transform: translate(-4px, -50%);
   transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::before {
+  z-index: 1;
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::after {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover,
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible {
+  background: #f1f5ff;
+  color: #1d4ed8;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover::after,

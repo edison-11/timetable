@@ -14,6 +14,9 @@ class Class {
     if (!(await this.columnExists('room_id'))) {
       await pool.query('ALTER TABLE class ADD COLUMN room_id INT NULL AFTER section_id');
     }
+    if (!(await this.columnExists('school_id'))) {
+      await pool.query('ALTER TABLE class ADD COLUMN school_id INT NULL');
+    }
 
     this.schemaReady = true;
   }
@@ -28,12 +31,13 @@ class Class {
       academic_year = null,
       shift_id = null,
       dos_id = null,
-      room_id = null
+      room_id = null,
+      school_id = null
     } = classData;
 
     const [result] = await pool.execute(
-      'INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [class_name, level, academic_year, class_teacher_id || null, shift_id || null, dos_id || null, section_id || null, room_id || null]
+      'INSERT INTO class (class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id, school_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [class_name, level, academic_year, class_teacher_id || null, shift_id || null, dos_id || null, section_id || null, room_id || null, school_id || null]
     );
 
     return result.insertId;
@@ -59,65 +63,108 @@ class Class {
     `;
   }
 
-  static async getAll() {
+  static async getAll(filters = {}) {
     await this.ensureSchema();
+    const where = [];
+    const values = [];
+    if (filters.school_id) {
+      where.push('c.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
       ORDER BY c.level, c.class_name
-    `);
+    `, values);
     return rows;
   }
 
-  static async findByName(class_name) {
+  static async findByName(class_name, filters = {}) {
     await this.ensureSchema();
+    const where = ['LOWER(class_name) = LOWER(?)'];
+    const values = [class_name];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?)',
-      [class_name]
+      `SELECT * FROM class WHERE ${where.join(' AND ')}`,
+      values
     );
     return rows[0];
   }
 
-  static async findByNameExcludingId(class_name, id) {
+  static async findByNameExcludingId(class_name, id, filters = {}) {
     await this.ensureSchema();
+    const where = ['LOWER(class_name) = LOWER(?)', 'class_id <> ?'];
+    const values = [class_name, id];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE LOWER(class_name) = LOWER(?) AND class_id <> ?',
-      [class_name, id]
+      `SELECT * FROM class WHERE ${where.join(' AND ')}`,
+      values
     );
     return rows[0];
   }
 
-  static async findBySectionId(section_id) {
+  static async findBySectionId(section_id, filters = {}) {
     await this.ensureSchema();
+    const where = ['section_id = ?'];
+    const values = [section_id];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE section_id = ?',
-      [section_id]
+      `SELECT * FROM class WHERE ${where.join(' AND ')}`,
+      values
     );
     return rows[0];
   }
 
-  static async findBySectionIdExcludingId(section_id, id) {
+  static async findBySectionIdExcludingId(section_id, id, filters = {}) {
     await this.ensureSchema();
+    const where = ['section_id = ?', 'class_id <> ?'];
+    const values = [section_id, id];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE section_id = ? AND class_id <> ?',
-      [section_id, id]
+      `SELECT * FROM class WHERE ${where.join(' AND ')}`,
+      values
     );
     return rows[0];
   }
 
-  static async findByRoomId(room_id) {
+  static async findByRoomId(room_id, filters = {}) {
     await this.ensureSchema();
+    const where = ['room_id = ?'];
+    const values = [room_id];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE room_id = ?',
-      [room_id]
+      `SELECT * FROM class WHERE ${where.join(' AND ')}`,
+      values
     );
     return rows[0];
   }
 
-  static async findByRoomIdExcludingId(room_id, id) {
+  static async findByRoomIdExcludingId(room_id, id, filters = {}) {
     await this.ensureSchema();
+    const where = ['room_id = ?', 'class_id <> ?'];
+    const values = [room_id, id];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM class WHERE room_id = ? AND class_id <> ?',
-      [room_id, id]
+      `SELECT * FROM class WHERE ${where.join(' AND ')}`,
+      values
     );
     return rows[0];
   }
@@ -131,33 +178,51 @@ class Class {
     return rows[0];
   }
 
-  static async getByLevel(level) {
+  static async getByLevel(level, filters = {}) {
     await this.ensureSchema();
+    const where = ['c.level = ?'];
+    const values = [level];
+    if (filters.school_id) {
+      where.push('c.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
-      WHERE c.level = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY c.class_name
-    `, [level]);
+    `, values);
     return rows;
   }
 
-  static async getBySection(section_id) {
+  static async getBySection(section_id, filters = {}) {
     await this.ensureSchema();
+    const where = ['c.section_id = ?'];
+    const values = [section_id];
+    if (filters.school_id) {
+      where.push('c.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
-      WHERE c.section_id = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY c.class_name
-    `, [section_id]);
+    `, values);
     return rows;
   }
 
-  static async getByAcademicYear(academic_year) {
+  static async getByAcademicYear(academic_year, filters = {}) {
     await this.ensureSchema();
+    const where = ['c.academic_year = ?'];
+    const values = [academic_year];
+    if (filters.school_id) {
+      where.push('c.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       ${this.baseSelect()}
-      WHERE c.academic_year = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY c.level, c.class_name
-    `, [academic_year]);
+    `, values);
     return rows;
   }
 
@@ -182,10 +247,11 @@ class Class {
     const shift_id = valueOrCurrent('shift_id');
     const dos_id = valueOrCurrent('dos_id');
     const room_id = valueOrCurrent('room_id');
+    const school_id = valueOrCurrent('school_id');
 
     await pool.execute(
-      'UPDATE class SET class_name = ?, level = ?, academic_year = ?, class_teacher_id = ?, shift_id = ?, dos_id = ?, section_id = ?, room_id = ? WHERE class_id = ?',
-      [class_name, level, academic_year, class_teacher_id || null, shift_id || null, dos_id || null, section_id || null, room_id || null, id]
+      'UPDATE class SET class_name = ?, level = ?, academic_year = ?, class_teacher_id = ?, shift_id = ?, dos_id = ?, section_id = ?, room_id = ?, school_id = ? WHERE class_id = ?',
+      [class_name, level, academic_year, class_teacher_id || null, shift_id || null, dos_id || null, section_id || null, room_id || null, school_id || null, id]
     );
   }
 
@@ -194,8 +260,14 @@ class Class {
     await pool.execute('DELETE FROM class WHERE class_id = ?', [id]);
   }
 
-  static async getClassesByTeacher(teacher_id) {
+  static async getClassesByTeacher(teacher_id, filters = {}) {
     await this.ensureSchema();
+    const where = ['a.teacher_id = ?'];
+    const values = [teacher_id];
+    if (filters.school_id) {
+      where.push('c.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       SELECT DISTINCT c.*,
              s.shift_name,
@@ -213,9 +285,9 @@ class Class {
       LEFT JOIN dos d ON c.dos_id = d.dos_id
       LEFT JOIN section sec ON c.section_id = sec.section_id
       LEFT JOIN room r ON c.room_id = r.room_id
-      WHERE a.teacher_id = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY c.level, c.class_name
-    `, [teacher_id]);
+    `, values);
     return rows;
   }
 }

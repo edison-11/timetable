@@ -172,7 +172,7 @@ p {
 }
 
 .confirm-btn.danger {
-  background: #dc2626;
+  background: var(--bg-danger, #dc2626);
 }
 
 button:focus-visible {

@@ -2,15 +2,17 @@ const express = require('express');
 const Notification = require('../models/Notification');
 const Teacher = require('../models/Teacher');
 const { auth } = require('../middleware/auth');
+const { getRequestSchoolId } = require('../utils/tenant');
 
 const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
     const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
+    const school_id = getRequestSchoolId(req) || req.user?.school_id || null;
     const [notifications, pendingTeachers] = await Promise.all([
-      Notification.getRecent(limit),
-      Teacher.getByStatus('pending')
+      Notification.getRecent(limit, { school_id, recipient_role: req.user?.role }),
+      Teacher.getByStatus('pending', { school_id })
     ]);
 
     const pendingNotifications = pendingTeachers.map((teacher) => ({
@@ -42,7 +44,7 @@ router.get('/', auth, async (req, res) => {
       .slice(0, limit);
 
     res.json({
-      total: await Notification.count(),
+      total: await Notification.count({ school_id }),
       notifications: combinedNotifications
     });
   } catch (error) {

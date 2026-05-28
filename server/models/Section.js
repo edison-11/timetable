@@ -14,16 +14,19 @@ class Section {
     if (!(await this.columnExists('room_id'))) {
       await pool.query('ALTER TABLE section ADD COLUMN room_id INT NULL');
     }
+    if (!(await this.columnExists('school_id'))) {
+      await pool.query('ALTER TABLE section ADD COLUMN school_id INT NULL');
+    }
 
     this.schemaReady = true;
   }
 
   static async create(sectionData) {
     await this.ensureSchema();
-    const { section_name, level, description, room_id, class_ids } = sectionData;
+    const { section_name, level, description, room_id, class_ids, school_id = null } = sectionData;
     const [result] = await pool.execute(
-      'INSERT INTO section (section_name, level, description, room_id) VALUES (?, ?, ?, ?)',
-      [section_name, level, description, room_id || null]
+      'INSERT INTO section (section_name, level, description, room_id, school_id) VALUES (?, ?, ?, ?, ?)',
+      [section_name, level, description, room_id || null, school_id || null]
     );
     const sectionId = result.insertId;
 
@@ -40,9 +43,15 @@ class Section {
     return sectionId;
   }
 
-  static async getAll() {
+  static async getAll(filters = {}) {
     await this.ensureSchema();
-    const [rows] = await pool.execute('SELECT * FROM section ORDER BY level, section_name');
+    const where = [];
+    const values = [];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
+    const [rows] = await pool.execute(`SELECT * FROM section ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY level, section_name`, values);
     return rows;
   }
 
@@ -52,11 +61,17 @@ class Section {
     return rows[0];
   }
 
-  static async getByLevel(level) {
+  static async getByLevel(level, filters = {}) {
     await this.ensureSchema();
+    const where = ['level = ?'];
+    const values = [level];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT * FROM section WHERE level = ? ORDER BY section_name',
-      [level]
+      `SELECT * FROM section WHERE ${where.join(' AND ')} ORDER BY section_name`,
+      values
     );
     return rows;
   }
@@ -84,6 +99,10 @@ class Section {
     if (room_id !== undefined) {
       updateFields.push('room_id = ?');
       updateValues.push(room_id || null);
+    }
+    if (sectionData.school_id !== undefined) {
+      updateFields.push('school_id = ?');
+      updateValues.push(sectionData.school_id || null);
     }
 
     if (updateFields.length > 0) {
@@ -116,8 +135,11 @@ class Section {
     await pool.execute('DELETE FROM section WHERE section_id = ?', [id]);
   }
 
-  static async getSectionsWithClassCount() {
+  static async getSectionsWithClassCount(filters = {}) {
     await this.ensureSchema();
+    const schoolClause = filters.school_id ? 'WHERE s.school_id = ?' : '';
+    const classSchoolClause = filters.school_id ? 'AND school_id = ?' : '';
+    const values = filters.school_id ? [filters.school_id, filters.school_id] : [];
     const [rows] = await pool.execute(`
       SELECT
         s.section_id,
@@ -137,10 +159,12 @@ class Section {
           GROUP_CONCAT(class_name ORDER BY class_name SEPARATOR ', ') as class_names
         FROM class
         WHERE section_id IS NOT NULL
+        ${classSchoolClause}
         GROUP BY section_id
       ) section_classes ON s.section_id = section_classes.section_id
+      ${schoolClause}
       ORDER BY s.level, s.section_name
-    `);
+    `, values);
     return rows;
   }
 }

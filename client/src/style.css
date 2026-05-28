@@ -12,6 +12,10 @@
   --app-page: #f5f9ff;
   --app-text: #0f172a;
   --app-muted: #64748b;
+  --text-secondary: #64748b;
+  --bg-danger: #dc2626;
+  --icon-sm: 20px;
+  --icon-md: 24px;
 }
 
 /* Custom Bootstrap overrides and additions */
@@ -31,6 +35,87 @@ select,
 textarea {
   font-family: inherit;
   letter-spacing: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+.bi,
+.nav-icon svg,
+.search-icon svg,
+.bell-icon svg,
+.icon-button svg,
+.menu-toggle svg,
+.form-signifier-icon {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+  font-size: var(--icon-sm);
+  line-height: 1;
+  color: currentColor;
+}
+
+.icon-md,
+.quick-action-btn i {
+  width: var(--icon-md);
+  height: var(--icon-md);
+  font-size: var(--icon-md);
+  line-height: 1;
+}
+
+.search-input-wrap,
+.password-input-wrap {
+  position: relative;
+}
+
+.search-input-wrap .search-input,
+.search-input-wrap input {
+  padding-left: 2.75rem !important;
+}
+
+.search-input-wrap .form-signifier-icon {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 3rem !important;
+}
+
+.password-field .password-toggle,
+.password-field-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.45rem;
+  z-index: 3;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+}
+
+.password-field .password-toggle:hover,
+.password-field-toggle:hover {
+  background: #eff6ff;
+  color: var(--app-blue);
 }
 
 h1,

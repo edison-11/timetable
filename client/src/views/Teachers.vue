@@ -34,6 +34,7 @@
               <option value="inactive">Inactive</option>
               <option value="on_leave">On Leave</option>
               <option value="pending">Pending</option>
+              <option value="rejected">Rejected</option>
             </select>
           </div>
         </div>
@@ -63,12 +64,13 @@
                 </td>
                 <td>
                   <span :class="getStatusClass(teacher.status)" class="status-badge">
-                    {{ teacher.status }}
+                    {{ getStatusLabel(teacher.status) }}
                   </span>
                 </td>
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
                   <template v-if="teacher.status === 'pending'">
+                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">Details</button>
                     <button
                       class="btn-approve me-2"
                       @click="approveTeacher(teacher)"
@@ -85,6 +87,7 @@
                     </button>
                   </template>
                   <template v-else>
+                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">Details</button>
                     <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
                     <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
                   </template>
@@ -178,6 +181,7 @@
                       <option value="inactive">Inactive</option>
                       <option value="on_leave">On Leave</option>
                       <option value="pending">Pending</option>
+                      <option value="rejected">Rejected</option>
                     </select>
                   </div>
                   <div class="col-12">
@@ -294,6 +298,42 @@
           </div>
         </div>
       </div>
+
+      <div class="modal fade" id="teacherDetailsModal" tabindex="-1" aria-labelledby="teacherDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="teacherDetailsModalLabel">Teacher Details</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div v-if="selectedTeacher" class="details-grid">
+                <div><span>Name</span><strong>{{ selectedTeacher.name }}</strong></div>
+                <div><span>Email</span><strong>{{ selectedTeacher.email }}</strong></div>
+                <div><span>Phone</span><strong>{{ selectedTeacher.phone || 'Not set' }}</strong></div>
+                <div><span>Department</span><strong>{{ selectedTeacher.department || 'SSOD' }}</strong></div>
+                <div><span>Qualification</span><strong>{{ selectedTeacher.qualification || 'Not set' }}</strong></div>
+                <div><span>National/Staff ID</span><strong>{{ selectedTeacher.national_id || selectedTeacher.employee_id || 'Not set' }}</strong></div>
+                <div><span>Status</span><strong>{{ getStatusLabel(selectedTeacher.status) }}</strong></div>
+                <div><span>Date Joined</span><strong>{{ formatDate(selectedTeacher.date_joined) }}</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ConfirmModal
+        v-model="teacherDialog.open"
+        :title="teacherDialog.mode === 'reject' ? 'Reject Registration' : 'Delete Teacher'"
+        :description="teacherDialog.mode === 'reject'
+          ? `Reject ${teacherDialog.teacher?.name || 'this teacher'}'s registration request?`
+          : `Delete ${teacherDialog.teacher?.name || 'this teacher'}? This action cannot be undone.`"
+        :confirm-label="teacherDialog.mode === 'reject' ? 'Reject' : 'Delete'"
+        cancel-label="Cancel"
+        :loading-label="teacherDialog.mode === 'reject' ? 'Rejecting...' : 'Deleting...'"
+        :loading="teacherDialog.loading"
+        danger
+        @confirm="confirmTeacherAction"
+      />
     </div>
   </AppLayout>
 </template>
@@ -304,6 +344,7 @@ import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import { Modal, Toast } from 'bootstrap'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const route = useRoute()
 const teachers = ref([])
@@ -337,6 +378,8 @@ const newTeacher = ref({
 
 const loading = ref(false)
 const approvalLoadingId = ref(null)
+const teacherDialog = ref({ open: false, teacher: null, mode: 'delete', loading: false })
+const selectedTeacher = ref(null)
 const errors = ref({})
 
 const filteredTeachers = computed(() => {
@@ -367,10 +410,19 @@ const departmentSuggestions = computed(() => {
 const getStatusClass = (status) => {
   switch (status) {
     case 'active': return 'status-active'
+    case 'rejected': return 'status-inactive'
     case 'inactive': return 'status-inactive'
     case 'on_leave': return 'status-pending'
     default: return 'status-pending'
   }
+}
+
+const getStatusLabel = (status) => {
+  if (status === 'active') return 'Approved'
+  if (status === 'pending') return 'Pending'
+  if (status === 'rejected') return 'Rejected'
+  if (status === 'on_leave') return 'On Leave'
+  return status || 'Unknown'
 }
 
 const formatDate = (dateString) => {
@@ -580,15 +632,40 @@ const handleUpdateTeacher = async (event) => {
 }
 
 const deleteTeacher = async (teacher) => {
-  if (!confirm(`Are you sure you want to delete ${teacher.name}? This action cannot be undone.`)) return
-  
+  teacherDialog.value = { open: true, teacher, mode: 'delete', loading: false }
+}
+
+const openDetailsModal = (teacher) => {
+  selectedTeacher.value = teacher
+  Modal.getOrCreateInstance(document.getElementById('teacherDetailsModal')).show()
+}
+
+const rejectTeacher = async (teacher) => {
+  teacherDialog.value = { open: true, teacher, mode: 'reject', loading: false }
+}
+
+const confirmTeacherAction = async () => {
+  const teacher = teacherDialog.value.teacher
+  if (!teacher) return
+
+  teacherDialog.value.loading = true
   try {
-    await api.delete(`/teachers/${teacher.teacher_id}`)
-    teachers.value = teachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
-    showSuccessMessage('Teacher deleted successfully!')
+    if (teacherDialog.value.mode === 'reject') {
+      approvalLoadingId.value = teacher.teacher_id
+      await api.delete(`/teachers/${teacher.teacher_id}/reject`)
+      showSuccessMessage('Teacher rejected successfully!')
+    } else {
+      await api.delete(`/teachers/${teacher.teacher_id}`)
+      showSuccessMessage('Teacher deleted successfully!')
+    }
+    await loadTeachers()
+    teacherDialog.value = { open: false, teacher: null, mode: 'delete', loading: false }
   } catch (error) {
-    console.error('Error deleting teacher:', error)
-    showErrorMessage('Failed to delete teacher. Please try again.')
+    console.error('Error updating teacher action:', error)
+    showErrorMessage(error.response?.data?.message || 'Failed to complete teacher action.')
+  } finally {
+    teacherDialog.value.loading = false
+    approvalLoadingId.value = null
   }
 }
 
@@ -602,23 +679,6 @@ const approveTeacher = async (teacher) => {
   } catch (error) {
     console.error('Error approving teacher:', error)
     showErrorMessage(error.response?.data?.message || 'Failed to approve teacher.')
-  } finally {
-    approvalLoadingId.value = null
-  }
-}
-
-const rejectTeacher = async (teacher) => {
-  if (!confirm(`Reject ${teacher.name}'s registration request?`)) return
-
-  approvalLoadingId.value = teacher.teacher_id
-
-  try {
-    await api.delete(`/teachers/${teacher.teacher_id}/reject`)
-    teachers.value = teachers.value.filter(t => t.teacher_id !== teacher.teacher_id)
-    showSuccessMessage('Teacher rejected successfully!')
-  } catch (error) {
-    console.error('Error rejecting teacher:', error)
-    showErrorMessage(error.response?.data?.message || 'Failed to reject teacher.')
   } finally {
     approvalLoadingId.value = null
   }
@@ -702,6 +762,15 @@ onMounted(async () => {
 
 .btn-delete {
   background: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-details {
+  background: #0ea5e9;
   color: white;
   border: none;
   padding: 0.25rem 0.75rem;
@@ -832,6 +901,36 @@ onMounted(async () => {
   gap: 0.5rem;
   padding: 1rem;
   border-top: 1px solid #e2e8f0;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.details-grid div {
+  padding: 0.85rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.details-grid span,
+.details-grid strong {
+  display: block;
+}
+
+.details-grid span {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.details-grid strong {
+  color: #0f172a;
+  margin-top: 0.2rem;
 }
 
 .text-center {
