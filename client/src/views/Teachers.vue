@@ -139,19 +139,15 @@
                   </div>
                   <div class="col-md-6">
                     <label for="teacherPassword" class="form-label">Password *</label>
-                    <div class="input-group">
-                      <input 
-                        :type="showNewTeacherPassword ? 'text' : 'password'" 
-                        class="form-control" 
-                        id="teacherPassword" 
-                        v-model="newTeacher.password"
-                        required
-                        placeholder="Minimum 6 characters"
-                      >
-                      <button type="button" class="btn-outline" @click="showNewTeacherPassword = !showNewTeacherPassword">
-                        {{ showNewTeacherPassword ? 'Hide' : 'Show' }}
-                      </button>
-                    </div>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="teacherPassword"
+                      v-model="newTeacher.password"
+                      required
+                      autocomplete="new-password"
+                      placeholder="Minimum 6 characters"
+                    >
                     <div class="invalid-feedback" v-if="errors.password">
                       {{ errors.password }}
                     </div>
@@ -247,19 +243,15 @@
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <label for="editTeacherPassword" class="form-label">Password (leave blank to keep current)</label>
-                    <div class="input-group">
-                      <input 
-                        :type="showEditTeacherPassword ? 'text' : 'password'" 
-                        class="form-control" 
-                        id="editTeacherPassword" 
-                        v-model="editingTeacher.password"
-                        placeholder="Enter new password or leave blank"
-                      >
-                      <button type="button" class="btn-outline" @click="showEditTeacherPassword = !showEditTeacherPassword">
-                        {{ showEditTeacherPassword ? 'Hide' : 'Show' }}
-                      </button>
-                    </div>
+                    <label for="editTeacherPassword" class="form-label">Reset Password (leave blank to keep current)</label>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="editTeacherPassword"
+                      v-model="editingTeacher.password"
+                      autocomplete="new-password"
+                      placeholder="Enter new password or leave blank"
+                    >
                     <div class="invalid-feedback" v-if="editErrors.password">
                       {{ editErrors.password }}
                     </div>
@@ -319,8 +311,6 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const departmentFilter = ref('')
 const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
-const showNewTeacherPassword = ref(false)
-const showEditTeacherPassword = ref(false)
 
 // Edit functionality
 const editingTeacher = ref({
@@ -458,7 +448,6 @@ const handleAddTeacher = async () => {
 
 const openAddModal = () => {
   errors.value = {}
-  showNewTeacherPassword.value = false
   const modal = document.getElementById('addTeacherModal')
   Modal.getOrCreateInstance(modal).show()
 }

@@ -55,13 +55,8 @@
               <span>Print</span>
             </button>
             <select v-model="exportFormat" class="export-select" aria-label="Download format">
-              <option value="csv">CSV</option>
-              <option value="xls">Excel</option>
               <option value="doc">Word</option>
               <option value="pdf">PDF</option>
-              <option value="json">JSON</option>
-              <option value="txt">Text</option>
-              <option value="html">HTML</option>
             </select>
             <button class="action-btn download-btn" @click="downloadTimetable(exportFormat)" title="Download">
               <i class="bi bi-download"></i>
@@ -333,7 +328,7 @@ const showFilters = ref(false)
 const selectedDayView = ref('Monday')
 const showDetailsModal = ref(false)
 const selectedLesson = ref(null)
-const exportFormat = ref('csv')
+const exportFormat = ref('pdf')
 const timetableEntries = ref([])
 const timetableSettings = ref(null)
 const loading = ref(false)
@@ -495,11 +490,6 @@ const buildExportRows = () => {
   return rows
 }
 
-const convertToCSV = () => {
-  const rows = buildExportRows()
-  return rows.map(row => row.map(escapeCsvValue).join(',')).join('\n')
-}
-
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -533,21 +523,29 @@ const buildTimetableHtml = () => {
   <meta charset="utf-8">
   <title>${escapeHtml(teacherName.value)} Timetable</title>
   <style>
-    @page { size: landscape; margin: 10mm; }
-    body { font-family: Arial, sans-serif; color: #111827; }
-    h1 { font-size: 20px; margin: 0 0 4px; }
-    .subtitle { margin: 0 0 10px; color: #475569; font-size: 12px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-    th, td { border: 1px solid #cbd5e1; padding: 5px; font-size: 10px; vertical-align: top; height: 38px; }
-    th { background: #2563eb; color: white; text-align: left; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; color: #111827; background: #ffffff; }
+    h1 { font-size: 11px; line-height: 1.05; margin: 0 0 1px; page-break-after: avoid; break-after: avoid; }
+    .subtitle { margin: 0 0 3px; color: #475569; font-size: 6px; line-height: 1.05; page-break-after: avoid; break-after: avoid; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    th, td { border: 1px solid #cbd5e1; padding: 2px 3px; font-size: 6px; line-height: 1; vertical-align: top; height: 18px; }
+    th { background: #2563eb; color: white; text-align: left; height: 14px; }
     .time-cell { background: #f8fafc; font-weight: 700; }
     .empty-cell { background: #ffffff; }
-    .lesson-card { min-height: 28px; padding: 4px; border-left: 5px solid #3b82f6; background: #eff6ff; border-radius: 6px; }
+    .lesson-card { min-height: 14px; padding: 1px 2px; border-left: 3px solid #3b82f6; background: #eff6ff; border-radius: 3px; }
     .lesson-card.activity { background: #f0fdf4; }
     .lesson-card strong, .lesson-card span, .lesson-card small { display: block; }
+    .lesson-card small { font-size: 5px; text-transform: uppercase; }
     .break-row td { background: #e8f7e9; font-weight: 700; text-align: center; }
     .break-row.lunch td { background: #fff4c7; }
     .break-row.assembly td { background: #e9f2ff; }
+    @page { size: A4 landscape; margin: 3mm; mso-page-orientation: landscape; }
+    @media print {
+      html, body { width: 291mm; min-height: 204mm; }
+    }
   </style>
 </head>
 <body>
@@ -616,11 +614,10 @@ const openPdfPrintWindow = () => {
   printWindow.print()
 }
 
-const downloadTimetable = (format = 'csv') => {
-  const selectedFormat = String(format || 'csv').toLowerCase()
+const downloadTimetable = (format = 'pdf') => {
+  const selectedFormat = String(format || 'pdf').toLowerCase()
   const baseName = 'teacher-timetable'
   const html = buildTimetableHtml()
-  const rows = buildExportRows()
 
   if (selectedFormat === 'pdf') {
     downloadTimetablePdf({
@@ -631,18 +628,8 @@ const downloadTimetable = (format = 'csv') => {
       filename: `${baseName}.pdf`,
       fitToOnePage: true
     })
-  } else if (selectedFormat === 'xls') {
-    downloadFile(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
-  } else if (selectedFormat === 'doc') {
-    downloadFile(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
-  } else if (selectedFormat === 'json') {
-    downloadFile(JSON.stringify(processedTimetable.value, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
-  } else if (selectedFormat === 'txt') {
-    downloadFile(rows.map(row => row.join(' | ')).join('\n'), `${baseName}.txt`, 'text/plain;charset=utf-8')
-  } else if (selectedFormat === 'html') {
-    downloadFile(html, `${baseName}.html`, 'text/html;charset=utf-8')
   } else {
-    downloadFile(convertToCSV(), `${baseName}.csv`, 'text/csv;charset=utf-8')
+    downloadFile(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
   }
 }
 

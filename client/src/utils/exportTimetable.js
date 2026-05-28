@@ -1,6 +1,5 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import ical from 'ical-generator'
 import { FIXED_DAYS, buildFixedTimetableRows, isBreakEntry } from './fixedTimetableStructure'
 
 const DAYS = FIXED_DAYS
@@ -73,41 +72,49 @@ const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
   reader.readAsDataURL(blob)
 })
 
-let logoDataUrlPromise = null
+const logoDataUrlPromises = new Map()
 
-const getLogoDataUrl = async () => {
-  if (!logoDataUrlPromise) {
-    logoDataUrlPromise = fetch(SCHOOL_LOGO_URL)
+const getLogoDataUrl = async (logoUrl = SCHOOL_LOGO_URL) => {
+  const source = String(logoUrl || SCHOOL_LOGO_URL)
+  if (!logoDataUrlPromises.has(source)) {
+    logoDataUrlPromises.set(source, fetch(source)
       .then((response) => (response.ok ? response.blob() : null))
       .then((blob) => (blob ? blobToDataUrl(blob) : ''))
-      .catch(() => '')
+      .catch(() => ''))
   }
 
-  return logoDataUrlPromise
+  return logoDataUrlPromises.get(source)
+}
+
+const getImageFormat = (dataUrl = '') => {
+  const match = String(dataUrl).match(/^data:image\/([a-zA-Z0-9+.-]+);/)
+  const type = String(match?.[1] || 'png').toLowerCase()
+  if (type.includes('jpeg') || type.includes('jpg')) return 'JPEG'
+  if (type.includes('webp')) return 'WEBP'
+  return 'PNG'
 }
 
 const buildFooterHtml = (options = {}) => {
   const preparedBy = getSignatureText(options.preparedBy, '________________')
   const approvedBy = getSignatureText(options.approvedBy, '________________')
   return `
-    <footer class="export-footer">
-      <div class="footer-note">Prepared and approved for official timetable distribution.</div>
-      <div class="signature-grid">
-        <div class="signature-box">
-          <span class="signature-label">Prepared by</span>
-          <span class="signature-name">${escapeHtml(preparedBy)}</span>
-        </div>
-        <div class="signature-box">
-          <span class="signature-label">Approved by</span>
-          <span class="signature-name">${escapeHtml(approvedBy)}</span>
-        </div>
-      </div>
-    </footer>
+    <tfoot class="signature-footer">
+        <tr>
+          <td colspan="3">
+            <span class="signature-label">Prepared by</span>
+            <span class="signature-name">${escapeHtml(preparedBy)}</span>
+          </td>
+          <td colspan="4">
+            <span class="signature-label">Approved by</span>
+            <span class="signature-name">${escapeHtml(approvedBy)}</span>
+          </td>
+        </tr>
+    </tfoot>
   `
 }
 
 const buildHeaderHtml = async (className, options = {}) => {
-  const logoDataUrl = await getLogoDataUrl()
+  const logoDataUrl = await getLogoDataUrl(options.logoUrl)
   const preparedBy = getSignatureText(options.preparedBy, '________________')
   const approvedBy = getSignatureText(options.approvedBy, '________________')
   const meta = getExportMeta(options)
@@ -116,7 +123,7 @@ const buildHeaderHtml = async (className, options = {}) => {
     <header class="export-header">
       <div class="brand-block">
         <div class="brand-logo-wrap">
-          ${logoDataUrl ? `<img class="brand-logo" src="${logoDataUrl}" alt="School logo">` : ''}
+          ${logoDataUrl ? `<img class="brand-logo" src="${logoDataUrl}" width="36" height="36" style="width:36px;height:36px;max-width:36px;max-height:36px;object-fit:contain;" alt="School logo">` : ''}
         </div>
         <div class="brand-copy">
           <p class="brand-eyebrow">School Timetable</p>
@@ -135,8 +142,8 @@ const buildHeaderHtml = async (className, options = {}) => {
 
 const buildTimetableHtml = async (rows, className, options = {}) => {
   const compact = rows.length > 9
-  const fontSize = compact ? 7.5 : 8.5
-  const cellPadding = compact ? 2.5 : 3.5
+  const fontSize = compact ? 5.4 : 6.2
+  const cellPadding = compact ? 1.2 : 1.8
   const headerHtml = await buildHeaderHtml(className, options)
   const footerHtml = buildFooterHtml(options)
 
@@ -165,28 +172,33 @@ const buildTimetableHtml = async (rows, className, options = {}) => {
   <title>${escapeHtml(className)} - Timetable</title>
   <style>
     html, body { margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #111827; padding: 8px 10px 10px; }
-    .export-header { margin-bottom: 6px; padding-bottom: 5px; border-bottom: 1px solid #dbe3ef; }
+    body { font-family: Arial, sans-serif; color: #111827; padding: 0; }
+    .export-header { margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #dbe3ef; page-break-after: avoid; break-after: avoid; }
     .brand-block { display: flex; align-items: center; gap: 8px; }
-    .brand-logo-wrap { width: 42px; height: 42px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 1px solid #dbe3ef; border-radius: 8px; background: #fff; overflow: hidden; }
-    .brand-logo { width: 100%; height: 100%; object-fit: contain; }
-    .brand-copy h1 { margin: 0 0 2px; font-size: ${compact ? 13 : 15}px; line-height: 1.1; }
-    .brand-eyebrow { margin: 0 0 2px; color: #2563eb; font-size: 7px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
-    .generated { margin: 0; color: #4b5563; font-size: ${compact ? 7 : 8}px; }
-    .export-meta { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 4px; color: #1f2937; font-size: ${compact ? 7 : 8}px; font-weight: 700; }
+    .brand-logo-wrap { width: 36px !important; height: 36px !important; max-width: 36px !important; max-height: 36px !important; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 1px solid #dbe3ef; border-radius: 5px; background: #fff; overflow: hidden; }
+    .brand-logo { display: block; width: 36px !important; height: 36px !important; max-width: 36px !important; max-height: 36px !important; object-fit: contain; }
+    .brand-copy h1 { margin: 0 0 2px; font-size: ${compact ? 11 : 12}pt; line-height: 1.08; }
+    .brand-eyebrow { margin: 0 0 2px; color: #2563eb; font-size: 5.5pt; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+    .generated { margin: 0; color: #4b5563; font-size: 5.6pt; }
+    .export-meta { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 2px; color: #1f2937; font-size: 5.6pt; font-weight: 700; }
     .export-meta span { display: inline-flex; align-items: center; gap: 0.35rem; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
     th { background: #2563eb; color: #fff; font-weight: 700; text-align: center; }
-    th, td { border: 1px solid #bfdbfe; padding: ${cellPadding}px; vertical-align: top; font-size: ${fontSize}px; line-height: 1.08; }
+    th, td { border: 1px solid #bfdbfe; padding: ${cellPadding}pt; vertical-align: top; font-size: ${fontSize}pt; line-height: 1; }
     td:first-child, td:nth-child(2) { text-align: center; white-space: nowrap; }
     .break-row td { background: #eff6ff; font-weight: 700; text-align: center; }
-    .export-footer { margin-top: 6px; padding-top: 5px; border-top: 1px solid #dbe3ef; }
-    .footer-note { margin: 0 0 4px; color: #475569; font-size: 7px; font-weight: 700; }
-    .signature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-    .signature-box { min-height: 26px; padding-top: 2px; }
-    .signature-label { display: block; margin-bottom: 4px; color: #334155; font-size: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
-    .signature-name { display: block; padding-top: 3px; border-top: 1px solid #94a3b8; color: #0f172a; font-size: 7px; font-weight: 700; }
-    @page { size: A4 landscape; margin: 4mm; }
+    .signature-footer td { padding: 3pt 8pt 0; border: 0; background: #ffffff; vertical-align: top; }
+    .signature-label { display: block; margin-bottom: 2pt; color: #334155; font-size: 4.6pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+    .signature-name { display: block; padding-top: 1.5pt; border-top: 1px solid #94a3b8; color: #0f172a; font-size: 5pt; font-weight: 700; }
+    @page { size: A4 landscape; margin: 3mm; mso-page-orientation: landscape; }
+    @media print {
+      html, body { width: 291mm; min-height: 204mm; }
+      .brand-logo-wrap,
+      .brand-logo { width: 12mm !important; height: 12mm !important; max-width: 12mm !important; max-height: 12mm !important; }
+    }
   </style>
 </head>
 <body>
@@ -205,8 +217,8 @@ const buildTimetableHtml = async (rows, className, options = {}) => {
       </tr>
     </thead>
     <tbody>${bodyRows}</tbody>
+    ${footerHtml}
   </table>
-  ${footerHtml}
 </body>
 </html>`
 }
@@ -215,16 +227,17 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
   const rows = getExportRows(timetableData, options)
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
-  const margin = 5
-  const topMargin = 22
-  const bottomMargin = 13
+  const margin = 4
+  const topMargin = 18
+  const bottomMargin = 9
   const usableWidth = pageWidth - (margin * 2)
   const usableHeight = pageHeight - topMargin - bottomMargin
   const estimatedRowHeight = usableHeight / Math.max(rows.length + 1, 1)
-  const fontSize = Math.min(Math.max(estimatedRowHeight * 0.42, 4.6), 6.1)
-  const cellPadding = Math.min(Math.max(estimatedRowHeight * 0.05, 0.35), 0.9)
-  const periodWidth = 11
-  const timeWidth = 21
+  const fontSize = Math.min(Math.max(estimatedRowHeight * 0.46, 4.8), 7.2)
+  const cellPadding = Math.min(Math.max(estimatedRowHeight * 0.07, 0.55), 1.15)
+  const minCellHeight = Math.max(estimatedRowHeight * 0.86, 8)
+  const periodWidth = 13
+  const timeWidth = 23
   const dayWidth = (usableWidth - periodWidth - timeWidth) / DAYS.length
 
   const logoDataUrl = doc.logoDataUrl || ''
@@ -234,15 +247,15 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
 
   const drawHeader = () => {
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, 'PNG', margin, 5, 12, 12)
+      doc.addImage(logoDataUrl, getImageFormat(logoDataUrl), margin, 3, 14, 14)
     }
-    doc.setFontSize(11)
+    doc.setFontSize(12.5)
     doc.setFont(undefined, 'bold')
-    doc.text(`${className} - Timetable`, logoDataUrl ? margin + 15 : margin, 10)
-    doc.setFontSize(6)
+    doc.text(`${className} - Timetable`, logoDataUrl ? margin + 17 : margin, 8)
+    doc.setFontSize(6.6)
     doc.setFont(undefined, 'normal')
-    if (meta.length) doc.text(meta.join('    '), logoDataUrl ? margin + 15 : margin, 15)
-    doc.text(`Generated on ${new Date().toLocaleDateString()}`, logoDataUrl ? margin + 15 : margin, 18)
+    if (meta.length) doc.text(meta.join('    '), logoDataUrl ? margin + 17 : margin, 13)
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, logoDataUrl ? margin + 17 : margin, 16)
   }
 
   const drawFooter = () => {
@@ -295,12 +308,13 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
     styles: {
       fontSize,
       cellPadding,
-      valign: 'top',
+      valign: 'middle',
       overflow: 'ellipsize',
       lineColor: [219, 234, 254],
       lineWidth: 0.18,
       textColor: [55, 65, 81],
-      minCellHeight: 4
+      minCellHeight,
+      lineHeightFactor: 1.08
     },
     headStyles: {
       fillColor: [37, 99, 235],
@@ -308,12 +322,13 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
       fontStyle: 'bold',
       halign: 'center',
       valign: 'middle',
-      fontSize: 5.8,
-      cellPadding: 0.8
+      fontSize: Math.min(fontSize + 0.2, 7.4),
+      cellPadding: Math.max(cellPadding * 0.8, 0.7),
+      minCellHeight: Math.max(minCellHeight * 0.72, 7)
     },
     columnStyles: {
       0: { cellWidth: periodWidth, halign: 'center', valign: 'middle' },
-      1: { cellWidth: timeWidth, halign: 'center', valign: 'middle', fontSize: 5.4 },
+      1: { cellWidth: timeWidth, halign: 'center', valign: 'middle', fontSize: Math.min(fontSize, 6.6) },
       2: { cellWidth: dayWidth },
       3: { cellWidth: dayWidth },
       4: { cellWidth: dayWidth },
@@ -338,36 +353,213 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
 
 export const exportToPDF = async (timetableData, className = 'Timetable', options = {}) => {
   const doc = new jsPDF({ orientation: 'landscape' })
-  doc.logoDataUrl = await getLogoDataUrl()
+  doc.logoDataUrl = await getLogoDataUrl(options.logoUrl)
   renderTimetablePdf(doc, timetableData, className, options)
   doc.save(`${safeFileName(className)}_timetable.pdf`)
 }
 
 export const exportMultipleTimetablesToPDF = async (groups, baseFileName = 'Timetable', optionsList = []) => {
   const doc = new jsPDF({ orientation: 'landscape' })
-  doc.logoDataUrl = await getLogoDataUrl()
+  const resolvedOptionsList = await Promise.all(groups.map(async (_group, index) => {
+    const options = optionsList[index] || {}
+    return {
+      ...options,
+      logoDataUrl: await getLogoDataUrl(options.logoUrl)
+    }
+  }))
 
   groups.forEach((group, index) => {
     if (index > 0) doc.addPage()
     const className = group.class_name || `Class ${group.class_id}`
-    renderTimetablePdf(doc, group.entries || group, className, optionsList[index] || {})
+    const options = resolvedOptionsList[index] || {}
+    doc.logoDataUrl = options.logoDataUrl || ''
+    renderTimetablePdf(doc, group.entries || group, className, options)
   })
 
   doc.save(`${safeFileName(baseFileName)}.pdf`)
 }
 
-export const exportToWord = async (timetableData, className = 'Timetable', options = {}) => {
-  const rows = getExportRows(timetableData, options)
-  const html = await buildTimetableHtml(rows, className, options)
-  const blob = new Blob([html], { type: 'application/msword;charset=utf-8' })
-  const link = document.createElement('a')
+// Load JSZip library dynamically for DOCX generation
+const loadJSZip = async () => {
+  if (window.JSZip) return window.JSZip
+  const script = document.createElement('script')
+  return new Promise((resolve, reject) => {
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'
+    script.onload = () => resolve(window.JSZip)
+    script.onerror = () => reject(new Error('Failed to load JSZip library'))
+    document.head.appendChild(script)
+  })
+}
 
-  link.href = URL.createObjectURL(blob)
-  link.download = `${safeFileName(className)}_timetable.doc`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(link.href)
+const createDocxStructure = async (timetableData, className = 'Timetable', options = {}) => {
+  const JSZip = await loadJSZip()
+  const zip = new JSZip()
+  const rows = getExportRows(timetableData, options)
+  const logoDataUrl = await getLogoDataUrl(options.logoUrl)
+  
+  // Get logo image data
+  let logoImageData = null
+  let logoImageType = 'png'
+  if (logoDataUrl) {
+    try {
+      const response = await fetch(logoDataUrl)
+      const blob = await response.blob()
+      logoImageData = await blobToBase64(blob)
+      logoImageType = getImageFormat(logoDataUrl).toLowerCase()
+    } catch (error) {
+      console.warn('Failed to load logo for DOCX', error)
+    }
+  }
+
+  const docTitle = `${className} - Timetable`
+  const preparedBy = getSignatureText(options.preparedBy, '________________')
+  const approvedBy = getSignatureText(options.approvedBy, '________________')
+  const meta = getExportMeta(options)
+  const generatedDate = new Date().toLocaleDateString()
+
+  // Create [Content_Types].xml
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  ${logoImageData ? `<Default Extension="${logoImageType}" ContentType="image/${logoImageType}"/>` : ''}
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`
+
+  // Create _rels/.rels
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`
+
+  // Create word/_rels/document.xml.rels
+  let docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`
+  let imageRelId = 1
+  if (logoImageData) {
+    docRels += `\n  <Relationship Id="rId${imageRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.${logoImageType}"/>`
+    imageRelId++
+  }
+  docRels += `\n</Relationships>`
+
+  // Build table rows XML
+  const tableRowsXml = rows.map((row, rowIndex) => {
+    if (row.type === 'break') {
+      return `
+        <w:tr>
+          <w:trPr><w:trHeight w:val="400" w:type="atLeast"/></w:trPr>
+          <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="2563EB"/></w:rPr><w:t>${escapeHtml(row.label || 'BREAK')}</w:t></w:r></w:p></w:tc>
+          <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</w:t></w:r></w:p></w:tc>
+          ${DAYS.map(() => `<w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeHtml(row.label || 'BREAK')}</w:t></w:r></w:p></w:tc>`).join('')}
+        </w:tr>`
+    }
+
+    return `
+        <w:tr>
+          <w:trPr><w:trHeight w:val="400" w:type="atLeast"/></w:trPr>
+          <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>${escapeHtml(row.period || '')}</w:t></w:r></w:p></w:tc>
+          <w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</w:t></w:r></w:p></w:tc>
+          ${DAYS.map((day) => `<w:tc><w:tcPr><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:t>${cellHtml(row.entriesByDay?.[day])}</w:t></w:r></w:p></w:tc>`).join('')}
+        </w:tr>`
+  }).join('')
+
+  // Create document.xml
+  const logoXml = logoImageData ? `
+      <w:tbl>
+        <w:tblPr><w:tblW w:w="9000" w:type="dxa"/></w:tblPr>
+        <w:tr>
+          <w:tc><w:tcPr><w:tcW w:w="1000" w:type="dxa"/></w:tcPr><w:p><w:r><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="column"><wp:align>left</wp:align></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV><wp:extent cx="914400" cy="914400"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="1" name="Logo 1"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="logo.${logoImageType}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p></w:tc>
+          <w:tc><w:tcPr><w:tcW w:w="7500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="32"/><w:b/></w:rPr><w:t>${escapeHtml(docTitle)}</w:t></w:r></w:p><w:p><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>Generated on ${generatedDate}</w:t></w:r></w:p>${meta.length ? meta.map(m => `<w:p><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>${escapeHtml(m)}</w:t></w:r></w:p>`).join('') : ''}</w:tc>
+        </w:tr>
+      </w:tbl>` : `<w:p><w:r><w:rPr><w:sz w:val="32"/><w:b/></w:rPr><w:t>${escapeHtml(docTitle)}</w:t></w:r></w:p><w:p><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>Generated on ${generatedDate}</w:t></w:r></w:p>`
+
+  const document = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+  <w:body>
+    ${logoXml}
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:w="9000" w:type="dxa"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="12" w:space="0" w:color="4B69FF"/>
+          <w:left w:val="single" w:sz="12" w:space="0" w:color="4B69FF"/>
+          <w:bottom w:val="single" w:sz="12" w:space="0" w:color="4B69FF"/>
+          <w:right w:val="single" w:sz="12" w:space="0" w:color="4B69FF"/>
+          <w:insideH w:val="single" w:sz="12" w:space="0" w:color="BFDBFE"/>
+          <w:insideV w:val="single" w:sz="12" w:space="0" w:color="BFDBFE"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tr>
+        <w:trPr><w:trHeight w:val="400" w:type="atLeast"/></w:trPr>
+        <w:tc><w:tcPr><w:shd w:fill="2563EB"/><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Slot</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:shd w:fill="2563EB"/><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>Time</w:t></w:r></w:p></w:tc>
+        ${DAYS.map((day) => `<w:tc><w:tcPr><w:shd w:fill="2563EB"/><w:tcW w:w="1500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/></w:rPr><w:t>${escapeHtml(day)}</w:t></w:r></w:p></w:tc>`).join('')}
+      </w:tr>
+      ${tableRowsXml}
+    </w:tbl>
+    <w:p><w:pPr><w:spacing w:before="400"/></w:pPr></w:p>
+    <w:tbl>
+      <w:tr>
+        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr>
+          <w:p><w:r><w:rPr><w:b/><w:sz w:val="18"/></w:rPr><w:t>Prepared by</w:t></w:r></w:p>
+          <w:p><w:pPr><w:spacing w:before="200"/></w:pPr><w:r><w:t>${escapeHtml(preparedBy)}</w:t></w:r></w:p>
+        </w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders></w:tcPr>
+          <w:p><w:r><w:rPr><w:b/><w:sz w:val="18"/></w:rPr><w:t>Approved by</w:t></w:r></w:p>
+          <w:p><w:pPr><w:spacing w:before="200"/></w:pPr><w:r><w:t>${escapeHtml(approvedBy)}</w:t></w:r></w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+  </w:body>
+</w:document>`
+
+  // Add files to ZIP
+  zip.file('[Content_Types].xml', contentTypes)
+  zip.folder('_rels').file('.rels', rels)
+  zip.folder('word').file('document.xml', document)
+  zip.folder('word/_rels').file('document.xml.rels', docRels)
+
+  // Add logo image if present
+  if (logoImageData) {
+    const imageBuffer = base64ToArrayBuffer(logoImageData.split(',')[1])
+    zip.folder('word/media').file(`logo.${logoImageType}`, imageBuffer, { binary: true })
+  }
+
+  return zip
+}
+
+const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result || ''))
+  reader.onerror = () => reject(reader.error || new Error('Failed to convert blob'))
+  reader.readAsDataURL(blob)
+})
+
+const base64ToArrayBuffer = (base64) => {
+  const binaryString = atob(base64)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i)
+  }
+  return bytes.buffer
+}
+
+export const exportToWord = async (timetableData, className = 'Timetable', options = {}) => {
+  try {
+    const zip = await createDocxStructure(timetableData, className, options)
+    const blob = await zip.generateAsync({ type: 'blob' })
+    const link = document.createElement('a')
+
+    link.href = URL.createObjectURL(blob)
+    link.download = `${safeFileName(className)}_timetable.docx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(link.href)
+  } catch (error) {
+    console.error('Error generating DOCX:', error)
+    throw new Error('Failed to generate Word document. Please try again.')
+  }
 }
 
 export const printTimetable = async (timetableData, className = 'Timetable', options = {}) => {
@@ -382,41 +574,3 @@ export const printTimetable = async (timetableData, className = 'Timetable', opt
   printWindow.print()
 }
 
-export const exportToICal = (timetableData, className = 'Timetable') => {
-  const calendar = ical({ name: `${className} Timetable` })
-
-  timetableData.forEach((entry) => {
-    if (!entry.start_time || !entry.end_time || !entry.day_of_week) return
-
-    const dayIndex = DAYS.indexOf(entry.day_of_week)
-    if (dayIndex === -1) return
-
-    const today = new Date()
-    const eventDate = new Date(today)
-    eventDate.setDate(today.getDate() + ((dayIndex + 7 - today.getDay()) % 7))
-
-    const [startHour, startMin] = entry.start_time.split(':').map(Number)
-    const [endHour, endMin] = entry.end_time.split(':').map(Number)
-
-    const startDate = new Date(eventDate)
-    startDate.setHours(startHour, startMin, 0, 0)
-
-    const endDate = new Date(eventDate)
-    endDate.setHours(endHour, endMin, 0, 0)
-
-    calendar.createEvent({
-      start: startDate,
-      end: endDate,
-      summary: isBreakEntry(entry) ? getBreakLabel(entry) : entry.module_name || 'Class',
-      description: isBreakEntry(entry)
-        ? `${getBreakLabel(entry)}\nClass: ${entry.class_name || className}`
-        : `Teacher: ${entry.teacher_name || 'TBA'}\nRoom: ${getRoom(entry)}\nClass: ${entry.class_name || className}`,
-      location: isBreakEntry(entry) ? '' : getRoom(entry),
-      repeating: {
-        freq: 'WEEKLY'
-      }
-    })
-  })
-
-  calendar.download(`${safeFileName(className)}_timetable.ics`)
-}

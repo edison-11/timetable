@@ -380,8 +380,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('sidebar:closed', syncSidebarState)
 })
 
-watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
-
 const logout = () => {
   authStore.logout()
   localStorage.removeItem('token')

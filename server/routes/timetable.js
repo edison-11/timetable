@@ -251,19 +251,19 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
       periods: toPositiveInteger(rules.periods_before_morning_break, 3),
       break_name: 'Morning Break',
       break_label: 'MORNING BREAK',
-      break_duration: toPositiveInteger(rules.morning_break_minutes, 15)
+      break_duration: toPositiveInteger(rules.morning_break_minutes, 30)
     },
     {
       periods: toPositiveInteger(rules.periods_before_lunch, 2),
       break_name: 'Lunch Break',
       break_label: 'LUNCH BREAK',
-      break_duration: toPositiveInteger(rules.lunch_break_minutes, 85)
+      break_duration: toPositiveInteger(rules.lunch_break_minutes, 45)
     },
     {
       periods: toPositiveInteger(rules.periods_before_afternoon_break, 3),
       break_name: 'Evening Break',
       break_label: 'EVENING BREAK',
-      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 5)
+      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 30)
     },
     {
       periods: toNonNegativeInteger(rules.periods_after_afternoon_break, 2)
@@ -384,8 +384,9 @@ const rankAssignmentsByWeeklyTarget = (
         && Number(assignment.teacher_id) === Number(preferredTeacherId)
         ? 0.85
         : 0;
-      const blockSizeBonus = getDesiredBlockSize(assignment, weeklyTargets) * 0.6;
-      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 60, 1.0);
+      const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
+      const blockSizeBonus = desiredBlockSize > 1 ? desiredBlockSize * 4 : 0;
+      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 40, 3.0);
 
       return {
         assignment,
@@ -411,6 +412,16 @@ const getDesiredBlockSize = (assignment, weeklyTargets = null) => {
   if (periodsPerYear > 100) return 3;
   if (periodsPerYear >= 50) return 2;
   return 1;
+};
+
+const getPreferredBlockSize = (assignment, scheduled, remainingTarget, weeklyTargets = null) => {
+  const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
+  if (desiredBlockSize === 1) return 1;
+
+  // Large modules should open as a full block so they stay close together.
+  if (scheduled === 0) return desiredBlockSize;
+
+  return Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
 };
 
 const areAdjacentLessonSlots = (previous, next) => {
@@ -769,17 +780,13 @@ router.post('/generate', adminAuth, [
 
         if (currentBlock?.assignment) {
           const desiredBlockSize = getDesiredBlockSize(currentBlock.assignment, weeklyTargets);
-          const currentTarget = weeklyTargets.get(currentBlock.assignment.assignment_id) || 0;
-          const currentScheduled = scheduledCounts.get(currentBlock.assignment.assignment_id) || 0;
-          const remainingTarget = currentTarget - currentScheduled;
           const continuationSlots = getConsecutiveSlots(
             generationItems,
             itemIndex,
-            Math.min(desiredBlockSize - currentBlock.count, Math.max(remainingTarget, 0))
+            desiredBlockSize - currentBlock.count
           );
 
           if (currentBlock.count < desiredBlockSize
-            && remainingTarget > 0
             && isAdjacentToCurrentBlock
             && continuationSlots.length
             && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))) {
@@ -812,7 +819,12 @@ router.post('/generate', adminAuth, [
             const target = weeklyTargets.get(assignment.assignment_id) || 0;
             const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
             const remainingTarget = Math.max(target - scheduled, 0);
-            const maxBlockSize = Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
+            const maxBlockSize = getPreferredBlockSize(
+              assignment,
+              scheduled,
+              remainingTarget,
+              weeklyTargets
+            );
             let blockSlots = [];
 
             for (let blockSize = maxBlockSize; blockSize >= 1; blockSize -= 1) {

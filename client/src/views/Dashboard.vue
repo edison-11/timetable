@@ -281,6 +281,7 @@ const currentAcademicYear = computed(() => {
 })
 const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
+const timetableSettings = ref(null)
 const notifications = ref([])
 const classes = ref([])
 const teachers = ref([])
@@ -432,7 +433,7 @@ const formatTimeRange = (start, end) => {
 }
 
 const buildTimetableGridWithBreaks = (entries) => {
-  return buildFixedTimetableRows(entries, days)
+  return buildFixedTimetableRows(entries, days, timetableSettings.value)
 }
 
 const loadTimetable = async () => {
@@ -442,6 +443,15 @@ const loadTimetable = async () => {
     selectedTimetableClassId.value = classOptions.value[0]?.class_id || ''
   } catch (error) {
     timetableEntries.value = []
+  }
+}
+
+const loadTimetableSettings = async () => {
+  try {
+    const response = await api.get('/settings/timetable')
+    timetableSettings.value = response.data.settings || null
+  } catch (error) {
+    timetableSettings.value = null
   }
 }
 
@@ -538,6 +548,7 @@ const rejectPendingTeacher = async (notification) => {
 
 onMounted(() => {
   loadDashboardData()
+  loadTimetableSettings()
   loadTimetable()
   loadNotifications()
   loadDashboardStatsCards()

@@ -110,7 +110,7 @@
 
           <div class="modal-footer">
             <button class="btn-secondary" type="button" @click="closeAssignmentForm">Cancel</button>
-            <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading">
+            <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading || !isAssignmentFormValid">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
               {{ loading ? 'Adding...' : 'Add Assignment' }}
             </button>
@@ -186,6 +186,30 @@
                 <option value="published">Published (Visible to students)</option>
               </select>
               <small class="form-hint">Draft timetables allow you to work on next semester's schedule without affecting current student views.</small>
+            </div>
+
+            <div class="document-settings">
+              <div class="logo-upload-row">
+                <div class="school-logo-preview">
+                  <img v-if="resolvedSchoolLogoUrl" :src="resolvedSchoolLogoUrl" alt="School logo">
+                  <span v-else>Logo</span>
+                </div>
+                <label class="btn-secondary upload-logo-button">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+                  {{ logoUploading ? 'Uploading...' : 'Upload School Logo' }}
+                  <input type="file" accept="image/png,image/jpeg" :disabled="logoUploading" @change="handleSchoolLogoUpload">
+                </label>
+              </div>
+              <div class="form-grid">
+                <div>
+                  <label class="form-label">Prepared By</label>
+                  <input v-model.trim="generateSettings.prepared_by" type="text" class="form-control" placeholder="Name or title">
+                </div>
+                <div>
+                  <label class="form-label">Approved By</label>
+                  <input v-model.trim="generateSettings.approved_by" type="text" class="form-control" placeholder="Name or title">
+                </div>
+              </div>
             </div>
           </template>
           <div v-else class="collapsed-panel-summary">
@@ -328,12 +352,7 @@
             </button>
             <select v-model="exportFormat" class="form-select export-select" aria-label="Download format">
               <option value="pdf">PDF</option>
-              <option value="csv">CSV</option>
-              <option value="xls">Excel (.xls)</option>
-              <option value="doc">Word (.doc)</option>
-              <option value="json">JSON</option>
-              <option value="txt">Text</option>
-              <option value="html">HTML</option>
+              <option value="docx">Word</option>
             </select>
             <button class="btn-secondary" type="button" @click="downloadTimetable(exportFormat)">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
@@ -369,7 +388,6 @@
                   <button @click="handleExportPDF(group)">PDF</button>
                   <button @click="handleExportWord(group)">Word</button>
                   <button @click="handlePrint(group)">Print</button>
-                  <button @click="handleExportICal(group)">iCal</button>
                 </div>
               </div>
             </div>
@@ -433,8 +451,9 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-import { exportToPDF, exportMultipleTimetablesToPDF, exportToICal } from '@/utils/exportTimetable'
+import { exportToPDF, exportMultipleTimetablesToPDF } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 
 const route = useRoute()
 const loading = ref(false)
@@ -452,6 +471,7 @@ const activeExportDropdown = ref(null)
 const exportFormat = ref('pdf')
 const timetableSettings = ref(null)
 const sharedActivities = ref([])
+const logoUploading = ref(false)
 let sharedActivityId = 0
 
 const emptyAssignment = () => ({
@@ -474,15 +494,18 @@ const generateSettings = ref({
   replace_existing: true,
   selected_days: [...FIXED_DAYS],
   status: 'draft',
+  school_logo_url: '',
+  prepared_by: '',
+  approved_by: '',
   break_period_rules: {
     enabled: true,
     periods_before_morning_break: 3,
     periods_before_lunch: 2,
     periods_before_afternoon_break: 3,
     periods_after_afternoon_break: 2,
-    morning_break_minutes: 15,
-    lunch_break_minutes: 85,
-    afternoon_break_minutes: 5
+    morning_break_minutes: 30,
+    lunch_break_minutes: 45,
+    afternoon_break_minutes: 30
   }
 })
 
@@ -497,6 +520,16 @@ function defaultAcademicYear() {
 const messageTone = computed(() => {
   const text = assignmentMessage.value.toLowerCase()
   return text.includes('error') ? 'error' : 'success'
+})
+
+const isAssignmentFormValid = computed(() => {
+  return !!(
+    assignment.value.class_id &&
+    assignment.value.teacher_id &&
+    assignment.value.module_id &&
+    assignment.value.academic_year &&
+    assignment.value.term
+  )
 })
 
 const generationSummary = computed(() => {
@@ -518,6 +551,8 @@ const slotCountLabel = computed(() => {
 
   return `${totalSlots || 0} slot${totalSlots === 1 ? '' : 's'}`
 })
+
+const resolvedSchoolLogoUrl = computed(() => resolveAssetUrl(generateSettings.value.school_logo_url))
 
 const timeToMinutes = (time) => {
   const [hours, minutes] = String(time || '').split(':').map(Number)
@@ -674,7 +709,10 @@ const withGroupRoomFallback = (rows, group) => {
 const getExportOptions = (group) => ({
   rows: withGroupRoomFallback(buildTimetableGridWithBreaks(group), group),
   level: group.level,
-  roomName: group.room_name
+  roomName: group.room_name,
+  logoUrl: resolvedSchoolLogoUrl.value,
+  preparedBy: generateSettings.value.prepared_by,
+  approvedBy: generateSettings.value.approved_by
 })
 
 const handleExportPDF = (group) => {
@@ -683,7 +721,7 @@ const handleExportPDF = (group) => {
 }
 
 const handleExportWord = (group) => {
-  downloadTimetable('doc', [group])
+  downloadTimetable('docx', [group])
   activeExportDropdown.value = null
 }
 
@@ -692,9 +730,47 @@ const handlePrint = (group) => {
   activeExportDropdown.value = null
 }
 
-const handleExportICal = (group) => {
-  exportToICal(group.entries, group.class_name)
-  activeExportDropdown.value = null
+const getTimetableSettingsPayload = () => ({
+  start_time: generateSettings.value.start_time,
+  end_time: generateSettings.value.end_time,
+  period_minutes: generateSettings.value.period_minutes,
+  teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
+  break_period_rules: { ...generateSettings.value.break_period_rules },
+  school_logo_url: generateSettings.value.school_logo_url,
+  prepared_by: generateSettings.value.prepared_by,
+  approved_by: generateSettings.value.approved_by
+})
+
+const saveTimetableSettings = async () => {
+  const response = await api.put('/settings/timetable', getTimetableSettingsPayload())
+  timetableSettings.value = response.data.settings || timetableSettings.value
+}
+
+const handleSchoolLogoUpload = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (!['image/png', 'image/jpeg'].includes(file.type)) {
+    assignmentMessage.value = 'Error: Upload a PNG or JPG school logo.'
+    event.target.value = ''
+    return
+  }
+
+  logoUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/upload/single', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    generateSettings.value.school_logo_url = response.data.file?.path || response.data.file?.url || ''
+    await saveTimetableSettings()
+    assignmentMessage.value = 'School logo uploaded and saved.'
+  } catch (error) {
+    assignmentMessage.value = 'Error: ' + getApiErrorMessage(error, 'Failed to upload school logo.')
+  } finally {
+    logoUploading.value = false
+    event.target.value = ''
+  }
 }
 
 const getBreakType = (label) => {
@@ -789,32 +865,13 @@ const areSameDisplayBlock = (first, second) => {
 
 const buildDisplayTimetableGrid = (group) => {
   const rows = buildTimetableGridWithBreaks(group)
-  return rows.map((row, rowIndex) => {
+  return rows.map((row) => {
     if (row.type === 'break') return row
 
     const cellsByDay = {}
     days.forEach((day) => {
       const entry = row.entriesByDay?.[day]
-      if (!entry) {
-        cellsByDay[day] = { entry: null, rowspan: 1, skip: false }
-        return
-      }
-
-      const previousRow = rows[rowIndex - 1]
-      const previousEntry = previousRow?.type === 'period' ? previousRow.entriesByDay?.[day] : null
-      if (areSameDisplayBlock(previousEntry, entry)) {
-        cellsByDay[day] = { entry, rowspan: 1, skip: true }
-        return
-      }
-
-      let rowspan = 1
-      for (let nextIndex = rowIndex + 1; nextIndex < rows.length; nextIndex += 1) {
-        const nextRow = rows[nextIndex]
-        if (nextRow.type !== 'period' || !areSameDisplayBlock(entry, nextRow.entriesByDay?.[day])) break
-        rowspan += 1
-      }
-
-      cellsByDay[day] = { entry, rowspan, skip: false }
+      cellsByDay[day] = { entry: entry || null, rowspan: 1, skip: false }
     })
 
     return { ...row, cellsByDay }
@@ -853,7 +910,11 @@ const buildTimetableExportRows = (groups = displayedTimetables.value) => {
           const entry = row.entriesByDay[day]
           if (!entry) return 'Free'
           const room = entry.entry_type === 'activity' ? 'Shared activity' : (entry.room_name || entry.room || 'TBA')
-          return `${entry.module_name || 'Untitled'} - ${entry.teacher_name || 'No teacher'} - ${room}`
+          return [
+            entry.module_name || 'Untitled',
+            entry.teacher_name || 'No teacher',
+            room
+          ].join('\n')
         })
       ])
     })
@@ -874,8 +935,52 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;')
 
-const buildTimetableHtml = (groups = displayedTimetables.value) => {
+const timetableCellHtml = (entry, group) => {
+  if (!entry) return '<td class="empty-cell"></td>'
+
+  const room = entry.entry_type === 'activity'
+    ? 'Shared activity'
+    : (entry.room_name || entry.room || group?.room_name || 'TBA')
+  const lines = [
+    entry.module_name || 'Untitled',
+    entry.teacher_name || 'No teacher',
+    room
+  ]
+
+  return `<td class="${entry.entry_type === 'activity' ? 'activity-cell' : ''}">${lines.map(escapeHtml).join('<br>')}</td>`
+}
+
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result || ''))
+  reader.onerror = () => reject(reader.error || new Error('Unable to read logo file'))
+  reader.readAsDataURL(blob)
+})
+
+const logoDataUrlPromises = new Map()
+
+const getLogoDataUrl = async (logoUrl = '') => {
+  const source = String(logoUrl || '').trim()
+  if (!source) return ''
+  if (source.startsWith('data:image/')) return source
+
+  if (!logoDataUrlPromises.has(source)) {
+    logoDataUrlPromises.set(source, fetch(source)
+      .then((response) => (response.ok ? response.blob() : null))
+      .then((blob) => (blob ? blobToDataUrl(blob) : ''))
+      .catch(() => ''))
+  }
+
+  return logoDataUrlPromises.get(source)
+}
+
+const buildTimetableHtml = async (groups = displayedTimetables.value, options = {}) => {
   const today = new Date().toLocaleDateString()
+  const logoUrl = options.logoSrc !== undefined
+    ? options.logoSrc
+    : await getLogoDataUrl(resolvedSchoolLogoUrl.value)
+  const preparedBy = generateSettings.value.prepared_by || '________________'
+  const approvedBy = generateSettings.value.approved_by || '________________'
   const body = groups.map((group) => {
     const className = group.class_name || `Class ${group.class_id}`
     const level = group.level || 'No level set'
@@ -891,13 +996,7 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
 
       const cells = days.map((day) => {
         const entry = row.entriesByDay[day]
-        if (!entry) return '<td class="empty-cell"></td>'
-        const room = entry.entry_type === 'activity' ? 'Shared activity' : (entry.room_name || entry.room || 'TBA')
-        return `<td class="${entry.entry_type === 'activity' ? 'activity-cell' : ''}">
-          <strong>${escapeHtml(entry.module_name || 'Untitled')}</strong>
-          <span>${escapeHtml(entry.teacher_name || 'No teacher')}</span>
-          <small>${escapeHtml(room)}</small>
-        </td>`
+        return timetableCellHtml(entry, group)
       }).join('')
       return `<tr>
         <td class="period-cell">${escapeHtml(row.period || '')}</td>
@@ -907,9 +1006,14 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
     }).join('')
 
     return `<section class="timetable-page">
-      <h1>${escapeHtml(className)} - Timetable</h1>
-      <p class="meta">Level: ${escapeHtml(level)} &nbsp;&nbsp; Room: ${escapeHtml(room)}</p>
-      <p class="generated">Generated on ${escapeHtml(today)}</p>
+      <header class="document-header">
+        ${logoUrl ? `<img class="document-logo" src="${escapeHtml(logoUrl)}" width="42" height="42" style="width:42px;height:42px;max-width:42px;max-height:42px;object-fit:contain;" alt="School logo">` : '<div class="document-logo-placeholder"></div>'}
+        <div>
+          <h1>${escapeHtml(className)} - Timetable</h1>
+          <p class="meta">Level: ${escapeHtml(level)} &nbsp;&nbsp; Room: ${escapeHtml(room)}</p>
+          <p class="generated">Generated on ${escapeHtml(today)}</p>
+        </div>
+      </header>
       <table>
         <colgroup>
           <col class="period-col">
@@ -924,6 +1028,18 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
           </tr>
         </thead>
         <tbody>${rows}</tbody>
+        <tfoot>
+          <tr class="signature-footer-row">
+            <td colspan="3">
+              <span>Prepared by</span>
+              <strong>${escapeHtml(preparedBy)}</strong>
+            </td>
+            <td colspan="4">
+              <span>Approved by</span>
+              <strong>${escapeHtml(approvedBy)}</strong>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </section>`
   }).join('')
@@ -936,39 +1052,105 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #ffffff; font-family: Arial, sans-serif; color: #111827; }
-    .timetable-page { width: 100%; padding: 26px 30px 30px; page-break-after: always; }
+    .timetable-page { width: 100%; padding: 0; page-break-after: always; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     .timetable-page:last-child { page-break-after: auto; }
-    h1 { font-size: 18px; line-height: 1.2; margin: 0 0 8px; font-weight: 500; }
+    .document-header { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; page-break-after: avoid; break-after: avoid; }
+    .document-logo,
+    .document-logo-placeholder { display: block; width: 42px !important; height: 42px !important; max-width: 42px !important; max-height: 42px !important; min-width: 42px; min-height: 42px; border: 1px solid #d8e4f5; border-radius: 5px; object-fit: contain; background: #ffffff; }
+    h1 { font-size: 16px; line-height: 1.1; margin: 0 0 3px; font-weight: 700; }
     .meta,
-    .generated { margin: 0 0 6px; font-size: 9px; color: #111827; }
-    .generated { margin-bottom: 14px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .generated { margin: 0 0 2px; font-size: 8px; color: #111827; line-height: 1.15; }
+    .generated { margin-bottom: 3px; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     .period-col { width: 6%; }
     .time-col { width: 10%; }
     .day-col { width: 16.8%; }
-    th, td { border: 1px solid #d8e4f5; padding: 6px 7px; font-size: 9px; line-height: 1.12; vertical-align: top; height: 42px; }
-    th { background: #2563eb; color: white; text-align: center; font-size: 8px; font-weight: 700; padding: 6px 4px; }
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    th, td { border: 1px solid #d8e4f5; padding: 2px 3px; font-size: 6px; line-height: 1; vertical-align: top; height: 18px; }
+    th { background: #2563eb; color: white; text-align: center; font-size: 6px; font-weight: 700; padding: 2px 2px; height: 14px; }
     td strong,
     td span,
     td small { display: block; font-weight: 400; color: #374151; }
     td strong { color: #374151; }
-    td small { font-size: 8px; text-transform: uppercase; }
+    td small { font-size: 5px; text-transform: uppercase; }
     .period-cell,
     .time-cell { text-align: center; vertical-align: middle; color: #374151; }
     .period-cell { font-weight: 500; }
     .time-cell { white-space: nowrap; }
     .empty-cell { background: #ffffff; }
     .activity-cell { background: #f0fdf4; }
-    .break-row td { background: #eef4ff; font-weight: 700; text-align: center; vertical-align: middle; height: 38px; }
-    .break-row .period-cell { word-break: break-word; font-size: 8px; }
+    .break-row td { background: #eef4ff; font-weight: 700; text-align: center; vertical-align: middle; height: 14px; }
+    .break-row .period-cell { word-break: break-word; font-size: 5px; }
     .break-label { letter-spacing: 0; }
-    @page { size: A4 landscape; margin: 0; }
+    .signature-footer-row td { height: auto; padding: 4px 18px 0; border: 0; background: #ffffff; vertical-align: top; }
+    .signature-footer-row span { display: block; margin-bottom: 3px; color: #334155; font-size: 5px; font-weight: 700; text-transform: uppercase; }
+    .signature-footer-row strong { display: block; min-height: 8px; padding-top: 2px; border-top: 1px solid #94a3b8; font-size: 6px; font-weight: 500; }
+    @page { size: A4 landscape; margin: 3mm; mso-page-orientation: landscape; }
+    @media print {
+      html, body { width: 291mm; min-height: 204mm; }
+      .document-logo,
+      .document-logo-placeholder { width: 13mm !important; height: 13mm !important; max-width: 13mm !important; max-height: 13mm !important; min-width: 13mm; min-height: 13mm; }
+      .document-header { margin-bottom: 2.5mm; }
+      .timetable-page { page-break-after: always; }
+      .timetable-page:last-child { page-break-after: auto; }
+    }
   </style>
 </head>
 <body>
   ${body}
 </body>
 </html>`
+}
+
+const getDataUrlParts = (dataUrl = '') => {
+  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/)
+  if (!match) return null
+  return {
+    mimeType: match[1],
+    base64: match[2].replace(/\s/g, '')
+  }
+}
+
+const wrapBase64 = (value = '') => String(value).match(/.{1,76}/g)?.join('\r\n') || ''
+
+const getLogoExtension = (mimeType = 'image/png') => {
+  if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return 'jpg'
+  if (mimeType.includes('gif')) return 'gif'
+  if (mimeType.includes('webp')) return 'webp'
+  return 'png'
+}
+
+const buildWordTimetableDocument = async (groups = displayedTimetables.value) => {
+  const logoDataUrl = await getLogoDataUrl(resolvedSchoolLogoUrl.value)
+  const logoParts = getDataUrlParts(logoDataUrl)
+  const logoFileName = logoParts ? `school-logo.${getLogoExtension(logoParts.mimeType)}` : ''
+  const html = await buildTimetableHtml(groups, { logoSrc: logoFileName })
+
+  if (!logoParts) return html
+
+  const boundary = `----=_TimetableWord_${Date.now()}`
+  return [
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/related; boundary="${boundary}"; type="text/html"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset="utf-8"',
+    'Content-Transfer-Encoding: 8bit',
+    'Content-Location: timetable.html',
+    '',
+    html,
+    '',
+    `--${boundary}`,
+    `Content-Type: ${logoParts.mimeType}`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Location: ${logoFileName}`,
+    '',
+    wrapBase64(logoParts.base64),
+    '',
+    `--${boundary}--`
+  ].join('\r\n')
 }
 
 const getExportBaseName = (groups = displayedTimetables.value) => {
@@ -992,29 +1174,27 @@ const downloadBlob = (content, filename, type) => {
   URL.revokeObjectURL(url)
 }
 
-const openPdfPrintWindow = (groups = displayedTimetables.value) => {
+const openPdfPrintWindow = async (groups = displayedTimetables.value) => {
   const printWindow = window.open('', '_blank', 'width=1200,height=800')
   if (!printWindow) {
     assignmentMessage.value = 'Allow pop-ups to export PDF, then choose Save as PDF.'
     return
   }
 
-  printWindow.document.write(buildTimetableHtml(groups))
+  printWindow.document.write(await buildTimetableHtml(groups))
   printWindow.document.close()
   printWindow.focus()
   printWindow.print()
 }
 
-const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) => {
+const downloadTimetable = async (format = 'pdf', groups = displayedTimetables.value) => {
   if (!groups.length) {
     assignmentMessage.value = 'Generate or load a timetable before downloading.'
     return
   }
 
   const baseName = getExportBaseName(groups)
-  const rows = buildTimetableExportRows(groups)
-  const html = buildTimetableHtml(groups)
-  const selectedFormat = String(format || 'csv').toLowerCase()
+  const selectedFormat = String(format || 'pdf').toLowerCase()
 
   if (selectedFormat === 'pdf') {
     if (groups.length === 1) {
@@ -1032,24 +1212,12 @@ const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) =
       )
     }
     assignmentMessage.value = groups.length > 1 ? 'PDF timetables downloaded.' : 'PDF timetable downloaded.'
-  } else if (selectedFormat === 'xls') {
-    downloadBlob(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
-    assignmentMessage.value = 'Excel timetable downloaded.'
   } else if (selectedFormat === 'doc') {
-    downloadBlob(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
+    const wordDocument = await buildWordTimetableDocument(groups)
+    downloadBlob(wordDocument, `${baseName}.doc`, 'application/msword;charset=utf-8')
     assignmentMessage.value = 'Word timetable downloaded.'
-  } else if (selectedFormat === 'json') {
-    downloadBlob(JSON.stringify(groups, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
-    assignmentMessage.value = 'JSON timetable downloaded.'
-  } else if (selectedFormat === 'txt') {
-    downloadBlob(rows.map(row => row.join(' | ')).join('\n'), `${baseName}.txt`, 'text/plain;charset=utf-8')
-    assignmentMessage.value = 'Text timetable downloaded.'
-  } else if (selectedFormat === 'html') {
-    downloadBlob(html, `${baseName}.html`, 'text/html;charset=utf-8')
-    assignmentMessage.value = 'HTML timetable downloaded.'
   } else {
-    downloadBlob(rows.map(row => row.map(escapeCsvValue).join(',')).join('\n'), `${baseName}.csv`, 'text/csv;charset=utf-8')
-    assignmentMessage.value = 'CSV timetable downloaded.'
+    assignmentMessage.value = 'Only PDF and Word downloads are available.'
   }
 
   setTimeout(() => { assignmentMessage.value = '' }, 3000)
@@ -1100,6 +1268,28 @@ const copyTimetableSummary = async () => {
 }
 
 const addAssignment = async () => {
+  // Validation: Check all required fields are selected
+  if (!assignment.value.class_id) {
+    assignmentMessage.value = 'Error: Please select a class.'
+    return
+  }
+  if (!assignment.value.teacher_id) {
+    assignmentMessage.value = 'Error: Please select a teacher.'
+    return
+  }
+  if (!assignment.value.module_id) {
+    assignmentMessage.value = 'Error: Please select a module.'
+    return
+  }
+  if (!assignment.value.academic_year) {
+    assignmentMessage.value = 'Error: Please enter academic year.'
+    return
+  }
+  if (!assignment.value.term) {
+    assignmentMessage.value = 'Error: Please select a term.'
+    return
+  }
+
   loading.value = true
   try {
     await api.post('/assignments', assignment.value)
@@ -1139,13 +1329,7 @@ const generateTimetable = async () => {
       shared_activities: getSharedActivityPayload()
     }
 
-    await api.put('/settings/timetable', {
-      start_time: generateSettings.value.start_time,
-      end_time: generateSettings.value.end_time,
-      period_minutes: generateSettings.value.period_minutes,
-      teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
-      break_period_rules: { ...generateSettings.value.break_period_rules }
-    })
+    await saveTimetableSettings()
 
     const response = await api.post('/timetable/generate', payload)
     assignmentMessage.value = 'Timetable generated. ' + (response.data.generated_count || 0) + ' entries created.'
@@ -1191,6 +1375,9 @@ const loadTimetableSettings = async () => {
       generateSettings.value.end_time = timetableSettings.value.end_time || generateSettings.value.end_time
       generateSettings.value.period_minutes = Number(timetableSettings.value.period_minutes || generateSettings.value.period_minutes)
       generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 0)
+      generateSettings.value.school_logo_url = timetableSettings.value.school_logo_url || ''
+      generateSettings.value.prepared_by = timetableSettings.value.prepared_by || ''
+      generateSettings.value.approved_by = timetableSettings.value.approved_by || ''
       generateSettings.value.break_period_rules = {
         ...generateSettings.value.break_period_rules,
         ...(timetableSettings.value.break_period_rules || {})
@@ -1664,6 +1851,53 @@ button:disabled {
   font-weight: 700;
 }
 
+.document-settings {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dbe7f5;
+}
+
+.logo-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.school-logo-preview {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.school-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.upload-logo-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-logo-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .form-switch {
   display: flex;
   align-items: center;
@@ -1949,7 +2183,12 @@ fieldset:disabled {
 }
 
 .module-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-height: 50px;
+  height: 100%;
+  width: 100%;
   padding: 0.45rem;
   border-left: 4px solid #2563eb;
   border-radius: 8px;

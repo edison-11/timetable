@@ -12,6 +12,18 @@ const generateToken = (teacherId) => {
   return jwt.sign({ teacherId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
+const sanitizeTeacher = (teacher) => {
+  if (!teacher) return teacher;
+  const {
+    password,
+    password_hash,
+    ...safeTeacher
+  } = teacher;
+  return safeTeacher;
+};
+
+const sanitizeTeachers = (teachers = []) => teachers.map(sanitizeTeacher);
+
 // Register Teacher
 router.post('/register', [
   body('name').trim().notEmpty().withMessage('Name is required'),
@@ -49,7 +61,7 @@ router.post('/register', [
     res.status(201).json({
       message: 'Teacher created successfully',
       token,
-      teacher
+      teacher: sanitizeTeacher(teacher)
     });
   } catch (error) {
     console.error(error);
@@ -114,7 +126,7 @@ router.get('/me', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const teachers = await Teacher.getAll();
-    res.json({ teachers });
+    res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -125,7 +137,7 @@ router.get('/', auth, async (req, res) => {
 router.get('/status/:status', auth, async (req, res) => {
   try {
     const teachers = await Teacher.getByStatus(req.params.status);
-    res.json({ teachers });
+    res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -136,7 +148,7 @@ router.get('/status/:status', auth, async (req, res) => {
 router.get('/active', auth, async (req, res) => {
   try {
     const teachers = await Teacher.getActiveTeachers();
-    res.json({ teachers });
+    res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -147,7 +159,7 @@ router.get('/active', auth, async (req, res) => {
 router.get('/pending', auth, async (req, res) => {
   try {
     const pendingTeachers = await Teacher.getByStatus('pending');
-    res.json({ pendingTeachers });
+    res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -158,7 +170,7 @@ router.get('/pending', auth, async (req, res) => {
 router.get('/pending-test', async (req, res) => {
   try {
     const pendingTeachers = await Teacher.getByStatus('pending');
-    res.json({ pendingTeachers });
+    res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -172,7 +184,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
-    res.json({ teacher });
+    res.json({ teacher: sanitizeTeacher(teacher) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -217,7 +229,7 @@ router.put('/:id', auth, [
 
     res.json({
       message: 'Teacher updated successfully',
-      teacher: updatedTeacher
+      teacher: sanitizeTeacher(updatedTeacher)
     });
   } catch (error) {
     console.error(error);
@@ -275,7 +287,7 @@ router.put('/:id/approve-test', async (req, res) => {
     res.json({
       success: true,
       message: 'Teacher approved successfully',
-      teacher: updatedTeacher
+      teacher: sanitizeTeacher(updatedTeacher)
     });
   } catch (error) {
     console.error('Error approving teacher:', error);
@@ -309,7 +321,7 @@ router.put('/:id/approve', adminAuth, async (req, res) => {
     res.json({
       success: true,
       message: 'Teacher approved successfully',
-      teacher: updatedTeacher
+      teacher: sanitizeTeacher(updatedTeacher)
     });
   } catch (error) {
     console.error(error);

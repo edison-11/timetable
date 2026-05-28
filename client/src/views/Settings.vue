@@ -1,384 +1,289 @@
 <template>
   <AppLayout>
-    <div class="settings-control" :class="{ 'is-compact': preferences.uiDensity === 'compact' }">
-      <header class="settings-hero">
-        <div>
-          <span class="eyebrow">Admin Control Center</span>
-          <h1>Settings</h1>
-          <p>Manage profile, security, account preferences, notifications, appearance, and activity from one dashboard-grade workspace.</p>
-        </div>
-        <div class="hero-actions">
-          <button class="tool-btn secondary" type="button" @click="loadProfile">
-            <i class="bi bi-arrow-clockwise"></i>
-            Refresh
-          </button>
-          <button class="tool-btn primary" type="button" @click="saveActiveSection">
-            <i class="bi bi-check2-circle"></i>
-            Save Section
-          </button>
-        </div>
+    <div class="admin-settings">
+      <header class="page-head">
+        <h1>Timetable Settings</h1>
+        <p>Configure the school identity, timetable display, alerts, and admin access for your timetable management system.</p>
       </header>
+
+      <nav class="settings-tabs" aria-label="Settings sections">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="tab-button"
+          :class="{ active: activeTab === tab.id }"
+          @click="activeTab = tab.id"
+        >
+          <i :class="tab.icon"></i>
+          {{ tab.label }}
+        </button>
+      </nav>
 
       <div v-if="toast.message" class="toast-banner" :class="toast.type">
         <i :class="toast.type === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
         {{ toast.message }}
       </div>
 
-      <section class="settings-shell">
-        <aside class="settings-nav" :class="{ open: navOpen }">
-          <button class="mobile-nav-toggle" type="button" @click="navOpen = !navOpen">
-            <i class="bi bi-sliders"></i>
-            Settings Menu
-          </button>
-          <div class="nav-list">
-            <button
-              v-for="item in navItems"
-              :key="item.id"
-              type="button"
-              class="nav-item"
-              :class="{ active: activeSection === item.id, danger: item.id === 'logout' }"
-              @click="selectSection(item.id)"
-            >
-              <i :class="item.icon"></i>
-              <span>{{ item.label }}</span>
+      <section v-if="activeTab === 'general'" class="settings-grid">
+        <form class="panel general-panel" @submit.prevent="saveGeneralSettings">
+          <div class="panel-title">
+            <h2>Timetable System Settings</h2>
+            <p>Manage the school details and default formats used across timetables, exports, and notifications.</p>
+          </div>
+
+          <div class="form-grid two">
+            <label class="field">
+              <span>School Name</span>
+              <input v-model.trim="settings.school_name" type="text" required />
+            </label>
+            <label class="field">
+              <span>School Short Name</span>
+              <input v-model.trim="settings.school_short_name" type="text" />
+              <small>Displayed on timetable pages, printouts, and email alerts</small>
+            </label>
+          </div>
+
+          <div class="form-grid two">
+            <label class="field">
+              <span>School Email</span>
+              <input v-model.trim="settings.school_email" type="email" />
+              <small>Used for timetable notices and official communication</small>
+            </label>
+            <label class="field">
+              <span>School Phone</span>
+              <input v-model.trim="settings.school_phone" type="tel" />
+              <small>Primary contact number for timetable coordination</small>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>School Address</span>
+            <textarea v-model.trim="settings.school_address" rows="3"></textarea>
+          </label>
+
+          <div class="logo-section">
+            <span class="field-label">School Logo</span>
+            <div class="logo-row">
+              <div class="logo-preview">
+                <img v-if="visibleLogoSrc && !logoLoadFailed" :src="visibleLogoSrc" alt="School logo" @error="handleLogoError" />
+                <i v-else class="bi bi-image"></i>
+              </div>
+              <label class="remove-logo" title="Upload school logo">
+                <i class="bi bi-cloud-arrow-up"></i>
+                <input type="file" accept="image/*" @change="uploadLogo" />
+              </label>
+              <button v-if="settings.school_logo_url" class="remove-logo danger" type="button" title="Remove logo" @click="settings.school_logo_url = ''">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="form-grid two">
+            <label class="field">
+              <span>Timezone</span>
+              <select v-model="settings.timezone">
+                <option>(GMT+02:00) East Africa Time</option>
+                <option>(GMT+00:00) Greenwich Mean Time</option>
+                <option>(GMT+01:00) Central Africa Time</option>
+                <option>(GMT+03:00) Eastern Africa Time</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Date Format</span>
+              <select v-model="settings.date_format">
+                <option>May 20, 2024 (MMM DD, YYYY)</option>
+                <option>20 May 2024 (DD MMM YYYY)</option>
+                <option>2024-05-20 (YYYY-MM-DD)</option>
+                <option>20/05/2024 (DD/MM/YYYY)</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-grid two">
+            <label class="field">
+              <span>Time Format</span>
+              <select v-model="settings.time_format">
+                <option>12 Hour (01:30 PM)</option>
+                <option>24 Hour (13:30)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Currency</span>
+              <select v-model="settings.currency">
+                <option>RWF - Rwanda Franc</option>
+                <option>USD - US Dollar</option>
+                <option>EUR - Euro</option>
+                <option>KES - Kenyan Shilling</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>System Language</span>
+            <select v-model="settings.system_language">
+              <option>English</option>
+              <option>French</option>
+              <option>Kinyarwanda</option>
+            </select>
+            <small>Choose the default language for timetable screens and exports</small>
+          </label>
+
+          <div class="form-actions">
+            <button class="save-button" type="submit" :disabled="saving">
+              <i class="bi bi-floppy"></i>
+              {{ saving ? 'Saving...' : 'Save Changes' }}
             </button>
           </div>
+        </form>
+
+        <aside class="side-stack">
+          <section class="panel info-panel">
+            <h2>Timetable System Information</h2>
+            <p>Important information about the timetable application.</p>
+            <dl>
+              <div>
+                <dt><i class="bi bi-gear"></i> System Version</dt>
+                <dd>{{ systemInfo.version }}</dd>
+              </div>
+              <div>
+                <dt><i class="bi bi-hdd-network"></i> Environment</dt>
+                <dd class="success">{{ systemInfo.environment }}</dd>
+              </div>
+              <div>
+                <dt><i class="bi bi-database"></i> Database</dt>
+                <dd>{{ systemInfo.database }}</dd>
+              </div>
+              <div>
+                <dt><i class="bi bi-calendar-check"></i> Last Backup</dt>
+                <dd>{{ formattedBackup }}</dd>
+              </div>
+            </dl>
+            <button class="outline-button" type="button" @click="downloadBackup">
+              <i class="bi bi-download"></i>
+              Backup Now
+            </button>
+          </section>
+
+          <section class="panel notifications-panel">
+            <h2>Timetable Notifications</h2>
+            <p>Configure alerts for timetable planning and schedule changes.</p>
+            <label v-for="item in notificationOptions" :key="item.key" class="switch-line">
+              <span>{{ item.label }}</span>
+              <input v-model="settings.notifications[item.key]" type="checkbox" />
+              <i></i>
+            </label>
+            <button class="link-button" type="button" @click="notify('Timetable email templates can be managed from the notification module.', 'success')">
+              Manage Timetable Email Templates <i class="bi bi-arrow-right"></i>
+            </button>
+          </section>
         </aside>
-
-        <main class="settings-content">
-          <transition name="fade-slide" mode="out-in">
-            <section v-if="activeSection === 'profile'" key="profile" class="section-grid">
-              <div class="settings-card profile-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Profile Settings</span>
-                    <h2>Personal Details</h2>
-                  </div>
-                </div>
-                <div class="profile-row">
-                  <div class="avatar-preview">
-                    <img v-if="profile.profile_photo" :src="profile.profile_photo" alt="Profile avatar" />
-                    <span v-else>{{ initials }}</span>
-                  </div>
-                  <label class="upload-btn">
-                    <i class="bi bi-cloud-arrow-up"></i>
-                    Upload Avatar
-                    <input type="file" accept="image/*" @change="handleAvatarUpload" />
-                  </label>
-                </div>
-                <div class="form-grid two">
-                  <label class="field">
-                    <span>Full Name</span>
-                    <input v-model.trim="profile.full_name" type="text" />
-                  </label>
-                  <label class="field">
-                    <span>Email</span>
-                    <input v-model.trim="profile.email" type="email" />
-                  </label>
-                  <label class="field">
-                    <span>Phone Number</span>
-                    <input v-model.trim="profile.phone" type="tel" />
-                  </label>
-                </div>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'security'" key="security" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Security Settings</span>
-                    <h2>Password & Access</h2>
-                  </div>
-                </div>
-                <div class="form-grid two">
-                  <label class="field">
-                    <span>New Password</span>
-                    <input v-model="security.password" type="password" placeholder="Minimum 6 characters" />
-                  </label>
-                  <label class="field">
-                    <span>Confirm Password</span>
-                    <input v-model="security.confirmPassword" type="password" />
-                  </label>
-                </div>
-                <div class="security-actions">
-                  <label class="toggle-row">
-                    <input v-model="security.twoFactorEnabled" type="checkbox" />
-                    <span></span>
-                    <div>
-                      <strong>Two-factor authentication</strong>
-                      <small>Future-ready protection placeholder.</small>
-                    </div>
-                  </label>
-                  <button class="tool-btn ghost" type="button" @click="notify('Session revocation is ready for backend token tracking.', 'success')">
-                    <i class="bi bi-box-arrow-right"></i>
-                    Logout from all devices
-                  </button>
-                </div>
-              </div>
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Login Sessions</span>
-                    <h2>Recent Sessions</h2>
-                  </div>
-                </div>
-                <div class="session-list">
-                  <div v-for="session in sessions" :key="session.id" class="session-item">
-                    <i :class="session.icon"></i>
-                    <div>
-                      <strong>{{ session.device }}</strong>
-                      <span>{{ session.location }} · {{ session.time }}</span>
-                    </div>
-                    <em>{{ session.status }}</em>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'account'" key="account" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Account Settings</span>
-                    <h2>Role & Workspace</h2>
-                  </div>
-                </div>
-                <div class="account-summary">
-                  <div><span>Role</span><strong>{{ account.role }}</strong></div>
-                  <div><span>Status</span><strong>{{ account.status }}</strong></div>
-                  <div><span>Default Dashboard</span><strong>{{ preferences.defaultView }}</strong></div>
-                </div>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'notifications'" key="notifications" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Notification Settings</span>
-                    <h2>Alert Channels</h2>
-                  </div>
-                </div>
-                <div class="toggle-list">
-                  <label v-for="item in notificationOptions" :key="item.key" class="switch-card">
-                    <input v-model="notifications[item.key]" type="checkbox" />
-                    <span></span>
-                    <div>
-                      <strong>{{ item.title }}</strong>
-                      <small>{{ item.description }}</small>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'preferences'" key="preferences" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">System Preferences</span>
-                    <h2>Default Behavior</h2>
-                  </div>
-                </div>
-                <div class="form-grid two">
-                  <label class="field">
-                    <span>Language</span>
-                    <select v-model="preferences.language">
-                      <option value="en">English</option>
-                      <option value="fr">French</option>
-                      <option value="pt">Portuguese</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>Time Format</span>
-                    <select v-model="preferences.timeFormat">
-                      <option value="24h">24 hour</option>
-                      <option value="12h">12 hour</option>
-                    </select>
-                  </label>
-                  <label class="field">
-                    <span>Default Dashboard View</span>
-                    <select v-model="preferences.defaultView">
-                      <option value="Overview">Overview</option>
-                      <option value="Timetable">Timetable</option>
-                      <option value="Teachers">Teachers</option>
-                      <option value="Reports">Reports</option>
-                    </select>
-                  </label>
-                </div>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'appearance'" key="appearance" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Appearance Settings</span>
-                    <h2>Theme & Density</h2>
-                  </div>
-                </div>
-                <div class="appearance-grid">
-                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="appearance.mode = 'light'">
-                    <i class="bi bi-brightness-high"></i>
-                    Light Mode
-                  </button>
-                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="appearance.mode = 'dark'">
-                    <i class="bi bi-moon"></i>
-                    Dark Mode
-                  </button>
-                </div>
-                <div class="accent-row">
-                  <span>Theme accent preview</span>
-                  <button v-for="accent in accents" :key="accent" type="button" class="accent-dot" :style="{ background: accent }" @click="appearance.accent = accent"></button>
-                </div>
-                <label class="field">
-                  <span>UI Density</span>
-                  <select v-model="preferences.uiDensity">
-                    <option value="comfortable">Comfortable</option>
-                    <option value="compact">Compact</option>
-                  </select>
-                </label>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'activity'" key="activity" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Activity & Logs</span>
-                    <h2>Recent Activity</h2>
-                  </div>
-                </div>
-                <div class="activity-table">
-                  <div class="activity-row head"><span>Event</span><span>User</span><span>Time</span><span>Status</span></div>
-                  <div v-for="log in activityLogs" :key="log.id" class="activity-row">
-                    <span>{{ log.event }}</span>
-                    <span>{{ log.user }}</span>
-                    <span>{{ log.time }}</span>
-                    <strong>{{ log.status }}</strong>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <section v-else key="logout" class="section-grid">
-              <div class="settings-card danger-zone">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Logout Option</span>
-                    <h2>End Current Session</h2>
-                    <p>Sign out safely from this device.</p>
-                  </div>
-                </div>
-                <button class="tool-btn danger" type="button" @click="showLogoutModal = true">
-                  <i class="bi bi-box-arrow-right"></i>
-                  Logout
-                </button>
-              </div>
-            </section>
-          </transition>
-        </main>
       </section>
 
-      <div v-if="showLogoutModal" class="modal-backdrop" @click.self="showLogoutModal = false">
-        <section class="confirm-modal">
-          <i class="bi bi-exclamation-triangle"></i>
-          <h2>Confirm logout</h2>
-          <p>You will be returned to the unified login page.</p>
-          <div class="modal-actions">
-            <button class="tool-btn secondary" type="button" @click="showLogoutModal = false">Cancel</button>
-            <button class="tool-btn danger" type="button" @click="logout">Logout</button>
-          </div>
-        </section>
-      </div>
+      <section v-else-if="activeTab === 'users'" class="panel placeholder-panel">
+        <h2>Timetable Users</h2>
+        <p>Manage the people who create, approve, teach from, or view the timetable.</p>
+        <div class="summary-grid">
+          <div><span>Signed in as</span><strong>{{ currentUserName }}</strong></div>
+          <div><span>Email</span><strong>{{ currentUserEmail }}</strong></div>
+          <div><span>Status</span><strong>Active</strong></div>
+        </div>
+      </section>
+
+      <section v-else-if="activeTab === 'roles'" class="panel placeholder-panel">
+        <h2>Timetable Roles</h2>
+        <p>Role permissions control who can build schedules, assign teachers, update rooms, and view published timetables.</p>
+        <div class="role-list">
+          <span>Admin</span>
+          <span>Teacher</span>
+          <span>Student</span>
+        </div>
+      </section>
+
+      <section v-else class="panel placeholder-panel">
+        <h2>Timetable Security</h2>
+        <p>Protect timetable editing, exports, and published schedule access from one admin-controlled area.</p>
+        <button class="save-button" type="button" @click="logout">
+          <i class="bi bi-box-arrow-right"></i>
+          Logout
+        </button>
+      </section>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
+import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import { resolveAssetUrl } from '@/utils/assetUrl'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const activeSection = ref('profile')
-const navOpen = ref(false)
-const showLogoutModal = ref(false)
+const activeTab = ref('general')
+const saving = ref(false)
+const logoPreviewUrl = ref('')
+const logoLoadFailed = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 
-const navItems = [
-  { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
-  { id: 'security', label: 'Security Settings', icon: 'bi bi-shield-lock' },
-  { id: 'account', label: 'Account Settings', icon: 'bi bi-person-badge' },
-  { id: 'notifications', label: 'Notification Settings', icon: 'bi bi-bell' },
-  { id: 'preferences', label: 'System Preferences', icon: 'bi bi-globe2' },
-  { id: 'appearance', label: 'Appearance Settings', icon: 'bi bi-palette' },
-  { id: 'activity', label: 'Activity & Logs', icon: 'bi bi-activity' },
-  { id: 'logout', label: 'Logout Option', icon: 'bi bi-box-arrow-right' }
+const tabs = [
+  { id: 'general', label: 'Timetable Setup', icon: 'bi bi-calendar-week' },
+  { id: 'users', label: 'Timetable Users', icon: 'bi bi-people' },
+  { id: 'roles', label: 'Access Roles', icon: 'bi bi-person-lock' },
+  { id: 'security', label: 'Security', icon: 'bi bi-shield-lock' }
 ]
-
-const profile = reactive({
-  full_name: '',
-  email: '',
-  phone: '',
-  profile_photo: ''
-})
-
-const security = reactive({
-  password: '',
-  confirmPassword: '',
-  twoFactorEnabled: false
-})
-
-const account = reactive({
-  role: 'admin',
-  status: 'Active'
-})
-
-const notifications = reactive({
-  email: true,
-  system: true,
-  timetable: true
-})
 
 const notificationOptions = [
-  { key: 'email', title: 'Email notifications', description: 'Receive important account and schedule messages by email.' },
-  { key: 'system', title: 'System alerts', description: 'Show operational alerts inside the dashboard.' },
-  { key: 'timetable', title: 'Timetable update alerts', description: 'Notify when schedule data changes.' }
+  { key: 'new_student_registration', label: 'New student added to timetable' },
+  { key: 'new_admission_application', label: 'Teacher assignment changes' },
+  { key: 'news_announcement', label: 'Published timetable announcements' },
+  { key: 'system_updates', label: 'Timetable system updates' },
+  { key: 'weekly_reports', label: 'Weekly timetable reports' },
+  { key: 'marketing_emails', label: 'Timetable email summaries' }
 ]
 
-const preferences = reactive({
-  language: 'en',
-  timeFormat: '24h',
-  defaultView: 'Overview',
-  uiDensity: 'comfortable'
+const defaultSettings = () => ({
+  school_name: 'MUDUGA TSS',
+  school_short_name: 'MUDUGA TSS',
+  school_email: 'info@mudugatss.ac.rw',
+  school_phone: '+250 788 123 456',
+  school_address: 'Muduga Sector, Karongi District, Western Province, Rwanda\nP.O. Box 123, Kibuye',
+  school_logo_url: '',
+  timezone: '(GMT+02:00) East Africa Time',
+  date_format: 'May 20, 2024 (MMM DD, YYYY)',
+  time_format: '12 Hour (01:30 PM)',
+  currency: 'RWF - Rwanda Franc',
+  system_language: 'English',
+  notifications: {
+    new_student_registration: true,
+    new_admission_application: true,
+    news_announcement: true,
+    system_updates: true,
+    weekly_reports: false,
+    marketing_emails: false
+  }
 })
 
-const appearance = reactive({
-  mode: localStorage.getItem('adminAppearanceMode') || 'light',
-  accent: '#2563eb'
+const settings = reactive(defaultSettings())
+const systemInfo = reactive({
+  version: 'v1.0.0',
+  environment: 'Production',
+  database: 'SQLite 3',
+  last_backup: new Date().toISOString()
 })
 
-const accents = ['#2563eb', '#0891b2', '#16a34a', '#7c3aed', '#e11d48']
-
-const sessions = [
-  { id: 1, icon: 'bi bi-laptop', device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
-  { id: 2, icon: 'bi bi-phone', device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
-]
-
-const activityLogs = [
-  { id: 1, event: 'Profile settings opened', user: 'Admin', time: 'Now', status: 'Viewed' },
-  { id: 2, event: 'Timetable module updated', user: 'System', time: 'Today', status: 'Complete' },
-  { id: 3, event: 'Login session created', user: 'Admin', time: 'Recent', status: 'Success' }
-]
-
-const initials = computed(() => {
-  const name = profile.full_name || profile.email || 'A'
-  return name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+const currentUserName = computed(() => authStore.currentUser?.full_name || authStore.currentUser?.username || 'Admin')
+const currentUserEmail = computed(() => authStore.currentUser?.email || 'Not set')
+const logoSrc = computed(() => {
+  return resolveAssetUrl(settings.school_logo_url)
+})
+const visibleLogoSrc = computed(() => logoPreviewUrl.value || logoSrc.value)
+const formattedBackup = computed(() => {
+  const date = new Date(systemInfo.last_backup)
+  return Number.isNaN(date.getTime()) ? systemInfo.last_backup : date.toLocaleString()
 })
 
 const notify = (message, type = 'success') => {
@@ -386,91 +291,97 @@ const notify = (message, type = 'success') => {
   toast.type = type
   setTimeout(() => {
     if (toast.message === message) toast.message = ''
-  }, 2800)
+  }, 3000)
 }
 
-const selectSection = (id) => {
-  activeSection.value = id
-  navOpen.value = false
+const applySettings = (data = {}) => {
+  const mergedNotifications = {
+    ...defaultSettings().notifications,
+    ...(data.notifications || {})
+  }
+  Object.assign(settings, defaultSettings(), data, { notifications: mergedNotifications })
+  logoLoadFailed.value = false
 }
 
-const loadProfile = async () => {
-  await authStore.checkAuth()
-  const user = authStore.currentUser || {}
-  profile.full_name = user.full_name || user.username || user.name || ''
-  profile.email = user.email || ''
-  profile.phone = user.phone || ''
-  profile.profile_photo = user.profile_photo || ''
-  account.role = user.role || authStore.currentUserType || 'admin'
-  account.status = user.is_verified === false ? 'Unverified' : 'Active'
+const clearLogoPreviewUrl = () => {
+  if (logoPreviewUrl.value) {
+    URL.revokeObjectURL(logoPreviewUrl.value)
+    logoPreviewUrl.value = ''
+  }
 }
 
-const handleAvatarUpload = (event) => {
+const handleLogoError = () => {
+  logoLoadFailed.value = true
+}
+
+const loadGeneralSettings = async () => {
+  try {
+    const response = await api.get('/settings/general')
+    applySettings(response.data.settings)
+    Object.assign(systemInfo, response.data.system || {})
+  } catch (error) {
+    notify(error.response?.data?.message || 'Failed to load settings.', 'danger')
+  }
+}
+
+const saveGeneralSettings = async () => {
+  saving.value = true
+  try {
+    const response = await api.put('/settings/general', settings)
+    applySettings(response.data.settings)
+    notify('Timetable settings saved successfully.')
+  } catch (error) {
+    notify(error.response?.data?.message || 'Failed to save settings.', 'danger')
+  } finally {
+    saving.value = false
+  }
+}
+
+const persistLogoSetting = async () => {
+  const response = await api.put('/settings/general', settings)
+  applySettings(response.data.settings)
+}
+
+const uploadLogo = async (event) => {
   const file = event.target.files?.[0]
+  event.target.value = ''
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    profile.profile_photo = reader.result
+
+  clearLogoPreviewUrl()
+  logoPreviewUrl.value = URL.createObjectURL(file)
+  logoLoadFailed.value = false
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  try {
+    const response = await api.post('/upload/single', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    settings.school_logo_url = response.data.file?.path || response.data.file?.url || ''
+    await persistLogoSetting()
+    clearLogoPreviewUrl()
+    notify('Logo uploaded and saved.')
+  } catch (error) {
+    clearLogoPreviewUrl()
+    notify(error.response?.data?.message || 'Failed to upload logo.', 'danger')
   }
-  reader.readAsDataURL(file)
 }
 
-const saveProfile = async () => {
-  const result = await authStore.updateProfile({
-    username: profile.full_name,
-    full_name: profile.full_name,
-    email: profile.email,
-    phone: profile.phone,
-    profile_photo: profile.profile_photo
-  })
-  if (!result.success) {
-    notify(result.error || 'Profile update failed.', 'danger')
-    return
+const downloadBackup = () => {
+  const backup = {
+    exported_at: new Date().toISOString(),
+    settings: JSON.parse(JSON.stringify(settings)),
+    system: JSON.parse(JSON.stringify(systemInfo))
   }
-  notify('Profile settings saved.')
-}
-
-const saveSecurity = async () => {
-  if (!security.password && !security.confirmPassword) {
-    notify('Security preferences saved.')
-    return
-  }
-  if (security.password.length < 6) {
-    notify('Password must be at least 6 characters.', 'danger')
-    return
-  }
-  if (security.password !== security.confirmPassword) {
-    notify('Passwords do not match.', 'danger')
-    return
-  }
-  const result = await authStore.updateProfile({
-    username: profile.full_name,
-    email: profile.email,
-    phone: profile.phone,
-    password: security.password,
-    profile_photo: profile.profile_photo
-  })
-  if (!result.success) {
-    notify(result.error || 'Password update failed.', 'danger')
-    return
-  }
-  security.password = ''
-  security.confirmPassword = ''
-  notify('Security settings saved.')
-}
-
-const saveLocalPreferences = () => {
-  localStorage.setItem('adminNotifications', JSON.stringify(notifications))
-  localStorage.setItem('adminPreferences', JSON.stringify(preferences))
-  localStorage.setItem('adminAppearanceMode', appearance.mode)
-  localStorage.setItem('adminAccent', appearance.accent)
-  notify('Settings saved.')
-}
-
-const saveActiveSection = () => {
-  if (activeSection.value === 'profile') return saveProfile()
-  if (activeSection.value === 'security') return saveSecurity()
-  saveLocalPreferences()
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `timetable-settings-backup-${new Date().toISOString().slice(0, 10)}.json`
+  link.click()
+  URL.revokeObjectURL(url)
+  notify('Timetable settings backup downloaded.')
 }
 
 const logout = () => {
@@ -478,195 +389,114 @@ const logout = () => {
   router.push('/login')
 }
 
-onMounted(() => {
-  const savedNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '{}')
-  Object.assign(notifications, savedNotifications)
-  const savedPreferences = JSON.parse(localStorage.getItem('adminPreferences') || '{}')
-  Object.assign(preferences, savedPreferences)
-  appearance.accent = localStorage.getItem('adminAccent') || appearance.accent
-  loadProfile()
+onMounted(async () => {
+  await authStore.checkAuth()
+  await loadGeneralSettings()
+})
+
+onBeforeUnmount(() => {
+  clearLogoPreviewUrl()
 })
 </script>
 
 <style scoped>
-.settings-control {
-  width: min(100%, 1320px);
-  margin: 0 auto;
-  color: #0f172a;
+.admin-settings {
+  min-height: calc(100vh - 80px);
+  padding: 0.75rem 1.5rem 2.5rem;
+  color: #172554;
 }
 
-.settings-control.is-compact {
-  font-size: 0.92rem;
+.page-head {
+  padding: 0.25rem 0 1.1rem;
 }
 
-.settings-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.35rem;
-  margin-bottom: 1rem;
-  border-radius: 16px;
-  border: 1px solid #dbeafe;
-  background: linear-gradient(135deg, #ffffff, #eff6ff);
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+.page-head h1 {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 800;
 }
 
-.eyebrow {
-  display: block;
-  color: #2563eb;
-  font-size: 0.72rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.settings-hero h1,
-.card-heading h2,
-.confirm-modal h2 {
+.page-head p,
+.panel-title p,
+.info-panel p,
+.notifications-panel p,
+.placeholder-panel p,
+.field small {
   margin: 0.2rem 0 0;
-  font-weight: 900;
+  color: #52698f;
+  font-size: 0.82rem;
 }
 
-.settings-hero p,
-.card-heading p {
-  max-width: 48rem;
-  margin: 0.35rem 0 0;
-  color: #64748b;
-}
-
-.hero-actions,
-.modal-actions,
-.security-actions {
+.settings-tabs {
   display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: center;
+  gap: 1.25rem;
+  border-bottom: 1px solid #cfd8ea;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
 }
 
-.tool-btn {
-  min-height: 42px;
+.tab-button {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 0.65rem 0.9rem;
-  font-weight: 900;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.tool-btn:hover {
-  transform: translateY(-1px);
-}
-
-.tool-btn.primary {
-  background: #2563eb;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.24);
-}
-
-.tool-btn.secondary,
-.tool-btn.ghost {
-  background: #ffffff;
-  color: #0f172a;
-  border-color: #cbd5e1;
-}
-
-.tool-btn.danger {
-  background: #dc2626;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(220, 38, 38, 0.22);
-}
-
-.settings-shell {
-  display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  gap: 1rem;
-}
-
-.settings-nav,
-.settings-card {
-  border: 1px solid #dbeafe;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.07);
-}
-
-.settings-nav {
-  padding: 0.75rem;
-  align-self: start;
-  position: sticky;
-  top: 92px;
-}
-
-.mobile-nav-toggle {
-  display: none;
-}
-
-.nav-list {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.nav-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  gap: 0.45rem;
+  min-height: 42px;
   border: 0;
-  border-radius: 12px;
-  padding: 0.82rem 0.9rem;
+  border-bottom: 2px solid transparent;
   background: transparent;
-  color: #475569;
-  font-weight: 900;
-  text-align: left;
+  color: #52698f;
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
 }
 
-.nav-item:hover {
-  background: #eff6ff;
-  color: #1d4ed8;
-  transform: translateX(2px);
+.tab-button.active {
+  color: #3157f6;
+  border-bottom-color: #3157f6;
 }
 
-.nav-item.active {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-  color: #ffffff;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
-}
-
-.nav-item.danger:not(.active) {
-  color: #dc2626;
-}
-
-.settings-content,
-.section-grid {
-  min-width: 0;
-}
-
-.section-grid {
+.settings-grid {
   display: grid;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 1.25rem;
+  align-items: start;
 }
 
-.settings-card {
-  padding: 1.15rem;
+.panel {
+  border: 1px solid #ccd8ec;
+  border-radius: 8px;
+  background: #ffffff;
 }
 
-.card-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+.general-panel {
+  padding: 1.1rem 1.25rem;
+}
+
+.side-stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.info-panel,
+.notifications-panel,
+.placeholder-panel {
+  padding: 1rem;
+}
+
+.panel-title {
   margin-bottom: 1rem;
+}
+
+.panel h2 {
+  margin: 0;
+  color: #0f2554;
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .form-grid {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .form-grid.two {
@@ -675,260 +505,222 @@ onMounted(() => {
 
 .field {
   display: grid;
-  gap: 0.4rem;
-  font-weight: 900;
+  gap: 0.35rem;
 }
 
+.field-label,
 .field span {
-  color: #475569;
+  color: #0f2554;
   font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .field input,
-.field select {
-  min-height: 42px;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  padding: 0.65rem 0.8rem;
+.field select,
+.field textarea {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #c8d4e5;
+  border-radius: 6px;
+  background: #fbfdff;
+  color: #172554;
+  font: inherit;
+  padding: 0.55rem 0.65rem;
   outline: none;
-  background: #f8fafc;
-  color: #0f172a;
+}
+
+.field textarea {
+  min-height: 78px;
+  resize: vertical;
 }
 
 .field input:focus,
-.field select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
+.field select:focus,
+.field textarea:focus {
+  border-color: #4b69ff;
+  box-shadow: 0 0 0 3px rgba(75, 105, 255, 0.12);
 }
 
-.profile-row {
+.logo-section {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.25rem 0 1rem;
+}
+
+.logo-row {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
-.avatar-preview {
-  width: 86px;
-  height: 86px;
-  border-radius: 16px;
+.logo-preview {
+  width: 78px;
+  height: 78px;
   display: grid;
   place-items: center;
+  border: 1px solid #c8d4e5;
+  border-radius: 6px;
+  background: #f8fbff;
   overflow: hidden;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
-  color: #ffffff;
-  font-size: 1.5rem;
-  font-weight: 900;
+  color: #7890b8;
 }
 
-.avatar-preview img {
+.logo-preview img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
-.upload-btn {
+.remove-logo,
+.outline-button,
+.save-button {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  min-height: 42px;
-  padding: 0.65rem 0.9rem;
-  border-radius: 12px;
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #1d4ed8;
-  font-weight: 900;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 34px;
+  border-radius: 6px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.upload-btn input {
+.remove-logo {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: #eef3ff;
+  color: #3157f6;
+}
+
+.remove-logo.danger {
+  background: #ff4d5e;
+  color: #ffffff;
+}
+
+.remove-logo input {
   display: none;
 }
 
-.toggle-list,
-.session-list {
+.form-actions {
+  border-top: 1px solid #d8e1ef;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
+.save-button {
+  border: 0;
+  background: #4b63f4;
+  color: #ffffff;
+  padding: 0.45rem 0.8rem;
+}
+
+.save-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.outline-button {
+  width: 100%;
+  border: 1px solid #c8d4e5;
+  background: #ffffff;
+  color: #172554;
+  padding: 0.45rem 0.65rem;
+}
+
+.info-panel dl {
   display: grid;
+  gap: 0.7rem;
+  margin: 0.9rem 0;
+}
+
+.info-panel dl div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
 }
 
-.switch-card,
-.toggle-row,
-.session-item {
-  display: flex;
+.info-panel dt {
+  display: inline-flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 0.9rem;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
+  gap: 0.35rem;
+  color: #52698f;
+  font-size: 0.76rem;
 }
 
-.switch-card input,
-.toggle-row input {
+.info-panel dd {
+  margin: 0;
+  color: #172554;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.info-panel dd.success {
+  color: #18a058;
+}
+
+.switch-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 32px;
+  color: #263b64;
+  font-size: 0.78rem;
+}
+
+.switch-line input {
   position: absolute;
   opacity: 0;
 }
 
-.switch-card > span,
-.toggle-row > span {
-  width: 42px;
-  height: 24px;
+.switch-line i {
+  width: 30px;
+  height: 16px;
   border-radius: 999px;
-  background: #cbd5e1;
+  background: #172033;
   position: relative;
-  flex: 0 0 auto;
 }
 
-.switch-card > span::after,
-.toggle-row > span::after {
+.switch-line i::after {
   content: "";
   position: absolute;
-  width: 18px;
-  height: 18px;
-  top: 3px;
-  left: 3px;
+  width: 12px;
+  height: 12px;
+  top: 2px;
+  left: 2px;
   border-radius: 999px;
   background: #ffffff;
-  transition: transform 0.2s ease;
+  transition: transform 0.18s ease;
 }
 
-.switch-card input:checked + span,
-.toggle-row input:checked + span {
-  background: #2563eb;
+.switch-line input:checked + i {
+  background: #4b63f4;
 }
 
-.switch-card input:checked + span::after,
-.toggle-row input:checked + span::after {
-  transform: translateX(18px);
+.switch-line input:checked + i::after {
+  transform: translateX(14px);
 }
 
-.switch-card div,
-.toggle-row div,
-.session-item div {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.switch-card small,
-.toggle-row small,
-.session-item span {
-  color: #64748b;
-}
-
-.session-item i {
-  color: #2563eb;
-  font-size: 1.3rem;
-}
-
-.session-item em {
-  margin-left: auto;
-  color: #16a34a;
-  font-style: normal;
-  font-weight: 900;
-}
-
-.account-summary,
-.appearance-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.account-summary div,
-.theme-card {
-  padding: 1rem;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  background: #f8fafc;
-}
-
-.account-summary span {
-  display: block;
-  color: #64748b;
-  font-weight: 800;
-  font-size: 0.75rem;
-}
-
-.account-summary strong {
-  display: block;
-  margin-top: 0.3rem;
-}
-
-.theme-card {
-  min-height: 96px;
-  display: grid;
-  place-items: center;
-  gap: 0.4rem;
-  color: #0f172a;
-  font-weight: 900;
-}
-
-.theme-card.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.accent-row {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-  margin: 1rem 0;
-  color: #475569;
-  font-weight: 900;
-}
-
-.accent-dot {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #ffffff;
-  border-radius: 999px;
-  box-shadow: 0 0 0 1px #cbd5e1;
-}
-
-.activity-table {
-  display: grid;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  overflow: hidden;
-}
-
-.activity-row {
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.7fr;
-  gap: 0.75rem;
-  padding: 0.85rem;
-  border-bottom: 1px solid #e2e8f0;
-  background: #ffffff;
-}
-
-.activity-row:last-child {
-  border-bottom: 0;
-}
-
-.activity-row.head {
-  background: #f1f5f9;
-  color: #475569;
-  font-weight: 900;
-}
-
-.activity-row strong {
-  color: #16a34a;
-}
-
-.danger-zone {
-  border-color: #fecaca;
+.link-button {
+  width: 100%;
+  margin-top: 0.8rem;
+  border: 0;
+  background: transparent;
+  color: #3157f6;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .toast-banner {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   margin-bottom: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 14px;
-  font-weight: 900;
+  padding: 0.72rem 0.85rem;
+  border-radius: 8px;
+  font-weight: 700;
 }
 
 .toast-banner.success {
@@ -941,94 +733,59 @@ onMounted(() => {
   color: #991b1b;
 }
 
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
+.summary-grid {
   display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(15, 23, 42, 0.55);
-  z-index: 1000;
-}
-
-.confirm-modal {
-  width: min(420px, 100%);
-  padding: 1.25rem;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
-  text-align: center;
-}
-
-.confirm-modal > i {
-  color: #dc2626;
-  font-size: 2rem;
-}
-
-.confirm-modal p {
-  color: #64748b;
-}
-
-.modal-actions {
-  justify-content: center;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
   margin-top: 1rem;
 }
 
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+.summary-grid div {
+  display: grid;
+  gap: 0.25rem;
+  border: 1px solid #d8e1ef;
+  border-radius: 8px;
+  padding: 0.85rem;
 }
 
-.fade-slide-enter-from,
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(8px);
+.summary-grid span {
+  color: #52698f;
+  font-size: 0.75rem;
 }
 
-@media (max-width: 980px) {
-  .settings-shell {
+.role-list {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.role-list span {
+  border: 1px solid #c8d4e5;
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  color: #172554;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .settings-grid {
     grid-template-columns: 1fr;
   }
 
-  .settings-nav {
-    position: static;
-  }
-
-  .mobile-nav-toggle {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    border: 0;
-    border-radius: 12px;
-    padding: 0.8rem;
-    background: #eff6ff;
-    color: #1d4ed8;
-    font-weight: 900;
-  }
-
-  .nav-list {
-    display: none;
-    margin-top: 0.6rem;
-  }
-
-  .settings-nav.open .nav-list {
-    display: grid;
+  .side-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 720px) {
-  .settings-hero,
-  .profile-row {
-    align-items: stretch;
-    flex-direction: column;
+@media (max-width: 740px) {
+  .admin-settings {
+    padding: 0.75rem 0.5rem 1.5rem;
   }
 
   .form-grid.two,
-  .account-summary,
-  .appearance-grid,
-  .activity-row {
+  .side-stack,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 }

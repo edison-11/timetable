@@ -63,6 +63,9 @@ class SystemSetting {
     const breakEndTime = await this.get('break_end_time', '11:30');
     const timetableBreaksValue = await this.get('timetable_breaks', null);
     const breakPeriodRulesValue = await this.get('break_period_rules', null);
+    const schoolLogoUrl = await this.get('school_logo_url', '');
+    const preparedBy = await this.get('timetable_prepared_by', '');
+    const approvedBy = await this.get('timetable_approved_by', '');
     let timetableBreaks = [];
     let breakPeriodRules = {
       enabled: true,
@@ -126,7 +129,10 @@ class SystemSetting {
       break_start_time: breakStartTime,
       break_end_time: breakEndTime,
       timetable_breaks: timetableBreaks,
-      break_period_rules: breakPeriodRules
+      break_period_rules: breakPeriodRules,
+      school_logo_url: schoolLogoUrl,
+      prepared_by: preparedBy,
+      approved_by: approvedBy
     };
   }
 
@@ -164,6 +170,18 @@ class SystemSetting {
 
     if (settings.break_period_rules !== undefined) {
       await this.set('break_period_rules', JSON.stringify(settings.break_period_rules));
+    }
+
+    if (settings.school_logo_url !== undefined) {
+      await this.set('school_logo_url', settings.school_logo_url);
+    }
+
+    if (settings.prepared_by !== undefined) {
+      await this.set('timetable_prepared_by', settings.prepared_by);
+    }
+
+    if (settings.approved_by !== undefined) {
+      await this.set('timetable_approved_by', settings.approved_by);
     }
 
     return this.getTimetableSettings();

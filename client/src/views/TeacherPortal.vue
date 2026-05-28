@@ -40,7 +40,6 @@
               <button @click="handleExportPDF">PDF</button>
               <button @click="handleExportWord">Word</button>
               <button @click="handlePrint">Print</button>
-              <button @click="handleExportICal">iCal</button>
             </div>
           </div>
         </div>
@@ -134,7 +133,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
-import { exportToPDF, exportToWord, exportToICal, printTimetable } from '@/utils/exportTimetable'
+import { exportToPDF, exportToWord, printTimetable } from '@/utils/exportTimetable'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -248,11 +247,6 @@ const handleExportWord = () => {
 
 const handlePrint = () => {
   printTimetable(schedule.value, teacher.value?.name || 'My_Schedule')
-  showExportDropdown.value = false
-}
-
-const handleExportICal = () => {
-  exportToICal(schedule.value, teacher.value?.name || 'My_Schedule')
   showExportDropdown.value = false
 }
 
