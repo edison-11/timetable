@@ -2,6 +2,7 @@ const pool = require('../config/database');
 
 class School {
   static schemaReady = false;
+  static tenantColumnsReady = false;
 
   static async ensureSchema() {
     if (this.schemaReady) return;
@@ -123,6 +124,8 @@ class School {
   }
 
   static async ensureTenantColumns() {
+    if (this.tenantColumnsReady) return;
+
     await this.ensureSchema();
     const tables = [
       'teacher',
@@ -147,6 +150,8 @@ class School {
         }
       }
     }
+
+    this.tenantColumnsReady = true;
   }
 
   static async create(data) {
@@ -266,7 +271,7 @@ class School {
   }
 
   static async getPlatformStats() {
-    await this.ensureSchema();
+    await this.ensureTenantColumns();
     const [[schoolStats]] = await pool.execute(`
       SELECT
         COUNT(*) AS total_schools,

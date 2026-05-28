@@ -1,3 +1,6 @@
+// Load environment variables at the very beginning
+require('dotenv').config();
+
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
@@ -16,7 +19,7 @@ async function setupDatabase() {
 
     // Create database if not exists
     const databaseName = process.env.DB_NAME || 'timetable_system';
-    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\``);
+    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${databaseName}\``);
     console.log(`Database "${databaseName}" created or already exists`);
 
     // Switch to the database
@@ -28,9 +31,11 @@ async function setupDatabase() {
 
     // Split SQL file into individual statements
     const statements = sql
+      .replace(/--.*(?:\r\n|\r|\n)/g, '\n') // Remove single-line comments safely
+      .replace(/\/\*[\s\S]*?\*\//g, '')      // Remove multi-line comments
       .split(';')
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+      .filter(stmt => stmt.length > 0);
 
     console.log(`Executing ${statements.length} SQL statements...`);
 
@@ -55,8 +60,5 @@ async function setupDatabase() {
     process.exit(1);
   }
 }
-
-// Load environment variables
-require('dotenv').config();
 
 setupDatabase();

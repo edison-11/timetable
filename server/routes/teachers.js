@@ -127,14 +127,9 @@ router.get('/me', auth, async (req, res) => {
 // Get all teachers
 router.get('/', auth, async (req, res) => {
   try {
-<<<<<<< HEAD
-    const teachers = await Teacher.getAll();
-    res.json({ teachers: sanitizeTeachers(teachers) });
-=======
     const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
     const teachers = await Teacher.getAll({ school_id: schoolFilter });
-    res.json({ teachers });
->>>>>>> fd80706a5f0aeaa52252fdb4283f63fa4c4317ba
+    res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -144,14 +139,9 @@ router.get('/', auth, async (req, res) => {
 // Get teachers by status
 router.get('/status/:status', auth, async (req, res) => {
   try {
-<<<<<<< HEAD
-    const teachers = await Teacher.getByStatus(req.params.status);
-    res.json({ teachers: sanitizeTeachers(teachers) });
-=======
     const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
     const teachers = await Teacher.getByStatus(req.params.status, { school_id: schoolFilter });
-    res.json({ teachers });
->>>>>>> fd80706a5f0aeaa52252fdb4283f63fa4c4317ba
+    res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -172,14 +162,9 @@ router.get('/active', auth, async (req, res) => {
 // Get pending teachers
 router.get('/pending', auth, async (req, res) => {
   try {
-<<<<<<< HEAD
-    const pendingTeachers = await Teacher.getByStatus('pending');
-    res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
-=======
     const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
     const pendingTeachers = await Teacher.getByStatus('pending', { school_id: schoolFilter });
-    res.json({ pendingTeachers });
->>>>>>> fd80706a5f0aeaa52252fdb4283f63fa4c4317ba
+    res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -204,14 +189,10 @@ router.get('/:id', auth, async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
-<<<<<<< HEAD
-    res.json({ teacher: sanitizeTeacher(teacher) });
-=======
     if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
       return res.status(403).json({ message: 'Teacher belongs to another school' });
     }
-    res.json({ teacher });
->>>>>>> fd80706a5f0aeaa52252fdb4283f63fa4c4317ba
+    res.json({ teacher: sanitizeTeacher(teacher) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
