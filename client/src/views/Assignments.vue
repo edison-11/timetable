@@ -143,6 +143,17 @@
           </table>
         </div>
       </div>
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Assignment"
+        :description="`Delete assignment for ${deleteDialog.assignment?.teacher_name || 'this teacher'}?`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="deleteDialog.loading"
+        danger
+        @confirm="confirmDeleteAssignment"
+      />
     </div>
   </AppLayout>
 </template>
@@ -152,6 +163,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const teachers = ref([])
 const modules = ref([])
@@ -161,6 +173,7 @@ const selectedDepartment = ref('')
 const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
 const assignmentSearch = ref('')
 const loading = ref(false)
+const deleteDialog = ref({ open: false, assignment: null, loading: false })
 const errors = ref({})
 const formMessage = ref('')
 
@@ -285,10 +298,21 @@ const handleAddAssignment = async () => {
 }
 
 const deleteAssignment = async (assignment) => {
-  if (!confirm(`Delete assignment for ${assignment.teacher_name}?`)) return
+  deleteDialog.value = { open: true, assignment, loading: false }
+}
 
-  await api.delete(`/assignments/${assignment.assignment_id}`)
-  assignments.value = assignments.value.filter(item => item.assignment_id !== assignment.assignment_id)
+const confirmDeleteAssignment = async () => {
+  const assignment = deleteDialog.value.assignment
+  if (!assignment) return
+
+  deleteDialog.value.loading = true
+  try {
+    await api.delete(`/assignments/${assignment.assignment_id}`)
+    assignments.value = assignments.value.filter(item => item.assignment_id !== assignment.assignment_id)
+    deleteDialog.value = { open: false, assignment: null, loading: false }
+  } finally {
+    deleteDialog.value.loading = false
+  }
 }
 
 const loadData = async () => {

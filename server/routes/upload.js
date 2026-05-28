@@ -1,9 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
+const uploadDir = path.resolve(__dirname, '../../uploads');
+
+fs.mkdirSync(uploadDir, { recursive: true });
 
 const getFileUrl = (req, filename) => {
   return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
@@ -12,7 +16,7 @@ const getFileUrl = (req, filename) => {
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/');
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -122,6 +126,29 @@ router.post('/profile-photo', auth, profilePhotoUpload.single('photo'), handleMu
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Profile photo upload failed' });
+  }
+});
+
+router.post('/registration-photo', profilePhotoUpload.single('photo'), handleMulterError, (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No photo uploaded' });
+    }
+
+    res.status(201).json({
+      message: 'Registration photo uploaded successfully',
+      photo: {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        path: `/uploads/${req.file.filename}`,
+        url: getFileUrl(req, req.file.filename)
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Registration photo upload failed' });
   }
 });
 

@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const Teacher = require('../models/Teacher');
+const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { adminAuth } = require('../middleware/adminAuth');
@@ -18,7 +19,7 @@ router.post('/register', [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('department').optional().trim().notEmpty().withMessage('Department cannot be empty'),
-  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending'])
+  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending', 'rejected'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -27,13 +28,14 @@ router.post('/register', [
     }
 
     const { name, email, password, department = 'SSOD', status = 'pending', date_joined } = req.body;
+    const schoolId = req.user?.school_id || req.body.school_id || null;
 
     const existingTeacher = await Teacher.findByEmail(email);
     if (existingTeacher) {
       return res.status(400).json({ message: 'Teacher already exists' });
     }
 
-    const teacherId = await Teacher.create({ name, email, password, department, status, date_joined });
+    const teacherId = await Teacher.create({ name, email, password, department, status, date_joined, school_id: schoolId });
     const teacher = await Teacher.findById(teacherId);
 
     await Notification.create({
@@ -113,7 +115,8 @@ router.get('/me', auth, async (req, res) => {
 // Get all teachers
 router.get('/', auth, async (req, res) => {
   try {
-    const teachers = await Teacher.getAll();
+    const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
+    const teachers = await Teacher.getAll({ school_id: schoolFilter });
     res.json({ teachers });
   } catch (error) {
     console.error(error);
@@ -124,7 +127,8 @@ router.get('/', auth, async (req, res) => {
 // Get teachers by status
 router.get('/status/:status', auth, async (req, res) => {
   try {
-    const teachers = await Teacher.getByStatus(req.params.status);
+    const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
+    const teachers = await Teacher.getByStatus(req.params.status, { school_id: schoolFilter });
     res.json({ teachers });
   } catch (error) {
     console.error(error);
@@ -146,7 +150,8 @@ router.get('/active', auth, async (req, res) => {
 // Get pending teachers
 router.get('/pending', auth, async (req, res) => {
   try {
-    const pendingTeachers = await Teacher.getByStatus('pending');
+    const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
+    const pendingTeachers = await Teacher.getByStatus('pending', { school_id: schoolFilter });
     res.json({ pendingTeachers });
   } catch (error) {
     console.error(error);
@@ -172,6 +177,9 @@ router.get('/:id', auth, async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
+    if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
     res.json({ teacher });
   } catch (error) {
     console.error(error);
@@ -185,7 +193,7 @@ router.put('/:id', auth, [
   body('email').optional().isEmail().normalizeEmail(),
   body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('department').optional().trim().notEmpty(),
-  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending']),
+  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending', 'rejected']),
   body('date_joined').optional().isDate()
 ], async (req, res) => {
   try {
@@ -203,6 +211,7 @@ router.put('/:id', auth, [
     if (department) updateData.department = department;
     if (status) updateData.status = status;
     if (date_joined) updateData.date_joined = date_joined;
+    if (req.user?.school_id) updateData.school_id = req.user.school_id;
 
     await Teacher.update(req.params.id, updateData);
     const updatedTeacher = await Teacher.findById(req.params.id);
@@ -232,6 +241,9 @@ router.delete('/:id', auth, async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
+    if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
 
     await Teacher.delete(req.params.id);
     await Notification.create({
@@ -256,6 +268,9 @@ router.put('/:id/approve-test', async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
+    if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
 
     if (teacher.status !== 'pending') {
       return res.status(400).json({ message: 'Teacher is not pending approval' });
@@ -263,6 +278,8 @@ router.put('/:id/approve-test', async (req, res) => {
 
     await Teacher.update(req.params.id, { status: 'active' });
     const updatedTeacher = await Teacher.findById(req.params.id);
+    const teacherUser = await User.findByEmail(updatedTeacher.email);
+    if (teacherUser) await User.updateStatus(teacherUser.id, 'active');
 
     await Notification.create({
       type: 'teacher_approved',
@@ -290,6 +307,9 @@ router.put('/:id/approve', adminAuth, async (req, res) => {
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
+    if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
 
     if (teacher.status !== 'pending') {
       return res.status(400).json({ message: 'Teacher is not pending approval' });
@@ -317,7 +337,7 @@ router.put('/:id/approve', adminAuth, async (req, res) => {
   }
 });
 
-// Reject teacher (delete)
+// Reject teacher
 router.delete('/:id/reject', adminAuth, async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.params.id);
@@ -329,7 +349,9 @@ router.delete('/:id/reject', adminAuth, async (req, res) => {
       return res.status(400).json({ message: 'Teacher is not pending approval' });
     }
 
-    await Teacher.delete(req.params.id);
+    await Teacher.update(req.params.id, { status: 'rejected' });
+    const teacherUser = await User.findByEmail(teacher.email);
+    if (teacherUser) await User.updateStatus(teacherUser.id, 'rejected');
     await Notification.create({
       type: 'teacher_rejected',
       title: `Teacher rejected: ${teacher.name}`,
@@ -340,7 +362,7 @@ router.delete('/:id/reject', adminAuth, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Teacher rejected and removed successfully'
+      message: 'Teacher rejected successfully'
     });
   } catch (error) {
     console.error(error);

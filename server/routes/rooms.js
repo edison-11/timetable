@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Room = require('../models/Room');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -19,8 +20,9 @@ router.post('/', auth, [
     }
 
     const { room_name, room_type, capacity } = req.body;
+    const school_id = getRequestSchoolId(req);
 
-    const roomId = await Room.create({ room_name, room_type, capacity });
+    const roomId = await Room.create({ room_name, room_type, capacity, school_id });
     const room = await Room.findById(roomId);
 
     await Notification.create({
@@ -44,7 +46,7 @@ router.post('/', auth, [
 // Get all rooms
 router.get('/', auth, async (req, res) => {
   try {
-    const rooms = await Room.getAll();
+    const rooms = await Room.getAll({ school_id: getRequestSchoolId(req) });
     res.json({ rooms });
   } catch (error) {
     console.error(error);
@@ -55,7 +57,7 @@ router.get('/', auth, async (req, res) => {
 // Get rooms by type
 router.get('/type/:room_type', auth, async (req, res) => {
   try {
-    const rooms = await Room.getByType(req.params.room_type);
+    const rooms = await Room.getByType(req.params.room_type, { school_id: getRequestSchoolId(req) });
     res.json({ rooms });
   } catch (error) {
     console.error(error);
@@ -72,7 +74,7 @@ router.get('/available', auth, async (req, res) => {
       return res.status(400).json({ message: 'start_time, end_time, and day_of_week are required' });
     }
 
-    const rooms = await Room.getAvailableRooms(start_time, end_time, day_of_week);
+    const rooms = await Room.getAvailableRooms(start_time, end_time, day_of_week, { school_id: getRequestSchoolId(req) });
     res.json({ rooms });
   } catch (error) {
     console.error(error);
@@ -83,7 +85,7 @@ router.get('/available', auth, async (req, res) => {
 // Get room usage statistics
 router.get('/:id/usage', auth, async (req, res) => {
   try {
-    const usage = await Room.getRoomUsage(req.params.id);
+    const usage = await Room.getRoomUsage(req.params.id, { school_id: getRequestSchoolId(req) });
     res.json({ usage });
   } catch (error) {
     console.error(error);
@@ -98,6 +100,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });
     }
+    if (!enforceSameSchool(req, room)) return res.status(403).json({ message: 'Room belongs to another school' });
     res.json({ room });
   } catch (error) {
     console.error(error);
@@ -119,10 +122,15 @@ router.put('/:id', auth, [
 
     const { room_name, room_type, capacity } = req.body;
     const updateData = {};
+    updateData.school_id = getRequestSchoolId(req);
     
     if (room_name) updateData.room_name = room_name;
     if (room_type) updateData.room_type = room_type;
     if (capacity) updateData.capacity = capacity;
+
+    const existingRoom = await Room.findById(req.params.id);
+    if (!existingRoom) return res.status(404).json({ message: 'Room not found' });
+    if (!enforceSameSchool(req, existingRoom)) return res.status(403).json({ message: 'Room belongs to another school' });
 
     await Room.update(req.params.id, updateData);
     const updatedRoom = await Room.findById(req.params.id);
@@ -152,6 +160,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!room) {
       return res.status(404).json({ message: 'Room not found' });
     }
+    if (!enforceSameSchool(req, room)) return res.status(403).json({ message: 'Room belongs to another school' });
 
     await Room.delete(req.params.id);
     await Notification.create({

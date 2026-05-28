@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const User = require('../models/User');
 const Teacher = require('../models/Teacher');
+const School = require('../models/School');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { sendOtpEmail } = require('../services/resendEmailService');
@@ -37,6 +38,8 @@ const publicUser = (user, teacher = null) => ({
   role: user.role,
   is_verified: Boolean(user.is_verified),
   profile_photo: user.profile_photo || teacher?.profile_photo || null,
+  school_id: user.school_id || teacher?.school_id || null,
+  status: user.status || teacher?.status || null,
   teacher_id: teacher?.teacher_id || user.teacher_id || null,
   department: teacher?.department || null,
   status: teacher?.status || null,
@@ -74,6 +77,9 @@ const sanitizeRegistrationPayload = (payload) => ({
   employeeId: payload.employeeId || payload.employee_id,
   module_name: payload.module_name || payload.subject,
   qualification: payload.qualification,
+  profile_photo: payload.profile_photo,
+  national_id: payload.national_id,
+  school_registration_number: payload.school_registration_number,
   yearsExperience: payload.yearsExperience || payload.years_experience || 0,
   availableDays: payload.availableDays || payload.available_days,
   availableFrom: payload.availableFrom || payload.available_from,
@@ -90,7 +96,7 @@ const handleRouteError = (res, error) => {
   return res.status(500).json({ message: 'Server error' });
 };
 
-// Create admin user (for initial setup)
+// Create super admin user (for initial setup)
 router.post('/create-admin', async (req, res) => {
   try {
     const { username, full_name, email, password, phone } = req.body;
@@ -105,14 +111,13 @@ router.post('/create-admin', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create admin user
-    const userId = await User.create({ username, full_name: full_name || username, email, phone, password, role: 'admin', is_verified: true });
+    const userId = await User.create({ username, full_name: full_name || username, email, phone, password, role: 'super_admin', is_verified: true });
     const user = await User.findById(userId);
 
     const token = generateToken(user);
 
     res.status(201).json({
-      message: 'Admin user created successfully',
+      message: 'Super admin user created successfully',
       token,
       user
     });
@@ -127,10 +132,17 @@ router.post('/register', [
   body('full_name').optional().trim().isLength({ min: 3 }).withMessage('Full name must be at least 3 characters'),
   body('username').optional().trim().isLength({ min: 3 }).withMessage('Username must be at least 3 characters'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  body('phone').optional().trim(),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('phone').if(body('role').equals('teacher')).trim().notEmpty().withMessage('Phone number is required'),
+  body('password')
+    .isStrongPassword({ minLength: 8, minLowercase: 1, minUppercase: 1, minNumbers: 1, minSymbols: 0 })
+    .withMessage('Password must be at least 8 characters and include uppercase, lowercase, and a number'),
   body('confirmPassword').optional().custom((value, { req }) => !value || value === req.body.password).withMessage('Passwords do not match'),
-  body('role').isIn(['admin', 'teacher']).withMessage('Role must be admin or teacher')
+  body('role').isIn(['teacher']).withMessage('Use the DOS registration page for school administrators'),
+  body('department').if(body('role').equals('teacher')).trim().notEmpty().withMessage('Department is required'),
+  body('qualification').if(body('role').equals('teacher')).trim().notEmpty().withMessage('Qualification is required'),
+  body('employeeId').if(body('role').equals('teacher')).trim().notEmpty().withMessage('National ID or Staff ID is required'),
+  body('school_id').if(body('role').equals('teacher')).toInt().isInt().withMessage('Select an active school'),
+  body('profile_photo').if(body('role').equals('teacher')).isString().notEmpty().withMessage('Profile photo is required')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -155,6 +167,13 @@ router.post('/register', [
       if (existingTeacher) {
         return res.status(400).json({ message: 'Teacher email already registered' });
       }
+
+      const school = await School.findById(req.body.school_id);
+      if (!school || school.status !== 'active') {
+        return res.status(400).json({ message: 'Selected school is not active or has not been approved' });
+      }
+
+      req.body.school_registration_number = school.registration_number;
     }
 
     const existingPending = pendingRegistrations.get(email);
@@ -242,8 +261,16 @@ router.post('/login', [
       user = await syncTeacherUser(teacher, password);
     }
 
-    if (!['admin', 'teacher', 'student'].includes(user.role)) {
+    if (!['super_admin', 'dos', 'teacher', 'student'].includes(user.role)) {
       return res.status(403).json({ message: 'Unsupported account role' });
+    }
+
+    if (user.role !== 'teacher' && user.status && user.status !== 'active') {
+      return res.status(403).json({
+        message: user.role === 'dos'
+          ? 'Your registration is waiting for system administrator approval.'
+          : 'Your account is not active.'
+      });
     }
 
     if (user.role === 'teacher') {
@@ -251,8 +278,24 @@ router.post('/login', [
       if (teacher?.status === 'pending') {
         return res.status(403).json({ message: 'Your account is pending approval by an administrator' });
       }
-      if (teacher?.status === 'inactive') {
-        return res.status(403).json({ message: 'Your account is inactive' });
+      if (teacher?.status !== 'active') {
+        return res.status(403).json({ message: 'Your teacher account is not active' });
+      }
+    }
+
+    if (user.role === 'dos') {
+      const school = user.school_id ? await School.findById(user.school_id) : null;
+      if (!school || ['pending', 'pending_approval'].includes(school.status)) {
+        return res.status(403).json({ message: 'Your registration is waiting for system administrator approval.' });
+      }
+      if (school.status !== 'active') {
+        return res.status(403).json({
+          code: 'SCHOOL_ACCESS_DISABLED',
+          school_status: school.status,
+          message: school.status === 'suspended'
+            ? 'Your school account has been suspended. Please contact system administration.'
+            : 'School access disabled by Super Admin.'
+        });
       }
     }
 
@@ -270,6 +313,8 @@ router.post('/login', [
         ? '/teacher/dashboard'
         : user.role === 'student'
           ? '/student/dashboard'
+          : user.role === 'super_admin'
+            ? '/super-admin/dashboard'
           : '/dashboard'
     });
   } catch (error) {
@@ -386,6 +431,18 @@ router.post('/verify-registration', [
     }
 
     let teacher = null;
+    let school = null;
+
+    if (data.role === 'teacher') {
+      school = data.school_id
+        ? await School.findById(data.school_id)
+        : await School.findByRegistrationNumber(data.school_registration_number);
+      if (!school || school.status !== 'active') {
+        pendingRegistrations.delete(email);
+        return res.status(400).json({ message: 'Selected school is not active or has not been approved' });
+      }
+    }
+
     const userId = await User.create({
       username: data.full_name,
       full_name: data.full_name,
@@ -393,7 +450,10 @@ router.post('/verify-registration', [
       phone: data.phone,
       password: data.password,
       role: data.role,
-      is_verified: true
+      is_verified: true,
+      profile_photo: data.profile_photo || null,
+      school_id: school?.school_id || null,
+      status: data.role === 'teacher' ? 'pending' : 'active'
     });
 
     const user = await User.findById(userId);
@@ -406,10 +466,14 @@ router.post('/verify-registration', [
         department: data.department || 'SSOD',
         status: 'pending',
         date_joined: new Date().toISOString().split('T')[0],
+        school_id: school.school_id,
         employee_id: data.employeeId || null,
+        national_id: data.national_id || data.employeeId || null,
         phone: data.phone,
+        gender: data.gender || null,
         module_name: data.module_name || null,
         qualification: data.qualification || null,
+        profile_photo: data.profile_photo || null,
         years_experience: data.yearsExperience || 0,
         available_days: data.availableDays || null,
         available_from: data.availableFrom || null,

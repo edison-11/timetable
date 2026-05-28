@@ -4,6 +4,7 @@ const Class = require('../models/Class');
 const Assignment = require('../models/Assignment');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -25,25 +26,26 @@ router.post('/', auth, [
     }
 
     const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id } = req.body;
+    const school_id = getRequestSchoolId(req);
 
     // Check for duplicate section assignment if section_id is provided
     if (section_id) {
-      const existingSectionClass = await Class.findBySectionId(section_id);
+      const existingSectionClass = await Class.findBySectionId(section_id, { school_id });
       if (existingSectionClass) {
         return res.status(400).json({ message: 'This section is already assigned to another class' });
       }
     }
 
-    const existingRoomClass = await Class.findByRoomId(room_id);
+    const existingRoomClass = await Class.findByRoomId(room_id, { school_id });
     if (existingRoomClass) {
       return res.status(400).json({ message: 'This room is already assigned to another class' });
     }
 
-    const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id });
+    const classId = await Class.create({ class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id, school_id });
 
     // Enforce: only one teacher per class per academic year (based on assignment records).
     if (class_teacher_id) {
-      const hasDifferentTeacher = await Assignment.checkDifferentTeacherForClassAndYear(classId, academic_year, class_teacher_id);
+      const hasDifferentTeacher = await Assignment.checkDifferentTeacherForClassAndYear(classId, academic_year, class_teacher_id, { school_id });
       if (hasDifferentTeacher) {
         return res.status(400).json({ message: 'This class already has a different teacher assigned for the selected academic year.' });
       }
@@ -72,7 +74,7 @@ router.post('/', auth, [
 // Get all classes
 router.get('/', auth, async (req, res) => {
   try {
-    const classes = await Class.getAll();
+    const classes = await Class.getAll({ school_id: getRequestSchoolId(req) });
     res.json({ classes });
   } catch (error) {
     console.error(error);
@@ -83,7 +85,7 @@ router.get('/', auth, async (req, res) => {
 // Get classes by level
 router.get('/level/:level', auth, async (req, res) => {
   try {
-    const classes = await Class.getByLevel(req.params.level);
+    const classes = await Class.getByLevel(req.params.level, { school_id: getRequestSchoolId(req) });
     res.json({ classes });
   } catch (error) {
     console.error(error);
@@ -94,7 +96,7 @@ router.get('/level/:level', auth, async (req, res) => {
 // Get classes by section
 router.get('/section/:section_id', auth, async (req, res) => {
   try {
-    const classes = await Class.getBySection(req.params.section_id);
+    const classes = await Class.getBySection(req.params.section_id, { school_id: getRequestSchoolId(req) });
     res.json({ classes });
   } catch (error) {
     console.error(error);
@@ -105,7 +107,7 @@ router.get('/section/:section_id', auth, async (req, res) => {
 // Get classes by academic year
 router.get('/year/:academic_year', auth, async (req, res) => {
   try {
-    const classes = await Class.getByAcademicYear(req.params.academic_year);
+    const classes = await Class.getByAcademicYear(req.params.academic_year, { school_id: getRequestSchoolId(req) });
     res.json({ classes });
   } catch (error) {
     console.error(error);
@@ -116,7 +118,7 @@ router.get('/year/:academic_year', auth, async (req, res) => {
 // Get classes by teacher
 router.get('/teacher/:teacher_id', auth, async (req, res) => {
   try {
-    const classes = await Class.getClassesByTeacher(req.params.teacher_id);
+    const classes = await Class.getClassesByTeacher(req.params.teacher_id, { school_id: getRequestSchoolId(req) });
     res.json({ classes });
   } catch (error) {
     console.error(error);
@@ -131,6 +133,7 @@ router.get('/:id', auth, async (req, res) => {
     if (!classData) {
       return res.status(404).json({ message: 'Class not found' });
     }
+    if (!enforceSameSchool(req, classData)) return res.status(403).json({ message: 'Class belongs to another school' });
     res.json({ class: classData });
   } catch (error) {
     console.error(error);
@@ -157,6 +160,7 @@ router.put('/:id', auth, [
 
     const { class_name, level, academic_year, class_teacher_id, shift_id, dos_id, section_id, room_id } = req.body;
     const updateData = {};
+    updateData.school_id = getRequestSchoolId(req);
     
     if (class_name) {
       updateData.class_name = class_name;
@@ -176,7 +180,8 @@ router.put('/:id', auth, [
         const hasDifferentTeacher = await Assignment.checkDifferentTeacherForClassAndYear(
           req.params.id,
           resolvedAcademicYear,
-          class_teacher_id
+          class_teacher_id,
+          { school_id: getRequestSchoolId(req) }
         );
 
         if (hasDifferentTeacher) {
@@ -190,7 +195,7 @@ router.put('/:id', auth, [
     if (dos_id !== undefined) updateData.dos_id = dos_id;
     if (room_id !== undefined) updateData.room_id = room_id;
     if (room_id) {
-      const existingRoomClass = await Class.findByRoomIdExcludingId(room_id, req.params.id);
+      const existingRoomClass = await Class.findByRoomIdExcludingId(room_id, req.params.id, { school_id: getRequestSchoolId(req) });
       if (existingRoomClass) {
         return res.status(400).json({ message: 'This room is already assigned to another class' });
       }
@@ -198,7 +203,7 @@ router.put('/:id', auth, [
     if (section_id !== undefined) {
       // Check for duplicate section assignment if section_id is provided and not null
       if (section_id) {
-        const existingSectionClass = await Class.findBySectionIdExcludingId(section_id, req.params.id);
+        const existingSectionClass = await Class.findBySectionIdExcludingId(section_id, req.params.id, { school_id: getRequestSchoolId(req) });
         if (existingSectionClass) {
           return res.status(400).json({ message: 'This section is already assigned to another class' });
         }
@@ -210,6 +215,7 @@ router.put('/:id', auth, [
     if (!currentClass) {
       return res.status(404).json({ message: 'Class not found' });
     }
+    if (!enforceSameSchool(req, currentClass)) return res.status(403).json({ message: 'Class belongs to another school' });
 
     await Class.update(req.params.id, updateData);
     const updatedClass = await Class.findById(req.params.id);
@@ -239,6 +245,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!classData) {
       return res.status(404).json({ message: 'Class not found' });
     }
+    if (!enforceSameSchool(req, classData)) return res.status(403).json({ message: 'Class belongs to another school' });
 
     await Class.delete(req.params.id);
     await Notification.create({

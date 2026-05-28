@@ -199,6 +199,17 @@
           </div>
         </section>
       </div>
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Student"
+        :description="`Delete ${deleteDialog.student?.name || 'this student'}? This action cannot be undone.`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="deleteDialog.loading"
+        danger
+        @confirm="confirmDeleteStudent"
+      />
     </div>
   </AppLayout>
 </template>
@@ -207,6 +218,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const students = ref([])
 const classes = ref([])
@@ -216,6 +228,7 @@ const showModal = ref(false)
 const editingStudentId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
+const deleteDialog = ref({ open: false, student: null, loading: false })
 const message = ref('')
 const messageType = ref('success')
 const showAbsenceModal = ref(false)
@@ -403,13 +416,23 @@ const saveStudent = async () => {
 }
 
 const deleteStudent = async (student) => {
-  if (!window.confirm(`Delete ${student.name}?`)) return
+  deleteDialog.value = { open: true, student, loading: false }
+}
+
+const confirmDeleteStudent = async () => {
+  const student = deleteDialog.value.student
+  if (!student) return
+
+  deleteDialog.value.loading = true
   try {
     await api.delete(`/students/${student.student_id}`)
     showMessage('Student deleted')
+    deleteDialog.value = { open: false, student: null, loading: false }
     await loadStudents()
   } catch (error) {
     showMessage(error.response?.data?.message || 'Could not delete student', 'error')
+  } finally {
+    deleteDialog.value.loading = false
   }
 }
 

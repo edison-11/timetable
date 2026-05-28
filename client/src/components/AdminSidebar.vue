@@ -37,8 +37,10 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const authStore = useAuthStore()
 const logoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
 
 const closeMobileSidebar = () => {
@@ -62,19 +64,38 @@ const icons = {
   settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
 }
 
-const adminSidebarItems = [
+const superAdminSidebarItems = [
+  { name: 'Dashboard', path: '/super-admin/dashboard', icon: icons.dashboard },
+  { name: 'Schools', path: '/super-admin/schools', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg>' },
+  { name: 'Users', path: '/teachers', icon: icons.teachers },
+  { name: 'Reports', path: '/super-admin/dashboard#reports', icon: icons.assignments },
+  { name: 'Analytics', path: '/super-admin/dashboard#analytics', icon: icons.timetable },
+  { name: 'Settings', path: '/settings', icon: icons.settings },
+  { name: 'System Logs', path: '/super-admin/dashboard#logs', icon: icons.sections }
+]
+
+const dosSidebarItems = [
   { name: 'Dashboard', path: '/dashboard', icon: icons.dashboard },
+  { name: 'Teachers', path: '/teachers', icon: icons.teachers },
+  { name: 'Students', path: '/students', icon: icons.students },
+  { name: 'Classes', path: '/classes', icon: icons.classes },
+  { name: 'Subjects', path: '/modules', icon: icons.modules },
   { name: 'Sections', path: '/sections', icon: icons.sections },
   { name: 'Rooms', path: '/rooms', icon: icons.rooms },
   { name: 'Shifts', path: '/shifts', icon: icons.shifts },
-  { name: 'Teachers', path: '/teachers', icon: icons.teachers },
-  { name: 'Students', path: '/students', icon: icons.students },
-  { name: 'Subjects', path: '/modules', icon: icons.modules },
-  { name: 'Classes', path: '/classes', icon: icons.classes },
   { name: 'Assignments', path: '/assignments', icon: icons.assignments },
-  { name: 'Timetables', path: '/timetable', icon: icons.timetable },
+  { name: 'Timetable', path: '/timetable', icon: icons.timetable },
+  { name: 'Attendance', path: '/dashboard#attendance', icon: icons.students },
+  { name: 'Reports', path: '/dashboard#reports', icon: icons.assignments },
+  { name: 'Notifications', path: '/dashboard#notifications', icon: icons.sections },
   { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
+
+const adminSidebarItems = computed(() => (
+  authStore.currentUserType === 'super_admin' || authStore.currentUser?.role === 'super_admin'
+    ? superAdminSidebarItems
+    : dosSidebarItems
+))
 
 const academicYear = computed(() => {
   const now = new Date()
@@ -215,9 +236,9 @@ const academicYear = computed(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 26px;
-  width: 26px;
-  height: 26px;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
   border-radius: 10px;
   background: transparent;
   color: currentColor;
@@ -225,11 +246,11 @@ const academicYear = computed(() => {
 }
 
 .nav-icon :deep(svg) {
-  width: 17px;
-  height: 17px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.1;
+  stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

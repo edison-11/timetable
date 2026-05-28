@@ -32,6 +32,12 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/dos/register',
+      name: 'DosRegister',
+      component: () => import('@/views/DosRegister.vue'),
+      meta: { requiresGuest: true }
+    },
+    {
       path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('@/views/ForgotPassword.vue'),
@@ -44,10 +50,27 @@ const router = createRouter({
       meta: { requiresGuest: true }
     },
     {
+      path: '/account-status',
+      name: 'AccountStatus',
+      component: () => import('@/views/AccountStatus.vue')
+    },
+    {
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
       meta: { requiresAdminAuth: true }
+    },
+    {
+      path: '/super-admin/dashboard',
+      name: 'SuperAdminDashboard',
+      component: () => import('@/views/SuperAdminDashboard.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/schools',
+      name: 'SuperAdminSchools',
+      component: () => import('@/views/SuperAdminSchools.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
     },
     {
       path: '/teachers',
@@ -122,9 +145,8 @@ const router = createRouter({
     },
     {
       path: '/teacher/login',
-      name: 'TeacherLogin',
-      component: () => import('@/views/TeacherLogin.vue'),
-      meta: { requiresGuest: true }
+      name: 'LegacyTeacherLoginRedirect',
+      redirect: '/login'
     },
     {
       path: '/teacher/dashboard',
@@ -196,25 +218,21 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = !!token
   const isTeacher = userType === 'teacher'
   const isStudent = userType === 'student'
-  const isAdmin = userType === 'admin'
+  const isAdmin = ['dos', 'super_admin'].includes(userType)
 
   const roleHome = () => {
+    if (userType === 'super_admin') return '/super-admin/dashboard'
+    if (userType === 'dos') return '/dashboard'
     if (userType === 'teacher') return '/teacher/dashboard'
     if (userType === 'student') return '/student/dashboard'
     return '/login'
   }
 
-  if ((to.path === '/login' || to.path === '/teacher/login') && isAuthenticated && isTeacher) {
+  if (to.path === '/login' && isAuthenticated && isTeacher) {
     next('/teacher/dashboard')
     return
   }
 
-  if (to.path === '/teacher/login' && isAuthenticated && !isTeacher) {
-    authStore.logout()
-    next()
-    return
-  }
-  
   if (to.meta.requiresAdminAuth) {
     if (!isAuthenticated || !isAdmin) {
       next(roleHome())
@@ -222,7 +240,12 @@ router.beforeEach(async (to, from, next) => {
     }
 
     const isStillAdmin = await authStore.checkAuth()
-    if (!isStillAdmin || authStore.currentUserType !== 'admin') {
+    if (!isStillAdmin || !['dos', 'super_admin'].includes(authStore.currentUserType)) {
+      next(roleHome())
+      return
+    }
+
+    if (to.meta.roles?.length && !to.meta.roles.includes(authStore.currentUserType)) {
       next(roleHome())
       return
     }
@@ -230,13 +253,13 @@ router.beforeEach(async (to, from, next) => {
     next()
   } else if (to.meta.requiresTeacherAuth) {
     if (!isAuthenticated || !isTeacher) {
-      next('/teacher/login')
+      next('/login')
       return
     }
 
     const isStillTeacher = await authStore.checkAuth()
     if (!isStillTeacher || authStore.currentUserType !== 'teacher') {
-      next('/teacher/login')
+      next('/login')
       return
     }
 
@@ -250,6 +273,8 @@ router.beforeEach(async (to, from, next) => {
       next('/teacher/dashboard')
     } else if (isStudent) {
       next('/student/dashboard')
+    } else if (userType === 'super_admin') {
+      next('/super-admin/dashboard')
     } else {
       next('/dashboard')
     }

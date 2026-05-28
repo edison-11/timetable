@@ -151,6 +151,18 @@
       </div>
     </div>
   </header>
+
+  <ConfirmModal
+    v-model="rejectDialog.open"
+    title="Reject Registration"
+    :description="`Reject ${rejectDialog.notification?.title || 'this teacher registration request'}?`"
+    confirm-label="Reject"
+    cancel-label="Cancel"
+    loading-label="Rejecting..."
+    :loading="rejectDialog.loading"
+    danger
+    @confirm="confirmRejectPendingTeacher"
+  />
 </template>
 
 <script setup>
@@ -158,6 +170,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -169,6 +182,7 @@ const isDarkMode = ref(false)
 const notificationsMenu = ref(null)
 const accountMenu = ref(null)
 const notifications = ref([])
+const rejectDialog = ref({ open: false, notification: null, loading: false })
 const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
 
 const unreadCount = computed(() => notifications.value.filter(item => !item.read).length)
@@ -333,9 +347,21 @@ const approvePendingTeacher = async (notification) => {
 
 const rejectPendingTeacher = async (notification) => {
   if (!notification.entity_id) return
-  if (!confirm('Reject this teacher registration request?')) return
-  await api.delete(`/teachers/${notification.entity_id}/reject`)
-  await fetchNotifications()
+  rejectDialog.value = { open: true, notification, loading: false }
+}
+
+const confirmRejectPendingTeacher = async () => {
+  const notification = rejectDialog.value.notification
+  if (!notification?.entity_id) return
+
+  rejectDialog.value.loading = true
+  try {
+    await api.delete(`/teachers/${notification.entity_id}/reject`)
+    rejectDialog.value = { open: false, notification: null, loading: false }
+    await fetchNotifications()
+  } finally {
+    rejectDialog.value.loading = false
+  }
 }
 
 const goToDashboardNotifications = () => {

@@ -10,7 +10,8 @@ class ConflictDetectionService {
    * @param {number} excludeTimetableId - Timetable ID to exclude (for updates)
    * @returns {Promise<Object>} Conflict details or null
    */
-  async checkTeacherConflict(teacherId, dayOfWeek, startTime, endTime, excludeTimetableId = null) {
+  async checkTeacherConflict(teacherId, dayOfWeek, startTime, endTime, excludeTimetableId = null, schoolId = null) {
+    const schoolClause = schoolId ? 'AND t.school_id = ?' : '';
     const query = `
       SELECT t.*, c.class_name, m.module_name
       FROM timetable t
@@ -24,10 +25,12 @@ class ConflictDetectionService {
           (t.start_time < ? AND t.end_time > ?) OR
           (t.start_time >= ? AND t.end_time <= ?)
         )
+        ${schoolClause}
         ${excludeTimetableId ? 'AND t.timetable_id != ?' : ''}
     `;
     
     const params = [teacherId, dayOfWeek, endTime, startTime, endTime, startTime, startTime, endTime];
+    if (schoolId) params.push(schoolId);
     if (excludeTimetableId) params.push(excludeTimetableId);
     
     const [conflicts] = await db.query(query, params);
@@ -52,8 +55,9 @@ class ConflictDetectionService {
    * @param {number} excludeTimetableId - Timetable ID to exclude (for updates)
    * @returns {Promise<Object>} Conflict details or null
    */
-  async checkRoomConflict(roomId, dayOfWeek, startTime, endTime, excludeTimetableId = null) {
+  async checkRoomConflict(roomId, dayOfWeek, startTime, endTime, excludeTimetableId = null, schoolId = null) {
     if (!roomId) return null;
+    const schoolClause = schoolId ? 'AND t.school_id = ?' : '';
     
     const query = `
       SELECT t.*, c.class_name, r.room_name
@@ -67,10 +71,12 @@ class ConflictDetectionService {
           (t.start_time < ? AND t.end_time > ?) OR
           (t.start_time >= ? AND t.end_time <= ?)
         )
+        ${schoolClause}
         ${excludeTimetableId ? 'AND t.timetable_id != ?' : ''}
     `;
     
     const params = [roomId, dayOfWeek, endTime, startTime, endTime, startTime, startTime, endTime];
+    if (schoolId) params.push(schoolId);
     if (excludeTimetableId) params.push(excludeTimetableId);
     
     const [conflicts] = await db.query(query, params);
@@ -95,11 +101,15 @@ class ConflictDetectionService {
    * @param {number} excludeTimetableId - Timetable ID to exclude (for updates)
    * @returns {Promise<Object>} Conflict details or null
    */
-  async checkSectionConflict(classId, dayOfWeek, startTime, endTime, excludeTimetableId = null) {
+  async checkSectionConflict(classId, dayOfWeek, startTime, endTime, excludeTimetableId = null, schoolId = null) {
+    const schoolClause = schoolId ? 'AND school_id = ?' : '';
+    const classParams = [classId];
+    if (schoolId) classParams.push(schoolId);
+
     // Get the section_id for the given class
     const [classData] = await db.query(
-      'SELECT section_id FROM class WHERE class_id = ?',
-      [classId]
+      `SELECT section_id FROM class WHERE class_id = ? ${schoolClause}`,
+      classParams
     );
     
     if (!classData.length || !classData[0].section_id) return null;
@@ -107,6 +117,7 @@ class ConflictDetectionService {
     const sectionId = classData[0].section_id;
     
     // Check if any other class in the same section has a timetable entry at this time
+    const timetableSchoolClause = schoolId ? 'AND t.school_id = ? AND c.school_id = ?' : '';
     const query = `
       SELECT t.*, c.class_name
       FROM timetable t
@@ -119,10 +130,12 @@ class ConflictDetectionService {
           (t.start_time < ? AND t.end_time > ?) OR
           (t.start_time >= ? AND t.end_time <= ?)
         )
+        ${timetableSchoolClause}
         ${excludeTimetableId ? 'AND t.timetable_id != ?' : ''}
     `;
     
     const params = [sectionId, classId, dayOfWeek, endTime, startTime, endTime, startTime, startTime, endTime];
+    if (schoolId) params.push(schoolId, schoolId);
     if (excludeTimetableId) params.push(excludeTimetableId);
     
     const [conflicts] = await db.query(query, params);
@@ -146,10 +159,13 @@ class ConflictDetectionService {
    * @param {string} endTime - End time (HH:mm:ss)
    * @returns {Promise<Object>} Availability conflict or null
    */
-  async checkTeacherAvailability(teacherId, dayOfWeek, startTime, endTime) {
+  async checkTeacherAvailability(teacherId, dayOfWeek, startTime, endTime, schoolId = null) {
+    const schoolClause = schoolId ? 'AND school_id = ?' : '';
+    const params = [teacherId];
+    if (schoolId) params.push(schoolId);
     const [teachers] = await db.query(
-      'SELECT availability FROM teacher WHERE teacher_id = ?',
-      [teacherId]
+      `SELECT availability FROM teacher WHERE teacher_id = ? ${schoolClause}`,
+      params
     );
     
     if (!teachers.length || !teachers[0].availability) return null;
@@ -181,17 +197,24 @@ class ConflictDetectionService {
    * @param {number} moduleId - Module ID
    * @returns {Promise<Object>} Type mismatch or null
    */
-  async checkRoomTypeMatch(roomId, moduleId) {
+  async checkRoomTypeMatch(roomId, moduleId, schoolId = null) {
     if (!roomId || !moduleId) return null;
+    const schoolClause = schoolId ? 'AND school_id = ?' : '';
+    const roomParams = [roomId];
+    const moduleParams = [moduleId];
+    if (schoolId) {
+      roomParams.push(schoolId);
+      moduleParams.push(schoolId);
+    }
     
     const [rooms] = await db.query(
-      'SELECT room_type FROM room WHERE room_id = ?',
-      [roomId]
+      `SELECT room_type FROM room WHERE room_id = ? ${schoolClause}`,
+      roomParams
     );
     
     const [modules] = await db.query(
-      'SELECT required_room_type FROM module WHERE module_id = ?',
-      [moduleId]
+      `SELECT required_room_type FROM module WHERE module_id = ? ${schoolClause}`,
+      moduleParams
     );
     
     if (!rooms.length || !modules.length) return null;
@@ -216,16 +239,19 @@ class ConflictDetectionService {
    */
   async checkAllConflicts(timetableData) {
     const conflicts = [];
-    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, timetable_id } = timetableData;
+    const { class_id, assignment_id, day_of_week, start_time, end_time, room_id, timetable_id, school_id } = timetableData;
     
     // Get teacher_id from assignment
     let teacherId = null;
     let moduleId = null;
     
     if (assignment_id) {
+      const schoolClause = school_id ? 'AND school_id = ?' : '';
+      const params = [assignment_id];
+      if (school_id) params.push(school_id);
       const [assignments] = await db.query(
-        'SELECT teacher_id, module_id FROM assignment WHERE assignment_id = ?',
-        [assignment_id]
+        `SELECT teacher_id, module_id FROM assignment WHERE assignment_id = ? ${schoolClause}`,
+        params
       );
       if (assignments.length) {
         teacherId = assignments[0].teacher_id;
@@ -240,7 +266,8 @@ class ConflictDetectionService {
         day_of_week,
         start_time,
         end_time,
-        timetable_id
+        timetable_id,
+        school_id
       );
       if (teacherConflict) conflicts.push(teacherConflict);
       
@@ -249,7 +276,8 @@ class ConflictDetectionService {
         teacherId,
         day_of_week,
         start_time,
-        end_time
+        end_time,
+        school_id
       );
       if (availabilityConflict) conflicts.push(availabilityConflict);
     }
@@ -261,13 +289,14 @@ class ConflictDetectionService {
         day_of_week,
         start_time,
         end_time,
-        timetable_id
+        timetable_id,
+        school_id
       );
       if (roomConflict) conflicts.push(roomConflict);
       
       // Check room type match
       if (moduleId) {
-        const typeMismatch = await this.checkRoomTypeMatch(room_id, moduleId);
+        const typeMismatch = await this.checkRoomTypeMatch(room_id, moduleId, school_id);
         if (typeMismatch) conflicts.push(typeMismatch);
       }
     }
@@ -279,7 +308,8 @@ class ConflictDetectionService {
         day_of_week,
         start_time,
         end_time,
-        timetable_id
+        timetable_id,
+        school_id
       );
       if (sectionConflict) conflicts.push(sectionConflict);
     }

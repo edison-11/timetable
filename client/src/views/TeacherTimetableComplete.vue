@@ -1076,7 +1076,7 @@ onMounted(async () => {
 }
 
 .lesson-cell {
-  padding: 0.75rem;
+  padding: 1rem;
   border-right: 1px solid #e5e7eb;
   min-width: 150px;
   vertical-align: top;
@@ -1089,7 +1089,7 @@ onMounted(async () => {
 
 .module-cell {
   min-height: 76px;
-  padding: 0.75rem;
+  padding: 1rem;
   background: #eff6ff;
   border-left: 4px solid #2563eb;
   border-radius: 8px;
@@ -1155,7 +1155,7 @@ onMounted(async () => {
 }
 
 .lesson-body {
-  padding: 0.75rem;
+  padding: 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

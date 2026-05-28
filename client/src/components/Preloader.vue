@@ -1,10 +1,12 @@
 <template>
   <Transition name="preloader-fade">
     <div v-if="loading" class="preloader-container" role="status" aria-live="polite" aria-label="Loading page">
-      <div class="animation-wrapper" aria-hidden="true">
-        <span class="dot dot-blue"></span>
-        <span class="dot dot-pink"></span>
-        <span class="dot dot-amber"></span>
+      <div class="skeleton-shell" aria-hidden="true">
+        <span class="skeleton-line title"></span>
+        <span class="skeleton-line"></span>
+        <div class="skeleton-grid">
+          <span v-for="index in 6" :key="index" class="skeleton-card"></span>
+        </div>
       </div>
     </div>
   </Transition>
@@ -25,46 +27,51 @@ defineProps({
   inset: 0;
   width: 100vw;
   height: 100vh;
-  background:
-    radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.5), transparent 28%),
-    linear-gradient(135deg, #dbeafe 0%, #eff6ff 45%, #e0f2fe 100%);
+  background: rgba(245, 249, 255, 0.96);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 99999;
 }
 
-.animation-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
-  width: 148px;
-  min-height: 72px;
+.skeleton-shell {
+  width: min(760px, calc(100vw - 2rem));
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #dbe5f3;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
 }
 
-.dot {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  transform: scale(0);
-  animation: bloom 1.35s infinite ease-in-out;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+.skeleton-line,
+.skeleton-card {
+  display: block;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #e8eef6 25%, #f8fafc 45%, #e8eef6 65%);
+  background-size: 220% 100%;
+  animation: skeleton 1.35s ease-in-out infinite;
 }
 
-.dot-blue {
-  background: #2563eb;
-  animation-delay: 0s;
+.skeleton-line {
+  width: 52%;
+  height: 18px;
 }
 
-.dot-pink {
-  background: #ec4899;
-  animation-delay: 0.18s;
+.skeleton-line.title {
+  width: 34%;
+  height: 28px;
 }
 
-.dot-amber {
-  background: #f59e0b;
-  animation-delay: 0.36s;
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.skeleton-card {
+  height: 84px;
 }
 
 .preloader-fade-enter-active,
@@ -78,29 +85,27 @@ defineProps({
   transform: scale(1.01);
 }
 
-@keyframes bloom {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: scale(0);
-  }
-
-  48% {
-    opacity: 1;
-    transform: scale(2.45);
+@keyframes skeleton {
+  to {
+    background-position: -220% 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dot {
+  .skeleton-line,
+  .skeleton-card {
     animation: none;
-    opacity: 1;
-    transform: scale(1);
   }
 
   .preloader-fade-enter-active,
   .preloader-fade-leave-active {
     transition: opacity 0.18s ease;
+  }
+}
+
+@media (max-width: 640px) {
+  .skeleton-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

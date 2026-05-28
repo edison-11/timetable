@@ -102,7 +102,12 @@
 
       <!-- Filters + table -->
       <div class="filters-bar">
-        <input v-model="searchQuery" type="text" placeholder="Search classes..." class="search-input" />
+        <div class="search-input-wrap">
+          <svg class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z" />
+          </svg>
+          <input v-model="searchQuery" type="search" placeholder="Search classes..." class="search-input" />
+        </div>
         <select v-model="levelFilter" class="filter-select">
           <option value="">All Levels</option>
           <option v-for="level in levelOptions" :key="level" :value="level">
@@ -157,6 +162,18 @@
         <p>No classes created yet</p>
         <button class="btn-primary" @click="openAddForm">Add your first class</button>
       </div>
+
+      <ConfirmModal
+        v-model="deleteDialog.open"
+        title="Delete Class"
+        :description="`Delete class ${deleteDialog.classItem?.class_name || 'this class'}? This action cannot be undone.`"
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        loading-label="Deleting..."
+        :loading="Boolean(deletingId)"
+        danger
+        @confirm="confirmDeleteClass"
+      />
     </div>
   </AppLayout>
 </template>
@@ -166,6 +183,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const route = useRoute()
 const classesList = ref([])
@@ -180,6 +198,7 @@ const isEditing = ref(false)
 const saving = ref(false)
 const loading = ref(false)
 const deletingId = ref(null)
+const deleteDialog = ref({ open: false, classItem: null })
 const message = ref('')
 const messageType = ref('success')
 
@@ -334,13 +353,19 @@ const saveClass = async () => {
 }
 
 const deleteClass = async (cls) => {
-  if (!confirm(`Delete class "${cls.class_name}"? This action cannot be undone.`)) return
+  deleteDialog.value = { open: true, classItem: cls }
+}
+
+const confirmDeleteClass = async () => {
+  const cls = deleteDialog.value.classItem
+  if (!cls) return
 
   deletingId.value = cls.class_id
   try {
     await api.delete(`/classes/${cls.class_id}`)
     classesList.value = classesList.value.filter((item) => !sameId(item.class_id, cls.class_id))
     showMessage('Class deleted successfully.')
+    deleteDialog.value = { open: false, classItem: null }
   } catch (error) {
     showMessage(error.response?.data?.message || 'Failed to delete class.', 'danger')
   } finally {
@@ -485,9 +510,23 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
+.search-input-wrap,
 .search-input {
   flex: 1;
   max-width: 300px;
+}
+
+.search-input-wrap .search-input {
+  width: 100%;
+  max-width: none;
+}
+
+.form-signifier-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .search-input,
@@ -649,6 +688,11 @@ onMounted(async () => {
 
   .search-input {
     max-width: 100%;
+  }
+
+  .search-input-wrap {
+    max-width: 100%;
+    width: 100%;
   }
 }
 </style>

@@ -109,7 +109,7 @@
 
                 <div class="mb-3">
                   <label class="form-label">New Password</label>
-                  <div class="input-group">
+                  <div class="password-field">
                     <input
                       v-model="passwordForm.newPassword"
                       :type="showNewPassword ? 'text' : 'password'"
@@ -117,8 +117,23 @@
                       placeholder="Enter new password"
                       minlength="6"
                     >
-                    <button type="button" class="btn btn-outline-secondary" @click="showNewPassword = !showNewPassword">
-                      <i :class="showNewPassword ? 'bi bi-eye-slash' : 'bi bi-eye'" />
+                    <button
+                      type="button"
+                      class="password-toggle"
+                      :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
+                      :title="showNewPassword ? 'Hide password' : 'Show password'"
+                      @click="showNewPassword = !showNewPassword"
+                    >
+                      <svg v-if="showNewPassword" class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.2 0 8.6 4.3 10 8a13.2 13.2 0 0 1-2.6 4.1" />
+                        <path d="M6.6 6.6A13.1 13.1 0 0 0 2 12c1.4 3.7 4.8 8 10 8 1.8 0 3.4-.5 4.8-1.3" />
+                      </svg>
+                      <svg v-else class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                      </svg>
                     </button>
                   </div>
                   <div class="form-text">At least 6 characters for security.</div>
@@ -126,15 +141,30 @@
 
                 <div class="mb-3">
                   <label class="form-label">Confirm Password</label>
-                  <div class="input-group">
+                  <div class="password-field">
                     <input
                       v-model="passwordForm.confirmPassword"
                       :type="showConfirmPassword ? 'text' : 'password'"
                       class="form-control"
                       placeholder="Confirm new password"
                     >
-                    <button type="button" class="btn btn-outline-secondary" @click="showConfirmPassword = !showConfirmPassword">
-                      <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'" />
+                    <button
+                      type="button"
+                      class="password-toggle"
+                      :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+                      :title="showConfirmPassword ? 'Hide password' : 'Show password'"
+                      @click="showConfirmPassword = !showConfirmPassword"
+                    >
+                      <svg v-if="showConfirmPassword" class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 3l18 18" />
+                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
+                        <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.2 0 8.6 4.3 10 8a13.2 13.2 0 0 1-2.6 4.1" />
+                        <path d="M6.6 6.6A13.1 13.1 0 0 0 2 12c1.4 3.7 4.8 8 10 8 1.8 0 3.4-.5 4.8-1.3" />
+                      </svg>
+                      <svg v-else class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                      </svg>
                     </button>
                   </div>
                 </div>
@@ -406,6 +436,14 @@ onMounted(() => {
 
 .profile-link:hover {
   text-decoration: underline;
+}
+
+.form-signifier-icon {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 :global(body.teacher-dark-mode) .teacher-settings-page {

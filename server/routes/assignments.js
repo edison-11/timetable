@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Assignment = require('../models/Assignment');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -29,9 +30,10 @@ router.post('/', auth, [
     }
 
     const { teacher_id, module_id, class_id, academic_year, term } = req.body;
+    const school_id = getRequestSchoolId(req);
 
     // Idempotency: if this exact assignment already exists, return the existing one
-    const existingAssignment = await Assignment.findByCombination(teacher_id, module_id, class_id, academic_year, term);
+    const existingAssignment = await Assignment.findByCombination(teacher_id, module_id, class_id, academic_year, term, { school_id });
     if (existingAssignment) {
       return res.status(200).json({
         message: 'Assignment already exists for this combination',
@@ -39,7 +41,7 @@ router.post('/', auth, [
       });
     }
 
-    const assignmentId = await Assignment.create({ teacher_id, module_id, class_id, academic_year, term });
+    const assignmentId = await Assignment.create({ teacher_id, module_id, class_id, academic_year, term, school_id });
     const assignment = await Assignment.findById(assignmentId);
 
     await Notification.create({
@@ -63,7 +65,51 @@ router.post('/', auth, [
 // Get all assignments
 router.get('/', auth, async (req, res) => {
   try {
-    const assignments = await Assignment.getAll();
+    const assignments = await Assignment.getAll({ school_id: getRequestSchoolId(req) });
+    res.json({ assignments });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get assignments by teacher
+router.get('/teacher/:teacher_id', auth, async (req, res) => {
+  try {
+    const assignments = await Assignment.getByTeacher(req.params.teacher_id, { school_id: getRequestSchoolId(req) });
+    res.json({ assignments });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get assignments by class
+router.get('/class/:class_id', auth, async (req, res) => {
+  try {
+    const assignments = await Assignment.getByClass(req.params.class_id, { school_id: getRequestSchoolId(req) });
+    res.json({ assignments });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get assignments by module
+router.get('/module/:module_id', auth, async (req, res) => {
+  try {
+    const assignments = await Assignment.getByModule(req.params.module_id, { school_id: getRequestSchoolId(req) });
+    res.json({ assignments });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get assignments by academic year
+router.get('/year/:academic_year', auth, async (req, res) => {
+  try {
+    const assignments = await Assignment.getByAcademicYear(req.params.academic_year, { school_id: getRequestSchoolId(req) });
     res.json({ assignments });
   } catch (error) {
     console.error(error);
@@ -78,51 +124,8 @@ router.get('/:id', auth, async (req, res) => {
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
+    if (!enforceSameSchool(req, assignment)) return res.status(403).json({ message: 'Assignment belongs to another school' });
     res.json({ assignment });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get assignments by teacher
-router.get('/teacher/:teacher_id', auth, async (req, res) => {
-  try {
-    const assignments = await Assignment.getByTeacher(req.params.teacher_id);
-    res.json({ assignments });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get assignments by class
-router.get('/class/:class_id', auth, async (req, res) => {
-  try {
-    const assignments = await Assignment.getByClass(req.params.class_id);
-    res.json({ assignments });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get assignments by module
-router.get('/module/:module_id', auth, async (req, res) => {
-  try {
-    const assignments = await Assignment.getByModule(req.params.module_id);
-    res.json({ assignments });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get assignments by academic year
-router.get('/year/:academic_year', auth, async (req, res) => {
-  try {
-    const assignments = await Assignment.getByAcademicYear(req.params.academic_year);
-    res.json({ assignments });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -145,6 +148,7 @@ router.put('/:id', auth, [
 
     const { teacher_id, module_id, class_id, academic_year, term } = req.body;
     const updateData = {};
+    updateData.school_id = getRequestSchoolId(req);
     
     if (teacher_id) updateData.teacher_id = teacher_id;
     if (module_id) updateData.module_id = module_id;
@@ -154,11 +158,15 @@ router.put('/:id', auth, [
 
     // Check for conflicts if updating key fields
     if (teacher_id && module_id && class_id && academic_year && term) {
-      const hasConflict = await Assignment.checkConflict(teacher_id, module_id, class_id, academic_year, term, req.params.id);
+      const hasConflict = await Assignment.checkConflict(teacher_id, module_id, class_id, academic_year, term, req.params.id, { school_id: getRequestSchoolId(req) });
       if (hasConflict) {
         return res.status(400).json({ message: 'Assignment already exists for this combination' });
       }
     }
+
+    const existingAssignment = await Assignment.findById(req.params.id);
+    if (!existingAssignment) return res.status(404).json({ message: 'Assignment not found' });
+    if (!enforceSameSchool(req, existingAssignment)) return res.status(403).json({ message: 'Assignment belongs to another school' });
 
     await Assignment.update(req.params.id, updateData);
     const updatedAssignment = await Assignment.findById(req.params.id);
@@ -188,6 +196,7 @@ router.delete('/:id', auth, async (req, res) => {
     if (!assignment) {
       return res.status(404).json({ message: 'Assignment not found' });
     }
+    if (!enforceSameSchool(req, assignment)) return res.status(403).json({ message: 'Assignment belongs to another school' });
 
     await Assignment.delete(req.params.id);
     await Notification.create({

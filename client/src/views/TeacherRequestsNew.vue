@@ -222,6 +222,16 @@
           </div>
         </div>
       </div>
+      <ConfirmModal
+        v-model="cancelDialog.open"
+        title="Cancel Request"
+        description="Cancel this change request?"
+        confirm-label="Cancel Request"
+        cancel-label="Keep Request"
+        loading-label="Cancelling..."
+        danger
+        @confirm="confirmCancelRequest"
+      />
     </div>
   </TeacherLayout>
 </template>
@@ -229,10 +239,12 @@
 <script setup>
 import { ref, computed } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const showNewForm = ref(false)
 const showDetailView = ref(false)
 const editingRequest = ref(null)
+const cancelDialog = ref({ open: false, requestId: null })
 const selectedRequest = ref(null)
 const searchQuery = ref('')
 const filterStatus = ref('All')
@@ -383,12 +395,15 @@ const editRequest = (request) => {
 }
 
 const cancelRequest = (id) => {
-  if (confirm('Are you sure you want to cancel this request?')) {
-    const index = requests.value.findIndex(r => r.id === id)
-    if (index !== -1) {
-      requests.value.splice(index, 1)
-    }
+  cancelDialog.value = { open: true, requestId: id }
+}
+
+const confirmCancelRequest = () => {
+  const index = requests.value.findIndex(r => r.id === cancelDialog.value.requestId)
+  if (index !== -1) {
+    requests.value.splice(index, 1)
   }
+  cancelDialog.value = { open: false, requestId: null }
 }
 
 const viewRequest = (request) => {

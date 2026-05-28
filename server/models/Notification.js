@@ -14,9 +14,18 @@ class Notification {
         message TEXT,
         path VARCHAR(255) DEFAULT '/dashboard',
         tone VARCHAR(20) DEFAULT 'blue',
+        school_id INT NULL,
+        recipient_role VARCHAR(80) NULL,
+        read_at TIMESTAMP NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    const [columns] = await pool.execute('SHOW COLUMNS FROM notification');
+    const names = new Set(columns.map((column) => column.Field));
+    if (!names.has('school_id')) await pool.execute('ALTER TABLE notification ADD COLUMN school_id INT NULL');
+    if (!names.has('recipient_role')) await pool.execute('ALTER TABLE notification ADD COLUMN recipient_role VARCHAR(80) NULL');
+    if (!names.has('read_at')) await pool.execute('ALTER TABLE notification ADD COLUMN read_at TIMESTAMP NULL');
 
     this.tableReady = true;
   }
@@ -30,12 +39,14 @@ class Notification {
         title,
         message = '',
         path = '/dashboard',
-        tone = 'blue'
+        tone = 'blue',
+        school_id = null,
+        recipient_role = null
       } = notificationData;
 
       const [result] = await pool.execute(
-        'INSERT INTO notification (type, title, message, path, tone) VALUES (?, ?, ?, ?, ?)',
-        [type, title, message, path, tone]
+        'INSERT INTO notification (type, title, message, path, tone, school_id, recipient_role) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [type, title, message, path, tone, school_id || null, recipient_role || null]
       );
 
       return result.insertId;
@@ -45,24 +56,41 @@ class Notification {
     }
   }
 
-  static async getRecent(limit = 12) {
+  static async getRecent(limit = 12, filters = {}) {
     await this.ensureTable();
 
     const safeLimit = Math.min(Math.max(Number(limit) || 12, 1), 50);
+    const where = [];
+    const values = [];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
+    if (filters.recipient_role) {
+      where.push('(recipient_role = ? OR recipient_role IS NULL)');
+      values.push(filters.recipient_role);
+    }
     const [rows] = await pool.execute(
-      `SELECT notification_id, type, title, message, path, tone, created_at
+      `SELECT notification_id, type, title, message, path, tone, school_id, recipient_role, read_at, created_at
        FROM notification
+       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY created_at DESC
-       LIMIT ${safeLimit}`
+       LIMIT ${safeLimit}`,
+      values
     );
 
     return rows;
   }
 
-  static async count() {
+  static async count(filters = {}) {
     await this.ensureTable();
-
-    const [rows] = await pool.execute('SELECT COUNT(*) as total FROM notification');
+    const where = [];
+    const values = [];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
+    const [rows] = await pool.execute(`SELECT COUNT(*) as total FROM notification ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`, values);
     return rows[0]?.total || 0;
   }
 

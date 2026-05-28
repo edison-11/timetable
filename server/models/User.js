@@ -48,6 +48,8 @@ class User {
       ['is_verified', 'is_verified BOOLEAN NOT NULL DEFAULT FALSE'],
       ['last_login', 'last_login TIMESTAMP NULL'],
       ['profile_photo', 'profile_photo VARCHAR(255) NULL'],
+      ['school_id', 'school_id INT NULL'],
+      ['status', "status VARCHAR(40) NOT NULL DEFAULT 'active'"],
       ['reset_code_hash', 'reset_code_hash VARCHAR(255) NULL'],
       ['reset_code_expires_at', 'reset_code_expires_at TIMESTAMP NULL'],
       ['reset_code_used', 'reset_code_used BOOLEAN NOT NULL DEFAULT TRUE'],
@@ -67,6 +69,19 @@ class User {
           console.error(`Error adding column ${name}:`, err);
         }
       }
+    }
+
+    try {
+      await pool.query(`
+        ALTER TABLE users
+        MODIFY role ENUM('super_admin', 'dos', 'teacher', 'student', 'admin') NOT NULL DEFAULT 'teacher'
+      `);
+      await pool.query(`
+        ALTER TABLE users
+        MODIFY status ENUM('pending', 'active', 'disabled', 'suspended', 'rejected') NOT NULL DEFAULT 'active'
+      `);
+    } catch (err) {
+      console.error('Error normalizing user auth columns:', err.message);
     }
 
     this.authColumnsReady = true;
@@ -132,7 +147,10 @@ class User {
       phone,
       password,
       role = 'teacher',
-      is_verified = false
+      is_verified = false,
+      profile_photo = null,
+      school_id = null,
+      status = 'active'
     } = userData;
 
     const displayName = full_name || username;
@@ -147,7 +165,10 @@ class User {
       'password',
       'password_hash',
       'role',
-      'is_verified'
+      'is_verified',
+      'profile_photo',
+      'school_id',
+      'status'
     ];
 
     const insertValues = [
@@ -158,7 +179,10 @@ class User {
       hashedPassword,
       hashedPassword,
       role,
-      Boolean(is_verified)
+      Boolean(is_verified),
+      profile_photo || null,
+      school_id || null,
+      status || 'active'
     ];
 
     if (await this.columnExists('name')) {
@@ -200,7 +224,7 @@ class User {
 
     const [rows] = await pool.query(
       `SELECT id, username, full_name, email,
-              phone, role, is_verified,
+              phone, role, is_verified, school_id, status,
               profile_photo, created_at, last_login
        FROM users
        WHERE id = ?`,
@@ -240,7 +264,7 @@ class User {
 
     const [rows] = await pool.query(
       `SELECT id, username, full_name,
-              email, phone, role,
+              email, phone, role, school_id, status,
               is_verified, profile_photo,
               created_at, last_login
        FROM users
@@ -291,6 +315,14 @@ class User {
            password_hash = ?
        WHERE id = ?`,
       [hashedPassword, hashedPassword, id]
+    );
+  }
+
+  static async updateStatus(id, status) {
+    await this.ensureAuthColumns();
+    await pool.query(
+      'UPDATE users SET status = ? WHERE id = ?',
+      [status, id]
     );
   }
 }
