@@ -12,11 +12,13 @@
             <option value="">All Statuses</option>
             <option value="pending_approval">Pending</option>
             <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
+            <option value="deactivated">Inactive</option>
             <option value="rejected">Rejected</option>
-            <option value="deactivated">Deactivated</option>
           </select>
-          <button type="button" @click="loadSchools">Refresh</button>
+          <button type="button" :disabled="loading || hasPendingAction" @click="loadSchools">
+            <span v-if="loading" class="button-spinner" aria-hidden="true"></span>
+            Refresh
+          </button>
         </div>
       </header>
 
@@ -53,15 +55,46 @@
                   <small>{{ school.dos_phone || school.dos_email || 'No contact' }}</small>
                 </td>
                 <td>{{ school.registration_number }}</td>
-                <td><span class="status" :class="school.status">{{ statusLabel(school.status) }}</span></td>
+                <td><span class="status" :class="statusClass(school.status)">{{ statusLabel(school.status) }}</span></td>
                 <td>{{ formatDate(school.created_at) }}</td>
                 <td>
                   <div class="actions">
-                    <button v-if="['pending', 'pending_approval'].includes(school.status)" class="approve" @click="approveSchool(school)">Approve</button>
-                    <button v-if="['pending', 'pending_approval'].includes(school.status)" class="reject" @click="rejectSchool(school)">Reject</button>
-                    <button v-if="school.status === 'active'" class="warn" @click="suspendSchool(school)">Suspend</button>
-                    <button v-if="school.status === 'active'" class="reject" @click="deactivateSchool(school)">Deactivate</button>
-                    <button v-if="['suspended', 'deactivated'].includes(school.status)" class="approve" @click="activateSchool(school)">Reactivate</button>
+                    <button
+                      v-if="['pending', 'pending_approval'].includes(school.status)"
+                      class="approve"
+                      :disabled="isActionLoading(school)"
+                      @click="approveSchool(school)"
+                    >
+                      <span v-if="isActionLoading(school, 'approve')" class="button-spinner" aria-hidden="true"></span>
+                      Approve
+                    </button>
+                    <button
+                      v-if="['pending', 'pending_approval'].includes(school.status)"
+                      class="reject"
+                      :disabled="isActionLoading(school)"
+                      @click="rejectSchool(school)"
+                    >
+                      <span v-if="isActionLoading(school, 'reject')" class="button-spinner" aria-hidden="true"></span>
+                      Reject
+                    </button>
+                    <button
+                      v-if="school.status === 'active'"
+                      class="reject"
+                      :disabled="isActionLoading(school)"
+                      @click="deactivateSchool(school)"
+                    >
+                      <span v-if="isActionLoading(school, 'deactivate')" class="button-spinner" aria-hidden="true"></span>
+                      Deactivate
+                    </button>
+                    <button
+                      v-if="canActivateSchool(school)"
+                      class="approve"
+                      :disabled="isActionLoading(school)"
+                      @click="activateSchool(school)"
+                    >
+                      <span v-if="isActionLoading(school, 'activate')" class="button-spinner" aria-hidden="true"></span>
+                      Activate
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -77,28 +110,42 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import api from '@/stores/api'
+import { useNotificationStore } from '@/stores/notifications'
 
 const schools = ref([])
 const search = ref('')
 const status = ref('')
 const loading = ref(false)
+const actionLoading = ref({})
+const notifications = useNotificationStore()
 
 const filteredSchools = computed(() => schools.value)
+const hasPendingAction = computed(() => Object.keys(actionLoading.value).length > 0)
 
 const summaryCards = computed(() => [
   { label: 'Total Registered Schools', value: schools.value.length },
   { label: 'Pending School Approvals', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)).length },
   { label: 'Active Schools', value: schools.value.filter((school) => school.status === 'active').length },
-  { label: 'Suspended/Deactivated', value: schools.value.filter((school) => ['suspended', 'deactivated', 'rejected'].includes(school.status)).length }
+  { label: 'Inactive Schools', value: schools.value.filter((school) => ['suspended', 'deactivated', 'inactive', 'rejected'].includes(school.status)).length }
 ])
 
 const statusLabel = (value) => {
   if (value === 'active') return 'Active'
   if (value === 'pending' || value === 'pending_approval') return 'Pending Approval'
-  if (value === 'suspended') return 'Suspended'
+  if (value === 'suspended') return 'Inactive'
   if (value === 'rejected') return 'Rejected'
-  if (value === 'inactive' || value === 'deactivated') return 'Deactivated'
+  if (value === 'inactive' || value === 'deactivated') return 'Inactive'
   return value || 'Unknown'
+}
+
+const statusClass = (value) => {
+  if (value === 'active') return 'active'
+  if (['inactive', 'deactivated', 'suspended', 'rejected'].includes(value)) return 'inactive'
+  return value || 'unknown'
+}
+
+const canActivateSchool = (school) => {
+  return !['active', 'pending', 'pending_approval'].includes(school.status)
 }
 
 const formatDate = (value) => {
@@ -107,6 +154,7 @@ const formatDate = (value) => {
 }
 
 const loadSchools = async () => {
+  if (loading.value) return
   loading.value = true
   try {
     const response = await api.get('/schools', {
@@ -121,30 +169,59 @@ const loadSchools = async () => {
   }
 }
 
-const approveSchool = async (school) => {
-  await api.put(`/schools/${school.school_id}/approve`)
-  await loadSchools()
+const setActionLoading = (school, action) => {
+  actionLoading.value = {
+    ...actionLoading.value,
+    [school.school_id]: action
+  }
 }
 
-const rejectSchool = async (school) => {
-  await api.put(`/schools/${school.school_id}/reject`)
-  await loadSchools()
+const clearActionLoading = (school) => {
+  const next = { ...actionLoading.value }
+  delete next[school.school_id]
+  actionLoading.value = next
 }
 
-const deactivateSchool = async (school) => {
-  await api.put(`/schools/${school.school_id}/deactivate`)
-  await loadSchools()
+const isActionLoading = (school, action = null) => {
+  const currentAction = actionLoading.value[school.school_id]
+  return action ? currentAction === action : Boolean(currentAction)
 }
 
-const suspendSchool = async (school) => {
-  await api.put(`/schools/${school.school_id}/suspend`)
-  await loadSchools()
+const updateSchoolInList = (updatedSchool) => {
+  if (!updatedSchool?.school_id) return
+  schools.value = schools.value.map((school) =>
+    Number(school.school_id) === Number(updatedSchool.school_id)
+      ? { ...school, ...updatedSchool }
+      : school
+  )
 }
 
-const activateSchool = async (school) => {
-  await api.put(`/schools/${school.school_id}/activate`)
-  await loadSchools()
+const runSchoolAction = async (school, action, endpoint) => {
+  if (isActionLoading(school)) return
+  setActionLoading(school, action)
+
+  try {
+    const response = await api.put(endpoint, null, { showGlobalNotification: false })
+    updateSchoolInList(response.data.school)
+    notifications.success(response.data.message || `${school.school_name} updated successfully.`)
+  } catch (error) {
+    notifications.error(
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      `Could not update ${school.school_name}.`
+    )
+  } finally {
+    clearActionLoading(school)
+  }
 }
+
+const approveSchool = (school) => runSchoolAction(school, 'approve', `/schools/${school.school_id}/approve`)
+
+const rejectSchool = (school) => runSchoolAction(school, 'reject', `/schools/${school.school_id}/reject`)
+
+const deactivateSchool = (school) => runSchoolAction(school, 'deactivate', `/schools/${school.school_id}/deactivate`)
+
+const activateSchool = (school) => runSchoolAction(school, 'activate', `/schools/${school.school_id}/activate`)
 
 watch([search, status], () => {
   loadSchools()
@@ -192,12 +269,30 @@ select {
 }
 
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   border: 0;
   border-radius: 8px;
   padding: 0.55rem 0.75rem;
   background: #2563eb;
   color: #fff;
   font-weight: 800;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.button-spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
 }
 
 .summary-grid {
@@ -323,9 +418,55 @@ td small {
   text-align: center;
 }
 
+:global(body.admin-dark-mode) .page-header h1,
+:global(body.admin-dark-mode) .summary-grid strong {
+  color: #f8fafc;
+}
+
+:global(body.admin-dark-mode) .page-header p,
+:global(body.admin-dark-mode) td small,
+:global(body.admin-dark-mode) .state {
+  color: #cbd5e1;
+}
+
+:global(body.admin-dark-mode) input,
+:global(body.admin-dark-mode) select,
+:global(body.admin-dark-mode) .summary-grid article,
+:global(body.admin-dark-mode) .table-card {
+  border-color: #334155;
+  background: #172033;
+  color: #f8fafc;
+}
+
+:global(body.admin-dark-mode) th {
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+:global(body.admin-dark-mode) td {
+  border-bottom-color: #334155;
+  color: #f8fafc;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 900px) {
   .page-header {
     flex-direction: column;
+  }
+
+  .filters {
+    width: 100%;
+  }
+
+  .filters input,
+  .filters select,
+  .filters button {
+    flex: 1 1 180px;
   }
 
   .summary-grid {

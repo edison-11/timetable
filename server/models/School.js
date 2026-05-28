@@ -91,6 +91,7 @@ class School {
 
   static async ensureProfileColumns() {
     try {
+      await pool.query("UPDATE schools SET status = 'deactivated' WHERE status IS NULL OR status = ''");
       await pool.query("UPDATE schools SET status = 'pending_approval' WHERE status = 'pending'");
       await pool.query("UPDATE schools SET status = 'deactivated' WHERE status = 'inactive'");
       await pool.query(`
@@ -232,7 +233,10 @@ class School {
       ORDER BY s.created_at DESC
     `, values);
 
-    return rows;
+    return rows.map((row) => ({
+      ...row,
+      status: row.status || 'deactivated'
+    }));
   }
 
   static async updateStatus(id, status) {
@@ -348,6 +352,15 @@ class School {
     const [rows] = await pool.execute(
       'SELECT * FROM directors_of_studies WHERE LOWER(email) = LOWER(?) AND deleted_at IS NULL',
       [email]
+    );
+    return rows[0] || null;
+  }
+
+  static async findDirectorBySchoolId(schoolId) {
+    await this.ensureSchema();
+    const [rows] = await pool.execute(
+      'SELECT * FROM directors_of_studies WHERE school_id = ? AND deleted_at IS NULL LIMIT 1',
+      [schoolId]
     );
     return rows[0] || null;
   }

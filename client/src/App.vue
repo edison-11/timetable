@@ -1,5 +1,6 @@
 <template>
-  <Preloader :loading="isGlobalLoading" />
+  <Preloader :loading="isBlockingLoading" />
+  <TopFeedback :loading="isRequestLoading" />
   <router-view />
 </template>
 
@@ -9,11 +10,13 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loading'
 import Preloader from '@/components/Preloader.vue'
+import TopFeedback from '@/components/TopFeedback.vue'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()
 const router = useRouter()
-const isGlobalLoading = computed(() => loadingStore.isLoading)
+const isBlockingLoading = computed(() => loadingStore.isBlockingLoading)
+const isRequestLoading = computed(() => loadingStore.isRequestLoading)
 
 router.beforeEach((to, from, next) => {
   if (to.fullPath !== from.fullPath) loadingStore.startRoute()

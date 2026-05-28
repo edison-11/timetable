@@ -1,302 +1,225 @@
 <template>
-  <div class="register-page min-vh-100 d-flex align-items-center justify-content-center p-3">
-    <div class="register-card w-100" :class="{ 'is-loading': loading }">
-      <div class="register-card-header">
-        <div class="brand-login-mark">
-          <img class="brand-login-logo" :src="logoUrl" alt="School logo" />
+  <main class="register-page">
+    <section class="register-card" :class="{ 'is-loading': loading }">
+      <header class="register-card-header">
+        <img :src="logoUrl" alt="School logo">
+        <div>
+          <h1>Timetable Management System</h1>
+          <p>Create a school administrator or teacher account.</p>
         </div>
-        <h1 class="brand-title mb-0">Timetable Management System</h1>
-      </div>
+      </header>
 
-      <form @submit.prevent="step === 'details' ? requestOtp() : verifyOtp()" class="register-form">
+      <form v-if="step !== 'success'" class="register-form" @submit.prevent="handleSubmit">
+        <section class="role-section" aria-label="Choose account type">
+          <button
+            v-for="option in accountTypes"
+            :key="option.value"
+            type="button"
+            class="role-card"
+            :class="{ selected: accountType === option.value }"
+            @click="selectAccountType(option.value)"
+          >
+            <strong>{{ option.label }}</strong>
+            <span>{{ option.description }}</span>
+          </button>
+        </section>
+
         <template v-if="step === 'details'">
-          <h2 class="form-title">Register</h2>
-          <div class="title-rule"></div>
-
-          <div class="register-field">
-            <label for="fullName" class="form-label">Full Name</label>
-            <div class="register-input-wrap">
-              <span class="register-input-icon user-icon" aria-hidden="true"></span>
-              <input
-                id="fullName"
-                v-model.trim="form.full_name"
-                type="text"
-                placeholder="Enter your full name"
-                required
-                class="form-control"
-              />
-            </div>
-          </div>
-
-          <div class="register-field">
-            <label for="email" class="form-label">Email</label>
-            <div class="register-input-wrap">
-              <span class="register-input-icon mail-icon" aria-hidden="true"></span>
-              <input
-                id="email"
-                v-model.trim="form.email"
-                type="email"
-                placeholder="Enter your email address"
-                required
-                class="form-control"
-              />
-            </div>
-          </div>
-
-          <div class="register-grid">
-            <div class="register-field">
-              <label for="phone" class="form-label">Phone Number</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="phone"
-                  v-model.trim="form.phone"
-                  type="tel"
-                  placeholder="Enter phone number"
-                  required
-                  class="form-control"
-                />
-              </div>
+          <div v-if="accountType === 'dos'" class="form-section">
+            <div class="section-title">
+              <h2>School Information</h2>
+              <span>Pending approval by Super Admin</span>
             </div>
 
-            <div class="register-field">
-              <label for="department" class="form-label">Department</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="department"
-                  v-model.trim="form.department"
-                  type="text"
-                  placeholder="Department"
-                  required
-                  class="form-control"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="register-grid">
-            <div class="register-field">
-              <label for="qualification" class="form-label">Qualification</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="qualification"
-                  v-model.trim="form.qualification"
-                  type="text"
-                  placeholder="Highest qualification"
-                  required
-                  class="form-control"
-                />
-              </div>
-            </div>
-
-            <div class="register-field">
-              <label for="employeeId" class="form-label">Staff ID</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="employeeId"
-                  v-model.trim="form.employeeId"
-                  type="text"
-                  placeholder="ID number"
-                  required
-                  class="form-control"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="register-grid">
-            <div class="register-field">
-              <label for="nationalId" class="form-label">National ID</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="nationalId"
-                  v-model.trim="form.national_id"
-                  type="text"
-                  placeholder="National ID number"
-                  required
-                  class="form-control"
-                />
-              </div>
-            </div>
-
-            <div class="register-field">
-              <label for="schoolId" class="form-label">Select Your School</label>
-              <div class="register-input-wrap plain-input">
-                <select
-                  id="schoolId"
-                  v-model="form.school_id"
-                  required
-                  class="form-control"
-                >
-                  <option value="">Choose an approved school</option>
-                  <option v-for="school in activeSchools" :key="school.school_id" :value="school.school_id">
-                    {{ school.school_name }}{{ school.school_code ? ` (${school.school_code})` : '' }}
-                  </option>
+            <div class="form-grid">
+              <label>
+                <span>School Name</span>
+                <input v-model.trim="dosForm.school_name" required type="text" placeholder="Kigali Modern School">
+              </label>
+              <label>
+                <span>School Code</span>
+                <input v-model.trim="dosForm.school_code" type="text" placeholder="KMS001">
+              </label>
+              <label>
+                <span>School Email</span>
+                <input v-model.trim="dosForm.school_email" required type="email" placeholder="school@example.com">
+              </label>
+              <label>
+                <span>School Phone</span>
+                <input v-model.trim="dosForm.phone" required type="tel" placeholder="0780000000">
+              </label>
+              <label>
+                <span>School Type</span>
+                <select v-model="dosForm.school_type" required>
+                  <option value="">Select type</option>
+                  <option>Public</option>
+                  <option>Private</option>
+                  <option>Government Aided</option>
+                  <option>International</option>
                 </select>
-              </div>
+              </label>
+              <label>
+                <span>School Registration Number</span>
+                <input v-model.trim="dosForm.registration_number" required type="text" placeholder="REG-001">
+              </label>
+              <label>
+                <span>Province</span>
+                <input v-model.trim="dosForm.province" type="text" placeholder="Kigali">
+              </label>
+              <label>
+                <span>District</span>
+                <input v-model.trim="dosForm.district" type="text" placeholder="Gasabo">
+              </label>
+              <label>
+                <span>Sector</span>
+                <input v-model.trim="dosForm.sector" type="text" placeholder="Remera">
+              </label>
+              <label>
+                <span>School Logo</span>
+                <input required type="file" accept="image/*" @change="handleDosPhotoChange">
+              </label>
+              <label class="wide">
+                <span>School Address</span>
+                <textarea v-model.trim="dosForm.school_address" required rows="3" placeholder="Full school address"></textarea>
+              </label>
+            </div>
+
+            <div class="section-title">
+              <h2>DOS Information</h2>
+              <span>Main school administrator</span>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>Full Name</span>
+                <input v-model.trim="dosForm.full_name" required type="text" placeholder="Director full name">
+              </label>
+              <label>
+                <span>DOS Email</span>
+                <input v-model.trim="dosForm.dos_email" required type="email" placeholder="dos@example.com">
+              </label>
+              <label>
+                <span>DOS Phone Number</span>
+                <input v-model.trim="dosForm.dos_phone" required type="tel" placeholder="0780000000">
+              </label>
+              <label>
+                <span>National ID</span>
+                <input v-model.trim="dosForm.national_id" required type="text">
+              </label>
             </div>
           </div>
 
-          <div class="register-grid">
-            <div class="register-field">
-              <label for="gender" class="form-label">Gender</label>
-              <div class="register-input-wrap plain-input">
-                <select id="gender" v-model="form.gender" required class="form-control">
+          <div v-else class="form-section">
+            <div class="section-title">
+              <h2>Teacher Information</h2>
+              <span>Choose an approved active school</span>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                <span>Full Name</span>
+                <input v-model.trim="teacherForm.full_name" required type="text">
+              </label>
+              <label>
+                <span>Email</span>
+                <input v-model.trim="teacherForm.email" required type="email">
+              </label>
+              <label>
+                <span>Phone Number</span>
+                <input v-model.trim="teacherForm.phone" required type="tel">
+              </label>
+              <label>
+                <span>Gender</span>
+                <select v-model="teacherForm.gender" required>
                   <option value="">Select gender</option>
                   <option>Female</option>
                   <option>Male</option>
                   <option>Other</option>
                 </select>
-              </div>
-            </div>
-
-            <div class="register-field">
-              <label for="specialization" class="form-label">Subject Specialization</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="specialization"
-                  v-model.trim="form.module_name"
-                  type="text"
-                  placeholder="Subject specialization"
-                  required
-                  class="form-control"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="register-field">
-            <label for="profilePhoto" class="form-label">Profile Photo</label>
-            <input
-              id="profilePhoto"
-              type="file"
-              accept="image/*"
-              required
-              class="form-control file-control"
-              @change="handlePhotoChange"
-            />
-          </div>
-
-          <div class="register-field">
-            <label for="password" class="form-label">Password</label>
-            <div class="register-input-wrap">
-              <span class="register-input-icon lock-icon" aria-hidden="true"></span>
-              <input
-                id="password"
-                v-model="form.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="Enter your password..."
-                required
-                class="form-control"
-              />
-              <button
-                type="button"
-                class="password-toggle"
-                @click="showPassword = !showPassword"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
-                :title="showPassword ? 'Hide password' : 'Show password'"
-              >
-                <span class="eye-icon" :class="{ open: !showPassword }" aria-hidden="true"></span>
-              </button>
+              </label>
+              <label>
+                <span>Qualification</span>
+                <input v-model.trim="teacherForm.qualification" required type="text">
+              </label>
+              <label>
+                <span>Subject Specialization</span>
+                <input v-model.trim="teacherForm.module_name" required type="text">
+              </label>
+              <label>
+                <span>Staff ID</span>
+                <input v-model.trim="teacherForm.employeeId" required type="text">
+              </label>
+              <label>
+                <span>National ID</span>
+                <input v-model.trim="teacherForm.national_id" required type="text">
+              </label>
+              <label>
+                <span>Department</span>
+                <input v-model.trim="teacherForm.department" required type="text">
+              </label>
+              <label>
+                <span>Select Your School</span>
+                <select v-model="teacherForm.school_id" required>
+                  <option value="">Choose approved school</option>
+                  <option v-for="school in activeSchools" :key="school.school_id" :value="school.school_id">
+                    {{ school.school_name }}{{ school.school_code ? ` (${school.school_code})` : '' }}
+                  </option>
+                </select>
+              </label>
+              <label class="wide">
+                <span>Profile Photo</span>
+                <input required type="file" accept="image/*" @change="handleTeacherPhotoChange">
+              </label>
             </div>
           </div>
 
-          <div class="register-field">
-            <label for="confirmPassword" class="form-label">Confirm Password</label>
-            <div class="register-input-wrap">
-              <span class="register-input-icon lock-icon" aria-hidden="true"></span>
-              <input
-                id="confirmPassword"
-                v-model="form.confirmPassword"
-                :type="showConfirmPassword ? 'text' : 'password'"
-                placeholder="Confirm your password"
-                required
-                class="form-control"
-              />
-              <button
-                type="button"
-                class="password-toggle"
-                @click="showConfirmPassword = !showConfirmPassword"
-                :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
-                :title="showConfirmPassword ? 'Hide password' : 'Show password'"
-              >
-                <span class="eye-icon" :class="{ open: !showConfirmPassword }" aria-hidden="true"></span>
-              </button>
-            </div>
+          <div class="form-grid">
+            <label>
+              <span>Password</span>
+              <input v-model="activeForm.password" required type="password" autocomplete="new-password">
+            </label>
+            <label>
+              <span>Confirm Password</span>
+              <input v-model="activeForm.confirmPassword" required type="password" autocomplete="new-password">
+            </label>
           </div>
 
           <label class="terms-row">
-            <input type="checkbox" v-model="acceptedTerms" class="terms-check" />
-            <span>
-              I agree to the
-              <a href="#" @click.prevent>Terms of Service</a>
-              and
-              <a href="#" @click.prevent>Privacy Policy</a>
-            </span>
+            <input v-model="acceptedTerms" type="checkbox">
+            <span>I agree to the Terms of Service and Privacy Policy.</span>
           </label>
         </template>
 
         <template v-else-if="step === 'otp'">
-          <h2 class="form-title">Verify Email</h2>
-          <div class="title-rule"></div>
-
           <div class="verification-note">
             <strong>Code sent to {{ pendingEmail }}</strong>
             <span>Expires in {{ formattedCountdown }}</span>
           </div>
-
-          <label for="otp" class="form-label">Enter 6-Digit OTP</label>
-          <div class="otp-grid" @paste.prevent="handleOtpPaste">
-            <input
-              v-for="(_, index) in otpDigits"
-              :key="index"
-              :ref="el => otpRefs[index] = el"
-              v-model="otpDigits[index]"
-              inputmode="numeric"
-              maxlength="1"
-              @input="handleOtpInput(index)"
-              @keydown.backspace="handleOtpBackspace(index, $event)"
-            />
-          </div>
-
-          <button
-            type="button"
-            class="resend-btn"
-            :disabled="resendCooldown > 0 || loading"
-            @click="resendOtp"
-          >
+          <label class="otp-label">
+            <span>Enter 6-Digit OTP</span>
+            <div class="otp-grid" @paste.prevent="handleOtpPaste">
+              <input
+                v-for="(_, index) in otpDigits"
+                :key="index"
+                :ref="el => otpRefs[index] = el"
+                v-model="otpDigits[index]"
+                inputmode="numeric"
+                maxlength="1"
+                @input="handleOtpInput(index)"
+                @keydown.backspace="handleOtpBackspace(index, $event)"
+              >
+            </div>
+          </label>
+          <button type="button" class="link-button" :disabled="resendCooldown > 0 || loading" @click="requestTeacherOtp">
             {{ resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP' }}
           </button>
         </template>
 
-        <template v-else>
-          <div class="success-panel">
-            <div class="success-mark" aria-hidden="true"></div>
-            <h2>{{ successTitle }}</h2>
-            <p>{{ successDetail }}</p>
-          </div>
-        </template>
+        <p v-if="error" class="form-alert error">{{ error }}</p>
+        <p v-if="success" class="form-alert success">{{ success }}</p>
 
-        <div v-if="error" class="alert alert-danger" role="alert">
-          {{ error }}
-        </div>
-
-        <div v-if="success" class="alert alert-success" role="alert">
-          {{ success }}
-        </div>
-
-        <button
-          v-if="step !== 'success'"
-          type="submit"
-          :disabled="loading"
-          class="btn register-submit w-100"
-        >
-          <span v-if="loading" class="d-flex align-items-center justify-content-center gap-2">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            {{ step === 'details' ? 'Sending OTP...' : 'Verifying...' }}
-          </span>
-          <span v-else>
-            {{ step === 'details' ? 'Sign Up' : 'Verify & Create Account' }}
-          </span>
+        <button class="submit-button" type="submit" :disabled="loading">
+          {{ submitLabel }}
         </button>
 
         <div class="login-row">
@@ -304,21 +227,68 @@
           <router-link to="/login">Log In</router-link>
         </div>
       </form>
-    </div>
-  </div>
+
+      <div v-else class="success-panel">
+        <div class="success-mark"></div>
+        <h2>{{ successTitle }}</h2>
+        <p>{{ successDetail }}</p>
+        <router-link to="/login">Return to Login</router-link>
+      </div>
+    </section>
+  </main>
 </template>
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import api from '@/stores/api'
-import { useAuthStore } from '@/stores/auth'
 
-const router = useRouter()
-const authStore = useAuthStore()
 const logoUrl = `${import.meta.env.BASE_URL}title-logo.png`
 
-const form = ref({
+const accountTypes = [
+  { value: 'dos', label: 'Director of Studies', description: 'Register a school and request platform approval.' },
+  { value: 'teacher', label: 'Teacher', description: 'Join an approved school and wait for DOS approval.' }
+]
+
+const accountType = ref('dos')
+const step = ref('details')
+const loading = ref(false)
+const error = ref('')
+const success = ref('')
+const acceptedTerms = ref(false)
+const selectedDosPhoto = ref(null)
+const selectedTeacherPhoto = ref(null)
+const activeSchools = ref([])
+const pendingEmail = ref('')
+const otpDigits = ref(['', '', '', '', '', ''])
+const otpRefs = ref([])
+const countdown = ref(0)
+const resendCooldown = ref(0)
+const countdownTimer = ref(null)
+const cooldownTimer = ref(null)
+const successTitle = ref('')
+const successDetail = ref('')
+
+const dosForm = ref({
+  full_name: '',
+  school_name: '',
+  school_code: '',
+  school_email: '',
+  dos_email: '',
+  phone: '',
+  dos_phone: '',
+  national_id: '',
+  registration_number: '',
+  school_type: '',
+  province: '',
+  district: '',
+  sector: '',
+  school_address: '',
+  password: '',
+  confirmPassword: '',
+  profile_photo: ''
+})
+
+const teacherForm = ref({
   full_name: '',
   email: '',
   phone: '',
@@ -330,75 +300,92 @@ const form = ref({
   employeeId: '',
   national_id: '',
   school_id: '',
-  school_registration_number: '',
   profile_photo: '',
   password: '',
   confirmPassword: ''
 })
 
-const step = ref('details')
-const pendingEmail = ref('')
-const otpDigits = ref(['', '', '', '', '', ''])
-const otpRefs = ref([])
-const countdown = ref(0)
-const resendCooldown = ref(0)
-const countdownTimer = ref(null)
-const cooldownTimer = ref(null)
-const loading = ref(false)
-const error = ref('')
-const success = ref('')
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const acceptedTerms = ref(false)
-const selectedPhoto = ref(null)
-const activeSchools = ref([])
-const successTitle = ref('Account Created!')
-const successDetail = ref('Redirecting to your dashboard...')
-
-const formattedCountdown = computed(() => {
-  const minutes = String(Math.floor(countdown.value / 60)).padStart(2, '0')
-  const seconds = String(countdown.value % 60).padStart(2, '0')
-  return `${minutes}:${seconds}`
+const activeForm = computed(() => accountType.value === 'dos' ? dosForm.value : teacherForm.value)
+const otpCode = computed(() => otpDigits.value.join(''))
+const formattedCountdown = computed(() => `${String(Math.floor(countdown.value / 60)).padStart(2, '0')}:${String(countdown.value % 60).padStart(2, '0')}`)
+const submitLabel = computed(() => {
+  if (loading.value) return step.value === 'otp' ? 'Verifying...' : 'Submitting...'
+  if (step.value === 'otp') return 'Verify & Create Account'
+  return accountType.value === 'dos' ? 'Submit for Approval' : 'Send Verification Code'
 })
 
-const otpCode = computed(() => otpDigits.value.join(''))
+const selectAccountType = (type) => {
+  accountType.value = type
+  step.value = 'details'
+  error.value = ''
+  success.value = ''
+}
 
-const validate = () => {
-  if (form.value.full_name.length < 3) return 'Full name must be at least 3 characters.'
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) return 'Please enter a valid email.'
-  if (!form.value.phone) return 'Phone number is required.'
-  if (!form.value.department) return 'Department is required.'
-  if (!form.value.qualification) return 'Qualification is required.'
-  if (!form.value.employeeId) return 'Staff ID is required.'
-  if (!form.value.national_id) return 'National ID is required.'
-  if (!form.value.school_id) return 'Select an approved active school.'
-  if (!form.value.gender) return 'Gender is required.'
-  if (!form.value.module_name) return 'Subject specialization is required.'
-  if (!selectedPhoto.value && !form.value.profile_photo) return 'Profile photo is required.'
-  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.value.password)) {
+const validatePassword = (form) => {
+  if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.password)) {
     return 'Password must be at least 8 characters and include uppercase, lowercase, and a number.'
   }
-  if (form.value.password !== form.value.confirmPassword) return 'Passwords do not match.'
+  if (form.password !== form.confirmPassword) return 'Passwords do not match.'
   if (!acceptedTerms.value) return 'Please agree to the terms before creating an account.'
   return ''
 }
 
-const handlePhotoChange = (event) => {
-  const file = event.target.files?.[0]
-  selectedPhoto.value = file || null
-  form.value.profile_photo = ''
+const validateDos = () => {
+  const form = dosForm.value
+  if (!form.school_name || !form.school_email || !form.phone || !form.registration_number || !form.school_address) return 'Complete all required school information.'
+  if (!form.full_name || !form.dos_email || !form.dos_phone || !form.national_id) return 'Complete all required DOS information.'
+  if (!selectedDosPhoto.value && !form.profile_photo) return 'School logo is required.'
+  return validatePassword(form)
 }
 
-const uploadRegistrationPhoto = async () => {
-  if (!selectedPhoto.value) return form.value.profile_photo
+const validateTeacher = () => {
+  const form = teacherForm.value
+  if (!form.full_name || !form.email || !form.phone || !form.gender || !form.qualification || !form.module_name || !form.school_id) return 'Complete all required teacher information.'
+  if (!selectedTeacherPhoto.value && !form.profile_photo) return 'Profile photo is required.'
+  return validatePassword(form)
+}
 
+const handleDosPhotoChange = (event) => {
+  selectedDosPhoto.value = event.target.files?.[0] || null
+  dosForm.value.profile_photo = ''
+}
+
+const handleTeacherPhotoChange = (event) => {
+  selectedTeacherPhoto.value = event.target.files?.[0] || null
+  teacherForm.value.profile_photo = ''
+}
+
+const uploadPhoto = async (file, currentPath = '') => {
+  if (!file) return currentPath
   const payload = new FormData()
-  payload.append('photo', selectedPhoto.value)
+  payload.append('photo', file)
   const response = await api.post('/upload/registration-photo', payload, {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
-  form.value.profile_photo = response.data.photo?.path || ''
-  return form.value.profile_photo
+  return response.data.photo?.path || ''
+}
+
+const submitDosRegistration = async () => {
+  error.value = validateDos()
+  if (error.value) return
+
+  loading.value = true
+  try {
+    dosForm.value.profile_photo = await uploadPhoto(selectedDosPhoto.value, dosForm.value.profile_photo)
+    await api.post('/schools/dos-register', {
+      ...dosForm.value,
+      email: dosForm.value.dos_email,
+      phone: dosForm.value.dos_phone,
+      school_phone: dosForm.value.phone
+    })
+    successTitle.value = 'Registration Submitted'
+    successDetail.value = 'Your school is waiting for Super Admin approval.'
+    step.value = 'success'
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Registration failed.'
+  } finally {
+    loading.value = false
+  }
 }
 
 const startTimers = (expires = 300, cooldown = 45) => {
@@ -416,23 +403,19 @@ const startTimers = (expires = 300, cooldown = 45) => {
   }, 1000)
 }
 
-const requestOtp = async () => {
-  error.value = validate()
+const requestTeacherOtp = async () => {
+  error.value = validateTeacher()
   success.value = ''
   if (error.value) return
 
   loading.value = true
   try {
-    const profilePhoto = await uploadRegistrationPhoto()
-    const payload = {
-      ...form.value,
-      username: form.value.full_name,
-      phone: form.value.phone || '',
-      profile_photo: profilePhoto,
-      school_id: form.value.school_id,
+    teacherForm.value.profile_photo = await uploadPhoto(selectedTeacherPhoto.value, teacherForm.value.profile_photo)
+    const response = await api.post('/auth/register', {
+      ...teacherForm.value,
+      username: teacherForm.value.full_name,
       role: 'teacher'
-    }
-    const response = await api.post('/auth/register', payload)
+    })
     pendingEmail.value = response.data.email
     success.value = response.data.message || 'OTP sent.'
     otpDigits.value = ['', '', '', '', '', '']
@@ -447,9 +430,7 @@ const requestOtp = async () => {
   }
 }
 
-const resendOtp = () => requestOtp()
-
-const verifyOtp = async () => {
+const verifyTeacherOtp = async () => {
   error.value = ''
   success.value = ''
   if (otpCode.value.length !== 6) {
@@ -463,31 +444,19 @@ const verifyOtp = async () => {
       email: pendingEmail.value,
       code: otpCode.value
     })
-    const { token, user, role, redirectTo, requiresApproval } = response.data
-
-    if (requiresApproval) {
-      successTitle.value = 'Registration Sent!'
-      successDetail.value = 'Your teacher account is waiting for admin approval.'
-      success.value = response.data.message || 'Teacher registered successfully. Awaiting admin approval.'
-      step.value = 'success'
-      setTimeout(() => router.push('/login'), 1600)
-      return
-    }
-
-    authStore.token = token
-    authStore.user = user
-    authStore.userType = role
-    localStorage.setItem('token', token)
-    localStorage.setItem('userType', role)
-    localStorage.setItem(role === 'teacher' ? 'teacher' : 'user', JSON.stringify(user))
-    api.defaults.headers.common.Authorization = `Bearer ${token}`
+    successTitle.value = 'Registration Sent'
+    successDetail.value = response.data.message || 'Your teacher account is waiting for DOS approval.'
     step.value = 'success'
-    setTimeout(() => router.push(redirectTo || (role === 'teacher' ? '/teacher/dashboard' : '/dashboard')), 900)
   } catch (err) {
     error.value = err.response?.data?.message || 'OTP verification failed.'
   } finally {
     loading.value = false
   }
+}
+
+const handleSubmit = () => {
+  if (step.value === 'otp') return verifyTeacherOtp()
+  return accountType.value === 'dos' ? submitDosRegistration() : requestTeacherOtp()
 }
 
 const handleOtpInput = (index) => {
@@ -510,11 +479,6 @@ const handleOtpPaste = (event) => {
   otpRefs.value[Math.min(digits.length, 5)]?.focus()
 }
 
-onBeforeUnmount(() => {
-  clearInterval(countdownTimer.value)
-  clearInterval(cooldownTimer.value)
-})
-
 const loadActiveSchools = async () => {
   try {
     const response = await api.get('/schools/active')
@@ -525,457 +489,325 @@ const loadActiveSchools = async () => {
 }
 
 onMounted(loadActiveSchools)
+
+onBeforeUnmount(() => {
+  clearInterval(countdownTimer.value)
+  clearInterval(cooldownTimer.value)
+})
 </script>
 
 <style scoped>
 .register-page {
-  position: relative;
-  overflow: hidden;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 0.8rem 1.5rem;
   background:
-    linear-gradient(90deg, rgba(15, 23, 42, 0.56), rgba(248, 250, 252, 0.28) 42%, rgba(255, 255, 255, 0.78)),
-    linear-gradient(180deg, rgba(226, 232, 240, 0.5), rgba(255, 255, 255, 0.36)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%23dfe6ee'/%3E%3Crect y='520' width='1200' height='380' fill='%23bd9a73'/%3E%3Cpath d='M0 710h1200v190H0z' fill='%23d7b58a'/%3E%3Cpath d='M0 548h1200' stroke='%23a57d58' stroke-width='8' opacity='.35'/%3E%3Crect x='70' y='58' width='250' height='430' rx='8' fill='%23eef3f8' opacity='.72'/%3E%3Crect x='360' y='58' width='250' height='430' rx='8' fill='%23f7f9fb' opacity='.72'/%3E%3Crect x='650' y='58' width='250' height='430' rx='8' fill='%23eef3f8' opacity='.76'/%3E%3Crect x='940' y='58' width='250' height='430' rx='8' fill='%23f7f9fb' opacity='.72'/%3E%3Cellipse cx='180' cy='742' rx='260' ry='58' fill='%23445563' opacity='.18'/%3E%3Crect x='-20' y='664' width='410' height='104' rx='10' fill='%23f0f5f9' transform='rotate(-10 -20 664)'/%3E%3Cpath d='M820 510c90-70 205-44 265 16v130H820z' fill='%2398b96f' opacity='.6'/%3E%3C/svg%3E");
-  background-size: cover;
-  background-position: center;
-}
-
-.register-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  backdrop-filter: blur(2px);
-  pointer-events: none;
+    linear-gradient(90deg, rgba(15, 23, 42, 0.58), rgba(248, 250, 252, 0.34) 42%, rgba(255, 255, 255, 0.86)),
+    linear-gradient(180deg, rgba(226, 232, 240, 0.52), rgba(255, 255, 255, 0.42));
 }
 
 .register-card {
-  position: relative;
-  z-index: 1;
-  max-width: 580px;
+  width: min(1100px, 100%);
   overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.28);
+  border: 1px solid rgba(15, 23, 42, 0.2);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.34);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
 }
 
 .register-card-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 30px 46px;
-  background: linear-gradient(180deg, #47617e 0%, #33475f 100%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.4);
+  gap: 1rem;
+  padding: 1.45rem 2rem;
+  background: linear-gradient(180deg, #172033 0%, #0f172a 100%);
   color: #fff;
 }
 
-.brand-login-mark {
-  flex: 0 0 58px;
+.register-card-header img {
   width: 58px;
   height: 58px;
   border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
-}
-
-.brand-login-logo {
-  width: 100%;
-  height: 100%;
+  background: #fff;
   object-fit: contain;
-  display: block;
-  padding: 5px;
+  padding: 0.3rem;
 }
 
-.brand-title {
-  color: #fff;
-  font-size: clamp(1.65rem, 4vw, 2.15rem);
-  font-weight: 850;
-  line-height: 1.12;
-  letter-spacing: 0;
-}
-
-.register-form {
-  padding: 24px 46px 32px;
-}
-
-.form-title {
+.register-card-header h1 {
   margin: 0;
-  color: #3a4050;
-  text-align: center;
-  font-size: 1.85rem;
-  font-weight: 800;
+  color: #fff;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  font-weight: 850;
 }
 
-.title-rule {
-  height: 1px;
-  margin: 16px 0 18px;
-  background: #d3dae2;
+.register-card-header p {
+  margin: 0.25rem 0 0;
+  color: #cbd5e1;
 }
 
-.register-field {
-  margin-bottom: 18px;
+.register-form,
+.success-panel {
+  padding: 1.5rem 2rem 2rem;
 }
 
-.register-grid {
+.role-section {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
 }
 
-.register-field .form-label,
-.register-form > .form-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #253246;
-  font-size: 1.05rem;
+.role-card {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 86px;
+  border: 1px solid #dbe5f3;
+  border-radius: 8px;
+  background: #fff;
+  color: #172033;
+  padding: 1rem;
+  text-align: left;
+}
+
+.role-card.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 1px #2563eb;
+}
+
+.role-card strong {
+  font-size: 1rem;
+}
+
+.role-card span,
+.section-title span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.form-section {
+  display: grid;
+  gap: 1rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.section-title:first-child {
+  border-top: 0;
+}
+
+.section-title h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 1rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+label {
+  display: grid;
+  gap: 0.4rem;
+  color: #24324a;
   font-weight: 800;
 }
 
-.register-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
+.wide {
+  grid-column: 1 / -1;
 }
 
-.register-input-icon {
-  position: absolute;
-  left: 18px;
-  z-index: 2;
-  width: 28px;
-  height: 30px;
-  color: #505a66;
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #d8e2ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #102033;
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+  font-weight: 600;
 }
 
-.user-icon::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 2px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: currentColor;
+textarea {
+  resize: vertical;
 }
 
-.user-icon::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 1px;
-  width: 23px;
-  height: 14px;
-  border-radius: 14px 14px 3px 3px;
-  background: currentColor;
-}
-
-.mail-icon::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 7px;
-  width: 25px;
-  height: 17px;
-  border-radius: 3px;
-  background: currentColor;
-}
-
-.mail-icon::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 8px;
-  width: 19px;
-  height: 14px;
-  border-left: 3px solid #fff;
-  border-bottom: 3px solid #fff;
-  transform: rotate(-45deg);
-}
-
-.lock-icon::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 1px;
-  width: 14px;
-  height: 15px;
-  border: 4px solid currentColor;
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
-}
-
-.lock-icon::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 1px;
-  width: 23px;
-  height: 18px;
-  border-radius: 4px;
-  background: currentColor;
-}
-
-.register-input-wrap .form-control {
-  min-height: 50px;
-  padding: 0.78rem 4.1rem 0.78rem 4.35rem;
-  border: 1px solid #b9c2cd !important;
-  border-radius: 5px !important;
-  background: rgba(255, 255, 255, 0.88) !important;
-  color: #263244;
-  font-size: 1rem;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.08);
-}
-
-.register-input-wrap.plain-input .form-control {
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-.file-control {
-  min-height: 48px;
-  padding: 0.65rem 0.8rem;
-  border: 1px solid #b9c2cd;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.88);
-}
-
-.register-input-wrap .form-control::placeholder {
-  color: #677281;
-}
-
-.register-input-wrap .form-control:focus {
-  border-color: #2f7cd8 !important;
-  box-shadow: 0 0 0 4px rgba(47, 124, 216, 0.16), 0 2px 5px rgba(15, 23, 42, 0.08) !important;
-}
-
-.password-toggle {
-  position: absolute;
-  right: 10px;
-  z-index: 3;
-  width: 42px;
-  height: 42px;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.eye-icon {
-  position: relative;
-  width: 28px;
-  height: 18px;
-  border: 4px solid #505a66;
-  border-radius: 50%;
-  transform: rotate(-6deg);
-}
-
-.eye-icon::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #505a66;
-  transform: translate(-50%, -50%);
-}
-
-.eye-icon:not(.open)::after {
-  content: '';
-  position: absolute;
-  left: -3px;
-  right: -3px;
-  top: 5px;
-  height: 4px;
-  background: #505a66;
-  transform: rotate(32deg);
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
+  outline: none;
 }
 
 .terms-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 4px 0 24px;
-  color: #4a5361;
-  font-size: 1rem;
-  font-weight: 650;
-}
-
-.terms-check {
-  flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
-  margin-top: 1px;
-  border-radius: 4px !important;
-}
-
-.terms-row a,
-.login-row a {
-  color: #2e6faa;
-  font-weight: 800;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.register-submit {
-  min-height: 58px;
-  margin: 0;
-  border: 1px solid #208742;
-  border-radius: 5px;
-  background: linear-gradient(180deg, #63c980 0%, #21924a 100%);
-  color: #fff;
-  font-size: 1.45rem;
-  font-weight: 850;
-  text-shadow: 0 2px 2px rgba(15, 23, 42, 0.3);
-  box-shadow: 0 8px 14px rgba(22, 101, 52, 0.24);
-  transition: transform .08s ease, box-shadow .2s ease;
-}
-
-.register-submit:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 12px 20px rgba(22, 101, 52, 0.28);
-}
-
-.login-row {
-  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 28px;
-  padding-top: 18px;
-  border-top: 1px solid #d3dae2;
-  color: #6c7582;
-  font-size: 1.06rem;
-  font-weight: 700;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  color: #475569;
+}
+
+.terms-row input {
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+}
+
+.verification-note,
+.form-alert {
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  font-weight: 750;
 }
 
 .verification-note {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 18px;
-  padding: 14px 16px;
-  border: 1px solid #bfdbfe;
-  border-radius: 6px;
+  display: grid;
+  gap: 0.2rem;
+  margin-bottom: 1rem;
   background: #eff6ff;
+  border: 1px solid #bfdbfe;
   color: #1e3a8a;
 }
 
-.verification-note span {
-  color: #475569;
-  font-weight: 700;
+.otp-label {
+  display: grid;
 }
 
 .otp-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 8px;
-  margin: 10px 0 16px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.6rem;
 }
 
 .otp-grid input {
-  width: 100%;
   aspect-ratio: 1;
-  border: 2px solid #cbd5e1;
-  border-radius: 6px;
-  background: #fff;
-  color: #253246;
-  font-size: 1.3rem;
-  font-weight: 800;
+  padding: 0;
   text-align: center;
+  font-size: 1.3rem;
+  font-weight: 900;
 }
 
-.otp-grid input:focus {
-  border-color: #2f7cd8;
-  outline: none;
-  box-shadow: 0 0 0 4px rgba(47, 124, 216, 0.14);
+.form-alert.error {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
-.resend-btn {
+.form-alert.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.submit-button,
+.success-panel a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
   width: 100%;
-  margin: 0 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.submit-button:disabled,
+.link-button:disabled {
+  opacity: 0.65;
+}
+
+.link-button {
+  width: 100%;
+  margin-bottom: 1rem;
   border: 0;
   background: transparent;
-  color: #1f72c9;
-  font-weight: 800;
+  color: #2563eb;
+  font-weight: 850;
   text-decoration: underline;
-  text-underline-offset: 3px;
+}
+
+.login-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  color: #64748b;
+}
+
+.login-row a {
+  color: #2563eb;
+  font-weight: 850;
 }
 
 .success-panel {
-  padding: 18px 0 8px;
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
   text-align: center;
 }
 
 .success-mark {
   width: 64px;
   height: 64px;
-  margin: 0 auto 14px;
   border-radius: 50%;
   background: #22c55e;
-  position: relative;
-}
-
-.success-mark::after {
-  content: '';
-  position: absolute;
-  left: 19px;
-  top: 16px;
-  width: 24px;
-  height: 15px;
-  border-left: 5px solid #fff;
-  border-bottom: 5px solid #fff;
-  transform: rotate(-45deg);
 }
 
 .success-panel h2 {
-  color: #15803d;
-  font-weight: 850;
+  margin: 0;
+  color: #166534;
 }
 
 .success-panel p {
-  color: #64748b;
-  font-weight: 650;
-}
-
-.alert {
-  border-radius: 6px;
-  font-size: 0.9rem;
+  margin: 0;
+  color: #475569;
 }
 
 .register-card.is-loading {
   pointer-events: none;
 }
 
-@media (max-width: 576px) {
-  .register-card-header {
-    padding: 24px;
-    gap: 12px;
+@media (max-width: 760px) {
+  .register-page {
+    padding: 0;
+    place-items: stretch;
   }
 
-  .brand-login-mark {
-    flex-basis: 50px;
-    width: 50px;
-    height: 50px;
+  .register-card {
+    min-height: 100vh;
+    border-radius: 0;
   }
 
-  .register-form {
-    padding: 22px 22px 26px;
+  .register-card-header,
+  .register-form,
+  .success-panel {
+    padding-inline: 1rem;
   }
 
-  .login-row,
-  .terms-row {
-    flex-wrap: wrap;
-  }
-
-  .register-grid {
+  .role-section,
+  .form-grid {
     grid-template-columns: 1fr;
-    gap: 0;
+  }
+
+  .section-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.2rem;
   }
 }
 </style>

@@ -34,7 +34,7 @@ const router = createRouter({
     {
       path: '/dos/register',
       name: 'DosRegister',
-      component: () => import('@/views/DosRegister.vue'),
+      redirect: '/register',
       meta: { requiresGuest: true }
     },
     {

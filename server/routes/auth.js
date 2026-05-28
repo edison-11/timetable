@@ -39,13 +39,99 @@ const publicUser = (user, teacher = null) => ({
   is_verified: Boolean(user.is_verified),
   profile_photo: user.profile_photo || teacher?.profile_photo || null,
   school_id: user.school_id || teacher?.school_id || null,
-  status: user.status || teacher?.status || null,
   teacher_id: teacher?.teacher_id || user.teacher_id || null,
   department: teacher?.department || null,
-  status: teacher?.status || null,
+  status: teacher?.status || user.status || null,
   employee_id: teacher?.employee_id || null,
   module_name: teacher?.module_name || null
 });
+
+const buildLoginResponse = async (user, teacher = null) => {
+  if (!['super_admin', 'dos', 'teacher', 'student'].includes(user.role)) {
+    return { status: 403, body: { message: 'Unsupported account role' } };
+  }
+
+  const schoolId = teacher?.school_id || user.school_id || null;
+  if (user.role !== 'super_admin') {
+    const school = schoolId ? await School.findById(schoolId) : null;
+    if (!school || school.status !== 'active' || school.subscription_status === 'suspended') {
+      return {
+        status: 403,
+        body: {
+          code: 'SCHOOL_ACCESS_DISABLED',
+          school_status: school?.status || 'deactivated',
+          subscription_status: school?.subscription_status || null,
+          message: school?.status === 'pending_approval'
+            ? 'Your school account is waiting for system administrator approval.'
+            : school?.status === 'suspended'
+              ? 'Your school account has been suspended. Please contact system administration.'
+              : 'School access disabled by Super Admin.'
+        }
+      };
+    }
+  }
+
+  if (user.role !== 'teacher' && user.status && user.status !== 'active') {
+    return {
+      status: 403,
+      body: {
+        message: user.role === 'dos'
+          ? 'Your registration is waiting for system administrator approval.'
+          : 'Your account is not active.'
+      }
+    };
+  }
+
+  if (user.role === 'teacher') {
+    if (!teacher) teacher = await Teacher.findByEmail(user.email);
+    if (teacher?.status === 'pending') {
+      return { status: 403, body: { message: 'Your account is pending approval by an administrator' } };
+    }
+    if (teacher?.status !== 'active') {
+      return { status: 403, body: { message: 'Your teacher account is not active' } };
+    }
+  }
+
+  if (user.role === 'dos') {
+    const school = user.school_id ? await School.findById(user.school_id) : null;
+    if (!school || ['pending', 'pending_approval'].includes(school.status)) {
+      return { status: 403, body: { message: 'Your registration is waiting for system administrator approval.' } };
+    }
+    if (school.status !== 'active') {
+      return {
+        status: 403,
+        body: {
+          code: 'SCHOOL_ACCESS_DISABLED',
+          school_status: school.status,
+          message: school.status === 'suspended'
+            ? 'Your school account has been suspended. Please contact system administration.'
+            : 'School access disabled by Super Admin.'
+        }
+      };
+    }
+  }
+
+  await User.touchLastLogin(user.id);
+  const token = generateToken({ ...user, teacher_id: teacher?.teacher_id });
+
+  return {
+    status: 200,
+    body: {
+      message: 'Login successful',
+      token,
+      user: publicUser(user, teacher),
+      teacher: user.role === 'teacher' ? publicUser(user, teacher) : undefined,
+      role: user.role,
+      redirectTo: user.role === 'teacher'
+        ? '/teacher/dashboard'
+        : user.role === 'student'
+          ? '/student/dashboard'
+          : user.role === 'super_admin'
+            ? '/super-admin/dashboard'
+            : '/dashboard'
+    }
+  };
+};
 
 const syncTeacherUser = async (teacher, password) => {
   let user = await User.findByEmail(teacher.email);
@@ -261,62 +347,8 @@ router.post('/login', [
       user = await syncTeacherUser(teacher, password);
     }
 
-    if (!['super_admin', 'dos', 'teacher', 'student'].includes(user.role)) {
-      return res.status(403).json({ message: 'Unsupported account role' });
-    }
-
-    if (user.role !== 'teacher' && user.status && user.status !== 'active') {
-      return res.status(403).json({
-        message: user.role === 'dos'
-          ? 'Your registration is waiting for system administrator approval.'
-          : 'Your account is not active.'
-      });
-    }
-
-    if (user.role === 'teacher') {
-      if (!teacher) teacher = await Teacher.findByEmail(email);
-      if (teacher?.status === 'pending') {
-        return res.status(403).json({ message: 'Your account is pending approval by an administrator' });
-      }
-      if (teacher?.status !== 'active') {
-        return res.status(403).json({ message: 'Your teacher account is not active' });
-      }
-    }
-
-    if (user.role === 'dos') {
-      const school = user.school_id ? await School.findById(user.school_id) : null;
-      if (!school || ['pending', 'pending_approval'].includes(school.status)) {
-        return res.status(403).json({ message: 'Your registration is waiting for system administrator approval.' });
-      }
-      if (school.status !== 'active') {
-        return res.status(403).json({
-          code: 'SCHOOL_ACCESS_DISABLED',
-          school_status: school.status,
-          message: school.status === 'suspended'
-            ? 'Your school account has been suspended. Please contact system administration.'
-            : 'School access disabled by Super Admin.'
-        });
-      }
-    }
-
-    await User.touchLastLogin(user.id);
-
-    const token = generateToken({ ...user, teacher_id: teacher?.teacher_id });
-
-    res.json({
-      message: 'Login successful',
-      token,
-      user: publicUser(user, teacher),
-      teacher: user.role === 'teacher' ? publicUser(user, teacher) : undefined,
-      role: user.role,
-      redirectTo: user.role === 'teacher'
-        ? '/teacher/dashboard'
-        : user.role === 'student'
-          ? '/student/dashboard'
-          : user.role === 'super_admin'
-            ? '/super-admin/dashboard'
-          : '/dashboard'
-    });
+    const loginResponse = await buildLoginResponse(user, teacher);
+    res.status(loginResponse.status).json(loginResponse.body);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
