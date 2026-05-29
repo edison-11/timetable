@@ -103,6 +103,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { buildTimetableRowsFromSettings } from '@/utils/fixedTimetableStructure'
+import { isAcademicWeekend } from '@/utils/dayHelpers'
 
 const authStore = useAuthStore()
 
@@ -205,7 +206,8 @@ const currentTeacherId = computed(() => {
   return teacher?.teacher_id || teacher?.id || null
 })
 
-const todayName = computed(() => dayNames[now.value.getDay()])
+const weekendMode = computed(() => isAcademicWeekend(now.value))
+const todayName = computed(() => weekendMode.value ? 'Weekend' : dayNames[now.value.getDay()])
 
 const todayKey = computed(() => {
   const year = now.value.getFullYear()
@@ -257,6 +259,7 @@ const lessonEndDate = (lesson) => {
 }
 
 const sortedLessons = computed(() => {
+  if (weekendMode.value) return []
   return lessons.value
     .filter((lesson) => lesson.start_time && lesson.end_time)
     .slice()
@@ -300,17 +303,20 @@ const daySessionStartTime = computed(() => normalizeTime(daySessionStartRow.valu
 const daySessionEndTime = computed(() => normalizeTime(daySessionEndRow.value?.end_time))
 
 const sessionStarted = computed(() => {
+  if (weekendMode.value) return false
   if (!daySessionStartDate.value) return false
   return now.value.getTime() >= daySessionStartDate.value.getTime()
 })
 
 const sessionInProgress = computed(() => {
+  if (weekendMode.value) return false
   if (!daySessionStartDate.value || !daySessionEndDate.value) return false
   const currentTime = now.value.getTime()
   return currentTime >= daySessionStartDate.value.getTime() && currentTime < daySessionEndDate.value.getTime()
 })
 
 const daySessionEnded = computed(() => {
+  if (weekendMode.value) return false
   if (!daySessionEndDate.value) return false
   return now.value.getTime() >= daySessionEndDate.value.getTime()
 })
@@ -477,6 +483,7 @@ const displayStatusMetric = computed(() => {
 })
 
 const timerCaption = computed(() => {
+<<<<<<< HEAD
   if (currentLesson.value) {
     return `${activeTimerValue.value} left - ends at ${normalizeTime(currentLesson.value.end_time)}`
   }
@@ -489,6 +496,9 @@ const timerCaption = computed(() => {
   if (nextLesson.value) {
     return `${nextLesson.value.class_name || 'Class'} starts at ${normalizeTime(nextLesson.value.start_time)}`
   }
+=======
+  if (weekendMode.value) return 'Weekend break - next school week resumes Monday'
+>>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
   if (sessionInProgress.value) return `${sessionRemainingTimerValue.value} remaining - day ends at ${daySessionEndTime.value}`
   if (daySessionEnded.value) return `Day session ended at ${daySessionEndTime.value}`
   if (daySessionStartTime.value) return `First period starts at ${daySessionStartTime.value}`
@@ -744,6 +754,7 @@ const selectAlarmTone = (index) => {
 const minutesUntil = (date) => (date.getTime() - now.value.getTime()) / 60000
 
 const checkMissedAlarms = () => {
+  if (weekendMode.value) return
   if (!alarmEnabled.value || !lessons.value.length) return
 
   if (daySessionEnded.value) {

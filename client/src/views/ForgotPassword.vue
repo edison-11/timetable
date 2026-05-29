@@ -1,76 +1,60 @@
 <template>
-  <div
-    class="min-vh-100 d-flex align-items-center justify-content-center p-3"
-    style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);"
-  >
-    <div class="bg-white rounded-3 shadow-lg w-100" style="max-width: 450px;">
-      <!-- Header -->
-      <div class="text-center mb-4 p-4 pb-3">
-        <div
-          class="mx-auto mb-3 d-flex align-items-center justify-content-center rounded-2 brand-login-mark"
-          style="width: 112px; height: 112px; background: #eef5ff; border: 1px solid rgba(37, 99, 235, .15);"
-        >
-          <img class="brand-login-logo" src="/timetable-logo.png" alt="School logo" />
+  <div class="forgot-page min-vh-100 d-flex align-items-center justify-content-center p-3">
+    <div class="forgot-card w-100" :class="{ 'is-loading': loading }">
+      <div class="forgot-card-header">
+        <div class="brand-login-mark">
+          <img class="brand-login-logo" :src="logoUrl" alt="School logo" />
         </div>
-
-        <h1 class="auth-title text-dark mb-1">Forgot Password?</h1>
-
-        <div class="mt-2 d-flex align-items-center justify-content-center gap-2 secure-row">
-          <span class="secure-lock" aria-hidden="true">🔑</span>
-          <span class="text-muted small fw-semibold">Account Recovery</span>
-        </div>
+        <h1 class="auth-title mb-0">Timetable Management System</h1>
       </div>
 
-      <!-- Form -->
-      <form @submit.prevent="step === 'email' ? requestCode() : verifyCode()" class="px-4 pb-4">
-        <!-- Step Indicator -->
-        <div class="step-indicator mb-4">
-          <div class="step" :class="{ active: step === 'email' }">
+      <form @submit.prevent="step === 'email' ? requestCode() : verifyCode()" class="forgot-form">
+        <h2 class="form-title">Forgot Password</h2>
+        <div class="title-rule"></div>
+
+        <div class="step-indicator">
+          <div class="step" :class="{ active: step === 'email', complete: step === 'otp' }">
             <span>1</span>
             <small>Email</small>
           </div>
-          <div class="step-line"></div>
+          <div class="step-line" :class="{ active: step === 'otp' }"></div>
           <div class="step" :class="{ active: step === 'otp' }">
             <span>2</span>
             <small>Verify</small>
           </div>
-          <div class="step-line"></div>
-          <div class="step" :class="{ active: step === 'reset' }">
-            <span>✓</span>
-            <small>Reset</small>
-          </div>
         </div>
 
-        <!-- Email Step -->
         <transition name="fade-slide" mode="out-in">
           <div v-if="step === 'email'" key="email">
-            <div class="mb-3">
-              <label for="email" class="form-label fw-medium">Email Address</label>
-              <input
-                id="email"
-                v-model.trim="email"
-                type="email"
-                placeholder="your@school.com"
-                required
-                class="form-control form-control-lg"
-              />
-              <small class="text-muted">Enter your registered email address</small>
+            <div class="forgot-field">
+              <label for="email" class="form-label">Email Address</label>
+              <div class="forgot-input-wrap">
+                <span class="forgot-input-icon mail-icon" aria-hidden="true"></span>
+                <input
+                  id="email"
+                  v-model.trim="email"
+                  type="email"
+                  placeholder="Enter your registered email"
+                  required
+                  class="form-control"
+                  :class="{ 'is-invalid': emailError }"
+                  autocomplete="email"
+                />
+              </div>
+              <div v-if="emailError" class="invalid-feedback d-block mt-1">
+                {{ emailError }}
+              </div>
             </div>
           </div>
 
-          <!-- OTP Step -->
           <div v-else key="otp">
-            <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
-              <span>🛡️</span>
-              <div>
-                <strong>Code sent to {{ email }}</strong>
-                <br />
-                <small>Expires in {{ formattedCountdown }}</small>
-              </div>
+            <div class="verification-note">
+              <strong>Code sent to {{ email }}</strong>
+              <span>Expires in {{ formattedCountdown }}</span>
             </div>
 
-            <label for="otp" class="form-label fw-medium">Enter 6-Digit OTP</label>
-            <div class="otp-grid mb-3" @paste.prevent="handleOtpPaste">
+            <label for="otp" class="form-label">Enter 6-Digit OTP</label>
+            <div class="otp-grid" @paste.prevent="handleOtpPaste">
               <input
                 v-for="(_, index) in otpDigits"
                 :key="index"
@@ -78,6 +62,7 @@
                 v-model="otpDigits[index]"
                 inputmode="numeric"
                 maxlength="1"
+                aria-label="OTP digit"
                 @input="handleOtpInput(index)"
                 @keydown.backspace="handleOtpBackspace(index, $event)"
               />
@@ -85,7 +70,7 @@
 
             <button
               type="button"
-              class="btn btn-link w-100 fw-semibold mb-3"
+              class="resend-btn"
               :disabled="resendCooldown > 0 || loading"
               @click="requestCode"
             >
@@ -94,21 +79,18 @@
           </div>
         </transition>
 
-        <!-- Error Message -->
         <div v-if="error" class="alert alert-danger" role="alert">
           {{ error }}
         </div>
 
-        <!-- Success Message -->
         <div v-if="success" class="alert alert-success" role="alert">
           {{ success }}
         </div>
 
-        <!-- Submit Button -->
         <button
           type="submit"
           :disabled="loading"
-          class="btn btn-primary-custom btn-lg w-100 fw-semibold"
+          class="btn forgot-submit w-100"
         >
           <span v-if="loading" class="d-flex align-items-center justify-content-center gap-2">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -118,34 +100,29 @@
             {{ step === 'email' ? 'Send OTP' : 'Verify OTP' }}
           </span>
         </button>
+
+        <div class="login-row">
+          <span>Remember your password?</span>
+          <router-link to="/login">Log In</router-link>
+        </div>
+
+        <div class="create-row">
+          <span>New user?</span>
+          <router-link to="/teacher/register">Create an Account</router-link>
+        </div>
       </form>
-
-      <!-- Footer Links -->
-      <div class="text-center px-4 pb-4">
-        <p class="small text-muted mb-0">
-          Remember your password?
-          <router-link to="/login" class="text-primary fw-semibold text-decoration-none">
-            Sign in here
-          </router-link>
-        </p>
-      </div>
-
-      <div class="text-center pb-3">
-        <p class="small text-muted mb-0">
-          © 2026 Timetable Management System · All rights reserved
-        </p>
-        <p class="small text-muted mb-0">Version 1.0</p>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 
 const router = useRouter()
+const logoUrl = `${import.meta.env.BASE_URL}title-logo.png`
+
 const step = ref('email')
 const email = ref('')
 const otpDigits = ref(['', '', '', '', '', ''])
@@ -158,7 +135,15 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 
+const emailError = computed(() => {
+  const value = email.value.trim()
+  if (!value) return ''
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email address.'
+  return ''
+})
+
 const otpCode = computed(() => otpDigits.value.join(''))
+
 const formattedCountdown = computed(() => {
   const minutes = String(Math.floor(countdown.value / 60)).padStart(2, '0')
   const seconds = String(countdown.value % 60).padStart(2, '0')
@@ -183,6 +168,12 @@ const startTimers = (expires = 300, cooldown = 45) => {
 const requestCode = async () => {
   error.value = ''
   success.value = ''
+
+  if (emailError.value || !email.value.trim()) {
+    error.value = emailError.value || 'Email is required.'
+    return
+  }
+
   loading.value = true
   try {
     const response = await api.post('/auth/forgot-password', { email: email.value })
@@ -202,6 +193,7 @@ const requestCode = async () => {
 const verifyCode = async () => {
   error.value = ''
   success.value = ''
+
   if (otpCode.value.length !== 6) {
     error.value = 'Enter the complete 6 digit OTP.'
     return
@@ -247,162 +239,329 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Keep the logo area consistent and prevent "generic icon" look */
+.forgot-page {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.56), rgba(248, 250, 252, 0.28) 42%, rgba(255, 255, 255, 0.78)),
+    linear-gradient(180deg, rgba(226, 232, 240, 0.5), rgba(255, 255, 255, 0.36)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='900' viewBox='0 0 1200 900'%3E%3Crect width='1200' height='900' fill='%23dfe6ee'/%3E%3Crect y='520' width='1200' height='380' fill='%23bd9a73'/%3E%3Cpath d='M0 710h1200v190H0z' fill='%23d7b58a'/%3E%3Cpath d='M0 548h1200' stroke='%23a57d58' stroke-width='8' opacity='.35'/%3E%3Crect x='70' y='58' width='250' height='430' rx='8' fill='%23eef3f8' opacity='.72'/%3E%3Crect x='360' y='58' width='250' height='430' rx='8' fill='%23f7f9fb' opacity='.72'/%3E%3Crect x='650' y='58' width='250' height='430' rx='8' fill='%23eef3f8' opacity='.76'/%3E%3Crect x='940' y='58' width='250' height='430' rx='8' fill='%23f7f9fb' opacity='.72'/%3E%3Cellipse cx='180' cy='742' rx='260' ry='58' fill='%23445563' opacity='.18'/%3E%3Crect x='-20' y='664' width='410' height='104' rx='10' fill='%23f0f5f9' transform='rotate(-10 -20 664)'/%3E%3Cpath d='M820 510c90-70 205-44 265 16v130H820z' fill='%2398b96f' opacity='.6'/%3E%3C/svg%3E");
+  background-size: cover;
+  background-position: center;
+}
+
+.forgot-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.forgot-card {
+  position: relative;
+  z-index: 1;
+  max-width: 580px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.28);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.34);
+}
+
+.forgot-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 30px 46px;
+  background: linear-gradient(180deg, #47617e 0%, #33475f 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.4);
+  color: #fff;
+}
+
+.brand-login-mark {
+  flex: 0 0 58px;
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
 .brand-login-logo {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
-  padding: 2px;
-  transform: scale(1.15);
+  padding: 5px;
 }
 
 .auth-title {
-  font-size: clamp(1.8rem, 4.2vw, 2.4rem);
-  font-weight: 800;
-  line-height: 1.08;
+  color: #fff;
+  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-weight: 850;
+  line-height: 1.12;
   letter-spacing: 0;
 }
 
-/* Password toggle alignment fix */
-.password-toggle {
-  border-top-right-radius: 0.75rem !important;
-  border-bottom-right-radius: 0.75rem !important;
-  height: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 56px;
-  background: #f8fafc;
+.forgot-form {
+  padding: 24px 46px 32px;
 }
 
-/* Match focus style across inputs */
-input.form-control:focus,
-input.form-control:focus-visible {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, .2);
-  outline: none;
+.form-title {
+  margin: 0;
+  color: #3a4050;
+  text-align: center;
+  font-size: 1.85rem;
+  font-weight: 800;
 }
 
-/* Make buttons feel clickable */
-.btn-primary-custom {
-  background: #2563eb;
-  border-color: #2563eb;
-  color: #fff;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.18);
-  transition: transform .08s ease, box-shadow .2s ease;
+.title-rule {
+  height: 1px;
+  margin: 16px 0 18px;
+  background: #d3dae2;
 }
 
-.btn-primary-custom:hover {
-  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.24);
-  transform: translateY(-1px);
-}
-
-.secure-row {
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(37, 99, 235, .12);
-  border-radius: 999px;
-  padding: 6px 12px;
-}
-
-.secure-lock {
-  font-size: 14px;
-}
-
-/* Step indicator */
 .step-indicator {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.5rem;
+  margin-bottom: 22px;
 }
 
 .step {
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  flex: 1;
+  gap: 4px;
 }
 
 .step span {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
   background: #e2e8f0;
   color: #64748b;
-  font-weight: bold;
-  font-size: 0.85rem;
-}
-
-.step.active span {
-  background: #2563eb;
-  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 850;
 }
 
 .step small {
-  font-size: 0.7rem;
   color: #64748b;
-  font-weight: 600;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.step.active span {
+  background: #2f7cd8;
+  color: #fff;
 }
 
 .step.active small {
-  color: #2563eb;
+  color: #1f72c9;
+}
+
+.step.complete span,
+.step-line.active {
+  background: #22a058;
+  color: #fff;
 }
 
 .step-line {
-  flex: 0.2;
+  flex: 0.35;
   height: 2px;
-  background: #e2e8f0;
-  margin: 0 -0.5rem;
+  background: #d3dae2;
+  margin: 0 -12px 20px;
 }
 
-/* OTP Grid styling */
+.forgot-field {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #253246;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.forgot-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.forgot-input-icon {
+  position: absolute;
+  left: 18px;
+  z-index: 2;
+  width: 28px;
+  height: 30px;
+  color: #505a66;
+}
+
+.mail-icon::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 25px;
+  height: 17px;
+  border-radius: 3px;
+  background: currentColor;
+}
+
+.mail-icon::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  width: 19px;
+  height: 14px;
+  border-left: 3px solid #fff;
+  border-bottom: 3px solid #fff;
+  transform: rotate(-45deg);
+}
+
+.forgot-input-wrap .form-control {
+  min-height: 52px;
+  padding: 0.85rem 1rem 0.85rem 4.35rem;
+  border: 1px solid #b9c2cd !important;
+  border-radius: 5px !important;
+  background: rgba(255, 255, 255, 0.88) !important;
+  color: #263244;
+  font-size: 1.05rem;
+  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.08);
+}
+
+.forgot-input-wrap .form-control::placeholder {
+  color: #677281;
+}
+
+.forgot-input-wrap .form-control:focus {
+  border-color: #2f7cd8 !important;
+  box-shadow: 0 0 0 4px rgba(47, 124, 216, 0.16), 0 2px 5px rgba(15, 23, 42, 0.08) !important;
+}
+
+.verification-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.verification-note span {
+  color: #475569;
+  font-weight: 700;
+}
+
 .otp-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 0.5rem;
-  margin: 1rem 0;
+  gap: 8px;
+  margin: 10px 0 16px;
 }
 
 .otp-grid input {
   width: 100%;
   aspect-ratio: 1;
-  font-size: 1.3rem;
-  font-weight: bold;
-  text-align: center;
   border: 2px solid #cbd5e1;
-  border-radius: 0.5rem;
-  transition: border-color 0.2s;
+  border-radius: 6px;
+  background: #fff;
+  color: #253246;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-align: center;
 }
 
 .otp-grid input:focus {
-  border-color: #2563eb;
+  border-color: #2f7cd8;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+  box-shadow: 0 0 0 4px rgba(47, 124, 216, 0.14);
 }
 
-/* Alert styling */
+.resend-btn {
+  width: 100%;
+  margin: 0 0 18px;
+  border: 0;
+  background: transparent;
+  color: #1f72c9;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.forgot-submit {
+  min-height: 58px;
+  margin: 0;
+  border: 1px solid #0866c7;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #42a8ff 0%, #0768cd 100%);
+  color: #fff;
+  font-size: 1.45rem;
+  font-weight: 850;
+  text-shadow: 0 2px 2px rgba(15, 23, 42, 0.32);
+  box-shadow: 0 8px 14px rgba(3, 105, 214, 0.24);
+  transition: transform .08s ease, box-shadow .2s ease;
+}
+
+.forgot-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(3, 105, 214, 0.28);
+}
+
+.login-row,
+.create-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #6c7582;
+  font-size: 1.06rem;
+  font-weight: 700;
+}
+
+.login-row {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid #d3dae2;
+}
+
+.create-row {
+  margin-top: 10px;
+}
+
+.login-row a,
+.create-row a {
+  color: #1f72c9;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .alert {
-  border-radius: 0.75rem;
+  border-radius: 6px;
   font-size: 0.9rem;
 }
 
-/* Link styling */
-.btn-link {
-  color: #2563eb;
-  text-decoration: none;
-  padding: 0;
+.forgot-card.is-loading {
+  pointer-events: none;
 }
 
-.btn-link:hover {
-  text-decoration: underline;
-}
-
-/* Transition animations */
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
@@ -415,15 +574,24 @@ input.form-control:focus-visible {
 }
 
 @media (max-width: 576px) {
+  .forgot-card-header {
+    padding: 24px;
+    gap: 12px;
+  }
+
   .brand-login-mark {
-    width: 96px !important;
-    height: 96px !important;
+    flex-basis: 50px;
+    width: 50px;
+    height: 50px;
   }
-  h1 {
-    font-size: 1.45rem;
+
+  .forgot-form {
+    padding: 22px 22px 26px;
   }
-  .step-indicator {
-    margin-bottom: 1rem;
+
+  .login-row,
+  .create-row {
+    flex-wrap: wrap;
   }
 }
 </style>

@@ -5,6 +5,7 @@ const { body, validationResult } = require('express-validator');
 const Teacher = require('../models/Teacher');
 const Class = require('../models/Class');
 const Notification = require('../models/Notification');
+const User = require('../models/User');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -29,7 +30,8 @@ const sanitizeRegistrationPayload = (body) => ({
   availableDays: body.availableDays,
   availableFrom: body.availableFrom,
   availableTo: body.availableTo,
-  notes: body.notes
+  notes: body.notes,
+  school_id: body.school_id
 });
 
 const getRegistrationResponseCode = (code) => {
@@ -169,7 +171,8 @@ router.post('/verify-registration', [
       availableDays,
       availableFrom,
       availableTo,
-      notes
+      notes,
+      school_id
     } = pending.payload;
 
     const teacherId = await Teacher.create({
@@ -189,7 +192,8 @@ router.post('/verify-registration', [
       available_days: availableDays,
       available_from: availableFrom,
       available_to: availableTo,
-      notes
+      notes,
+      school_id: school_id || null
     });
 
     const teacher = await Teacher.findById(teacherId);
@@ -201,6 +205,7 @@ router.post('/verify-registration', [
       message: `${teacher.name} is waiting for approval.`,
       path: '/teachers',
       tone: 'green',
+      school_id: teacher.school_id || null,
       recipient_role: 'dos'
     });
 
@@ -402,6 +407,8 @@ router.put('/me', auth, [
       return res.status(400).json({ message: 'Email already in use' });
     }
 
+    const currentTeacher = await Teacher.findById(teacherId);
+
     await Teacher.update(teacherId, {
       name,
       email,
@@ -420,6 +427,16 @@ router.put('/me', auth, [
     });
 
     const teacher = await Teacher.findById(teacherId);
+    const linkedUser = await User.findByEmail(currentTeacher?.email || teacher.email);
+    if (linkedUser) {
+      await User.updateProfile(linkedUser.id, {
+        username: teacher.name,
+        full_name: teacher.name,
+        email: teacher.email,
+        phone: teacher.phone,
+        profile_photo: teacher.profile_photo
+      });
+    }
 
     await Notification.create({
       type: 'profile_changed',

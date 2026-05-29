@@ -5,10 +5,177 @@
     <link rel="icon" type="image/png" href="/title-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timetable Management System - Admin Dashboard</title>
+<<<<<<< HEAD
     <script type="module" crossorigin src="/assets/index-66a33b97.js"></script>
     <link rel="stylesheet" href="/assets/index-032479de.css">
+=======
+    <style>
+      html,
+      body,
+      #app {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        background: #082a4a;
+      }
+
+      #first-paint-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483002;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 18% 18%, rgba(41, 171, 226, 0.28), transparent 32%),
+          radial-gradient(circle at 82% 22%, rgba(40, 184, 96, 0.22), transparent 30%),
+          linear-gradient(135deg, #082a4a 0%, #0e5a8a 46%, #0ea35d 100%);
+      }
+
+      #first-paint-loader::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 72px 72px;
+        mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
+      }
+
+      .first-loader-card {
+        position: relative;
+        width: min(430px, calc(100vw - 2rem));
+        min-height: 320px;
+        padding: 34px 28px 30px;
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.94);
+        box-shadow: 0 30px 90px rgba(4, 22, 41, 0.4);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #0f2c46;
+        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      }
+
+      .first-loader-logo-wrap {
+        position: relative;
+        width: 122px;
+        height: 122px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 24px;
+      }
+
+      .first-loader-logo-wrap::before,
+      .first-loader-logo-wrap::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 2px solid transparent;
+        animation: first-loader-spin 1.18s linear infinite;
+      }
+
+      .first-loader-logo-wrap::before {
+        border-top-color: #18a2df;
+        border-right-color: rgba(24, 162, 223, 0.28);
+      }
+
+      .first-loader-logo-wrap::after {
+        inset: 14px;
+        border-bottom-color: #21b15f;
+        border-left-color: rgba(33, 177, 95, 0.28);
+        animation-duration: 1.55s;
+        animation-direction: reverse;
+      }
+
+      .first-loader-logo {
+        position: relative;
+        z-index: 1;
+        width: 88px;
+        height: 88px;
+        object-fit: contain;
+        padding: 8px;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 16px 36px rgba(8, 42, 74, 0.18);
+      }
+
+      .first-loader-card strong {
+        color: #0f2c46;
+        font-size: 1.45rem;
+        font-weight: 900;
+      }
+
+      .first-loader-detail {
+        margin-top: 6px;
+        color: #15824b;
+        font-size: 0.88rem;
+        font-weight: 800;
+      }
+
+      .first-loader-counter {
+        margin-top: 22px;
+        color: #0d7ec0;
+        font-size: 2rem;
+        font-weight: 950;
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+      }
+
+      .first-loader-progress {
+        position: relative;
+        width: min(300px, 100%);
+        height: 8px;
+        margin-top: 14px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #d9e8ee;
+      }
+
+      .first-loader-progress::after {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 68%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #139bd7, #1fb35d);
+        animation: first-loader-progress 1.45s ease-in-out infinite;
+      }
+
+      @keyframes first-loader-spin {
+        to { transform: rotate(360deg); }
+      }
+
+      @keyframes first-loader-progress {
+        0% { transform: translateX(-115%); }
+        52% { transform: translateX(78%); }
+        100% { transform: translateX(230%); }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-ac89e117.js"></script>
+    <link rel="stylesheet" href="/assets/index-58e3a6df.css">
+>>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
   </head>
   <body>
+    <div id="first-paint-loader" role="status" aria-label="Loading system">
+      <div class="first-loader-card">
+        <div class="first-loader-logo-wrap">
+          <img class="first-loader-logo" src="/title-logo.png" alt="Timetable logo" />
+        </div>
+        <strong>Loading your workspace</strong>
+        <div class="first-loader-detail">Preparing dashboard data</div>
+        <div class="first-loader-counter">68%</div>
+        <div class="first-loader-progress" aria-hidden="true"></div>
+      </div>
+    </div>
     <div id="app"></div>
     
   </body>

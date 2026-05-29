@@ -6,7 +6,6 @@
 
 <script setup>
 import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loading'
 import Preloader from '@/components/Preloader.vue'
@@ -14,22 +13,13 @@ import TopFeedback from '@/components/TopFeedback.vue'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()
+<<<<<<< HEAD
 const router = useRouter()
 const isBlockingLoading = computed(() => loadingStore.isBlockingLoading)
 const isRequestLoading = computed(() => loadingStore.isRequestLoading)
-
-router.beforeEach((to, from, next) => {
-  if (to.fullPath !== from.fullPath) loadingStore.startRoute()
-  next()
-})
-
-router.afterEach(() => {
-  loadingStore.finishRoute()
-})
-
-router.onError(() => {
-  loadingStore.finishRoute()
-})
+=======
+const isGlobalLoading = computed(() => loadingStore.isLoading)
+>>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
 
 onMounted(async () => {
   loadingStore.startBoot()

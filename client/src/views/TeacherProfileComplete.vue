@@ -517,7 +517,6 @@ const loginActivity = ref([
 const resolveAssetUrl = (path) => {
   if (!path) return ''
   if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path
-  if (path.startsWith('/uploads/')) return path
 
   const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
   return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
@@ -596,15 +595,47 @@ const triggerPhotoUpload = () => {
   fileInput.value?.click()
 }
 
-const uploadPhoto = (event) => {
+const persistProfilePhoto = async (profilePhotoPath) => {
+  await api.put('/teacher-auth/me', {
+    name: editData.value.name,
+    email: editData.value.email,
+    department: editData.value.department,
+    phone: editData.value.phone,
+    profile_photo: profilePhotoPath,
+    module_name: editData.value.subject,
+    qualification: editData.value.qualification,
+    yearsExperience: editData.value.experience,
+    availableDays: editData.value.availableDays.join(','),
+    availableFrom: editData.value.availableFrom,
+    availableTo: editData.value.availableTo,
+    notes: editData.value.notes
+  })
+}
+
+const uploadPhoto = async (event) => {
   const file = event.target.files?.[0]
-  if (file) {
-    selectedProfilePhoto.value = file
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      profileData.value.photo = e.target?.result
-    }
-    reader.readAsDataURL(file)
+  if (!file) return
+
+  selectedProfilePhoto.value = file
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    profileData.value.photo = e.target?.result
+  }
+  reader.readAsDataURL(file)
+
+  try {
+    const uploadFormData = new FormData()
+    uploadFormData.append('photo', file)
+    const uploadResponse = await api.post('/upload/profile-photo', uploadFormData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    const profilePhotoPath = uploadResponse.data.photo.path
+    await persistProfilePhoto(profilePhotoPath)
+    await authStore.checkAuth()
+    hydrateProfileFromTeacher(authStore.currentUser || {})
+    selectedProfilePhoto.value = null
+  } catch (error) {
+    passwordError.value = error.response?.data?.message || 'Failed to upload profile photo'
   }
 }
 
@@ -630,20 +661,7 @@ const saveProfile = async () => {
       profilePhotoPath = uploadResponse.data.photo.path
     }
 
-    await api.put('/teacher-auth/me', {
-      name: editData.value.name,
-      email: editData.value.email,
-      department: editData.value.department,
-      phone: editData.value.phone,
-      profile_photo: profilePhotoPath,
-      module_name: editData.value.subject,
-      qualification: editData.value.qualification,
-      yearsExperience: editData.value.experience,
-      availableDays: editData.value.availableDays.join(','),
-      availableFrom: editData.value.availableFrom,
-      availableTo: editData.value.availableTo,
-      notes: editData.value.notes
-    })
+    await persistProfilePhoto(profilePhotoPath)
 
     await authStore.checkAuth()
     hydrateProfileFromTeacher(authStore.currentUser || {})

@@ -13,3 +13,12 @@ app.use(createPinia())
 app.use(router)
 
 app.mount('#app')
+
+requestAnimationFrame(() => {
+  const firstPaintLoader = document.getElementById('first-paint-loader')
+  if (firstPaintLoader) {
+    firstPaintLoader.style.opacity = '0'
+    firstPaintLoader.style.transition = 'opacity 220ms ease'
+    setTimeout(() => firstPaintLoader.remove(), 240)
+  }
+})

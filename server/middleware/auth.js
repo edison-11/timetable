@@ -71,6 +71,7 @@ const auth = async (req, res, next) => {
       req.user = {
         ...user,
         teacherId: teacher.teacher_id,
+        school_id: user.school_id || teacher.school_id || null,
         type: 'teacher'
       };
       const schoolAccess = await validateSchoolAccess(req.user);

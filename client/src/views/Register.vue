@@ -25,10 +25,68 @@
         </section>
 
         <template v-if="step === 'details'">
+<<<<<<< HEAD
           <div v-if="accountType === 'dos'" class="form-section">
             <div class="section-title">
               <h2>School Information</h2>
               <span>Pending approval by Super Admin</span>
+=======
+          <h2 class="form-title">Register</h2>
+
+          <div class="register-context">
+            <div>
+              <strong>Teacher Account</strong>
+              <span>Join an approved school and wait for DOS approval.</span>
+            </div>
+            <router-link to="/dos/register">Register a School</router-link>
+          </div>
+
+          <div class="title-rule"></div>
+
+          <div class="register-field">
+            <label for="fullName" class="form-label">Full Name</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon user-icon" aria-hidden="true"></span>
+              <input
+                id="fullName"
+                v-model.trim="form.full_name"
+                type="text"
+                placeholder="Enter your full name"
+                required
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <div class="register-field">
+            <label for="email" class="form-label">Email</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon mail-icon" aria-hidden="true"></span>
+              <input
+                id="email"
+                v-model.trim="form.email"
+                type="email"
+                placeholder="Enter your email address"
+                required
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="register-field">
+              <label for="phone" class="form-label">Phone Number</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="phone"
+                  v-model.trim="form.phone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  required
+                  class="form-control"
+                />
+              </div>
+>>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
             </div>
 
             <div class="form-grid">
@@ -488,12 +546,6 @@ const loadActiveSchools = async () => {
   }
 }
 
-const startExternal = (provider) => {
-  // Redirect the browser to the server OAuth start endpoint.
-  // Server route: GET /api/auth/external/:provider
-  window.location.href = `/api/auth/external/${provider}`
-}
-
 onMounted(loadActiveSchools)
 
 onBeforeUnmount(() => {
@@ -547,9 +599,55 @@ onBeforeUnmount(() => {
   font-weight: 850;
 }
 
+<<<<<<< HEAD
 .register-card-header p {
   margin: 0.25rem 0 0;
   color: #cbd5e1;
+=======
+.register-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.register-context div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.register-context strong {
+  color: #1e3a8a;
+  font-size: 0.92rem;
+}
+
+.register-context span {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.register-context a {
+  flex: 0 0 auto;
+  padding: 0.48rem 0.65rem;
+  border-radius: 7px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.title-rule {
+  height: 1px;
+  margin: 16px 0 18px;
+  background: #d3dae2;
+>>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
 }
 
 .register-form,
@@ -805,8 +903,18 @@ textarea:focus {
     padding-inline: 1rem;
   }
 
+<<<<<<< HEAD
   .role-section,
   .form-grid {
+=======
+  .login-row,
+  .terms-row,
+  .register-context {
+    flex-wrap: wrap;
+  }
+
+  .register-grid {
+>>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
     grid-template-columns: 1fr;
   }
 
