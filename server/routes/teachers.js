@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { adminAuth } = require('../middleware/adminAuth');
+const { getRequestSchoolId } = require('../utils/tenant');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const sanitizeTeacher = (teacher) => {
 const sanitizeTeachers = (teachers = []) => teachers.map(sanitizeTeacher);
 
 // Register Teacher
-router.post('/register', [
+router.post('/register', adminAuth, [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
@@ -40,7 +41,11 @@ router.post('/register', [
     }
 
     const { name, email, password, department = 'SSOD', status = 'pending', date_joined } = req.body;
-    const schoolId = req.user?.school_id || req.body.school_id || null;
+    const schoolId = getRequestSchoolId(req);
+
+    if (!schoolId) {
+      return res.status(400).json({ message: 'Select a school before adding a teacher' });
+    }
 
     const existingTeacher = await Teacher.findByEmail(email);
     if (existingTeacher) {
@@ -127,7 +132,7 @@ router.get('/me', auth, async (req, res) => {
 // Get all teachers
 router.get('/', auth, async (req, res) => {
   try {
-    const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
+    const schoolFilter = getRequestSchoolId(req);
     const teachers = await Teacher.getAll({ school_id: schoolFilter });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
@@ -139,7 +144,7 @@ router.get('/', auth, async (req, res) => {
 // Get teachers by status
 router.get('/status/:status', auth, async (req, res) => {
   try {
-    const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
+    const schoolFilter = getRequestSchoolId(req);
     const teachers = await Teacher.getByStatus(req.params.status, { school_id: schoolFilter });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
@@ -151,7 +156,7 @@ router.get('/status/:status', auth, async (req, res) => {
 // Get active teachers
 router.get('/active', auth, async (req, res) => {
   try {
-    const teachers = await Teacher.getActiveTeachers();
+    const teachers = await Teacher.getByStatus('active', { school_id: getRequestSchoolId(req) });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
@@ -162,7 +167,7 @@ router.get('/active', auth, async (req, res) => {
 // Get pending teachers
 router.get('/pending', auth, async (req, res) => {
   try {
-    const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
+    const schoolFilter = getRequestSchoolId(req);
     const pendingTeachers = await Teacher.getByStatus('pending', { school_id: schoolFilter });
     res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
   } catch (error) {
@@ -223,7 +228,19 @@ router.put('/:id', auth, [
     if (department) updateData.department = department;
     if (status) updateData.status = status;
     if (date_joined) updateData.date_joined = date_joined;
-    if (req.user?.school_id) updateData.school_id = req.user.school_id;
+    const schoolId = getRequestSchoolId(req);
+    if (schoolId) updateData.school_id = schoolId;
+
+    const existingTeacher = await Teacher.findById(req.params.id);
+    if (!existingTeacher) {
+      return res.status(404).json({ message: 'Teacher not found' });
+    }
+    if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(existingTeacher.school_id) !== Number(req.user.school_id)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
+    if (req.user?.role === 'super_admin' && schoolId && Number(existingTeacher.school_id) !== Number(schoolId)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
 
     await Teacher.update(req.params.id, updateData);
     const updatedTeacher = await Teacher.findById(req.params.id);

@@ -91,7 +91,7 @@ class Teacher {
   static async findByEmail(email) {
     await this.ensureProfileColumns();
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, password, department, status, date_joined, school_code, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, profile_photo, created_at FROM teacher WHERE LOWER(email) = LOWER(?)',
+      'SELECT teacher_id, name, email, password, department, status, date_joined, school_id, school_code, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, profile_photo, created_at FROM teacher WHERE LOWER(email) = LOWER(?)',
       [email]
     );
     return rows[0];
@@ -100,7 +100,7 @@ class Teacher {
   static async findById(id) {
     await this.ensureProfileColumns();
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, status, date_joined, profile_photo, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, created_at FROM teacher WHERE teacher_id = ?',
+      'SELECT teacher_id, name, email, department, status, date_joined, school_id, profile_photo, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, created_at FROM teacher WHERE teacher_id = ?',
       [id]
     );
     return rows[0];
@@ -118,8 +118,15 @@ class Teacher {
     return bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  static async getAll() {
+  static async getAll(filters = {}) {
     await this.ensureProfileColumns();
+    const where = [];
+    const values = [];
+    if (filters.school_id) {
+      where.push('t.school_id = ?');
+      values.push(filters.school_id);
+    }
+
     const [rows] = await pool.execute(`
       SELECT
         t.teacher_id,
@@ -128,6 +135,7 @@ class Teacher {
         t.department,
         t.status,
         t.date_joined,
+        t.school_id,
         t.profile_photo,
         t.employee_id,
         t.phone,
@@ -143,6 +151,7 @@ class Teacher {
       LEFT JOIN assignment a ON a.teacher_id = t.teacher_id
       LEFT JOIN class taught_class ON taught_class.class_id = a.class_id
       LEFT JOIN module assigned_module ON assigned_module.module_id = a.module_id
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
       GROUP BY
         t.teacher_id,
         t.name,
@@ -150,6 +159,7 @@ class Teacher {
         t.department,
         t.status,
         t.date_joined,
+        t.school_id,
         t.profile_photo,
         t.employee_id,
         t.phone,
@@ -158,15 +168,24 @@ class Teacher {
         t.years_experience,
         t.created_at
       ORDER BY t.created_at DESC
-    `);
+    `, values);
     return rows;
   }
 
-  static async getByStatus(status) {
-    await this.ensureProfilePhotoColumn();
+  static async getByStatus(status, filters = {}) {
+    await this.ensureProfileColumns();
+    const where = ['status = ?'];
+    const values = [status];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, status, date_joined, profile_photo, created_at FROM teacher WHERE status = ? ORDER BY name',
-      [status]
+      `SELECT teacher_id, name, email, department, status, date_joined, school_id, profile_photo, created_at
+       FROM teacher
+       WHERE ${where.join(' AND ')}
+       ORDER BY name`,
+      values
     );
     return rows;
   }
@@ -180,6 +199,7 @@ class Teacher {
       department,
       status,
       date_joined,
+      school_id,
       profile_photo,
       employee_id,
       phone,
@@ -218,6 +238,10 @@ class Teacher {
     if (date_joined !== undefined) {
       updateFields.push('date_joined = ?');
       updateValues.push(date_joined);
+    }
+    if (school_id !== undefined) {
+      updateFields.push('school_id = ?');
+      updateValues.push(school_id || null);
     }
     if (profile_photo !== undefined) {
       updateFields.push('profile_photo = ?');
@@ -270,10 +294,20 @@ class Teacher {
     await pool.execute('DELETE FROM teacher WHERE teacher_id = ?', [id]);
   }
 
-  static async getActiveTeachers() {
-    await this.ensureProfilePhotoColumn();
+  static async getActiveTeachers(filters = {}) {
+    await this.ensureProfileColumns();
+    const where = ['status = "active"'];
+    const values = [];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, profile_photo FROM teacher WHERE status = "active" ORDER BY department, name'
+      `SELECT teacher_id, name, email, department, school_id, profile_photo
+       FROM teacher
+       WHERE ${where.join(' AND ')}
+       ORDER BY department, name`,
+      values
     );
     return rows;
   }

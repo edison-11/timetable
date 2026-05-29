@@ -984,7 +984,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
       return res.status(403).json({ message: 'You can only view your own timetable' });
     }
 
-    const school_id = req.user?.school_id || null;
+    const school_id = getRequestSchoolId(req);
     const timetables = await TimetableEntry.getByTeacher(requestedTeacherId, { school_id });
     res.json({ timetables });
   } catch (error) {
@@ -996,7 +996,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
 // Get timetable by class
 router.get('/class/:class_id', auth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: req.user?.school_id || getRequestSchoolId(req) });
+    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -1007,7 +1007,7 @@ router.get('/class/:class_id', auth, async (req, res) => {
 // Get weekly schedule for class
 router.get('/class/:class_id/weekly', auth, async (req, res) => {
   try {
-    const schedule = await TimetableEntry.getWeeklySchedule(req.params.class_id);
+    const schedule = await TimetableEntry.getWeeklySchedule(req.params.class_id, { school_id: getRequestSchoolId(req) });
     res.json({ schedule });
   } catch (error) {
     console.error(error);

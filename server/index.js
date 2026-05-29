@@ -57,7 +57,13 @@ const clientDistPath = path.resolve(__dirname, '../client/dist');
 const clientSourcePath = path.resolve(__dirname, '../client');
 const clientAppPath = fs.existsSync(clientDistPath) ? clientDistPath : clientSourcePath;
 
-app.use(express.static(clientAppPath));
+app.use(express.static(clientAppPath, {
+  setHeaders: (res, filePath) => {
+    if (path.basename(filePath) === 'index.html') {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 if (!fs.existsSync(clientDistPath)) {
   console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
 }
@@ -93,8 +99,13 @@ app.get('/api/health', (req, res) => {
 
 // SPA fallback - serve the built client when available, otherwise the source client shell
 app.get('*', (req, res) => {
+  if (req.path.startsWith('/assets/')) {
+    return res.status(404).send('Asset not found.');
+  }
+
   const indexPath = path.join(clientAppPath, 'index.html');
   if (fs.existsSync(indexPath)) {
+    res.setHeader('Cache-Control', 'no-store');
     res.sendFile(indexPath);
   } else {
     res.status(404).send('Client files not found.');

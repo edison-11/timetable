@@ -92,21 +92,6 @@
           {{ success }}
         </div>
 
-        <div class="login-divider"><span>or</span></div>
-
-        <div class="provider-row">
-          <button type="button" class="provider-btn" disabled>
-            <span class="google-mark" aria-hidden="true">G</span>
-            Login with Google
-          </button>
-          <button type="button" class="provider-btn" disabled>
-            <span class="microsoft-mark" aria-hidden="true">
-              <span></span><span></span><span></span><span></span>
-            </span>
-            Login with Microsoft
-          </button>
-        </div>
-
         <div class="create-row">
           <span>New user?</span>
           <router-link to="/teacher/register">Create an Account</router-link>
@@ -232,7 +217,7 @@ const handleLogin = async () => {
 .login-card {
   position: relative;
   z-index: 1;
-  max-width: 580px;
+  max-width: 650px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.28);
   border-radius: 8px;
@@ -244,16 +229,16 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 30px 46px;
+  padding: 38px 52px;
   background: linear-gradient(180deg, #47617e 0%, #33475f 100%);
   border-bottom: 1px solid rgba(15, 23, 42, 0.4);
   color: #fff;
 }
 
 .brand-login-mark {
-  flex: 0 0 58px;
-  width: 58px;
-  height: 58px;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
   border-radius: 8px;
   background: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -273,14 +258,14 @@ const handleLogin = async () => {
 
 .auth-title {
   color: #fff;
-  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-size: clamp(1.8rem, 4vw, 2.25rem);
   font-weight: 850;
   line-height: 1.12;
   letter-spacing: 0;
 }
 
 .login-form {
-  padding: 36px 46px 32px;
+  padding: 42px 52px 36px;
 }
 
 .login-field {
@@ -470,74 +455,13 @@ const handleLogin = async () => {
   box-shadow: 0 12px 20px rgba(3, 105, 214, 0.28);
 }
 
-.login-divider {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 24px 0 20px;
-  color: #323b49;
-  font-size: 1.2rem;
-  font-weight: 850;
-}
-
-.login-divider::before,
-.login-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #c3cbd5;
-}
-
-.provider-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 24px;
-}
-
-.provider-btn {
-  min-height: 54px;
-  margin: 0;
-  border: 1px solid #bdc6d1;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.82);
-  color: #263244;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.09);
-  opacity: 1;
-}
-
-.google-mark {
-  color: #4285f4;
-  font-size: 1.9rem;
-  font-weight: 900;
-  font-family: Arial, sans-serif;
-  line-height: 1;
-}
-
-.microsoft-mark {
-  display: grid;
-  grid-template-columns: repeat(2, 12px);
-  grid-template-rows: repeat(2, 12px);
-  gap: 3px;
-  flex: 0 0 auto;
-}
-
-.microsoft-mark span:nth-child(1) { background: #f1511b; }
-.microsoft-mark span:nth-child(2) { background: #80cc28; }
-.microsoft-mark span:nth-child(3) { background: #00adef; }
-.microsoft-mark span:nth-child(4) { background: #fbbc09; }
-
 .create-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding-top: 18px;
+  margin-top: 28px;
+  padding-top: 24px;
   border-top: 1px solid #d3dae2;
   color: #6c7582;
   font-size: 1.12rem;
@@ -567,10 +491,6 @@ const handleLogin = async () => {
   .login-options {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .provider-row {
-    grid-template-columns: 1fr;
   }
 
   .create-row {

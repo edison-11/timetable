@@ -42,11 +42,15 @@ async function setupDatabase() {
     for (const statement of statements) {
       if (statement.trim()) {
         try {
-          await connection.query(statement);
+          await connection.query(statement); // Use query for DDL statements
           console.log('✓ Executed:', statement.substring(0, 50) + '...');
         } catch (error) {
-          if (!error.message.includes('already exists')) {
-            console.log('✗ Error:', error.message);
+          // MySQL error codes for "table already exists" (1050) or "duplicate column" (1060)
+          if (error.code === 'ER_TABLE_EXISTS_ERROR' || error.code === 'ER_DUP_FIELDNAME') {
+            console.log(`✓ Skipped (already exists): ${statement.substring(0, 50)}...`);
+          } else {
+            console.error('✗ Error executing statement:', statement.substring(0, 100) + '...', error.message);
+            throw error; // Re-throw other errors
           }
         }
       }

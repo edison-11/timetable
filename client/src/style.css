@@ -1916,3 +1916,255 @@ body.teacher-dark-mode .break-fill.evening-break {
   background: rgba(30, 64, 175, 0.26) !important;
   color: #bfdbfe !important;
 }
+
+/* Enterprise consistency layer */
+:root {
+  --surface-0: #ffffff;
+  --surface-1: #f8fafc;
+  --surface-2: #eef4ff;
+  --border-subtle: #d8e2f0;
+  --text-strong: #0b1220;
+  --text-body: #1e293b;
+  --text-soft: #64748b;
+  --brand-primary: #0f62fe;
+  --brand-primary-dark: #0b4fd0;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --shadow-soft: 0 14px 35px rgba(15, 23, 42, 0.08);
+  --space-2: 0.5rem;
+  --space-6: 2rem;
+}
+
+body {
+  background: var(--surface-1);
+  color: var(--text-body);
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+.page-title,
+.dashboard-title-row h1 {
+  color: var(--text-strong);
+  font-size: clamp(1.65rem, 1.3rem + 0.8vw, 2.25rem);
+  font-weight: 800;
+  line-height: 1.12;
+  margin-bottom: var(--space-2);
+}
+
+h2,
+.section-title {
+  color: var(--text-strong);
+  font-size: 1.35rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+h3,
+.card-title {
+  color: var(--text-strong);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+p,
+label,
+td,
+th,
+input,
+select,
+textarea,
+button {
+  line-height: 1.5;
+}
+
+.card,
+.card-custom,
+.panel,
+.panel-card,
+.dashboard-card,
+.metric-card,
+.stat-card,
+.form-card,
+.table-wrapper,
+.modal-content,
+.empty-state,
+.platform-card,
+.register-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+
+.form-control,
+.form-select,
+.search-input,
+.filter-input,
+.filter-select,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  border-radius: var(--radius-sm);
+  border-color: var(--border-subtle);
+  color: var(--text-strong);
+  min-height: 44px;
+}
+
+.form-control:focus,
+.form-select:focus,
+.search-input:focus,
+.filter-input:focus,
+.filter-select:focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 0.2rem rgba(15, 98, 254, 0.16);
+  outline: none;
+}
+
+.btn,
+.action-btn,
+.quick-action-btn,
+.primary-btn,
+.secondary-btn {
+  align-items: center;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  font-weight: 700;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 42px;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.btn-primary,
+.primary-btn {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover,
+.primary-btn:hover {
+  background: var(--brand-primary-dark);
+  border-color: var(--brand-primary-dark);
+  color: #ffffff;
+}
+
+.table-responsive,
+.table-wrapper {
+  overflow-x: auto;
+}
+
+table {
+  color: var(--text-body);
+  font-size: 0.92rem;
+}
+
+th {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+td,
+th {
+  vertical-align: middle;
+}
+
+.empty-state {
+  color: var(--text-soft);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.status-badge,
+.badge {
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  padding: 0.35rem 0.7rem;
+}
+
+body.admin-dark-mode,
+body.teacher-dark-mode {
+  --surface-0: #0f172a;
+  --surface-1: #08111f;
+  --surface-2: #111827;
+  --border-subtle: #263244;
+  --text-strong: #f8fafc;
+  --text-body: #e2e8f0;
+  --text-soft: #a9b7c9;
+  --brand-primary: #60a5fa;
+  --brand-primary-dark: #3b82f6;
+  --shadow-soft: none;
+}
+
+body.admin-dark-mode .register-page,
+body.teacher-dark-mode .register-page,
+body.admin-dark-mode .status-page,
+body.teacher-dark-mode .status-page,
+body.admin-dark-mode .platform-dashboard,
+body.teacher-dark-mode .platform-dashboard,
+body.admin-dark-mode .schools-page,
+body.teacher-dark-mode .schools-page {
+  background: var(--surface-1) !important;
+  color: var(--text-body) !important;
+}
+
+body.admin-dark-mode .register-card,
+body.teacher-dark-mode .register-card,
+body.admin-dark-mode .platform-card,
+body.teacher-dark-mode .platform-card,
+body.admin-dark-mode .schools-card,
+body.teacher-dark-mode .schools-card,
+body.admin-dark-mode .status-card,
+body.teacher-dark-mode .status-card,
+body.admin-dark-mode .modal-content,
+body.teacher-dark-mode .modal-content {
+  background: var(--surface-0) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-body) !important;
+}
+
+body.admin-dark-mode .form-control,
+body.admin-dark-mode .form-select,
+body.teacher-dark-mode .form-control,
+body.teacher-dark-mode .form-select,
+body.admin-dark-mode .register-page input,
+body.admin-dark-mode .register-page select,
+body.admin-dark-mode .register-page textarea,
+body.teacher-dark-mode .register-page input,
+body.teacher-dark-mode .register-page select,
+body.teacher-dark-mode .register-page textarea {
+  background: #111827 !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-strong) !important;
+}
+
+body.admin-dark-mode .register-page input::placeholder,
+body.admin-dark-mode .register-page textarea::placeholder,
+body.teacher-dark-mode .register-page input::placeholder,
+body.teacher-dark-mode .register-page textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+body.admin-dark-mode .role-card,
+body.teacher-dark-mode .role-card,
+body.admin-dark-mode .info-panel,
+body.teacher-dark-mode .info-panel,
+body.admin-dark-mode .form-section,
+body.teacher-dark-mode .form-section {
+  background: #111827 !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-body) !important;
+}
+
+body.admin-dark-mode .role-card.active,
+body.teacher-dark-mode .role-card.active {
+  background: #172554 !important;
+  border-color: var(--brand-primary) !important;
+}

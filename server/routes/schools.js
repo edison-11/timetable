@@ -8,12 +8,28 @@ const { requireSuperAdmin } = require('../middleware/rbac');
 
 const router = express.Router();
 
+const syncDirectorUserStatus = async (schoolId, status) => {
+  const director = await School.findDirectorBySchoolId(schoolId);
+  if (!director?.email) return;
+
+  const user = await User.findByEmail(director.email);
+  if (user) await User.updateStatus(user.id, status);
+};
+
+const schoolWithDirector = async (schoolId) => {
+  const schools = await School.getAll({});
+  return schools.find((item) => Number(item.school_id) === Number(schoolId)) || null;
+};
+
 router.post('/dos-register', [
   body('full_name').trim().isLength({ min: 3 }).withMessage('Full name must be at least 3 characters'),
   body('school_name').trim().notEmpty().withMessage('School name is required'),
   body('school_code').optional({ nullable: true, checkFalsy: true }).trim(),
   body('school_email').isEmail().normalizeEmail().withMessage('Valid school email is required'),
-  body('phone').trim().notEmpty().withMessage('Phone number is required'),
+  body('school_phone').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('phone').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('dos_email').optional({ nullable: true, checkFalsy: true }).isEmail().normalizeEmail().withMessage('Valid DOS email is required'),
+  body('dos_phone').optional({ nullable: true, checkFalsy: true }).trim(),
   body('national_id').trim().notEmpty().withMessage('National ID is required'),
   body('registration_number').trim().notEmpty().withMessage('School registration number is required'),
   body('school_address').trim().notEmpty().withMessage('School address is required'),
@@ -33,14 +49,33 @@ router.post('/dos-register', [
 
     await School.ensureTenantColumns();
 
+    const schoolPhone = req.body.school_phone || req.body.phone;
+    const dosEmail = req.body.dos_email || req.body.email || req.body.school_email;
+    const dosPhone = req.body.dos_phone || req.body.phone || req.body.school_phone;
+
+    if (!schoolPhone) {
+      return res.status(400).json({ message: 'School phone number is required' });
+    }
+
+    if (!dosEmail) {
+      return res.status(400).json({ message: 'Director of Studies email is required' });
+    }
+
+    if (!dosPhone) {
+      return res.status(400).json({ message: 'Director of Studies phone number is required' });
+    }
+
     const existingSchoolEmail = await School.findByEmail(req.body.school_email);
     if (existingSchoolEmail) return res.status(400).json({ message: 'School email is already registered' });
 
     const existingRegistration = await School.findByRegistrationNumber(req.body.registration_number);
     if (existingRegistration) return res.status(400).json({ message: 'School registration number is already registered' });
 
-    const existingDos = await School.findDirectorByEmail(req.body.school_email);
+    const existingDos = await School.findDirectorByEmail(dosEmail);
     if (existingDos) return res.status(400).json({ message: 'Director of Studies email is already registered' });
+
+    const existingUser = await User.findByEmail(dosEmail);
+    if (existingUser) return res.status(400).json({ message: 'Director of Studies email is already registered' });
 
     const schoolId = await School.create({
       school_name: req.body.school_name,
@@ -48,7 +83,7 @@ router.post('/dos-register', [
       registration_number: req.body.registration_number,
       school_code: req.body.school_code,
       school_address: req.body.school_address,
-      phone: req.body.phone,
+      phone: schoolPhone,
       province: req.body.province,
       district: req.body.district,
       sector: req.body.sector,
@@ -60,8 +95,8 @@ router.post('/dos-register', [
     const userId = await User.create({
       full_name: req.body.full_name,
       username: req.body.full_name,
-      email: req.body.school_email,
-      phone: req.body.phone,
+      email: dosEmail,
+      phone: dosPhone,
       password: req.body.password,
       role: 'dos',
       school_id: schoolId,
@@ -74,8 +109,8 @@ router.post('/dos-register', [
       user_id: userId,
       school_id: schoolId,
       full_name: req.body.full_name,
-      email: req.body.school_email,
-      phone: req.body.phone,
+      email: dosEmail,
+      phone: dosPhone,
       national_id: req.body.national_id,
       profile_photo: req.body.profile_photo,
       status: 'pending'
@@ -226,12 +261,7 @@ router.put('/:id/approve', adminAuth, requireSuperAdmin, async (req, res) => {
     await School.updateStatus(req.params.id, 'active');
     await School.updateDirectorStatusBySchool(req.params.id, 'active');
 
-    const directors = await School.getAll({ search: school.school_email });
-    const director = directors.find((item) => Number(item.school_id) === Number(req.params.id));
-    if (director?.dos_email) {
-      const user = await User.findByEmail(director.dos_email);
-      if (user) await User.updateStatus(user.id, 'active');
-    }
+    await syncDirectorUserStatus(req.params.id, 'active');
 
     await School.logActivity({
       school_id: req.params.id,
@@ -243,7 +273,7 @@ router.put('/:id/approve', adminAuth, requireSuperAdmin, async (req, res) => {
       message: `${school.school_name} was approved.`
     });
 
-    res.json({ message: 'School approved successfully' });
+    res.json({ message: 'School approved successfully', school: await schoolWithDirector(req.params.id) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -257,6 +287,7 @@ router.put('/:id/reject', adminAuth, requireSuperAdmin, async (req, res) => {
 
     await School.updateStatus(req.params.id, 'rejected');
     await School.updateDirectorStatusBySchool(req.params.id, 'rejected');
+    await syncDirectorUserStatus(req.params.id, 'rejected');
     await School.logActivity({
       school_id: req.params.id,
       user_id: req.user.id,
@@ -266,7 +297,7 @@ router.put('/:id/reject', adminAuth, requireSuperAdmin, async (req, res) => {
       entity_id: req.params.id,
       message: `${school.school_name} was rejected.`
     });
-    res.json({ message: 'School rejected successfully' });
+    res.json({ message: 'School rejected successfully', school: await schoolWithDirector(req.params.id) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -279,6 +310,8 @@ router.put('/:id/deactivate', adminAuth, requireSuperAdmin, async (req, res) => 
     if (!school) return res.status(404).json({ message: 'School not found' });
 
     await School.updateStatus(req.params.id, 'deactivated');
+    await School.updateDirectorStatusBySchool(req.params.id, 'disabled');
+    await syncDirectorUserStatus(req.params.id, 'disabled');
     await School.logActivity({
       school_id: req.params.id,
       user_id: req.user.id,
@@ -288,7 +321,7 @@ router.put('/:id/deactivate', adminAuth, requireSuperAdmin, async (req, res) => 
       entity_id: req.params.id,
       message: `${school.school_name} was deactivated.`
     });
-    res.json({ message: 'School deactivated successfully' });
+    res.json({ message: 'School deactivated successfully', school: await schoolWithDirector(req.params.id) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -302,6 +335,7 @@ router.put('/:id/suspend', adminAuth, requireSuperAdmin, async (req, res) => {
 
     await School.updateStatus(req.params.id, 'suspended');
     await School.updateDirectorStatusBySchool(req.params.id, 'suspended');
+    await syncDirectorUserStatus(req.params.id, 'suspended');
     await School.logActivity({
       school_id: req.params.id,
       user_id: req.user.id,
@@ -311,7 +345,7 @@ router.put('/:id/suspend', adminAuth, requireSuperAdmin, async (req, res) => {
       entity_id: req.params.id,
       message: `${school.school_name} was suspended.`
     });
-    res.json({ message: 'School suspended successfully' });
+    res.json({ message: 'School suspended successfully', school: await schoolWithDirector(req.params.id) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -325,6 +359,7 @@ router.put('/:id/activate', adminAuth, requireSuperAdmin, async (req, res) => {
 
     await School.updateStatus(req.params.id, 'active');
     await School.updateDirectorStatusBySchool(req.params.id, 'active');
+    await syncDirectorUserStatus(req.params.id, 'active');
     await School.logActivity({
       school_id: req.params.id,
       user_id: req.user.id,
@@ -334,7 +369,7 @@ router.put('/:id/activate', adminAuth, requireSuperAdmin, async (req, res) => {
       entity_id: req.params.id,
       message: `${school.school_name} was activated.`
     });
-    res.json({ message: 'School activated successfully' });
+    res.json({ message: 'School activated successfully', school: await schoolWithDirector(req.params.id) });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

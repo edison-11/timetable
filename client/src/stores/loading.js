@@ -10,7 +10,9 @@ export const useLoadingStore = defineStore('loading', {
   }),
 
   getters: {
-    isLoading: (state) => state.visible
+    isLoading: (state) => state.visible,
+    isBlockingLoading: (state) => state.visible && (state.bootLoading || state.routeLoading),
+    isRequestLoading: (state) => state.pendingRequests > 0
   },
 
   actions: {
