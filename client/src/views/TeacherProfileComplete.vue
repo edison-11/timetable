@@ -7,21 +7,36 @@
         <p>Manage your profile information and settings</p>
       </section>
 
-      <!-- Profile Tabs -->
-      <section class="profile-tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab"
-          class="tab-btn"
-          :class="{ active: activeTab === tab }"
-          @click="activeTab = tab"
-        >
-          <i :class="getTabIcon(tab)"></i>
-          <span>{{ tab }}</span>
-        </button>
-      </section>
+      <div v-if="isLoadingProfile" class="profile-loading">
+        <div class="profile-loading-header">
+          <div class="skeleton-avatar"></div>
+          <div class="profile-loading-lines">
+            <div class="skeleton-line title"></div>
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line"></div>
+          </div>
+        </div>
+        <div class="profile-loading-grid">
+          <div class="skeleton-box" v-for="index in 6" :key="index"></div>
+        </div>
+      </div>
 
-      <!-- Profile Overview Tab -->
+      <div v-else>
+        <!-- Profile Tabs -->
+        <section class="profile-tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab"
+            class="tab-btn"
+            :class="{ active: activeTab === tab }"
+            @click="activeTab = tab"
+          >
+            <i :class="getTabIcon(tab)"></i>
+            <span>{{ tab }}</span>
+          </button>
+        </section>
+
+        <!-- Profile Overview Tab -->
       <section v-if="activeTab === 'Overview'" class="profile-section">
         <div class="profile-overview">
           <!-- Profile Photo Section -->
@@ -410,6 +425,7 @@
         </div>
       </section>
     </div>
+  </div>
   </TeacherLayout>
 </template>
 
@@ -429,6 +445,8 @@ const showPasswords = ref({
   confirm: false
 })
 const passwordError = ref('')
+const isLoadingProfile = ref(true)
+const loadError = ref('')
 
 const tabs = ['Overview', 'Edit Profile', 'Security', 'Notifications']
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
@@ -712,8 +730,15 @@ const downloadProfilePDF = () => {
 }
 
 onMounted(async () => {
-  await authStore.checkAuth()
-  hydrateProfileFromTeacher(authStore.currentUser || {})
+  isLoadingProfile.value = true
+  try {
+    await authStore.checkAuth()
+    hydrateProfileFromTeacher(authStore.currentUser || {})
+  } catch (error) {
+    loadError.value = error.message || 'Unable to load profile. Please try again.'
+  } finally {
+    isLoadingProfile.value = false
+  }
 })
 </script>
 
@@ -731,6 +756,74 @@ onMounted(async () => {
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
+}
+
+.profile-loading {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.75rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.08);
+  margin-bottom: 1.75rem;
+}
+
+.profile-loading-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.skeleton-avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #e2e8f0 0%, #f8fafc 40%, #e2e8f0 100%);
+  background-size: 220% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.profile-loading-lines {
+  flex: 1;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.profile-loading-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.skeleton-box,
+.skeleton-line {
+  min-height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0 0%, #f8fafc 40%, #e2e8f0 100%);
+  background-size: 220% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+.skeleton-line.title {
+  width: 55%;
+  height: 20px;
+}
+
+.skeleton-line.short {
+  width: 45%;
+}
+
+.skeleton-box {
+  height: 18px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .profile-header h1 {

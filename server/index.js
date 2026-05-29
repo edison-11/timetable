@@ -29,6 +29,7 @@ const substitutionRoutes = require('./routes/substitution');
 const studentRoutes = require('./routes/students');
 const dashboardRoutes = require('./routes/dashboard');
 const schoolRoutes = require('./routes/schools');
+const externalAuthRoutes = require('./routes/externalAuth');
 const { adminAuth } = require('./middleware/adminAuth');
 
 const app = express();
@@ -71,6 +72,7 @@ if (!fs.existsSync(clientDistPath)) {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/schools', schoolRoutes);
+app.use('/api/auth/external', externalAuthRoutes);
 app.use('/api/teacher-auth', teacherAuthRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/dos', dosRoutes);

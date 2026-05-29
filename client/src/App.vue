@@ -1,6 +1,11 @@
 <template>
+<<<<<<< HEAD
   <Preloader :loading="isBlockingLoading" />
   <TopFeedback :loading="isRequestLoading" />
+=======
+  <TopLoadingBar />
+  <Preloader :loading="isGlobalLoading" />
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
   <router-view />
 </template>
 
@@ -10,7 +15,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loading'
 import Preloader from '@/components/Preloader.vue'
+<<<<<<< HEAD
 import TopFeedback from '@/components/TopFeedback.vue'
+=======
+import TopLoadingBar from '@/components/TopLoadingBar.vue'
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()

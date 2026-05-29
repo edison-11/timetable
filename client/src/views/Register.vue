@@ -25,10 +25,65 @@
         </section>
 
         <template v-if="step === 'details'">
+<<<<<<< HEAD
           <div v-if="accountType === 'dos'" class="form-section">
             <div class="section-title">
               <h2>School Information</h2>
               <span>Pending approval by Super Admin</span>
+=======
+          <h2 class="form-title">Register</h2>
+
+          <div class="social-row" style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;">
+            <button type="button" class="btn btn-outline-primary" @click="startExternal('google')">Continue with Google</button>
+            <button type="button" class="btn btn-outline-secondary" @click="startExternal('microsoft')">Continue with Microsoft</button>
+          </div>
+
+          <div class="title-rule"></div>
+
+          <div class="register-field">
+            <label for="fullName" class="form-label">Full Name</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon user-icon" aria-hidden="true"></span>
+              <input
+                id="fullName"
+                v-model.trim="form.full_name"
+                type="text"
+                placeholder="Enter your full name"
+                required
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <div class="register-field">
+            <label for="email" class="form-label">Email</label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon mail-icon" aria-hidden="true"></span>
+              <input
+                id="email"
+                v-model.trim="form.email"
+                type="email"
+                placeholder="Enter your email address"
+                required
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <div class="register-grid">
+            <div class="register-field">
+              <label for="phone" class="form-label">Phone Number</label>
+              <div class="register-input-wrap plain-input">
+                <input
+                  id="phone"
+                  v-model.trim="form.phone"
+                  type="tel"
+                  placeholder="Enter phone number"
+                  required
+                  class="form-control"
+                />
+              </div>
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
             </div>
 
             <div class="form-grid">
@@ -486,6 +541,12 @@ const loadActiveSchools = async () => {
   } catch (error) {
     activeSchools.value = []
   }
+}
+
+const startExternal = (provider) => {
+  // Redirect the browser to the server OAuth start endpoint.
+  // Server route: GET /api/auth/external/:provider
+  window.location.href = `/api/auth/external/${provider}`
 }
 
 onMounted(loadActiveSchools)

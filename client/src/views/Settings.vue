@@ -178,6 +178,301 @@
             </button>
           </section>
         </aside>
+<<<<<<< HEAD
+=======
+
+        <main class="settings-content">
+          <transition name="fade-slide" mode="out-in">
+            <section v-if="activeSection === 'profile'" key="profile" class="section-grid">
+              <div class="settings-card profile-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Profile Settings</span>
+                    <h2>Personal Details</h2>
+                  </div>
+                </div>
+                <div class="profile-row">
+                  <div class="avatar-preview">
+                    <img v-if="profile.profile_photo" :src="profile.profile_photo" alt="Profile avatar" />
+                    <span v-else>{{ initials }}</span>
+                  </div>
+                  <label class="upload-btn">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                    Upload Avatar
+                    <input type="file" accept="image/*" @change="handleAvatarUpload" />
+                  </label>
+                </div>
+                <div class="form-grid two">
+                  <label class="field">
+                    <span>Full Name</span>
+                    <input v-model.trim="profile.full_name" type="text" />
+                  </label>
+                  <label class="field">
+                    <span>Email</span>
+                    <input v-model.trim="profile.email" type="email" />
+                  </label>
+                  <label class="field">
+                    <span>Phone Number</span>
+                    <input v-model.trim="profile.phone" type="tel" />
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'security'" key="security" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Security Settings</span>
+                    <h2>Password & Access</h2>
+                  </div>
+                </div>
+                <div class="form-grid two">
+                  <label class="field">
+                    <span>New Password</span>
+                    <input v-model="security.password" type="password" placeholder="Minimum 6 characters" />
+                  </label>
+                  <label class="field">
+                    <span>Confirm Password</span>
+                    <input v-model="security.confirmPassword" type="password" />
+                  </label>
+                </div>
+                <div class="security-actions">
+                  <label class="toggle-row">
+                    <input v-model="security.twoFactorEnabled" type="checkbox" />
+                    <span></span>
+                    <div>
+                      <strong>Two-factor authentication</strong>
+                      <small>Future-ready protection placeholder.</small>
+                    </div>
+                  </label>
+                  <button class="tool-btn ghost" type="button" @click="notify('Session revocation is ready for backend token tracking.', 'success')">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Logout from all devices
+                  </button>
+                </div>
+              </div>
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Login Sessions</span>
+                    <h2>Recent Sessions</h2>
+                  </div>
+                </div>
+                <div class="session-list">
+                  <div v-for="session in sessions" :key="session.id" class="session-item">
+                    <i :class="session.icon"></i>
+                    <div>
+                      <strong>{{ session.device }}</strong>
+                      <span>{{ session.location }} · {{ session.time }}</span>
+                    </div>
+                    <em>{{ session.status }}</em>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'account'" key="account" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Account Settings</span>
+                    <h2>Role & Workspace</h2>
+                  </div>
+                </div>
+                <div class="account-summary">
+                  <div><span>Role</span><strong>{{ account.role }}</strong></div>
+                  <div><span>Status</span><strong>{{ account.status }}</strong></div>
+                  <div><span>Default Dashboard</span><strong>{{ preferences.defaultView }}</strong></div>
+                </div>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'adminTools'" key="adminTools" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Admin Tools</span>
+                    <h2>Super Admin Bootstrap</h2>
+                  </div>
+                </div>
+                <div class="form-grid two">
+                  <label class="field">
+                    <span>Email</span>
+                    <input v-model.trim="superAdminForm.email" type="email" placeholder="admin@example.com" />
+                  </label>
+                  <label class="field">
+                    <span>Display Name</span>
+                    <input v-model.trim="superAdminForm.full_name" type="text" placeholder="Super Admin" />
+                  </label>
+                  <label class="field">
+                    <span>Username</span>
+                    <input v-model.trim="superAdminForm.username" type="text" placeholder="superadmin" />
+                  </label>
+                  <label class="field">
+                    <span>Phone (optional)</span>
+                    <input v-model.trim="superAdminForm.phone" type="tel" placeholder="+1234567890" />
+                  </label>
+                  <label class="field full-width">
+                    <span>Password</span>
+                    <div class="password-inline">
+                      <input v-model.trim="superAdminForm.password" type="text" placeholder="Generate or enter a secure password" />
+                      <button type="button" class="tool-btn secondary" @click="generateSuperAdminPassword">Generate</button>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                  <button class="tool-btn primary" type="button" @click="createSuperAdmin" :disabled="creatingSuperAdmin">
+                    <span v-if="creatingSuperAdmin">Creating...</span>
+                    <span v-else>Create Super Admin</span>
+                  </button>
+                  <button class="tool-btn secondary" type="button" @click="resetSuperAdminForm">Reset</button>
+                </div>
+
+                <div v-if="createdSuperAdmin" class="credentials-card mt-4">
+                  <h3>Credentials Created</h3>
+                  <p>Use these details to sign in as Super Admin.</p>
+                  <ul>
+                    <li><strong>Email:</strong> {{ createdSuperAdmin.email }}</li>
+                    <li><strong>Password:</strong> {{ createdSuperAdmin.password }}</li>
+                  </ul>
+                </div>
+
+                <div v-if="adminToolMessage" class="toast-banner warning" :class="adminToolMessageType">
+                  {{ adminToolMessage }}
+                </div>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'notifications'" key="notifications" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Notification Settings</span>
+                    <h2>Alert Channels</h2>
+                  </div>
+                </div>
+                <div class="toggle-list">
+                  <label v-for="item in notificationOptions" :key="item.key" class="switch-card">
+                    <input v-model="notifications[item.key]" type="checkbox" />
+                    <span></span>
+                    <div>
+                      <strong>{{ item.title }}</strong>
+                      <small>{{ item.description }}</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'preferences'" key="preferences" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">System Preferences</span>
+                    <h2>Default Behavior</h2>
+                  </div>
+                </div>
+                <div class="form-grid two">
+                  <label class="field">
+                    <span>Language</span>
+                    <select v-model="preferences.language">
+                      <option value="en">English</option>
+                      <option value="fr">French</option>
+                      <option value="pt">Portuguese</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Time Format</span>
+                    <select v-model="preferences.timeFormat">
+                      <option value="24h">24 hour</option>
+                      <option value="12h">12 hour</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>Default Dashboard View</span>
+                    <select v-model="preferences.defaultView">
+                      <option value="Overview">Overview</option>
+                      <option value="Timetable">Timetable</option>
+                      <option value="Teachers">Teachers</option>
+                      <option value="Reports">Reports</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'appearance'" key="appearance" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Appearance Settings</span>
+                    <h2>Theme & Density</h2>
+                  </div>
+                </div>
+                <div class="appearance-grid">
+                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="appearance.mode = 'light'">
+                    <i class="bi bi-brightness-high"></i>
+                    Light Mode
+                  </button>
+                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="appearance.mode = 'dark'">
+                    <i class="bi bi-moon"></i>
+                    Dark Mode
+                  </button>
+                </div>
+                <div class="accent-row">
+                  <span>Theme accent preview</span>
+                  <button v-for="accent in accents" :key="accent" type="button" class="accent-dot" :style="{ background: accent }" @click="appearance.accent = accent"></button>
+                </div>
+                <label class="field">
+                  <span>UI Density</span>
+                  <select v-model="preferences.uiDensity">
+                    <option value="comfortable">Comfortable</option>
+                    <option value="compact">Compact</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section v-else-if="activeSection === 'activity'" key="activity" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Activity & Logs</span>
+                    <h2>Recent Activity</h2>
+                  </div>
+                </div>
+                <div class="activity-table">
+                  <div class="activity-row head"><span>Event</span><span>User</span><span>Time</span><span>Status</span></div>
+                  <div v-for="log in activityLogs" :key="log.id" class="activity-row">
+                    <span>{{ log.event }}</span>
+                    <span>{{ log.user }}</span>
+                    <span>{{ log.time }}</span>
+                    <strong>{{ log.status }}</strong>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section v-else key="logout" class="section-grid">
+              <div class="settings-card danger-zone">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Logout Option</span>
+                    <h2>End Current Session</h2>
+                    <p>Sign out safely from this device.</p>
+                  </div>
+                </div>
+                <button class="tool-btn danger" type="button" @click="showLogoutModal = true">
+                  <i class="bi bi-box-arrow-right"></i>
+                  Logout
+                </button>
+              </div>
+            </section>
+          </transition>
+        </main>
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
       </section>
 
       <section v-else-if="activeTab === 'users'" class="panel placeholder-panel">
@@ -229,11 +524,24 @@ const logoPreviewUrl = ref('')
 const logoLoadFailed = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 
+<<<<<<< HEAD
 const tabs = [
   { id: 'general', label: 'Timetable Setup', icon: 'bi bi-calendar-week' },
   { id: 'users', label: 'Timetable Users', icon: 'bi bi-people' },
   { id: 'roles', label: 'Access Roles', icon: 'bi bi-person-lock' },
   { id: 'security', label: 'Security', icon: 'bi bi-shield-lock' }
+=======
+const navItems = [
+  { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
+  { id: 'security', label: 'Security Settings', icon: 'bi bi-shield-lock' },
+  { id: 'account', label: 'Account Settings', icon: 'bi bi-person-badge' },
+  { id: 'adminTools', label: 'Admin Tools', icon: 'bi bi-tools' },
+  { id: 'notifications', label: 'Notification Settings', icon: 'bi bi-bell' },
+  { id: 'preferences', label: 'System Preferences', icon: 'bi bi-globe2' },
+  { id: 'appearance', label: 'Appearance Settings', icon: 'bi bi-palette' },
+  { id: 'activity', label: 'Activity & Logs', icon: 'bi bi-activity' },
+  { id: 'logout', label: 'Logout Option', icon: 'bi bi-box-arrow-right' }
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
 ]
 
 const notificationOptions = [
@@ -275,6 +583,7 @@ const systemInfo = reactive({
   last_backup: new Date().toISOString()
 })
 
+<<<<<<< HEAD
 const currentUserName = computed(() => authStore.currentUser?.full_name || authStore.currentUser?.username || 'Admin')
 const currentUserEmail = computed(() => authStore.currentUser?.email || 'Not set')
 const logoSrc = computed(() => {
@@ -284,7 +593,91 @@ const visibleLogoSrc = computed(() => logoPreviewUrl.value || logoSrc.value)
 const formattedBackup = computed(() => {
   const date = new Date(systemInfo.last_backup)
   return Number.isNaN(date.getTime()) ? systemInfo.last_backup : date.toLocaleString()
+=======
+const accents = ['#2563eb', '#0891b2', '#16a34a', '#7c3aed', '#e11d48']
+
+const sessions = [
+  { id: 1, icon: 'bi bi-laptop', device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
+  { id: 2, icon: 'bi bi-phone', device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
+]
+
+const activityLogs = [
+  { id: 1, event: 'Profile settings opened', user: 'Admin', time: 'Now', status: 'Viewed' },
+  { id: 2, event: 'Timetable module updated', user: 'System', time: 'Today', status: 'Complete' },
+  { id: 3, event: 'Login session created', user: 'Admin', time: 'Recent', status: 'Success' }
+]
+
+const superAdminForm = reactive({
+  email: '',
+  full_name: '',
+  username: '',
+  phone: '',
+  password: ''
 })
+
+const createdSuperAdmin = ref(null)
+const creatingSuperAdmin = ref(false)
+const adminToolMessage = ref('')
+const adminToolMessageType = ref('success')
+
+const initials = computed(() => {
+  const name = profile.full_name || profile.email || 'A'
+  return name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
+})
+
+const generateSuperAdminPassword = () => {
+  const random = Math.random().toString(36).slice(-10)
+  superAdminForm.password = `SuperAdmin!${random.toUpperCase()}`
+}
+
+const createSuperAdmin = async () => {
+  if (!superAdminForm.email || !superAdminForm.full_name) {
+    adminToolMessageType.value = 'danger'
+    adminToolMessage.value = 'Provide both email and display name.'
+    return
+  }
+
+  if (!superAdminForm.password) {
+    generateSuperAdminPassword()
+  }
+
+  creatingSuperAdmin.value = true
+  adminToolMessage.value = ''
+
+  try {
+    const response = await api.post('/auth/create-admin', {
+      username: superAdminForm.username || superAdminForm.full_name,
+      full_name: superAdminForm.full_name,
+      email: superAdminForm.email,
+      phone: superAdminForm.phone,
+      password: superAdminForm.password
+    })
+
+    createdSuperAdmin.value = {
+      email: superAdminForm.email,
+      password: superAdminForm.password
+    }
+    adminToolMessageType.value = 'success'
+    adminToolMessage.value = 'Super Admin account created successfully.'
+  } catch (error) {
+    const message = error.response?.data?.message || 'Unable to create Super Admin.'
+    adminToolMessageType.value = 'danger'
+    adminToolMessage.value = message
+  } finally {
+    creatingSuperAdmin.value = false
+  }
+}
+
+const resetSuperAdminForm = () => {
+  superAdminForm.email = ''
+  superAdminForm.full_name = ''
+  superAdminForm.username = ''
+  superAdminForm.phone = ''
+  superAdminForm.password = ''
+  adminToolMessage.value = ''
+  createdSuperAdmin.value = null
+}
 
 const notify = (message, type = 'success') => {
   toast.message = message
@@ -467,6 +860,7 @@ onBeforeUnmount(() => {
   background: #ffffff;
 }
 
+<<<<<<< HEAD
 .general-panel {
   padding: 1.1rem 1.25rem;
 }
@@ -483,6 +877,34 @@ onBeforeUnmount(() => {
 }
 
 .panel-title {
+=======
+.credentials-card {
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.credentials-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.credentials-card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.credentials-card li:last-child {
+  border-bottom: none;
+}
+
+.card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+>>>>>>> 9029b97da280bddff03d081ceece29edd5345372
   margin-bottom: 1rem;
 }
 
