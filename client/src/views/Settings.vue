@@ -178,8 +178,6 @@
             </button>
           </section>
         </aside>
-<<<<<<< HEAD
-=======
 
         <main class="settings-content">
           <transition name="fade-slide" mode="out-in">
@@ -472,7 +470,6 @@
             </section>
           </transition>
         </main>
->>>>>>> 9029b97da280bddff03d081ceece29edd5345372
       </section>
 
       <section v-else-if="activeTab === 'users'" class="panel placeholder-panel">
@@ -524,13 +521,6 @@ const logoPreviewUrl = ref('')
 const logoLoadFailed = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 
-<<<<<<< HEAD
-const tabs = [
-  { id: 'general', label: 'Timetable Setup', icon: 'bi bi-calendar-week' },
-  { id: 'users', label: 'Timetable Users', icon: 'bi bi-people' },
-  { id: 'roles', label: 'Access Roles', icon: 'bi bi-person-lock' },
-  { id: 'security', label: 'Security', icon: 'bi bi-shield-lock' }
-=======
 const navItems = [
   { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
   { id: 'security', label: 'Security Settings', icon: 'bi bi-shield-lock' },
@@ -541,7 +531,6 @@ const navItems = [
   { id: 'appearance', label: 'Appearance Settings', icon: 'bi bi-palette' },
   { id: 'activity', label: 'Activity & Logs', icon: 'bi bi-activity' },
   { id: 'logout', label: 'Logout Option', icon: 'bi bi-box-arrow-right' }
->>>>>>> 9029b97da280bddff03d081ceece29edd5345372
 ]
 
 const notificationOptions = [
@@ -583,17 +572,6 @@ const systemInfo = reactive({
   last_backup: new Date().toISOString()
 })
 
-<<<<<<< HEAD
-const currentUserName = computed(() => authStore.currentUser?.full_name || authStore.currentUser?.username || 'Admin')
-const currentUserEmail = computed(() => authStore.currentUser?.email || 'Not set')
-const logoSrc = computed(() => {
-  return resolveAssetUrl(settings.school_logo_url)
-})
-const visibleLogoSrc = computed(() => logoPreviewUrl.value || logoSrc.value)
-const formattedBackup = computed(() => {
-  const date = new Date(systemInfo.last_backup)
-  return Number.isNaN(date.getTime()) ? systemInfo.last_backup : date.toLocaleString()
-=======
 const accents = ['#2563eb', '#0891b2', '#16a34a', '#7c3aed', '#e11d48']
 
 const sessions = [
@@ -623,7 +601,6 @@ const adminToolMessageType = ref('success')
 const initials = computed(() => {
   const name = profile.full_name || profile.email || 'A'
   return name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
->>>>>>> 9029b97da280bddff03d081ceece29edd5345372
 })
 
 const generateSuperAdminPassword = () => {
@@ -860,24 +837,6 @@ onBeforeUnmount(() => {
   background: #ffffff;
 }
 
-<<<<<<< HEAD
-.general-panel {
-  padding: 1.1rem 1.25rem;
-}
-
-.side-stack {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.info-panel,
-.notifications-panel,
-.placeholder-panel {
-  padding: 1rem;
-}
-
-.panel-title {
-=======
 .credentials-card {
   padding: 1rem;
   border: 1px solid #dbeafe;
@@ -904,7 +863,6 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
->>>>>>> 9029b97da280bddff03d081ceece29edd5345372
   margin-bottom: 1rem;
 }
 
