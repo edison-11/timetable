@@ -317,10 +317,17 @@ class Teacher {
     await pool.execute('DELETE FROM teacher WHERE teacher_id = ?', [id]);
   }
 
-  static async getActiveTeachers() {
+  static async getActiveTeachers(filters = {}) {
     await this.ensureProfileColumns();
+    const where = ['status = "active"'];
+    const values = [];
+    if (filters.school_id) {
+      where.push('school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(
-      'SELECT teacher_id, name, email, department, profile_photo FROM teacher WHERE status = "active" ORDER BY department, name'
+      `SELECT teacher_id, school_id, name, email, department, profile_photo FROM teacher WHERE ${where.join(' AND ')} ORDER BY department, name`,
+      values
     );
     return rows;
   }

@@ -42,7 +42,7 @@ const publicUser = (user, teacher = null) => ({
   status: user.status || teacher?.status || null,
   teacher_id: teacher?.teacher_id || user.teacher_id || null,
   department: teacher?.department || null,
-  status: teacher?.status || null,
+  teacher_status: teacher?.status || null,
   employee_id: teacher?.employee_id || null,
   module_name: teacher?.module_name || null
 });
@@ -58,7 +58,10 @@ const syncTeacherUser = async (teacher, password) => {
     phone: teacher.phone,
     password,
     role: 'teacher',
-    is_verified: true
+    is_verified: true,
+    profile_photo: teacher.profile_photo || null,
+    school_id: teacher.school_id || null,
+    status: teacher.status === 'active' ? 'active' : teacher.status || 'pending'
   });
 
   return User.findById(userId);
@@ -488,6 +491,7 @@ router.post('/verify-registration', [
         message: `${teacher.name} is waiting for approval.`,
         path: '/teachers',
         tone: 'green',
+        school_id: teacher.school_id || school?.school_id || null,
         recipient_role: 'dos'
       });
     }

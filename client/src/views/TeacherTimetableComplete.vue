@@ -1,15 +1,13 @@
 <template>
   <TeacherLayout>
     <div class="timetable-container">
-      <!-- Header Section -->
       <section class="timetable-header">
         <div class="header-content">
-          <h1><i class="bi bi-calendar3"></i> My Weekly Timetable</h1>
+          <h1><i class="bi bi-calendar3"></i> Timetable</h1>
           <p class="subtitle">{{ formattedWeek }}</p>
         </div>
 
         <div class="header-controls">
-          <!-- View Mode Toggle -->
           <div class="view-controls">
             <button
               class="view-btn"
@@ -29,26 +27,12 @@
               <i class="bi bi-calendar-day"></i>
               <span>Day</span>
             </button>
-            <button
-              class="view-btn"
-              :class="{ active: viewMode === 'compact' }"
-              @click="viewMode = 'compact'"
-              title="Compact View"
-            >
-              <i class="bi bi-zoom-in"></i>
-              <span>Compact</span>
-            </button>
           </div>
 
-          <!-- Action Buttons -->
           <div class="action-controls">
             <button class="action-btn filter-btn" @click="showFilters = !showFilters" title="Filters">
               <i class="bi bi-funnel"></i>
-              <span>Filters</span>
-            </button>
-            <button class="action-btn free-toggle-btn" :class="{ active: !showFreeSlots }" @click="showFreeSlots = !showFreeSlots" title="Toggle free periods">
-              <i class="bi bi-eye-slash"></i>
-              <span>{{ showFreeSlots ? 'Hide Free' : 'Show Free' }}</span>
+              <span>Filter</span>
             </button>
             <button class="action-btn print-btn" @click="printTimetable" title="Print">
               <i class="bi bi-printer"></i>
@@ -57,11 +41,7 @@
             <select v-model="exportFormat" class="export-select" aria-label="Download format">
               <option value="csv">CSV</option>
               <option value="xls">Excel</option>
-              <option value="doc">Word</option>
               <option value="pdf">PDF</option>
-              <option value="json">JSON</option>
-              <option value="txt">Text</option>
-              <option value="html">HTML</option>
             </select>
             <button class="action-btn download-btn" @click="downloadTimetable(exportFormat)" title="Download">
               <i class="bi bi-download"></i>
@@ -71,7 +51,32 @@
         </div>
       </section>
 
-      <!-- Filters Panel -->
+      <section class="timetable-summary" aria-label="Timetable summary">
+        <article>
+          <span>Lessons</span>
+          <strong>{{ totalLessons }}</strong>
+          <small>This week</small>
+        </article>
+        <article>
+          <span>Classes</span>
+          <strong>{{ classes.length }}</strong>
+          <small>{{ classSummary }}</small>
+        </article>
+        <article>
+          <span>Today</span>
+          <strong>{{ todayLessons.length }}</strong>
+          <small>{{ todayName || 'No school day' }}</small>
+        </article>
+        <article>
+          <span>Next</span>
+          <strong>{{ nextLesson ? nextLesson.time : 'Clear' }}</strong>
+          <small>{{ nextLesson ? `${nextLesson.subject} · ${nextLesson.class}` : 'No lesson found' }}</small>
+        </article>
+      </section>
+
+      <div v-if="loading" class="state-panel">Loading timetable...</div>
+      <div v-else-if="loadError" class="state-panel error">{{ loadError }}</div>
+
       <section v-if="showFilters" class="filters-panel">
         <div class="filter-group">
           <label>Filter by Day</label>
@@ -98,19 +103,18 @@
         <div class="filter-group checkbox-group">
           <label class="checkbox-label">
             <input type="checkbox" v-model="showBreaks" />
-            <span>Show breaks and lunch</span>
+            <span>Breaks</span>
           </label>
           <label class="checkbox-label">
             <input type="checkbox" v-model="showFreeSlots" />
-            <span>Show free periods</span>
+            <span>Free periods</span>
           </label>
         </div>
 
-        <button class="reset-btn" @click="resetFilters">Reset Filters</button>
+        <button class="reset-btn" @click="resetFilters">Reset</button>
       </section>
 
-      <!-- Weekly Timetable View -->
-      <section v-if="viewMode === 'week'" class="timetable-section">
+      <section v-if="!loading && !loadError && viewMode === 'week'" class="timetable-section">
         <div class="timetable-wrapper">
           <table class="timetable-grid">
             <!-- Table Header -->
@@ -198,8 +202,7 @@
         </div>
       </section>
 
-      <!-- Day View -->
-      <section v-else-if="viewMode === 'day'" class="day-view-section">
+      <section v-else-if="!loading && !loadError && viewMode === 'day'" class="day-view-section">
         <div class="day-selector">
           <button
             v-for="day in days"
@@ -216,7 +219,7 @@
           <div v-if="getDayLessons(selectedDayView).length === 0" class="empty-day">
             <i class="bi bi-calendar-check"></i>
             <h3>No classes on {{ selectedDayView }}</h3>
-            <p>You have a free day!</p>
+            <p>Free day.</p>
           </div>
 
           <div v-else class="day-lessons">
@@ -239,30 +242,10 @@
                 </p>
                 <div class="day-lesson-actions">
                   <button @click="showLessonDetails(lesson)">Details</button>
-                  <button @click="requestChange(lesson)">Request Change</button>
+                  <button @click="requestChange(lesson)">Request</button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      <!-- Compact View -->
-      <section v-else-if="viewMode === 'compact'" class="compact-view-section">
-        <div class="compact-timetable">
-          <div
-            v-for="lesson in allLessons"
-            :key="lesson.id"
-            class="compact-lesson-item"
-            :style="{ borderLeftColor: lesson.color }"
-          >
-            <div class="compact-day-time">
-              <span class="compact-day">{{ lesson.day }}</span>
-              <span class="compact-time">{{ lesson.time }}</span>
-            </div>
-            <div class="compact-details">
-              <strong>{{ lesson.subject }}</strong>
-              <small>{{ lesson.class }} • {{ lesson.room }}</small>
             </div>
           </div>
         </div>
@@ -299,7 +282,7 @@
 
           <div class="modal-actions">
             <button @click="requestChange(selectedLesson)" class="btn-primary">
-              <i class="bi bi-pencil"></i> Request Change
+              <i class="bi bi-pencil"></i> Request
             </button>
             <button @click="showDetailsModal = false" class="btn-secondary">
               <i class="bi bi-x"></i> Close
@@ -380,6 +363,8 @@ const toLesson = (entry) => {
     color: isSharedActivity ? '#16a34a' : getSubjectColor(entry.module_name),
     duration: formatTimeRange(entry.start_time, entry.end_time),
     time: formatTimeRange(entry.start_time, entry.end_time),
+    start_time: entry.start_time,
+    end_time: entry.end_time,
     day: entry.day_of_week
   }
 }
@@ -390,6 +375,12 @@ const classes = computed(() => {
     if (entry.class_name) names.add(entry.class_name)
   })
   return Array.from(names).sort()
+})
+
+const classSummary = computed(() => {
+  if (!classes.value.length) return 'No classes'
+  if (classes.value.length <= 2) return classes.value.join(', ')
+  return `${classes.value.slice(0, 2).join(', ')} +${classes.value.length - 2}`
 })
 
 const formattedWeek = computed(() => {
@@ -430,6 +421,21 @@ const allLessons = computed(() => {
     }
   })
   return lessons
+})
+
+const todayName = computed(() => getSchoolDayName(new Date()) || '')
+
+const totalLessons = computed(() => allLessons.value.length)
+
+const todayLessons = computed(() => allLessons.value.filter((lesson) => lesson.day === todayName.value))
+
+const nextLesson = computed(() => {
+  const nowDay = todayName.value
+  const nowTime = normalizeTime(new Date().toTimeString())
+  return allLessons.value.find((lesson) => {
+    if (lesson.day !== nowDay) return true
+    return normalizeTime(lesson.start_time) >= nowTime
+  }) || null
 })
 
 const getDayDate = (day) => {
@@ -740,6 +746,69 @@ onMounted(async () => {
   color: #9ca3af;
   margin: 0;
   font-size: 0.95rem;
+}
+
+.timetable-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.timetable-summary article {
+  min-width: 0;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.timetable-summary span,
+.timetable-summary strong,
+.timetable-summary small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timetable-summary span {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.timetable-summary strong {
+  margin-top: 0.2rem;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 850;
+}
+
+.timetable-summary small {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-weight: 650;
+}
+
+.state-panel {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+  text-align: center;
+}
+
+.state-panel.error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .header-controls {
@@ -1415,76 +1484,6 @@ onMounted(async () => {
   border-color: #2563eb;
 }
 
-/* Compact View */
-.compact-view-section {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  padding: 1.5rem;
-}
-
-.compact-timetable {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.compact-lesson-item {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border-left: 4px solid;
-  transition: all 0.3s ease;
-}
-
-.compact-lesson-item:hover {
-  background: #f3f4f6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.compact-day-time {
-  display: flex;
-  flex-direction: column;
-  min-width: 80px;
-  text-align: center;
-  background: white;
-  padding: 0.5rem;
-  border-radius: 6px;
-}
-
-.compact-day {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #9ca3af;
-}
-
-.compact-time {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #111827;
-}
-
-.compact-details {
-  flex: 1;
-}
-
-.compact-details strong {
-  display: block;
-  color: #111827;
-  margin-bottom: 0.35rem;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.compact-details small {
-  color: #374151;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -1613,6 +1612,10 @@ onMounted(async () => {
   .action-controls {
     width: 100%;
   }
+
+  .timetable-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
@@ -1653,6 +1656,10 @@ onMounted(async () => {
 
   .view-btn span {
     display: none;
+  }
+
+  .timetable-summary {
+    grid-template-columns: 1fr;
   }
 }
 

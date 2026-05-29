@@ -1,6 +1,7 @@
 const express = require('express');
 const Notification = require('../models/Notification');
 const Teacher = require('../models/Teacher');
+const School = require('../models/School');
 const { auth } = require('../middleware/auth');
 const { getRequestSchoolId } = require('../utils/tenant');
 
@@ -10,9 +11,11 @@ router.get('/', auth, async (req, res) => {
   try {
     const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
     const school_id = getRequestSchoolId(req) || req.user?.school_id || null;
-    const [notifications, pendingTeachers] = await Promise.all([
+    const isSuperAdmin = req.user?.role === 'super_admin';
+    const [notifications, pendingTeachers, pendingSchools] = await Promise.all([
       Notification.getRecent(limit, { school_id, recipient_role: req.user?.role }),
-      Teacher.getByStatus('pending', { school_id })
+      isSuperAdmin ? [] : Teacher.getByStatus('pending', { school_id }),
+      isSuperAdmin ? School.getAll({ status: 'pending_approval' }) : []
     ]);
 
     const pendingNotifications = pendingTeachers.map((teacher) => ({
@@ -28,7 +31,24 @@ router.get('/', auth, async (req, res) => {
       entity_id: teacher.teacher_id
     }));
 
-    const savedNotifications = notifications.map((notification) => ({
+    const pendingSchoolNotifications = pendingSchools.map((school) => ({
+      id: `pending-school-${school.school_id}`,
+      type: 'school_pending',
+      title: `School pending approval: ${school.school_name}`,
+      message: `${school.dos_name || school.school_email} submitted ${school.school_name} for review.`,
+      path: '/super-admin/schools',
+      tone: 'amber',
+      created_at: school.created_at,
+      action_required: true,
+      entity_type: 'school',
+      entity_id: school.school_id
+    }));
+
+    const visibleNotifications = isSuperAdmin
+      ? notifications.filter((notification) => !String(notification.type || '').startsWith('teacher_'))
+      : notifications;
+
+    const savedNotifications = visibleNotifications.map((notification) => ({
       id: notification.notification_id,
       type: notification.type,
       title: notification.title,
@@ -39,7 +59,7 @@ router.get('/', auth, async (req, res) => {
       action_required: false
     }));
 
-    const combinedNotifications = [...pendingNotifications, ...savedNotifications]
+    const combinedNotifications = [...pendingSchoolNotifications, ...pendingNotifications, ...savedNotifications]
       .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
       .slice(0, limit);
 

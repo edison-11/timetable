@@ -84,8 +84,8 @@
               <em v-if="notification.message">{{ notification.message }}</em>
               <small>{{ notification.time }}</small>
               <span v-if="notification.action_required" class="notification-actions" @click.stop>
-                <button type="button" class="approve-action" @click="approvePendingTeacher(notification)">Approve</button>
-                <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
+                <button type="button" class="approve-action" @click="approvePendingItem(notification)">Approve</button>
+                <button type="button" class="reject-action" @click="rejectPendingItem(notification)">Reject</button>
               </span>
             </span>
             <span
@@ -155,13 +155,13 @@
   <ConfirmModal
     v-model="rejectDialog.open"
     title="Reject Registration"
-    :description="`Reject ${rejectDialog.notification?.title || 'this teacher registration request'}?`"
+    :description="`Reject ${rejectDialog.notification?.title || 'this registration request'}?`"
     confirm-label="Reject"
     cancel-label="Cancel"
     loading-label="Rejecting..."
     :loading="rejectDialog.loading"
     danger
-    @confirm="confirmRejectPendingTeacher"
+    @confirm="confirmRejectPendingItem"
   />
 </template>
 
@@ -188,6 +188,7 @@ const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNot
 const unreadCount = computed(() => notifications.value.filter(item => !item.read).length)
 const currentUser = computed(() => authStore.currentUser || {})
 const isTeacherAccount = computed(() => authStore.currentUserType === 'teacher')
+const isSuperAdminAccount = computed(() => authStore.currentUserType === 'super_admin' || currentUser.value?.role === 'super_admin')
 const currentUserName = computed(() => currentUser.value.name || currentUser.value.username || 'Admin')
 const currentUserEmail = computed(() => currentUser.value.email || 'No email set')
 const profileInitials = computed(() => {
@@ -199,7 +200,6 @@ const profileImageUrl = computed(() => resolveAssetUrl(currentUser.value.profile
 const resolveAssetUrl = (path) => {
   if (!path) return ''
   if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path
-  if (path.startsWith('/uploads/')) return path
 
   const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
   return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
@@ -339,42 +339,67 @@ const openNotification = (notification) => {
   router.push(notification.path)
 }
 
-const approvePendingTeacher = async (notification) => {
+const getPendingEndpoint = (notification, action) => {
+  if (!notification?.entity_id) return ''
+  if (notification.entity_type === 'school' || notification.type === 'school_pending') {
+    return `/schools/${notification.entity_id}/${action}`
+  }
+  if (notification.entity_type === 'teacher' || notification.type === 'teacher_pending') {
+    return action === 'approve'
+      ? `/teachers/${notification.entity_id}/approve`
+      : `/teachers/${notification.entity_id}/reject`
+  }
+  return ''
+}
+
+const approvePendingItem = async (notification) => {
   if (!notification.entity_id) return
+  const endpoint = getPendingEndpoint(notification, 'approve')
+  if (!endpoint) return
   try {
-    await api.put(`/teachers/${notification.entity_id}/approve`)
+    await api.put(endpoint)
     await fetchNotifications()
     // Success is indicated by notification refresh
   } catch (error) {
-    console.error('Failed to approve teacher:', error)
-    alert('Failed to approve teacher. Please try again.')
+    console.error('Failed to approve registration:', error)
+    alert('Failed to approve registration. Please try again.')
   }
 }
 
-const rejectPendingTeacher = async (notification) => {
+const rejectPendingItem = async (notification) => {
   if (!notification.entity_id) return
   rejectDialog.value = { open: true, notification, loading: false }
 }
 
-const confirmRejectPendingTeacher = async () => {
+const confirmRejectPendingItem = async () => {
   const notification = rejectDialog.value.notification
   if (!notification?.entity_id) return
+  const endpoint = getPendingEndpoint(notification, 'reject')
+  if (!endpoint) return
 
   rejectDialog.value.loading = true
   try {
-    await api.delete(`/teachers/${notification.entity_id}/reject`)
+    if (notification.entity_type === 'school' || notification.type === 'school_pending') {
+      await api.put(endpoint)
+    } else {
+      await api.delete(endpoint)
+    }
     rejectDialog.value = { open: false, notification: null, loading: false }
     await fetchNotifications()
   } catch (error) {
-    console.error('Failed to reject teacher:', error)
-    alert('Failed to reject teacher. Please try again.')
+    console.error('Failed to reject registration:', error)
+    alert('Failed to reject registration. Please try again.')
     rejectDialog.value.loading = false
   }
 }
 
 const goToDashboardNotifications = () => {
   showNotifications.value = false
-  router.push({ path: '/dashboard', hash: '#notifications' })
+  if (isSuperAdminAccount.value) {
+    router.push('/super-admin/schools')
+  } else {
+    router.push({ path: '/dashboard', hash: '#notifications' })
+  }
 }
 
 const toggleAccountMenu = () => {

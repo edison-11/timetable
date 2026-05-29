@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useLoadingStore } from '@/stores/loading'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -211,8 +212,13 @@ const router = createRouter({
 // Navigation guards
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+  const loadingStore = useLoadingStore()
   const token = localStorage.getItem('token')
   const userType = localStorage.getItem('userType')
+
+  if (to.fullPath !== from.fullPath) {
+    loadingStore.startRoute()
+  }
   
   // Simple authentication check
   const isAuthenticated = !!token
@@ -281,6 +287,14 @@ router.beforeEach(async (to, from, next) => {
   } else {
     next()
   }
+})
+
+router.afterEach(() => {
+  useLoadingStore().finishRoute()
+})
+
+router.onError(() => {
+  useLoadingStore().finishRoute()
 })
 
 export default router

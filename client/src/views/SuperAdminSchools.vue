@@ -3,8 +3,8 @@
     <div class="schools-page">
       <header class="page-header">
         <div>
-          <h1>School Approvals</h1>
-          <p>Review Director of Studies registrations and control school activation.</p>
+          <h1>Schools</h1>
+          <p>Approve DOS registrations and monitor school setup without exposing teacher records.</p>
         </div>
         <div class="filters">
           <input v-model.trim="search" type="search" placeholder="Search schools">
@@ -36,7 +36,8 @@
               <tr>
                 <th>School</th>
                 <th>DOS</th>
-                <th>Registration</th>
+                <th>Codes</th>
+                <th>Setup</th>
                 <th>Status</th>
                 <th>Submitted</th>
                 <th>Actions</th>
@@ -50,9 +51,20 @@
                 </td>
                 <td>
                   <strong>{{ school.dos_name || 'Not assigned' }}</strong>
-                  <small>{{ school.dos_phone || school.dos_email || 'No contact' }}</small>
+                  <small>{{ school.dos_status ? statusLabel(school.dos_status) : 'No DOS status' }}</small>
                 </td>
-                <td>{{ school.registration_number }}</td>
+                <td>
+                  <strong>{{ school.school_code || 'No code' }}</strong>
+                  <small>{{ school.registration_number }}</small>
+                </td>
+                <td>
+                  <div class="setup-grid">
+                    <span>{{ school.teacher_count || 0 }} teachers</span>
+                    <span>{{ school.student_count || 0 }} students</span>
+                    <span>{{ school.class_count || 0 }} classes</span>
+                    <span>{{ school.timetable_entry_count || 0 }} timetable rows</span>
+                  </div>
+                </td>
                 <td><span class="status" :class="school.status">{{ statusLabel(school.status) }}</span></td>
                 <td>{{ formatDate(school.created_at) }}</td>
                 <td>
@@ -86,10 +98,10 @@ const loading = ref(false)
 const filteredSchools = computed(() => schools.value)
 
 const summaryCards = computed(() => [
-  { label: 'Total Registered Schools', value: schools.value.length },
-  { label: 'Pending School Approvals', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)).length },
+  { label: 'Schools', value: schools.value.length },
+  { label: 'Pending DOS', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)).length },
   { label: 'Active Schools', value: schools.value.filter((school) => school.status === 'active').length },
-  { label: 'Suspended/Deactivated', value: schools.value.filter((school) => ['suspended', 'deactivated', 'rejected'].includes(school.status)).length }
+  { label: 'Teachers Counted', value: schools.value.reduce((sum, school) => sum + Number(school.teacher_count || 0), 0) }
 ])
 
 const statusLabel = (value) => {
@@ -270,6 +282,22 @@ td small {
 td small {
   color: #64748b;
   margin-top: 0.15rem;
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  min-width: 210px;
+}
+
+.setup-grid span {
+  padding: 0.28rem 0.45rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 800;
 }
 
 .status {

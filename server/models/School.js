@@ -204,6 +204,7 @@ class School {
 
   static async getAll(filters = {}) {
     await this.ensureSchema();
+    await this.ensureTenantColumns();
     const where = ['s.deleted_at IS NULL'];
     const values = [];
 
@@ -225,7 +226,15 @@ class School {
         dos.full_name AS dos_name,
         dos.email AS dos_email,
         dos.phone AS dos_phone,
-        dos.status AS dos_status
+        dos.status AS dos_status,
+        (SELECT COUNT(*) FROM teacher t WHERE t.school_id = s.school_id) AS teacher_count,
+        (SELECT COUNT(*) FROM teacher t WHERE t.school_id = s.school_id AND t.status = 'active') AS active_teacher_count,
+        (SELECT COUNT(*) FROM teacher t WHERE t.school_id = s.school_id AND t.status = 'pending') AS pending_teacher_count,
+        (SELECT COUNT(*) FROM student st WHERE st.school_id = s.school_id) AS student_count,
+        (SELECT COUNT(*) FROM class c WHERE c.school_id = s.school_id) AS class_count,
+        (SELECT COUNT(*) FROM module m WHERE m.school_id = s.school_id) AS subject_count,
+        (SELECT COUNT(*) FROM room r WHERE r.school_id = s.school_id) AS room_count,
+        (SELECT COUNT(*) FROM timetable tt WHERE tt.school_id = s.school_id) AS timetable_entry_count
       FROM schools s
       LEFT JOIN directors_of_studies dos ON dos.school_id = s.school_id AND dos.deleted_at IS NULL
       WHERE ${where.join(' AND ')}

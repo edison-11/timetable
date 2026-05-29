@@ -231,8 +231,8 @@
                 <span v-if="notification.message">{{ notification.message }}</span>
                 <small>{{ notification.time }}</small>
                 <div v-if="notification.action_required" class="notification-actions" @click.stop>
-                  <button type="button" class="approve-action" @click="approvePendingTeacher(notification)">Approve</button>
-                  <button type="button" class="reject-action" @click="rejectPendingTeacher(notification)">Reject</button>
+                  <button type="button" class="approve-action" @click="approvePendingItem(notification)">Approve</button>
+                  <button type="button" class="reject-action" @click="rejectPendingItem(notification)">Reject</button>
                 </div>
               </div>
               <span class="notification-remove" @click.stop="deleteNotification(notification)">
@@ -253,13 +253,13 @@
       <ConfirmModal
         v-model="rejectDialog.open"
         title="Reject Registration"
-        description="Reject this teacher registration request?"
+        :description="`Reject ${rejectDialog.notification?.title || 'this registration request'}?`"
         confirm-label="Reject"
         cancel-label="Cancel"
         loading-label="Rejecting..."
         :loading="rejectDialog.loading"
         danger
-        @confirm="confirmRejectPendingTeacher"
+        @confirm="confirmRejectPendingItem"
       />
     </div>
   </AppLayout>
@@ -536,24 +536,45 @@ const openNotification = (notification) => {
   }
 }
 
-const approvePendingTeacher = async (notification) => {
+const getPendingEndpoint = (notification, action) => {
+  if (!notification?.entity_id) return ''
+  if (notification.entity_type === 'school' || notification.type === 'school_pending') {
+    return `/schools/${notification.entity_id}/${action}`
+  }
+  if (notification.entity_type === 'teacher' || notification.type === 'teacher_pending') {
+    return action === 'approve'
+      ? `/teachers/${notification.entity_id}/approve`
+      : `/teachers/${notification.entity_id}/reject`
+  }
+  return ''
+}
+
+const approvePendingItem = async (notification) => {
   if (!notification.entity_id) return
-  await api.put(`/teachers/${notification.entity_id}/approve`)
+  const endpoint = getPendingEndpoint(notification, 'approve')
+  if (!endpoint) return
+  await api.put(endpoint)
   await loadNotifications()
 }
 
-const rejectPendingTeacher = async (notification) => {
+const rejectPendingItem = async (notification) => {
   if (!notification.entity_id) return
   rejectDialog.value = { open: true, notification, loading: false }
 }
 
-const confirmRejectPendingTeacher = async () => {
+const confirmRejectPendingItem = async () => {
   const notification = rejectDialog.value.notification
   if (!notification?.entity_id) return
+  const endpoint = getPendingEndpoint(notification, 'reject')
+  if (!endpoint) return
 
   rejectDialog.value.loading = true
   try {
-    await api.delete(`/teachers/${notification.entity_id}/reject`)
+    if (notification.entity_type === 'school' || notification.type === 'school_pending') {
+      await api.put(endpoint)
+    } else {
+      await api.delete(endpoint)
+    }
     rejectDialog.value = { open: false, notification: null, loading: false }
     await loadNotifications()
   } finally {

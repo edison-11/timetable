@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { adminAuth } = require('../middleware/adminAuth');
+const { requireSchoolAdmin } = require('../middleware/rbac');
 
 const router = express.Router();
 
@@ -43,7 +44,9 @@ router.post('/register', [
       title: `New teacher registered: ${teacher.name}`,
       message: `${teacher.name} is waiting for review in the teachers list.`,
       path: '/teachers',
-      tone: 'green'
+      tone: 'green',
+      school_id: teacher.school_id || schoolId || null,
+      recipient_role: 'dos'
     });
 
     const token = generateToken(teacherId);
@@ -115,6 +118,9 @@ router.get('/me', auth, async (req, res) => {
 // Get all teachers
 router.get('/', auth, async (req, res) => {
   try {
+    if (req.user?.role === 'super_admin') {
+      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
+    }
     const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
     const teachers = await Teacher.getAll({ school_id: schoolFilter });
     res.json({ teachers });
@@ -127,6 +133,9 @@ router.get('/', auth, async (req, res) => {
 // Get teachers by status
 router.get('/status/:status', auth, async (req, res) => {
   try {
+    if (req.user?.role === 'super_admin') {
+      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
+    }
     const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
     const teachers = await Teacher.getByStatus(req.params.status, { school_id: schoolFilter });
     res.json({ teachers });
@@ -139,7 +148,10 @@ router.get('/status/:status', auth, async (req, res) => {
 // Get active teachers
 router.get('/active', auth, async (req, res) => {
   try {
-    const teachers = await Teacher.getActiveTeachers();
+    if (req.user?.role === 'super_admin') {
+      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
+    }
+    const teachers = await Teacher.getActiveTeachers({ school_id: req.user?.school_id });
     res.json({ teachers });
   } catch (error) {
     console.error(error);
@@ -150,6 +162,9 @@ router.get('/active', auth, async (req, res) => {
 // Get pending teachers
 router.get('/pending', auth, async (req, res) => {
   try {
+    if (req.user?.role === 'super_admin') {
+      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
+    }
     const schoolFilter = req.user?.role === 'super_admin' ? null : req.user?.school_id;
     const pendingTeachers = await Teacher.getByStatus('pending', { school_id: schoolFilter });
     res.json({ pendingTeachers });
@@ -173,6 +188,9 @@ router.get('/pending-test', async (req, res) => {
 // Get teacher by ID
 router.get('/:id', auth, async (req, res) => {
   try {
+    if (req.user?.role === 'super_admin') {
+      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
+    }
     const teacher = await Teacher.findById(req.params.id);
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
@@ -301,13 +319,13 @@ router.put('/:id/approve-test', async (req, res) => {
 });
 
 // Approve teacher
-router.put('/:id/approve', adminAuth, async (req, res) => {
+router.put('/:id/approve', adminAuth, requireSchoolAdmin, async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.params.id);
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
     }
-    if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
+    if (req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
       return res.status(403).json({ message: 'Teacher belongs to another school' });
     }
 
@@ -338,11 +356,14 @@ router.put('/:id/approve', adminAuth, async (req, res) => {
 });
 
 // Reject teacher
-router.delete('/:id/reject', adminAuth, async (req, res) => {
+router.delete('/:id/reject', adminAuth, requireSchoolAdmin, async (req, res) => {
   try {
     const teacher = await Teacher.findById(req.params.id);
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
+    }
+    if (req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
     }
 
     if (teacher.status !== 'pending') {

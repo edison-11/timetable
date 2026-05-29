@@ -60,13 +60,6 @@
         </div>
 
         <div class="navbar-right">
-          <div class="search-container">
-            <input v-model="searchQuery" type="search" placeholder="Search teacher tools..." @keyup.enter="runSearch">
-            <span class="search-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
-            </span>
-          </div>
-
           <div class="notifications-container" ref="notificationsMenu">
             <button
               class="icon-button"
@@ -119,10 +112,9 @@
                 <strong>{{ teacherName }}</strong>
                 <span>{{ teacherEmail }}</span>
               </div>
-              <router-link to="/teacher/profile" class="dropdown-item" @click="showProfileDropdown = false">My Profile</router-link>
-              <router-link to="/teacher/timetable" class="dropdown-item" @click="showProfileDropdown = false">My Timetable</router-link>
+              <router-link to="/teacher/profile" class="dropdown-item" @click="showProfileDropdown = false">Profile</router-link>
+              <router-link to="/teacher/timetable" class="dropdown-item" @click="showProfileDropdown = false">Timetable</router-link>
               <router-link to="/teacher/requests" class="dropdown-item" @click="showProfileDropdown = false">Requests</router-link>
-              <router-link to="/teacher/announcements" class="dropdown-item" @click="showProfileDropdown = false">Announcements</router-link>
               <button type="button" class="dropdown-item danger" @click="logout">Logout</button>
             </div>
           </div>
@@ -159,7 +151,6 @@ const logoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
 
 const sidebarOpen = ref(false)
 const isDarkMode = ref(false)
-const searchQuery = ref('')
 const showNotifications = ref(false)
 const showProfileDropdown = ref(false)
 const notificationsMenu = ref(null)
@@ -192,9 +183,11 @@ const getInitials = computed(() => {
 const pageTitle = computed(() => {
   const routeTitle = {
     TeacherDashboard: 'Dashboard',
-    TeacherTimetable: 'My Timetable',
-    TeacherAttendance: 'Student Attendance',
-    TeacherProfile: 'My Profile',
+    TeacherTimetable: 'Timetable',
+    TeacherAttendance: 'Attendance',
+    TeacherProfile: 'Profile',
+    TeacherRequests: 'Requests',
+    TeacherAnnouncements: 'Announcements',
     TeacherSettings: 'Settings'
   }
   return routeTitle[route.name] || 'Teacher Portal'
@@ -202,11 +195,13 @@ const pageTitle = computed(() => {
 
 const pageSubtitle = computed(() => {
   const subtitles = {
-    TeacherDashboard: 'Your teaching day, classes, and quick actions.',
-    TeacherTimetable: 'Review your weekly lessons and export your schedule.',
-    TeacherAttendance: 'View class lists and mark attendance by study period.',
-    TeacherProfile: 'Manage your teacher information.',
-    TeacherSettings: 'Update preferences, availability, and security.'
+    TeacherDashboard: 'Today, next lesson, and open slots.',
+    TeacherTimetable: 'Weekly lessons, filters, and exports.',
+    TeacherAttendance: 'Class attendance by period.',
+    TeacherProfile: 'Your teacher details.',
+    TeacherRequests: 'Timetable change requests.',
+    TeacherAnnouncements: 'School updates.',
+    TeacherSettings: 'Availability and security.'
   }
   return subtitles[route.name] || 'Teacher workspace'
 })
@@ -214,9 +209,11 @@ const pageSubtitle = computed(() => {
 const breadcrumbs = computed(() => {
   const breadcrumbMap = {
     TeacherDashboard: [],
-    TeacherTimetable: [{ label: 'My Timetable', to: '/teacher/timetable' }],
-    TeacherAttendance: [{ label: 'Student Attendance', to: '/teacher/attendance' }],
-    TeacherProfile: [{ label: 'My Profile', to: '/teacher/profile' }],
+    TeacherTimetable: [{ label: 'Timetable', to: '/teacher/timetable' }],
+    TeacherAttendance: [{ label: 'Attendance', to: '/teacher/attendance' }],
+    TeacherProfile: [{ label: 'Profile', to: '/teacher/profile' }],
+    TeacherRequests: [{ label: 'Requests', to: '/teacher/requests' }],
+    TeacherAnnouncements: [{ label: 'Announcements', to: '/teacher/announcements' }],
     TeacherSettings: [{ label: 'Settings', to: '/teacher/settings' }]
   }
 
@@ -227,8 +224,7 @@ const icons = {
   dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
   timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
   attendance: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-5"/><path d="M5 4h14v16H5z"/><path d="M8 17h8"/></svg>',
-  classes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 0 4 22v-3Z"/><path d="M8 8h8"/><path d="M8 12h6"/></svg>',
-  marks: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7h8M8 12h8M8 17h5"/><path d="M5 3h14v18H5z"/></svg>',
+  requests: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.5 3 4l4 8-4 8 18-7.5Z"/><path d="M7 12h8"/></svg>',
   announcements: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11v2a2 2 0 0 0 2 2h2l5 4V5L8 9H6a2 2 0 0 0-2 2Z"/><path d="M17 9a3 3 0 0 1 0 6"/></svg>',
   profile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg>',
   settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
@@ -236,12 +232,11 @@ const icons = {
 
 const navItems = [
   { label: 'Dashboard', to: '/teacher/dashboard', icon: icons.dashboard },
-  { label: 'My Timetable', to: '/teacher/timetable', icon: icons.timetable },
-  { label: 'My Classes', to: '/teacher/dashboard#classes', icon: icons.classes },
+  { label: 'Timetable', to: '/teacher/timetable', icon: icons.timetable },
   { label: 'Attendance', to: '/teacher/attendance', icon: icons.attendance },
-  { label: 'Marks', to: '/teacher/requests', icon: icons.marks },
+  { label: 'Requests', to: '/teacher/requests', icon: icons.requests },
   { label: 'Announcements', to: '/teacher/announcements', icon: icons.announcements },
-  { label: 'My Profile', to: '/teacher/profile', icon: icons.profile },
+  { label: 'Profile', to: '/teacher/profile', icon: icons.profile },
   { label: 'Settings', to: '/teacher/settings', icon: icons.settings }
 ]
 
@@ -250,7 +245,6 @@ const isActive = (path) => String(path).includes('#') ? route.fullPath === path 
 const resolveAssetUrl = (path) => {
   if (!path) return ''
   if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path
-  if (path.startsWith('/uploads/')) return path
   const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
   return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
 }
@@ -269,14 +263,6 @@ const toggleSidebar = () => {
   }
 
   document.body.classList.toggle('teacher-sidebar-collapsed')
-}
-
-const runSearch = () => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return
-
-  const destination = navItems.find(item => item.label.toLowerCase().includes(query))
-  if (destination) router.push(destination.to)
 }
 
 const toggleNotifications = () => {

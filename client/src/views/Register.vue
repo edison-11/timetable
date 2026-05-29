@@ -12,9 +12,12 @@
         <template v-if="step === 'details'">
           <h2 class="form-title">Register</h2>
 
-          <div class="social-row" style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;">
-            <button type="button" class="btn btn-outline-primary" @click="startExternal('google')">Continue with Google</button>
-            <button type="button" class="btn btn-outline-secondary" @click="startExternal('microsoft')">Continue with Microsoft</button>
+          <div class="register-context">
+            <div>
+              <strong>Teacher Account</strong>
+              <span>Join an approved school and wait for DOS approval.</span>
+            </div>
+            <router-link to="/dos/register">Register a School</router-link>
           </div>
 
           <div class="title-rule"></div>
@@ -530,12 +533,6 @@ const loadActiveSchools = async () => {
   }
 }
 
-const startExternal = (provider) => {
-  // Redirect the browser to the server OAuth start endpoint.
-  // Server route: GET /api/auth/external/:provider
-  window.location.href = `/api/auth/external/${provider}`
-}
-
 onMounted(loadActiveSchools)
 </script>
 
@@ -619,6 +616,45 @@ onMounted(loadActiveSchools)
   text-align: center;
   font-size: 1.85rem;
   font-weight: 800;
+}
+
+.register-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.register-context div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.register-context strong {
+  color: #1e3a8a;
+  font-size: 0.92rem;
+}
+
+.register-context span {
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.register-context a {
+  flex: 0 0 auto;
+  padding: 0.48rem 0.65rem;
+  border-radius: 7px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-decoration: none;
 }
 
 .title-rule {
@@ -981,7 +1017,8 @@ onMounted(loadActiveSchools)
   }
 
   .login-row,
-  .terms-row {
+  .terms-row,
+  .register-context {
     flex-wrap: wrap;
   }
 

@@ -243,6 +243,48 @@ class User {
     return this.normalize(rows[0] || null);
   }
 
+  static async updateProfile(id, data = {}) {
+    await this.ensureAuthColumns();
+
+    const assignments = [];
+    const values = [];
+    const displayName = data.full_name || data.username;
+
+    if (displayName !== undefined) {
+      assignments.push('username = ?', 'full_name = ?');
+      values.push(displayName, displayName);
+      if (await this.columnExists('name')) {
+        assignments.push('name = ?');
+        values.push(displayName);
+      }
+    }
+    if (data.email !== undefined) {
+      assignments.push('email = ?');
+      values.push(data.email);
+    }
+    if (data.phone !== undefined) {
+      assignments.push('phone = ?');
+      values.push(data.phone || null);
+    }
+    if (data.profile_photo !== undefined) {
+      assignments.push('profile_photo = ?');
+      values.push(data.profile_photo || null);
+    }
+    if (data.password) {
+      const hashedPassword = await bcrypt.hash(data.password, 10);
+      assignments.push('password = ?', 'password_hash = ?');
+      values.push(hashedPassword, hashedPassword);
+    }
+
+    if (!assignments.length) return;
+
+    values.push(id);
+    await pool.query(
+      `UPDATE users SET ${assignments.join(', ')} WHERE id = ?`,
+      values
+    );
+  }
+
   /**
    * Compare password
    */
