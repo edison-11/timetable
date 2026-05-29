@@ -152,6 +152,63 @@
               </div>
             </section>
 
+            <section v-else-if="activeSection === 'adminTools'" key="adminTools" class="section-grid">
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">Admin Tools</span>
+                    <h2>Super Admin Bootstrap</h2>
+                  </div>
+                </div>
+                <div class="form-grid two">
+                  <label class="field">
+                    <span>Email</span>
+                    <input v-model.trim="superAdminForm.email" type="email" placeholder="admin@example.com" />
+                  </label>
+                  <label class="field">
+                    <span>Display Name</span>
+                    <input v-model.trim="superAdminForm.full_name" type="text" placeholder="Super Admin" />
+                  </label>
+                  <label class="field">
+                    <span>Username</span>
+                    <input v-model.trim="superAdminForm.username" type="text" placeholder="superadmin" />
+                  </label>
+                  <label class="field">
+                    <span>Phone (optional)</span>
+                    <input v-model.trim="superAdminForm.phone" type="tel" placeholder="+1234567890" />
+                  </label>
+                  <label class="field full-width">
+                    <span>Password</span>
+                    <div class="password-inline">
+                      <input v-model.trim="superAdminForm.password" type="text" placeholder="Generate or enter a secure password" />
+                      <button type="button" class="tool-btn secondary" @click="generateSuperAdminPassword">Generate</button>
+                    </div>
+                  </label>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                  <button class="tool-btn primary" type="button" @click="createSuperAdmin" :disabled="creatingSuperAdmin">
+                    <span v-if="creatingSuperAdmin">Creating...</span>
+                    <span v-else>Create Super Admin</span>
+                  </button>
+                  <button class="tool-btn secondary" type="button" @click="resetSuperAdminForm">Reset</button>
+                </div>
+
+                <div v-if="createdSuperAdmin" class="credentials-card mt-4">
+                  <h3>Credentials Created</h3>
+                  <p>Use these details to sign in as Super Admin.</p>
+                  <ul>
+                    <li><strong>Email:</strong> {{ createdSuperAdmin.email }}</li>
+                    <li><strong>Password:</strong> {{ createdSuperAdmin.password }}</li>
+                  </ul>
+                </div>
+
+                <div v-if="adminToolMessage" class="toast-banner warning" :class="adminToolMessageType">
+                  {{ adminToolMessage }}
+                </div>
+              </div>
+            </section>
+
             <section v-else-if="activeSection === 'notifications'" key="notifications" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
@@ -314,6 +371,7 @@ const navItems = [
   { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
   { id: 'security', label: 'Security Settings', icon: 'bi bi-shield-lock' },
   { id: 'account', label: 'Account Settings', icon: 'bi bi-person-badge' },
+  { id: 'adminTools', label: 'Admin Tools', icon: 'bi bi-tools' },
   { id: 'notifications', label: 'Notification Settings', icon: 'bi bi-bell' },
   { id: 'preferences', label: 'System Preferences', icon: 'bi bi-globe2' },
   { id: 'appearance', label: 'Appearance Settings', icon: 'bi bi-palette' },
@@ -376,10 +434,76 @@ const activityLogs = [
   { id: 3, event: 'Login session created', user: 'Admin', time: 'Recent', status: 'Success' }
 ]
 
+const superAdminForm = reactive({
+  email: '',
+  full_name: '',
+  username: '',
+  phone: '',
+  password: ''
+})
+
+const createdSuperAdmin = ref(null)
+const creatingSuperAdmin = ref(false)
+const adminToolMessage = ref('')
+const adminToolMessageType = ref('success')
+
 const initials = computed(() => {
   const name = profile.full_name || profile.email || 'A'
   return name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
 })
+
+const generateSuperAdminPassword = () => {
+  const random = Math.random().toString(36).slice(-10)
+  superAdminForm.password = `SuperAdmin!${random.toUpperCase()}`
+}
+
+const createSuperAdmin = async () => {
+  if (!superAdminForm.email || !superAdminForm.full_name) {
+    adminToolMessageType.value = 'danger'
+    adminToolMessage.value = 'Provide both email and display name.'
+    return
+  }
+
+  if (!superAdminForm.password) {
+    generateSuperAdminPassword()
+  }
+
+  creatingSuperAdmin.value = true
+  adminToolMessage.value = ''
+
+  try {
+    const response = await api.post('/auth/create-admin', {
+      username: superAdminForm.username || superAdminForm.full_name,
+      full_name: superAdminForm.full_name,
+      email: superAdminForm.email,
+      phone: superAdminForm.phone,
+      password: superAdminForm.password
+    })
+
+    createdSuperAdmin.value = {
+      email: superAdminForm.email,
+      password: superAdminForm.password
+    }
+    adminToolMessageType.value = 'success'
+    adminToolMessage.value = 'Super Admin account created successfully.'
+  } catch (error) {
+    const message = error.response?.data?.message || 'Unable to create Super Admin.'
+    adminToolMessageType.value = 'danger'
+    adminToolMessage.value = message
+  } finally {
+    creatingSuperAdmin.value = false
+  }
+}
+
+const resetSuperAdminForm = () => {
+  superAdminForm.email = ''
+  superAdminForm.full_name = ''
+  superAdminForm.username = ''
+  superAdminForm.phone = ''
+  superAdminForm.password = ''
+  adminToolMessage.value = ''
+  createdSuperAdmin.value = null
+}
 
 const notify = (message, type = 'success') => {
   toast.message = message
@@ -655,6 +779,28 @@ onMounted(() => {
 
 .settings-card {
   padding: 1.15rem;
+}
+
+.credentials-card {
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+}
+
+.credentials-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.credentials-card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.credentials-card li:last-child {
+  border-bottom: none;
 }
 
 .card-heading {

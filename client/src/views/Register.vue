@@ -11,6 +11,12 @@
       <form @submit.prevent="step === 'details' ? requestOtp() : verifyOtp()" class="register-form">
         <template v-if="step === 'details'">
           <h2 class="form-title">Register</h2>
+
+          <div class="social-row" style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;">
+            <button type="button" class="btn btn-outline-primary" @click="startExternal('google')">Continue with Google</button>
+            <button type="button" class="btn btn-outline-secondary" @click="startExternal('microsoft')">Continue with Microsoft</button>
+          </div>
+
           <div class="title-rule"></div>
 
           <div class="register-field">
@@ -522,6 +528,12 @@ const loadActiveSchools = async () => {
   } catch (error) {
     activeSchools.value = []
   }
+}
+
+const startExternal = (provider) => {
+  // Redirect the browser to the server OAuth start endpoint.
+  // Server route: GET /api/auth/external/:provider
+  window.location.href = `/api/auth/external/${provider}`
 }
 
 onMounted(loadActiveSchools)

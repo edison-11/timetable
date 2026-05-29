@@ -614,6 +614,14 @@ onBeforeUnmount(() => {
   padding: 0.65rem 1.45rem;
 }
 
+.teacher-content {
+  background: #f5f9ff;
+  min-height: calc(100vh - 62px);
+  padding: 1.5rem 1.25rem 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
 .navbar-left,
 .navbar-right {
   display: flex;

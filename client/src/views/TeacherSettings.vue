@@ -11,8 +11,31 @@
             <router-link to="/teacher/profile" class="profile-link">Go to My Profile</router-link>
           </div>
 
-          <!-- Tabs Navigation -->
-          <ul class="nav nav-tabs mb-4" role="tablist">
+          <div v-if="loadingData" class="settings-skeleton mb-4">
+            <div class="skeleton-line title"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-grid">
+              <div class="skeleton-box" v-for="index in 3" :key="index"></div>
+            </div>
+          </div>
+
+          <div v-else>
+            <div v-if="settingsError" class="alert alert-danger mb-4">
+              {{ settingsError }}
+            </div>
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                :class="{ active: activeTab === 'profile' }"
+                @click="activeTab = 'profile'"
+                type="button"
+              >
+                <i class="bi bi-person-circle me-2"></i>Profile
+              </button>
+            </li>
             <li class="nav-item" role="presentation">
               <button
                 class="nav-link"
@@ -34,6 +57,90 @@
               </button>
             </li>
           </ul>
+
+          <!-- Profile Tab -->
+          <div v-if="activeTab === 'profile'" class="card shadow-sm">
+            <div class="card-header bg-white border-bottom">
+              <h5 class="card-title mb-0">Profile Settings</h5>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="saveProfile">
+                <div class="row gx-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Full Name</label>
+                    <input v-model.trim="profileData.name" type="text" class="form-control" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input v-model.trim="profileData.email" type="email" class="form-control" required />
+                  </div>
+                </div>
+
+                <div class="row gx-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <input v-model.trim="profileData.department" type="text" class="form-control" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Phone</label>
+                    <input v-model.trim="profileData.phone" type="tel" class="form-control" />
+                  </div>
+                </div>
+
+                <div class="row gx-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Staff ID</label>
+                    <input v-model.trim="profileData.employee_id" type="text" class="form-control" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Qualification</label>
+                    <input v-model.trim="profileData.qualification" type="text" class="form-control" />
+                  </div>
+                </div>
+
+                <div class="row gx-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Subject Specialization</label>
+                    <input v-model.trim="profileData.module_name" type="text" class="form-control" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Years of Experience</label>
+                    <input v-model.number="profileData.years_experience" type="number" min="0" class="form-control" />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Profile Photo</label>
+                  <div class="profile-photo-field d-flex gap-3 align-items-center">
+                    <div class="profile-preview">
+                      <img v-if="profileData.profile_photo" :src="profileData.profile_photo" alt="Teacher avatar" />
+                      <span v-else class="profile-placeholder">T</span>
+                    </div>
+                    <input type="file" accept="image/*" class="form-control" @change="handleAvatarUpload" />
+                  </div>
+                </div>
+
+                <div class="mb-3 form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" id="scheduleAlert" v-model="profileData.receive_schedule_alerts" />
+                  <label class="form-check-label" for="scheduleAlert">Receive timetable update alerts</label>
+                </div>
+
+                <div v-if="messages.profile" class="alert" :class="messagesClass.profile" role="alert">
+                  {{ messages.profile }}
+                </div>
+
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-primary" :disabled="loadingProfile">
+                    <span v-if="loadingProfile">Updating profile...</span>
+                    <span v-else>Save Profile</span>
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" @click="resetProfile">
+                    Reset
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
 
           <!-- Availability Tab -->
           <div v-if="activeTab === 'availability'" class="card shadow-sm">
@@ -199,6 +306,7 @@
       </div>
     </div>
   </div>
+  </div>
 
   <ConfirmModal
     v-model="deleteDialogOpen"
@@ -220,12 +328,28 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const authStore = useAuthStore()
 
-const activeTab = ref('availability')
+const activeTab = ref('profile')
+const loadingProfile = ref(false)
 const loadingAvailability = ref(false)
 const loadingPassword = ref(false)
 const deleteDialogOpen = ref(false)
+const loadingData = ref(true)
+const settingsError = ref('')
 
 const availableDaysOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+
+const profileData = ref({
+  name: '',
+  email: '',
+  department: '',
+  phone: '',
+  employee_id: '',
+  module_name: '',
+  qualification: '',
+  years_experience: 0,
+  profile_photo: '',
+  receive_schedule_alerts: true
+})
 
 const formData = ref({
   available_days: '',
@@ -240,11 +364,13 @@ const passwordForm = ref({
 })
 
 const messages = ref({
+  profile: '',
   availability: '',
   password: ''
 })
 
 const messagesClass = computed(() => ({
+  profile: messages.value.profile.includes('successfully') ? 'alert-success' : 'alert-danger',
   availability: messages.value.availability.includes('successfully') ? 'alert-success' : 'alert-danger',
   password: messages.value.password.includes('successfully') ? 'alert-success' : 'alert-danger'
 }))
@@ -262,9 +388,24 @@ const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
 
 const loadTeacherData = async () => {
+  loadingData.value = true
+  settingsError.value = ''
   try {
     const response = await api.get('/teacher-auth/me')
     const teacher = response.data.teacher
+
+    profileData.value = {
+      name: teacher.name || '',
+      email: teacher.email || '',
+      department: teacher.department || '',
+      phone: teacher.phone || '',
+      employee_id: teacher.employee_id || '',
+      module_name: teacher.module_name || '',
+      qualification: teacher.qualification || '',
+      years_experience: teacher.years_experience || 0,
+      profile_photo: teacher.profile_photo || '',
+      receive_schedule_alerts: true
+    }
 
     formData.value = {
       available_days: teacher.available_days || '',
@@ -276,7 +417,9 @@ const loadTeacherData = async () => {
     originalFormData.value = JSON.parse(JSON.stringify(formData.value))
   } catch (error) {
     console.error('Failed to load teacher data:', error)
-    messages.value.availability = 'Failed to load settings data'
+    settingsError.value = error.response?.data?.message || 'Failed to load settings data'
+  } finally {
+    loadingData.value = false
   }
 }
 
@@ -299,6 +442,46 @@ const saveAvailability = async () => {
   } finally {
     loadingAvailability.value = false
   }
+}
+
+const saveProfile = async () => {
+  loadingProfile.value = true
+  messages.value.profile = ''
+
+  try {
+    await api.put('/teacher-auth/me', {
+      name: profileData.value.name,
+      email: profileData.value.email,
+      department: profileData.value.department,
+      phone: profileData.value.phone,
+      employee_id: profileData.value.employee_id,
+      module_name: profileData.value.module_name,
+      qualification: profileData.value.qualification,
+      yearsExperience: profileData.value.years_experience,
+      profile_photo: profileData.value.profile_photo,
+      notes: formData.value.notes,
+      availableDays: formData.value.available_days,
+      availableFrom: formData.value.available_from,
+      availableTo: formData.value.available_to
+    })
+
+    messages.value.profile = 'Profile updated successfully!'
+    await authStore.checkAuth()
+  } catch (error) {
+    messages.value.profile = error.response?.data?.message || 'Failed to update profile'
+  } finally {
+    loadingProfile.value = false
+  }
+}
+
+const handleAvatarUpload = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    profileData.value.profile_photo = reader.result
+  }
+  reader.readAsDataURL(file)
 }
 
 const savePassword = async () => {
@@ -341,6 +524,11 @@ const resetAvailability = () => {
   formData.value.available_to = originalFormData.value.available_to
   formData.value.notes = originalFormData.value.notes
   messages.value.availability = ''
+}
+
+const resetProfile = () => {
+  loadTeacherData()
+  messages.value.profile = ''
 }
 
 const resetPassword = () => {
@@ -399,6 +587,36 @@ onMounted(() => {
   border-color: #0d6efd;
 }
 
+.profile-photo-field {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.profile-preview {
+  width: 90px;
+  height: 90px;
+  border-radius: 16px;
+  background: #eef2ff;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+}
+
+.profile-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-placeholder {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #334155;
+}
+
 .nav-tabs .nav-link:hover {
   color: #0d6efd;
 }
@@ -436,6 +654,49 @@ onMounted(() => {
 
 .profile-link:hover {
   text-decoration: underline;
+}
+
+.settings-skeleton {
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+}
+
+.settings-skeleton .skeleton-line,
+.settings-skeleton .skeleton-box {
+  height: 18px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef2ff 0%, #f8fafc 40%, #eef2ff 100%);
+  background-size: 220% 100%;
+  animation: loadingShimmer 1.2s ease-in-out infinite;
+}
+
+.settings-skeleton .title {
+  width: 40%;
+  height: 24px;
+  border-radius: 12px;
+}
+
+.settings-skeleton .short {
+  width: 60%;
+}
+
+.settings-skeleton .skeleton-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@keyframes loadingShimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .form-signifier-icon {

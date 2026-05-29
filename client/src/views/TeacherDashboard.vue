@@ -13,8 +13,7 @@
       <main class="dashboard-main">
         <div class="dashboard-title-row">
           <div>
-            <h1>Teacher Dashboard</h1>
-            <p>View your own timetable with an admin-style weekly overview, export tools, and quick actions.</p>
+            <h1>Dashboard</h1>
           </div>
           <div class="week-picker">
             <span class="calendar-mark"></span>
@@ -26,9 +25,8 @@
           <div class="metric-card blue">
             <div class="metric-icon"><i class="bi bi-clock"></i></div>
             <div class="metric-copy">
-              <span>Scheduled Periods</span>
+              <span>Periods</span>
               <strong>{{ scheduledPeriods }}</strong>
-              <small>Active teaching slots</small>
             </div>
           </div>
           <div class="metric-card green">
@@ -36,7 +34,6 @@
             <div class="metric-copy">
               <span>Subjects</span>
               <strong>{{ moduleCount }}</strong>
-              <small>Unique modules</small>
             </div>
           </div>
           <div class="metric-card violet">
@@ -44,15 +41,13 @@
             <div class="metric-copy">
               <span>Empty Slots</span>
               <strong>{{ emptySlots }}</strong>
-              <small>Open periods this week</small>
             </div>
           </div>
           <div class="metric-card amber">
             <div class="metric-icon"><i class="bi bi-house"></i></div>
             <div class="metric-copy">
-              <span>Rooms Used</span>
+              <span>Rooms</span>
               <strong>{{ roomCount }}</strong>
-              <small>Distinct classrooms</small>
             </div>
           </div>
         </div>
@@ -60,24 +55,23 @@
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h2>Weekly Timetable</h2>
-              <p class="panel-subtitle">Your personal teaching schedule for the week</p>
+              <h2>Timetable</h2>
             </div>
             <div class="panel-actions">
-              <button class="btn btn-outline-secondary btn-sm" @click="refreshTimetable" :disabled="loading">
-                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+              <button class="btn btn-outline-secondary btn-sm" @click="refreshTimetable" :disabled="loading" title="Refresh">
+                <i class="bi bi-arrow-clockwise"></i>
               </button>
-              <button class="btn btn-outline-secondary btn-sm" @click="downloadCSV" :disabled="loading || !gridRows.length">
-                <i class="bi bi-download me-1"></i>Download CSV
+              <button class="btn btn-outline-secondary btn-sm" @click="downloadCSV" :disabled="loading || !gridRows.length" title="CSV">
+                <i class="bi bi-download"></i>
               </button>
-              <button class="btn btn-outline-secondary btn-sm" @click="downloadExcel" :disabled="loading || !gridRows.length">
-                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Download Excel
+              <button class="btn btn-outline-secondary btn-sm" @click="downloadExcel" :disabled="loading || !gridRows.length" title="Excel">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
               </button>
-              <button class="btn btn-outline-secondary btn-sm" @click="printTimetable" :disabled="!gridRows.length">
-                <i class="bi bi-printer me-1"></i>Print
+              <button class="btn btn-outline-secondary btn-sm" @click="printTimetable" :disabled="!gridRows.length" title="Print">
+                <i class="bi bi-printer"></i>
               </button>
-              <button class="btn btn-primary btn-sm" @click="goToSettings">
-                <i class="bi bi-gear me-1"></i>Settings
+              <button class="btn btn-primary btn-sm" @click="goToSettings" title="Settings">
+                <i class="bi bi-gear"></i>
               </button>
             </div>
           </div>
@@ -153,62 +147,55 @@
 
           <!-- Display Settings -->
           <div v-if="settingsTab === 'display'" class="settings-content">
-            <h4>Display Preferences</h4>
+            <h4>Display</h4>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.darkMode" @change="saveSetting('darkMode')" />
               <span>Dark Mode</span>
-              <small>Use dark theme for the dashboard</small>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.compactView" @change="saveSetting('compactView')" />
               <span>Compact View</span>
-              <small>Show smaller cards and text</small>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.showMetrics" @change="saveSetting('showMetrics')" />
-              <span>Show Metrics</span>
-              <small>Display metric cards at the top</small>
+              <span>Metrics</span>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.showSidebar" @change="saveSetting('showSidebar')" />
-              <span>Show Sidebar</span>
-              <small>Display teacher profile and quick actions</small>
+              <span>Sidebar</span>
             </label>
           </div>
 
           <!-- Export Settings -->
           <div v-if="settingsTab === 'export'" class="settings-content">
-            <h4>Export Preferences</h4>
+            <h4>Export</h4>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.exportIncludeClass" @change="saveSetting('exportIncludeClass')" />
-              <span>Include Class Names</span>
-              <small>Add class names to exports</small>
+              <span>Classes</span>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.exportIncludeRoom" @change="saveSetting('exportIncludeRoom')" />
-              <span>Include Room Names</span>
-              <small>Add room locations to exports</small>
+              <span>Rooms</span>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.exportIncludeTime" @change="saveSetting('exportIncludeTime')" />
-              <span>Include Time Slots</span>
-              <small>Add start and end times to exports</small>
+              <span>Times</span>
             </label>
             <div class="setting-group">
-              <label class="form-label">Default Export Format</label>
+              <label class="form-label">Format</label>
               <select v-model="settings.exportFormat" @change="saveSetting('exportFormat')" class="form-select form-select-sm">
-                <option value="csv">CSV (Spreadsheet)</option>
-                <option value="excel">Excel Workbook</option>
-                <option value="pdf">PDF Document</option>
+                <option value="csv">CSV</option>
+                <option value="excel">Excel</option>
+                <option value="pdf">PDF</option>
               </select>
             </div>
           </div>
 
           <!-- Calendar Settings -->
           <div v-if="settingsTab === 'calendar'" class="settings-content">
-            <h4>Calendar Preferences</h4>
+            <h4>Calendar</h4>
             <div class="setting-group">
-              <label class="form-label">Week Start Day</label>
+              <label class="form-label">Start Day</label>
               <select v-model="settings.weekStartDay" @change="saveSetting('weekStartDay')" class="form-select form-select-sm">
                 <option value="monday">Monday</option>
                 <option value="sunday">Sunday</option>
@@ -216,59 +203,52 @@
             </div>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.showBreaks" @change="saveSetting('showBreaks')" />
-              <span>Show Breaks</span>
-              <small>Display break times in timetable</small>
+              <span>Breaks</span>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.highlightToday" @change="saveSetting('highlightToday')" />
               <span>Highlight Today</span>
-              <small>Highlight current day column</small>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.show24Hour" @change="saveSetting('show24Hour')" />
-              <span>24-Hour Time Format</span>
-              <small>Use 24-hour time instead of 12-hour</small>
+              <span>24-Hour Time</span>
             </label>
           </div>
 
           <!-- Notification Settings -->
           <div v-if="settingsTab === 'notifications'" class="settings-content">
-            <h4>Notification Preferences</h4>
+            <h4>Notifications</h4>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.notifyScheduleChanges" @change="saveSetting('notifyScheduleChanges')" />
               <span>Schedule Changes</span>
-              <small>Notify when your timetable is modified</small>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.notifyUpcomingClass" @change="saveSetting('notifyUpcomingClass')" />
               <span>Upcoming Classes</span>
-              <small>Remind about classes starting soon</small>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.notifyRoomChange" @change="saveSetting('notifyRoomChange')" />
               <span>Room Changes</span>
-              <small>Alert when room assignments change</small>
             </label>
             <label class="form-check settings-option">
               <input type="checkbox" v-model="settings.notifyAdminMessages" @change="saveSetting('notifyAdminMessages')" />
               <span>Admin Messages</span>
-              <small>Receive notifications from administration</small>
             </label>
             <div class="setting-group">
-              <label class="form-label">Notification Frequency</label>
+              <label class="form-label">Frequency</label>
               <select v-model="settings.notificationFrequency" @change="saveSetting('notificationFrequency')" class="form-select form-select-sm">
                 <option value="immediate">Immediate</option>
-                <option value="daily">Daily Digest</option>
-                <option value="weekly">Weekly Summary</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
               </select>
             </div>
           </div>
 
           <!-- Availability Settings -->
           <div v-if="settingsTab === 'availability'" class="settings-content">
-            <h4>Your Availability</h4>
+            <h4>Availability</h4>
             <div class="setting-group">
-              <label class="form-label">Available Days</label>
+              <label class="form-label">Days</label>
               <div class="availability-days">
                 <label class="day-checkbox" v-for="day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']" :key="day">
                   <input type="checkbox" :value="day" v-model="settings.availableDays" @change="saveSetting('availableDays')" />
@@ -278,11 +258,11 @@
             </div>
             <div class="row">
               <div class="col-md-6">
-                <label class="form-label">Available From</label>
+                <label class="form-label">From</label>
                 <input type="time" v-model="settings.availableFrom" @change="saveSetting('availableFrom')" class="form-control form-control-sm" />
               </div>
               <div class="col-md-6">
-                <label class="form-label">Available To</label>
+                <label class="form-label">To</label>
                 <input type="time" v-model="settings.availableTo" @change="saveSetting('availableTo')" class="form-control form-control-sm" />
               </div>
             </div>

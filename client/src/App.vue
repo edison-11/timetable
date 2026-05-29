@@ -1,4 +1,5 @@
 <template>
+  <TopLoadingBar />
   <Preloader :loading="isGlobalLoading" />
   <router-view />
 </template>
@@ -9,6 +10,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loading'
 import Preloader from '@/components/Preloader.vue'
+import TopLoadingBar from '@/components/TopLoadingBar.vue'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()

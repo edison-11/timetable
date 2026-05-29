@@ -341,8 +341,14 @@ const openNotification = (notification) => {
 
 const approvePendingTeacher = async (notification) => {
   if (!notification.entity_id) return
-  await api.put(`/teachers/${notification.entity_id}/approve`)
-  await fetchNotifications()
+  try {
+    await api.put(`/teachers/${notification.entity_id}/approve`)
+    await fetchNotifications()
+    // Success is indicated by notification refresh
+  } catch (error) {
+    console.error('Failed to approve teacher:', error)
+    alert('Failed to approve teacher. Please try again.')
+  }
 }
 
 const rejectPendingTeacher = async (notification) => {
@@ -359,7 +365,9 @@ const confirmRejectPendingTeacher = async () => {
     await api.delete(`/teachers/${notification.entity_id}/reject`)
     rejectDialog.value = { open: false, notification: null, loading: false }
     await fetchNotifications()
-  } finally {
+  } catch (error) {
+    console.error('Failed to reject teacher:', error)
+    alert('Failed to reject teacher. Please try again.')
     rejectDialog.value.loading = false
   }
 }

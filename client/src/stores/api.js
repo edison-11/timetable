@@ -5,9 +5,10 @@ import { useLoadingStore } from './loading'
 const getApiBaseUrl = () => {
   const configuredUrl = import.meta.env.VITE_API_URL
 
-  if (configuredUrl) {
-    return configuredUrl
-  }
+  if (configuredUrl) return configuredUrl
+
+  // In dev, always use the Vite proxy (`/api`) to avoid hard-coded ports
+  if (import.meta.env.DEV) return '/api'
 
   const { hostname, port, protocol } = window.location
 
