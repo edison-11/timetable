@@ -186,6 +186,8 @@ const freePeriodsDetail = ref([])
 const upcomingClasses = ref([])
 const timetableEntries = ref([])
 const teachingClasses = ref([])
+const teachingModules = ref([])
+const teachingAssignments = ref([])
 const headTeacherClasses = ref([])
 const loadingDashboard = ref(true)
 const notifications = ref([])
@@ -207,9 +209,21 @@ const currentTeacherId = computed(() => teacher.value?.teacher_id || teacher.val
 const teacherName = computed(() => teacher.value?.name || teacher.value?.email || 'Teacher')
 const schoolDays = SCHOOL_DAYS
 
-const teachingClassNames = computed(() => teachingClasses.value.map((classItem) => classItem.class_name).filter(Boolean))
+const teachingClassNames = computed(() => {
+  const names = [
+    ...teachingClasses.value.map((classItem) => classItem.class_name),
+    ...teachingAssignments.value.map((assignment) => assignment.class_name)
+  ].filter(Boolean)
+
+  return [...new Set(names)].sort((a, b) => a.localeCompare(b))
+})
 const moduleNames = computed(() => {
-  const modules = timetableEntries.value.filter(isTeacherLesson).map((entry) => entry.module_name).filter(Boolean)
+  const modules = [
+    ...teachingModules.value.map((module) => module.module_name),
+    ...teachingAssignments.value.map((assignment) => assignment.module_name),
+    ...timetableEntries.value.filter(isTeacherLesson).map((entry) => entry.module_name)
+  ].filter(Boolean)
+
   return [...new Set(modules)].sort((a, b) => a.localeCompare(b))
 })
 
@@ -264,7 +278,7 @@ const overviewCards = computed(() => [
     value: freePeriods.value,
     detail: 'Open slots',
     icon: 'bi bi-hourglass-split',
-    tone: 'rose'
+    tone: 'blue'
   }
 ])
 
@@ -378,6 +392,8 @@ const resetDashboard = () => {
   freePeriodsDetail.value = []
   upcomingClasses.value = []
   teachingClasses.value = []
+  teachingModules.value = []
+  teachingAssignments.value = []
   headTeacherClasses.value = []
 }
 
@@ -394,6 +410,8 @@ const loadTeacherDashboardResources = async () => {
   ])
   timetableEntries.value = timetableResponse.data.timetables || []
   teachingClasses.value = classesResponse.data.teaching_classes || []
+  teachingModules.value = classesResponse.data.teaching_modules || []
+  teachingAssignments.value = classesResponse.data.assignments || []
   headTeacherClasses.value = classesResponse.data.head_teacher_classes || []
   hydrateDashboardFromTimetable()
   await loadNotifications()
@@ -502,7 +520,7 @@ onMounted(async () => {
   height: 1.2rem;
   padding: 0 0.3rem;
   border-radius: 999px;
-  background: #ef4444;
+  background: #2563eb;
   color: #fff;
   font-size: 0.72rem;
 }
@@ -546,7 +564,7 @@ onMounted(async () => {
 .metric-icon.green { background: #dcfce7; color: #15803d; }
 .metric-icon.amber { background: #fef3c7; color: #b45309; }
 .metric-icon.purple { background: #ede9fe; color: #6d28d9; }
-.metric-icon.rose { background: #ffe4e6; color: #be123c; }
+.metric-icon.blue { background: #dbeafe; color: #1d4ed8; }
 
 .metric-card strong,
 .metric-card span,
@@ -893,35 +911,54 @@ onMounted(async () => {
 }
 
 :global(body.teacher-dark-mode) .teacher-dashboard-page {
-  background: #020617;
-  color: #e5edf7;
+  min-height: 100vh !important;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%) !important;
+  color: #e5edf7 !important;
+}
+
+:global(body.teacher-dark-mode) .teacher-dashboard-page * {
+  opacity: 1 !important;
 }
 
 :global(body.teacher-dark-mode) .metric-card,
-:global(body.teacher-dark-mode) .panel {
-  background: #111827;
-  border-color: #243244;
+:global(body.teacher-dark-mode) .panel,
+:global(body.teacher-dark-mode) .timeline-item,
+:global(body.teacher-dark-mode) .lesson-row,
+:global(body.teacher-dark-mode) .activity-item,
+:global(body.teacher-dark-mode) .free-list button,
+:global(body.teacher-dark-mode) .next-lesson,
+:global(body.teacher-dark-mode) .tag-list span {
+  background: rgba(15, 23, 42, 0.96) !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
 }
 
+:global(body.teacher-dark-mode) .dashboard-hero {
+  border-color: #243244 !important;
+  background: linear-gradient(135deg, #0f172a 0%, #111827 58%, #082f49 100%) !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+:global(body.teacher-dark-mode) .dashboard-hero h1,
 :global(body.teacher-dark-mode) .metric-card strong,
+:global(body.teacher-dark-mode) .metric-card > div > span,
 :global(body.teacher-dark-mode) .panel-header h2,
 :global(body.teacher-dark-mode) .timeline-item strong,
 :global(body.teacher-dark-mode) .lesson-row strong,
 :global(body.teacher-dark-mode) .activity-item strong,
 :global(body.teacher-dark-mode) .free-list span,
-:global(body.teacher-dark-mode) .next-lesson strong {
-  color: #f8fafc;
+:global(body.teacher-dark-mode) .next-lesson strong,
+:global(body.teacher-dark-mode) .tag-list span,
+:global(body.teacher-dark-mode) .lesson-table-head span {
+  color: #f8fafc !important;
 }
 
-:global(body.teacher-dark-mode) .timeline-item,
-:global(body.teacher-dark-mode) .lesson-row,
-:global(body.teacher-dark-mode) .activity-item,
-:global(body.teacher-dark-mode) .free-list button,
-:global(body.teacher-dark-mode) .next-lesson {
-  background: #0b1220;
-  border-color: #243244;
-}
-
+:global(body.teacher-dark-mode) .dashboard-hero p,
+:global(body.teacher-dark-mode) .eyebrow,
 :global(body.teacher-dark-mode) .metric-card span,
 :global(body.teacher-dark-mode) .metric-card small,
 :global(body.teacher-dark-mode) .panel-header span,
@@ -931,6 +968,83 @@ onMounted(async () => {
 :global(body.teacher-dark-mode) .free-list strong,
 :global(body.teacher-dark-mode) .empty-copy,
 :global(body.teacher-dark-mode) .next-lesson span {
-  color: #cbd5e1;
+  color: #cbd5e1 !important;
+}
+
+:global(body.teacher-dark-mode) .panel-header {
+  border-color: #243244 !important;
+}
+
+:global(body.teacher-dark-mode) .panel-header a {
+  color: #93c5fd !important;
+}
+
+:global(body.teacher-dark-mode) .panel-header i {
+  color: #60a5fa !important;
+}
+
+:global(body.teacher-dark-mode) .primary-action {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+:global(body.teacher-dark-mode) .primary-action i,
+:global(body.teacher-dark-mode) .primary-action span {
+  color: #ffffff !important;
+}
+
+:global(body.teacher-dark-mode) .metric-icon {
+  background: rgba(37, 99, 235, 0.22) !important;
+  color: #bfdbfe !important;
+}
+
+:global(body.teacher-dark-mode) .metric-icon i {
+  color: inherit !important;
+}
+
+:global(body.teacher-dark-mode) .metric-icon.green {
+  background: rgba(22, 163, 74, 0.22) !important;
+  color: #bbf7d0 !important;
+}
+
+:global(body.teacher-dark-mode) .metric-icon.amber {
+  background: rgba(180, 83, 9, 0.24) !important;
+  color: #fde68a !important;
+}
+
+:global(body.teacher-dark-mode) .metric-icon.purple {
+  background: rgba(124, 58, 237, 0.24) !important;
+  color: #ddd6fe !important;
+}
+
+:global(body.teacher-dark-mode) .metric-icon.blue {
+  background: rgba(37, 99, 235, 0.24) !important;
+  color: #bfdbfe !important;
+}
+
+:global(body.teacher-dark-mode) .time-pill {
+  border-color: #1d4ed8 !important;
+  background: #172554 !important;
+  color: #bfdbfe !important;
+}
+
+:global(body.teacher-dark-mode) .lesson-table-head {
+  border-color: #243244 !important;
+  background: #111827 !important;
+}
+
+:global(body.teacher-dark-mode) .skeleton-card,
+:global(body.teacher-dark-mode) .skeleton-line {
+  background: linear-gradient(90deg, #111827 25%, #1e293b 45%, #111827 65%) !important;
+  border-color: #243244 !important;
+}
+
+:global(body.teacher-dark-mode) .activity-dot.green {
+  background: #22c55e !important;
+}
+
+:global(body.teacher-dark-mode) .activity-dot.amber {
+  background: #f59e0b !important;
 }
 </style>

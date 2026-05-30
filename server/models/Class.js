@@ -68,7 +68,7 @@ class Class {
     const where = [];
     const values = [];
     if (filters.school_id) {
-      where.push('c.school_id = ?');
+      where.push(filters.include_unassigned ? '(c.school_id = ? OR c.school_id IS NULL)' : 'c.school_id = ?');
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(`

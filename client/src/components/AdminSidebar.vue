@@ -4,10 +4,6 @@
       <div class="brand-mark">
         <img class="brand-logo" :src="logoUrl" alt="Timetable logo">
       </div>
-      <div class="brand-text">
-        <strong>Timetable</strong>
-        <span>Admin Panel</span>
-      </div>
     </div>
 
     <nav class="sidebar-nav" aria-label="Admin navigation">
@@ -22,7 +18,9 @@
         :title="item.name"
         @click="closeMobileSidebar"
       >
-        <span class="nav-icon" v-html="item.icon"></span>
+        <span class="nav-icon">
+          <component :is="item.icon" aria-hidden="true" />
+        </span>
         <span class="nav-label">{{ item.name }}</span>
       </router-link>
     </nav>
@@ -38,6 +36,21 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import {
+  Bell,
+  BookOpen,
+  CalendarDays,
+  ClipboardList,
+  Clock,
+  GraduationCap,
+  Home,
+  LayoutDashboard,
+  List,
+  School,
+  Settings,
+  Users,
+  UserRoundPlus
+} from '@lucide/vue'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -51,23 +64,28 @@ const closeMobileSidebar = () => {
 }
 
 const icons = {
-  dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
-  sections: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 6h14M7 12h14M7 18h14"/><path d="M3.5 6h.5M3.5 12h.5M3.5 18h.5"/></svg>',
-  rooms: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/></svg>',
-  shifts: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6v6l4 2"/><path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/></svg>',
-  teachers: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M19 9h4"/><path d="M21 7v4"/></svg>',
-  students: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 21v-2a4 4 0 0 1 8 0v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 18v-1a3 3 0 0 1 3-3"/><path d="M20 18v-1a3 3 0 0 0-3-3"/></svg>',
-  modules: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A3.5 3.5 0 0 1 7.5 3H20v18H7.5A3.5 3.5 0 0 0 4 24V6.5Z" transform="translate(0 -1)"/><path d="M8 7h8"/><path d="M8 12h6"/></svg>',
-  classes: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 0 4 22v-3Z"/><path d="M8 8h8"/><path d="M8 12h6"/></svg>',
-  assignments: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11h6"/><path d="M9 15h6"/><path d="M8 3h8l4 4v14H8a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z"/><path d="M16 3v4h4"/></svg>',
-  timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
-  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
+  dashboard: LayoutDashboard,
+  sections: List,
+  rooms: Home,
+  shifts: Clock,
+  teachers: UserRoundPlus,
+  students: GraduationCap,
+  modules: BookOpen,
+  classes: ClipboardList,
+  assignments: ClipboardList,
+  timetable: CalendarDays,
+  attendance: Users,
+  reports: ClipboardList,
+  notifications: Bell,
+  settings: Settings,
+  schools: School
 }
 
 const superAdminSidebarItems = [
   { name: 'Dashboard', path: '/super-admin/dashboard', icon: icons.dashboard },
-  { name: 'Schools', path: '/super-admin/schools', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg>' },
-  { name: 'DOS', path: '/super-admin/schools', icon: icons.teachers }
+  { name: 'Schools', path: '/super-admin/schools', icon: icons.schools },
+  { name: 'DOS', path: '/super-admin/schools', icon: icons.teachers },
+  { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 
 const dosSidebarItems = [
@@ -81,9 +99,9 @@ const dosSidebarItems = [
   { name: 'Shifts', path: '/shifts', icon: icons.shifts },
   { name: 'Assignments', path: '/assignments', icon: icons.assignments },
   { name: 'Timetable', path: '/timetable', icon: icons.timetable },
-  { name: 'Attendance', path: '/dashboard#attendance', icon: icons.students },
-  { name: 'Reports', path: '/dashboard#reports', icon: icons.assignments },
-  { name: 'Notifications', path: '/dashboard#notifications', icon: icons.sections },
+  { name: 'Attendance', path: '/dashboard#attendance', icon: icons.attendance },
+  { name: 'Reports', path: '/dashboard#reports', icon: icons.reports },
+  { name: 'Notifications', path: '/dashboard#notifications', icon: icons.notifications },
   { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 
@@ -151,24 +169,6 @@ const academicYear = computed(() => {
   display: block;
   padding: 0;
   transform: scale(1.25);
-}
-
-.brand-text strong {
-  display: block;
-  font-size: 0.95rem;
-  color: #172033;
-  font-weight: 800;
-  line-height: 1.15;
-}
-
-.brand-text span {
-  display: block;
-  margin-top: 0.25rem;
-  font-size: 0.66rem;
-  color: #64748b;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .sidebar-nav {
@@ -310,7 +310,6 @@ body.sidebar-collapsed .admin-sidebar .sidebar-brand {
   padding-inline: 0.5rem;
 }
 
-body.sidebar-collapsed .admin-sidebar .brand-text,
 body.sidebar-collapsed .admin-sidebar .nav-label,
 body.sidebar-collapsed .admin-sidebar .academic-card {
   opacity: 0;
@@ -452,11 +451,6 @@ body.admin-dark-mode .admin-sidebar .academic-card {
   border-color: #1e40af;
 }
 
-body.admin-dark-mode .admin-sidebar .brand-text strong {
-  color: #f8fafc;
-}
-
-body.admin-dark-mode .admin-sidebar .brand-text span,
 body.admin-dark-mode .admin-sidebar .academic-card span {
   color: #94a3b8;
 }

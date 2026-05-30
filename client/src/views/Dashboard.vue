@@ -27,7 +27,7 @@
       <!-- 4 Metric Cards -->
       <div class="metric-grid">
         <router-link to="/timetable" class="metric-card">
-          <div class="metric-icon blue" v-html="icons.calendar"></div>
+          <div class="metric-icon blue"><CalendarDays /></div>
           <div class="metric-copy">
             <span>Total Timetables</span>
             <strong>{{ dashboardStats.timetables }}</strong>
@@ -35,7 +35,7 @@
           </div>
         </router-link>
         <router-link to="/modules" class="metric-card">
-          <div class="metric-icon green" v-html="icons.book"></div>
+          <div class="metric-icon green"><BookOpen /></div>
           <div class="metric-copy">
             <span>Total Subjects</span>
             <strong>{{ dashboardStats.modules }}</strong>
@@ -43,7 +43,7 @@
           </div>
         </router-link>
         <router-link to="/teachers" class="metric-card">
-          <div class="metric-icon violet" v-html="icons.teacher"></div>
+          <div class="metric-icon violet"><Users /></div>
           <div class="metric-copy">
             <span>Total Teachers</span>
             <strong>{{ dashboardStats.teachers }}</strong>
@@ -51,7 +51,7 @@
           </div>
         </router-link>
         <router-link to="/rooms" class="metric-card">
-          <div class="metric-icon amber" v-html="icons.room"></div>
+          <div class="metric-icon amber"><Building2 /></div>
           <div class="metric-copy">
             <span>Total Rooms</span>
             <strong>{{ dashboardStats.rooms }}</strong>
@@ -118,7 +118,7 @@
       <!-- 3 Bottom Cards -->
       <div class="three-cards">
         <div class="panel">
-          <div class="panel-title"><span v-html="icons.chart"></span><h3>Timetable Distribution</h3></div>
+          <div class="panel-title"><span><ChartColumn /></span><h3>Timetable Distribution</h3></div>
           <div class="distribution-content">
             <div class="donut" :style="{ background: distributionGradient }">
               <strong>{{ distributionTotal }}</strong>
@@ -136,7 +136,7 @@
         </div>
 
         <div class="panel">
-          <div class="panel-title"><span v-html="icons.room"></span><h3>Room Utilization</h3></div>
+          <div class="panel-title"><span><Building2 /></span><h3>Room Utilization</h3></div>
           <div class="room-utilization-head">
             <strong>{{ dashboardStatsCards.roomUtilization }}%</strong>
             <span>{{ dashboardStatsCards.usedRooms }} of {{ dashboardStatsCards.usedRooms + dashboardStatsCards.availableRooms }} rooms used</span>
@@ -149,7 +149,7 @@
         </div>
 
         <div class="panel">
-          <div class="panel-title"><span v-html="icons.teacher"></span><h3>Teacher Workload</h3></div>
+          <div class="panel-title"><span><Users /></span><h3>Teacher Workload</h3></div>
           <div class="workload-bars">
             <div v-for="bucket in workloadBuckets" :key="bucket.label">
               <strong>{{ bucket.count }}</strong>
@@ -171,35 +171,35 @@
           </div>
           <div class="actions-list">
             <router-link :to="{ path: '/timetable', query: { action: 'generate' } }" class="action-item">
-              <span class="action-icon blue" v-html="icons.plus"></span>
+              <span class="action-icon blue"><Plus /></span>
               <div>
                 <strong>Create Timetable</strong>
                 <small>Generate new timetable</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/classes', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon green" v-html="icons.book"></span>
+              <span class="action-icon green"><BookOpen /></span>
               <div>
                 <strong>Add Class</strong>
                 <small>Create new class</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/modules', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon violet" v-html="icons.bookOpen"></span>
+              <span class="action-icon violet"><BookOpenCheck /></span>
               <div>
                 <strong>Add Subject</strong>
                 <small>Create new subject</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/teachers', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon amber" v-html="icons.teacher"></span>
+              <span class="action-icon amber"><UserPlus /></span>
               <div>
                 <strong>Add Teacher</strong>
                 <small>Register new teacher</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/rooms', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon rose" v-html="icons.room"></span>
+              <span class="action-icon rose"><Building2 /></span>
               <div>
                 <strong>Add Room</strong>
                 <small>Add new classroom</small>
@@ -244,9 +244,7 @@
                 </div>
               </div>
               <span class="notification-remove" @click.stop="deleteNotification(notification)">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 6l12 12M18 6 6 18"/>
-                </svg>
+                <X />
               </span>
             </div>
           </div>
@@ -280,6 +278,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
+import { BookOpen, BookOpenCheck, Building2, CalendarDays, ChartColumn, Plus, UserPlus, Users, X } from '@lucide/vue'
 
 const days = FIXED_DAYS
 const today = new Date()
@@ -331,15 +330,6 @@ const schoolContextLabel = computed(() => {
   return schoolId ? `School ID: ${schoolId} • Role: ${role || 'admin'}` : 'No school selected for this account'
 })
 
-const icons = {
-  calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
-  book: '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>',
-  bookOpen: '<svg viewBox="0 0 24 24"><path d="M2 5.5A3.5 3.5 0 0 1 5.5 2H12v18H5.5A3.5 3.5 0 0 0 2 23V5.5ZM12 2h6.5A3.5 3.5 0 0 1 22 5.5V23a3.5 3.5 0 0 0-3.5-3H12"/></svg>',
-  teacher: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>',
-  room: '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>',
-  chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16V9M12 16V6M16 16v-4"/></svg>',
-  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
-}
 const normalizeTime = (value) => String(value || '').slice(0, 5)
 
 const classOptions = computed(() => {

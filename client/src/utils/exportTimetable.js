@@ -54,6 +54,13 @@ const getExportMeta = (options = {}) => {
 
 const getSignatureText = (value, fallback) => String(value || fallback || '').trim() || fallback || '________________'
 
+const getCustomContent = (options = {}) => String(options.customContent || options.custom_header_content || '').trim()
+
+const getHeaderPosition = (options = {}) => {
+  const position = String(options.headerPosition || options.header_position || 'left').toLowerCase()
+  return ['left', 'center', 'right'].includes(position) ? position : 'left'
+}
+
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -118,9 +125,11 @@ const buildHeaderHtml = async (className, options = {}) => {
   const preparedBy = getSignatureText(options.preparedBy, '________________')
   const approvedBy = getSignatureText(options.approvedBy, '________________')
   const meta = getExportMeta(options)
+  const headerPosition = getHeaderPosition(options)
+  const customContent = getCustomContent(options)
 
   return `
-    <header class="export-header">
+    <header class="export-header header-${headerPosition}">
       <div class="brand-block">
         <div class="brand-logo-wrap">
           ${logoDataUrl ? `<img class="brand-logo" src="${logoDataUrl}" width="36" height="36" style="width:36px;height:36px;max-width:36px;max-height:36px;object-fit:contain;" alt="School logo">` : ''}
@@ -129,6 +138,7 @@ const buildHeaderHtml = async (className, options = {}) => {
           <p class="brand-eyebrow">School Timetable</p>
           <h1>${escapeHtml(className)} - Timetable</h1>
           <p class="generated">Generated on ${escapeHtml(new Date().toLocaleDateString())}</p>
+          ${customContent ? `<p class="custom-header-content">${escapeHtml(customContent).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
       </div>
       <div class="export-meta">
@@ -174,13 +184,23 @@ const buildTimetableHtml = async (rows, className, options = {}) => {
     html, body { margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; color: #111827; padding: 0; }
     .export-header { margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #dbe3ef; page-break-after: avoid; break-after: avoid; }
+    .export-header.header-left { text-align: left; }
+    .export-header.header-center { text-align: center; }
+    .export-header.header-right { text-align: right; }
     .brand-block { display: flex; align-items: center; gap: 8px; }
+    .header-left .brand-block { justify-content: flex-start; }
+    .header-center .brand-block { justify-content: center; }
+    .header-right .brand-block { justify-content: flex-end; }
     .brand-logo-wrap { width: 36px !important; height: 36px !important; max-width: 36px !important; max-height: 36px !important; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 1px solid #dbe3ef; border-radius: 5px; background: #fff; overflow: hidden; }
     .brand-logo { display: block; width: 36px !important; height: 36px !important; max-width: 36px !important; max-height: 36px !important; object-fit: contain; }
     .brand-copy h1 { margin: 0 0 2px; font-size: ${compact ? 11 : 12}pt; line-height: 1.08; }
     .brand-eyebrow { margin: 0 0 2px; color: #2563eb; font-size: 5.5pt; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
     .generated { margin: 0; color: #4b5563; font-size: 5.6pt; }
+    .custom-header-content { margin: 1px 0 0; color: #1f2937; font-size: 5.6pt; line-height: 1.15; white-space: pre-line; }
     .export-meta { display: flex; flex-wrap: wrap; gap: 2px 8px; margin-top: 2px; color: #1f2937; font-size: 5.6pt; font-weight: 700; }
+    .header-left .export-meta { justify-content: flex-start; }
+    .header-center .export-meta { justify-content: center; }
+    .header-right .export-meta { justify-content: flex-end; }
     .export-meta span { display: inline-flex; align-items: center; gap: 0.35rem; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     thead { display: table-header-group; }
@@ -228,7 +248,8 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
   const margin = 4
-  const topMargin = 18
+  const customContent = getCustomContent(options)
+  const topMargin = customContent ? 25 : 18
   const bottomMargin = 9
   const usableWidth = pageWidth - (margin * 2)
   const usableHeight = pageHeight - topMargin - bottomMargin
@@ -244,18 +265,45 @@ const renderTimetablePdf = (doc, timetableData, className = 'Timetable', options
   const preparedBy = getSignatureText(options.preparedBy, '________________')
   const approvedBy = getSignatureText(options.approvedBy, '________________')
   const meta = getExportMeta(options)
+  const headerPosition = getHeaderPosition(options)
 
   const drawHeader = () => {
+    const title = `${className} - Timetable`
+    const metaLine = meta.join('    ')
+    const generatedLine = `Generated on ${new Date().toLocaleDateString()}`
+    const customLines = customContent ? doc.splitTextToSize(customContent, 150).slice(0, 2) : []
+    const logoSize = logoDataUrl ? 14 : 0
+    const logoGap = logoDataUrl ? 3 : 0
+
+    doc.setFontSize(12.5)
+    doc.setFont(undefined, 'bold')
+    const titleWidth = doc.getTextWidth(title)
+    doc.setFontSize(6.6)
+    doc.setFont(undefined, 'normal')
+    const metaWidth = metaLine ? doc.getTextWidth(metaLine) : 0
+    const generatedWidth = doc.getTextWidth(generatedLine)
+    const customWidth = customLines.reduce((max, line) => Math.max(max, doc.getTextWidth(line)), 0)
+    const textWidth = Math.max(titleWidth, metaWidth, generatedWidth, customWidth)
+    const blockWidth = Math.min(logoSize + logoGap + textWidth, pageWidth - (margin * 2))
+    const blockX = headerPosition === 'center'
+      ? (pageWidth - blockWidth) / 2
+      : headerPosition === 'right'
+        ? pageWidth - margin - blockWidth
+        : margin
+    const logoX = blockX
+    const textX = blockX + logoSize + logoGap
+
     if (logoDataUrl) {
-      doc.addImage(logoDataUrl, getImageFormat(logoDataUrl), margin, 3, 14, 14)
+      doc.addImage(logoDataUrl, getImageFormat(logoDataUrl), logoX, 3, logoSize, logoSize)
     }
     doc.setFontSize(12.5)
     doc.setFont(undefined, 'bold')
-    doc.text(`${className} - Timetable`, logoDataUrl ? margin + 17 : margin, 8)
+    doc.text(title, textX, 8)
     doc.setFontSize(6.6)
     doc.setFont(undefined, 'normal')
-    if (meta.length) doc.text(meta.join('    '), logoDataUrl ? margin + 17 : margin, 13)
-    doc.text(`Generated on ${new Date().toLocaleDateString()}`, logoDataUrl ? margin + 17 : margin, 16)
+    if (metaLine) doc.text(metaLine, textX, 13)
+    doc.text(generatedLine, textX, 16)
+    if (customLines.length) doc.text(customLines, textX, 19)
   }
 
   const drawFooter = () => {
@@ -416,6 +464,8 @@ const createDocxStructure = async (timetableData, className = 'Timetable', optio
   const approvedBy = getSignatureText(options.approvedBy, '________________')
   const meta = getExportMeta(options)
   const generatedDate = new Date().toLocaleDateString()
+  const headerPosition = getHeaderPosition(options)
+  const customContent = getCustomContent(options)
 
   // Create [Content_Types].xml
   const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -464,14 +514,13 @@ const createDocxStructure = async (timetableData, className = 'Timetable', optio
   }).join('')
 
   // Create document.xml
+  const headerParagraphProps = `<w:pPr><w:jc w:val="${headerPosition}"/></w:pPr>`
   const logoXml = logoImageData ? `
-      <w:tbl>
-        <w:tblPr><w:tblW w:w="9000" w:type="dxa"/></w:tblPr>
-        <w:tr>
-          <w:tc><w:tcPr><w:tcW w:w="1000" w:type="dxa"/></w:tcPr><w:p><w:r><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="column"><wp:align>left</wp:align></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV><wp:extent cx="914400" cy="914400"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="1" name="Logo 1"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="logo.${logoImageType}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p></w:tc>
-          <w:tc><w:tcPr><w:tcW w:w="7500" w:type="dxa"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="32"/><w:b/></w:rPr><w:t>${escapeHtml(docTitle)}</w:t></w:r></w:p><w:p><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>Generated on ${generatedDate}</w:t></w:r></w:p>${meta.length ? meta.map(m => `<w:p><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>${escapeHtml(m)}</w:t></w:r></w:p>`).join('') : ''}</w:tc>
-        </w:tr>
-      </w:tbl>` : `<w:p><w:r><w:rPr><w:sz w:val="32"/><w:b/></w:rPr><w:t>${escapeHtml(docTitle)}</w:t></w:r></w:p><w:p><w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>Generated on ${generatedDate}</w:t></w:r></w:p>`
+      <w:p>${headerParagraphProps}<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="251658240" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:align>${headerPosition}</wp:align></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV><wp:extent cx="914400" cy="914400"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="1" name="Logo 1"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="0" name="logo.${logoImageType}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="914400" cy="914400"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p>
+      <w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="32"/><w:b/></w:rPr><w:t>${escapeHtml(docTitle)}</w:t></w:r></w:p>
+      <w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>Generated on ${generatedDate}</w:t></w:r></w:p>
+      ${customContent ? `<w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>${escapeHtml(customContent)}</w:t></w:r></w:p>` : ''}
+      ${meta.length ? meta.map(m => `<w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>${escapeHtml(m)}</w:t></w:r></w:p>`).join('') : ''}` : `<w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="32"/><w:b/></w:rPr><w:t>${escapeHtml(docTitle)}</w:t></w:r></w:p><w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>Generated on ${generatedDate}</w:t></w:r></w:p>${customContent ? `<w:p>${headerParagraphProps}<w:r><w:rPr><w:sz w:val="18"/></w:rPr><w:t>${escapeHtml(customContent)}</w:t></w:r></w:p>` : ''}`
 
   const document = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">

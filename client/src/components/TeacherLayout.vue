@@ -25,7 +25,9 @@
           :title="item.label"
           @click="closeMobileSidebar"
         >
-          <span class="nav-icon" v-html="item.icon"></span>
+          <span class="nav-icon">
+            <component :is="item.icon" aria-hidden="true" />
+          </span>
           <span class="nav-label">{{ item.label }}</span>
         </router-link>
       </nav>
@@ -47,11 +49,7 @@
             aria-label="Toggle teacher navigation"
             @click="toggleSidebar"
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7h16" />
-              <path d="M4 12h16" />
-              <path d="M4 17h16" />
-            </svg>
+            <PanelLeft />
           </button>
           <div>
             <h1 class="page-title">{{ pageTitle }}</h1>
@@ -69,9 +67,7 @@
               @click="toggleNotifications"
             >
               <span class="bell-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m4 0a3 3 0 1 1-6 0h6Z"/>
-                </svg>
+                <Bell />
               </span>
               <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
             </button>
@@ -98,10 +94,13 @@
           </div>
 
           <button class="theme-toggle" type="button" :title="isDarkMode ? 'Light mode' : 'Dark mode'" @click="toggleTheme">
-            <span class="theme-icon" :class="{ sun: isDarkMode }"></span>
+            <span class="theme-icon" :class="{ active: isDarkMode }" aria-hidden="true">
+              <Sun v-if="isDarkMode" />
+              <Moon v-else />
+            </span>
           </button>
 
-          <div class="profile-container" ref="profileMenu">
+          <div class="profile-menu-container" ref="profileMenu">
             <button class="profile-btn" type="button" :aria-expanded="showProfileDropdown" @click="showProfileDropdown = !showProfileDropdown">
               <img v-if="profileImageUrl" :src="profileImageUrl" :alt="teacherName">
               <span v-else>{{ getInitials }}</span>
@@ -142,6 +141,17 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import TeacherPeriodTimer from '@/components/TeacherPeriodTimer.vue'
+import {
+  Bell,
+  CalendarDays,
+  ClipboardCheck,
+  LayoutDashboard,
+  Moon,
+  PanelLeft,
+  Settings,
+  Sun,
+  UserRound
+} from '@lucide/vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -213,20 +223,12 @@ const breadcrumbs = computed(() => {
   return breadcrumbMap[route.name] || []
 })
 
-const icons = {
-  dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
-  timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
-  attendance: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-5"/><path d="M5 4h14v16H5z"/><path d="M8 17h8"/></svg>',
-  profile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg>',
-  settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
-}
-
 const navItems = [
-  { label: 'Dashboard', to: '/teacher/dashboard', icon: icons.dashboard },
-  { label: 'Timetable', to: '/teacher/timetable', icon: icons.timetable },
-  { label: 'Attendance', to: '/teacher/attendance', icon: icons.attendance },
-  { label: 'Profile', to: '/teacher/profile', icon: icons.profile },
-  { label: 'Settings', to: '/teacher/settings', icon: icons.settings }
+  { label: 'Dashboard', to: '/teacher/dashboard', icon: LayoutDashboard },
+  { label: 'Timetable', to: '/teacher/timetable', icon: CalendarDays },
+  { label: 'Attendance', to: '/teacher/attendance', icon: ClipboardCheck },
+  { label: 'Profile', to: '/teacher/profile', icon: UserRound },
+  { label: 'Settings', to: '/teacher/settings', icon: Settings }
 ]
 
 const isActive = (path) => String(path).includes('#') ? route.fullPath === path : route.path === path
@@ -341,6 +343,9 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   color: #0f172a;
+  font-family: var(--app-font);
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .teacher-sidebar {
@@ -565,7 +570,7 @@ onBeforeUnmount(() => {
 }
 
 .danger {
-  color: #dc2626 !important;
+  color: #1d4ed8 !important;
 }
 
 .teacher-main {
@@ -622,46 +627,19 @@ onBeforeUnmount(() => {
 
 .theme-toggle {
   position: relative;
-  width: 68px;
-  height: 36px;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 18px;
   cursor: pointer;
   color: #2563eb;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  background: #ffffff;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 3px;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06);
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
   transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
-}
-
-.theme-toggle::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.3;
-  transform: translateY(-50%);
-}
-
-.theme-toggle::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 11px;
-  width: 9px;
-  height: 9px;
-  border: 2px solid currentColor;
-  border-left-color: transparent;
-  border-radius: 50%;
-  opacity: 0.45;
-  transform: translateY(-50%) rotate(-22deg);
 }
 
 .menu-toggle:hover,
@@ -727,7 +705,7 @@ onBeforeUnmount(() => {
 }
 
 .notifications-container,
-.profile-container {
+.profile-menu-container {
   position: relative;
 }
 
@@ -751,7 +729,7 @@ onBeforeUnmount(() => {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #ef4444;
+  background: #2563eb;
   color: white;
   font-size: 0.7rem;
   padding: 0 5px;
@@ -763,21 +741,36 @@ onBeforeUnmount(() => {
   z-index: 1;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
-  background: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  background: #f8fbff;
+  border: 1px solid #dbe5f3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   box-shadow:
-    inset -7px -4px 0 0 currentColor,
-    0 5px 14px rgba(37, 99, 235, 0.2);
-  transform: translateX(0);
-  transition: transform 0.24s ease, background 0.22s ease, box-shadow 0.22s ease;
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, color 0.22s ease;
 }
 
-.theme-icon.sun {
-  background: #f8fafc;
+.theme-icon.active {
+  background: #f8fbff;
+  border-color: #dbe5f3;
   box-shadow:
-    0 0 0 5px rgba(96, 165, 250, 0.12),
-    0 5px 14px rgba(0, 0, 0, 0.24);
-  transform: translateX(31px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.theme-icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .profile-btn {
@@ -937,30 +930,21 @@ onBeforeUnmount(() => {
 }
 
 .teacher-shell.dark-mode .theme-toggle {
-  background: linear-gradient(135deg, #020617 0%, #111827 100%);
-  border-color: #334155;
-  color: #bfdbfe;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    0 8px 22px rgba(0, 0, 0, 0.2);
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
 }
 
 .teacher-shell.dark-mode .theme-toggle:hover,
 .teacher-shell.dark-mode .theme-toggle:focus-visible {
   border-color: #60a5fa;
-  color: #bfdbfe;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    0 8px 24px rgba(37, 99, 235, 0.24);
+  color: #2563eb;
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.26);
 }
 
-.teacher-shell.dark-mode .theme-toggle::before {
-  color: #64748b;
-}
-
-.teacher-shell.dark-mode .theme-toggle::after {
-  color: #bfdbfe;
-  opacity: 1;
+.teacher-shell.dark-mode .theme-icon {
+  background: #f8fbff;
+  border-color: #dbe5f3;
 }
 
 .teacher-sidebar-backdrop {
@@ -968,6 +952,7 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 210;
   background: rgba(15, 23, 42, 0.45);
+  display: none;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -985,6 +970,10 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 768px) {
+  .teacher-sidebar-backdrop {
+    display: block;
+  }
+
   .teacher-sidebar {
     width: min(84vw, 280px);
     transform: translateX(-100%);
@@ -1236,6 +1225,91 @@ body:not(.teacher-dark-mode) .form-select {
   border-radius: 8px !important;
 }
 
+body .teacher-shell,
+body .teacher-shell button,
+body .teacher-shell input,
+body .teacher-shell select,
+body .teacher-shell textarea {
+  font-family: var(--app-font) !important;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+body .teacher-shell h1,
+body .teacher-shell .studio-header h1,
+body .teacher-shell .dashboard-hero h1,
+body .teacher-shell .profile-header h1,
+body .teacher-shell .attendance-header h1,
+body .teacher-shell .settings-intro h1 {
+  font-size: 1.8rem !important;
+  line-height: 1.1 !important;
+  font-weight: 900 !important;
+  letter-spacing: 0 !important;
+}
+
+body .teacher-shell h2,
+body .teacher-shell .output-toolbar h2,
+body .teacher-shell .panel-header h2,
+body .teacher-shell .panel-heading h2,
+body .teacher-shell .profile-section h2,
+body .teacher-shell .card-heading h2 {
+  font-size: 1.25rem !important;
+  line-height: 1.16 !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+}
+
+body .teacher-shell h3,
+body .teacher-shell h4,
+body .teacher-shell h5,
+body .teacher-shell h6,
+body .teacher-shell .card-title,
+body .teacher-shell .security-tips h3 {
+  font-size: 1rem !important;
+  line-height: 1.2 !important;
+  font-weight: 850 !important;
+  letter-spacing: 0 !important;
+}
+
+body .teacher-shell p,
+body .teacher-shell label,
+body .teacher-shell .form-control,
+body .teacher-shell .form-select,
+body .teacher-shell .btn,
+body .teacher-shell .nav-link,
+body .teacher-shell .settings-nav-item,
+body .teacher-shell .tab-btn,
+body .teacher-shell .class-strip button {
+  font-size: 0.92rem !important;
+}
+
+body .teacher-shell small,
+body .teacher-shell .eyebrow,
+body .teacher-shell .badge,
+body .teacher-shell .page-subtitle,
+body .teacher-shell .studio-subtitle,
+body .teacher-shell .settings-nav-item small,
+body .teacher-shell .module-cell small,
+body .teacher-shell .lesson-room,
+body .teacher-shell .lesson-time,
+body .teacher-shell .room-badge,
+body .teacher-shell .time-pill {
+  font-size: 0.78rem !important;
+  line-height: 1.35 !important;
+}
+
+body .teacher-shell .page-title {
+  font-size: 1.25rem !important;
+  line-height: 1.16 !important;
+  font-weight: 850 !important;
+}
+
+body .teacher-shell .nav-item {
+  font-size: 0.875rem !important;
+  line-height: 1.2 !important;
+}
+
 body.teacher-dark-mode {
   --teacher-bg: #020617;
   --teacher-surface: #111827;
@@ -1248,6 +1322,7 @@ body.teacher-dark-mode {
 }
 
 body.teacher-dark-mode,
+body.teacher-dark-mode #app,
 body.teacher-dark-mode .teacher-shell,
 body.teacher-dark-mode .teacher-main,
 body.teacher-dark-mode .teacher-content,
@@ -1255,7 +1330,11 @@ body.teacher-dark-mode .teacher-dashboard-page,
 body.teacher-dark-mode .timetable-container,
 body.teacher-dark-mode .attendance-page,
 body.teacher-dark-mode .teacher-settings-page,
+body.teacher-dark-mode .settings-wrap,
+body.teacher-dark-mode .settings-shell,
+body.teacher-dark-mode .settings-content,
 body.teacher-dark-mode .profile-container {
+  min-height: 100vh;
   background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 34%),
     linear-gradient(135deg, #020617 0%, #0f172a 100%) !important;
   color: var(--teacher-text) !important;
@@ -1285,6 +1364,13 @@ body.teacher-dark-mode .controls-panel,
 body.teacher-dark-mode .class-strip,
 body.teacher-dark-mode .attendance-table,
 body.teacher-dark-mode .settings-intro,
+body.teacher-dark-mode .settings-nav,
+body.teacher-dark-mode .settings-panel,
+body.teacher-dark-mode .settings-skeleton,
+body.teacher-dark-mode .day-chip,
+body.teacher-dark-mode .toggle-card,
+body.teacher-dark-mode .preference-card,
+body.teacher-dark-mode .security-tips,
 body.teacher-dark-mode .teacher-settings-page .card,
 body.teacher-dark-mode .teacher-settings-page .card-header,
 body.teacher-dark-mode .profile-header,
@@ -1393,6 +1479,70 @@ body.teacher-dark-mode .profile-dropdown-header small {
   color: var(--teacher-muted) !important;
 }
 
+body.teacher-dark-mode .period-timer,
+body.teacher-dark-mode .period-timer * {
+  color: inherit;
+}
+
+body.teacher-dark-mode .period-timer .watch-face {
+  border-color: #334155 !important;
+  background: linear-gradient(180deg, #1f2937 0%, #030712 100%) !important;
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.08), 0 16px 34px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.teacher-dark-mode .period-timer .screen {
+  border-color: #020617 !important;
+  background: linear-gradient(180deg, #dcebcf 0%, #adc69a 100%) !important;
+  color: #111827 !important;
+}
+
+body.teacher-dark-mode .period-timer .screen span,
+body.teacher-dark-mode .period-timer .screen strong,
+body.teacher-dark-mode .period-timer .period-summary span,
+body.teacher-dark-mode .period-timer .period-summary strong,
+body.teacher-dark-mode .period-timer .gmt-chip,
+body.teacher-dark-mode .period-timer .timer-zone,
+body.teacher-dark-mode .period-timer .timer-local-time,
+body.teacher-dark-mode .period-timer .timer-caption,
+body.teacher-dark-mode .period-timer .watch-metrics span,
+body.teacher-dark-mode .period-timer .watch-metrics strong {
+  color: #111827 !important;
+}
+
+body.teacher-dark-mode .period-timer .alarm-toggle {
+  border-color: rgba(17, 24, 39, 0.55) !important;
+  background: #f8fafc !important;
+  color: #111827 !important;
+}
+
+body.teacher-dark-mode .period-timer .alarm-toggle.enabled {
+  background: #dcfce7 !important;
+  color: #14532d !important;
+}
+
+body.teacher-dark-mode .period-timer .tone-menu {
+  border-color: #334155 !important;
+  background: #111827 !important;
+}
+
+body.teacher-dark-mode .period-timer .tone-menu button {
+  border-color: #334155 !important;
+  background: #0b1220 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .period-timer .tone-menu button:hover,
+body.teacher-dark-mode .period-timer .tone-menu button:focus-visible,
+body.teacher-dark-mode .period-timer .tone-menu button.active {
+  border-color: #60a5fa !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.teacher-dark-mode .period-timer .timer-error {
+  color: #bfdbfe !important;
+}
+
 body.teacher-dark-mode a,
 body.teacher-dark-mode .teacher-breadcrumbs a,
 body.teacher-dark-mode .profile-link {
@@ -1485,5 +1635,93 @@ body.teacher-dark-mode .status-badge,
 body.teacher-dark-mode .lesson-type,
 body.teacher-dark-mode .day-badge {
   color: inherit;
+}
+
+/* Last-resort teacher readability layer. Keep the page content visible in dark mode
+   even when a routed view has scoped light-theme colors. */
+body.teacher-dark-mode .teacher-main,
+body.teacher-dark-mode .teacher-content {
+  position: relative !important;
+  z-index: 1 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.teacher-dark-mode .teacher-sidebar-backdrop {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 768px) {
+  body.teacher-dark-mode.teacher-sidebar-open .teacher-sidebar-backdrop {
+    display: block !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+}
+
+body.teacher-dark-mode .teacher-content *,
+body.teacher-dark-mode .teacher-navbar *,
+body.teacher-dark-mode .teacher-breadcrumbs * {
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(h1, h2, h3, h4, h5, h6, strong, b, th, label, legend, .page-title, .card-title, .panel-title, .section-title, .metric-value, .lesson-subject, .subject-name, .profile-name, .table-title) {
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(p, span, small, em, td, li, dd, dt, .text-muted, .subtitle, .page-subtitle, .empty-copy, .empty-text, .description, .meta, .caption, .lesson-class, .lesson-room, .room-info, .class-info, .period-time) {
+  color: #cbd5e1 !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(a, .link, .router-link-active, .profile-link, .quick-link) {
+  color: #93c5fd !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(.card, .panel, .metric-card, .dashboard-card, .stat-card, .settings-card, .profile-card, .profile-section, .info-card, .timeline-card, .document-card, .attendance-table, .controls-panel, .filters-panel, .panel-card, .timetable-output-card, .day-view-section, .compact-view-section, .lesson-card, .day-lesson-card, .compact-lesson-item, .timeline-item, .lesson-row, .activity-item, .next-lesson, .free-list button, .tag-list span, .settings-panel, .settings-nav, .settings-intro, .security-tips, .toggle-card, .preference-card, .day-chip) {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(input, select, textarea, .form-control, .form-select, .filter-input, .export-select) {
+  border-color: #334155 !important;
+  background: #0b1220 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(button:not(.primary-action):not(.primary-btn):not(.btn-primary):not(.download-btn):not(.save-btn), .btn-secondary, .secondary-btn, .tab-btn, .view-btn, .day-selector-btn) {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #dbeafe !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(.primary-action, .primary-btn, .btn-primary, .download-btn, .save-btn) {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(.primary-action *, .primary-btn *, .btn-primary *, .download-btn *, .save-btn *) {
+  color: #ffffff !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(table, .timetable-grid, .weekly-table) {
+  background: #0b1220 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(thead, th, .header-row th) {
+  background: #111827 !important;
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode .teacher-content :where(td, .lesson-cell, .period-col, .time-col) {
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
 }
 </style>

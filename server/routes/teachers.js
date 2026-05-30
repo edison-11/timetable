@@ -139,7 +139,10 @@ router.get('/', auth, async (req, res) => {
     if (req.user?.role === 'super_admin' && !schoolFilter) {
       return res.status(400).json({ message: 'Select a school before viewing teachers.' });
     }
-    const teachers = await Teacher.getAll({ school_id: schoolFilter });
+    const teachers = await Teacher.getAll({
+      school_id: schoolFilter,
+      include_unassigned: req.user?.role !== 'super_admin'
+    });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
@@ -154,7 +157,10 @@ router.get('/status/:status', auth, async (req, res) => {
     if (req.user?.role === 'super_admin' && !schoolFilter) {
       return res.status(400).json({ message: 'Select a school before viewing teachers.' });
     }
-    const teachers = await Teacher.getByStatus(req.params.status, { school_id: schoolFilter });
+    const teachers = await Teacher.getByStatus(req.params.status, {
+      school_id: schoolFilter,
+      include_unassigned: req.user?.role !== 'super_admin'
+    });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
@@ -169,7 +175,10 @@ router.get('/active', auth, async (req, res) => {
     if (req.user?.role === 'super_admin' && !schoolFilter) {
       return res.status(400).json({ message: 'Select a school before viewing teachers.' });
     }
-    const teachers = await Teacher.getByStatus('active', { school_id: schoolFilter });
+    const teachers = await Teacher.getByStatus('active', {
+      school_id: schoolFilter,
+      include_unassigned: req.user?.role !== 'super_admin'
+    });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
@@ -184,7 +193,10 @@ router.get('/pending', auth, async (req, res) => {
     if (req.user?.role === 'super_admin' && !schoolFilter) {
       return res.status(400).json({ message: 'Select a school before viewing teachers.' });
     }
-    const pendingTeachers = await Teacher.getByStatus('pending', { school_id: schoolFilter });
+    const pendingTeachers = await Teacher.getByStatus('pending', {
+      school_id: schoolFilter,
+      include_unassigned: req.user?.role !== 'super_admin'
+    });
     res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
   } catch (error) {
     console.error(error);

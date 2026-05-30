@@ -113,6 +113,25 @@ router.get('/attendance', auth, async (req, res) => {
   }
 });
 
+router.get('/attendance/records', auth, async (req, res) => {
+  try {
+    if (!req.query.attendance_date) {
+      return res.status(400).json({ message: 'Attendance date is required' });
+    }
+
+    const attendance = await Student.getAttendanceRecords({
+      attendance_date: req.query.attendance_date,
+      class_id: req.query.class_id || null,
+      school_id: getRequestSchoolId(req)
+    });
+
+    res.json({ attendance });
+  } catch (error) {
+    console.error('Error fetching attendance records:', error);
+    res.status(500).json({ message: 'Failed to fetch attendance records' });
+  }
+});
+
 router.post('/attendance', auth, [
   body('class_id').isInt().withMessage('Class is required'),
   body('attendance_date').isISO8601().withMessage('Attendance date is required'),

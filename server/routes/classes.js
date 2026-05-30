@@ -74,7 +74,10 @@ router.post('/', auth, [
 // Get all classes
 router.get('/', auth, async (req, res) => {
   try {
-    const classes = await Class.getAll({ school_id: getRequestSchoolId(req) });
+    const classes = await Class.getAll({
+      school_id: getRequestSchoolId(req),
+      include_unassigned: req.user?.role !== 'super_admin'
+    });
     res.json({ classes });
   } catch (error) {
     console.error(error);

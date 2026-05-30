@@ -8,22 +8,23 @@
       aria-label="Toggle navigation menu"
       @click="toggleSidebar"
     >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path class="hamburger-line top" d="M4 7h16" />
-        <path class="hamburger-line middle" d="M4 12h16" />
-        <path class="hamburger-line bottom" d="M4 17h16" />
-      </svg>
+      <PanelLeft />
     </button>
 
-    <div class="app-title-block">
-      <strong>Timetable Management System</strong>
-      <span>Admin Dashboard</span>
+    <div class="top-brand">
+      <span class="school-logo-frame">
+        <img :src="topLogoUrl" alt="School logo">
+      </span>
+      <div class="app-title-block">
+        <strong>Welcome to Admin Dashboard</strong>
+        <span>Admin Dashboard</span>
+      </div>
     </div>
 
     <div class="search-bar">
       <input v-model="searchQuery" type="search" placeholder="Search anything..." @keyup.enter="runSearch">
       <span class="search-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
+        <Search />
       </span>
     </div>
 
@@ -35,7 +36,10 @@
         :aria-pressed="isDarkMode"
         @click="toggleDarkMode"
       >
-        <span class="theme-icon" :class="{ sun: isDarkMode }"></span>
+        <span class="theme-icon" :class="{ active: isDarkMode }" aria-hidden="true">
+          <Sun v-if="isDarkMode" />
+          <Moon v-else />
+        </span>
       </button>
 
       <div class="notifications-menu" ref="notificationsMenu">
@@ -48,9 +52,7 @@
           @click="toggleNotifications"
         >
           <span class="bell-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m4 0a3 3 0 1 1-6 0h6Z"/>
-            </svg>
+            <Bell />
           </span>
           <span v-if="unreadCount" class="badge">{{ unreadCount }}</span>
       </button>
@@ -96,9 +98,7 @@
               @click.stop="deleteNotification(notification)"
               @keyup.enter.stop="deleteNotification(notification)"
             >
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 6l12 12M18 6 6 18"/>
-              </svg>
+              <X />
             </span>
           </div>
 
@@ -134,7 +134,7 @@
           </div>
 
           <nav class="account-links" aria-label="Account navigation">
-            <router-link :to="isTeacherAccount ? '/teacher/profile' : '/settings'" class="account-link" @click="showAccountMenu = false">
+            <router-link v-if="isTeacherAccount" to="/teacher/profile" class="account-link" @click="showAccountMenu = false">
               View Profile
             </router-link>
             <router-link :to="isTeacherAccount ? '/teacher/settings' : '/settings'" class="account-link" @click="showAccountMenu = false">
@@ -171,6 +171,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { Bell, Moon, PanelLeft, Search, Sun, X } from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -184,6 +185,8 @@ const accountMenu = ref(null)
 const notifications = ref([])
 const rejectDialog = ref({ open: false, notification: null, loading: false })
 const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
+const schoolLogoPath = ref('')
+const fallbackLogoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
 
 const unreadCount = computed(() => notifications.value.filter(item => !item.read).length)
 const currentUser = computed(() => authStore.currentUser || {})
@@ -196,6 +199,7 @@ const profileInitials = computed(() => {
   return name ? name.slice(0, 1).toUpperCase() : 'A'
 })
 const profileImageUrl = computed(() => resolveAssetUrl(currentUser.value.profile_photo))
+const topLogoUrl = computed(() => resolveAssetUrl(schoolLogoPath.value) || fallbackLogoUrl)
 
 const resolveAssetUrl = (path) => {
   if (!path) return ''
@@ -203,6 +207,24 @@ const resolveAssetUrl = (path) => {
 
   const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
   return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+const fetchSchoolLogo = async () => {
+  try {
+    const [timetableResponse, generalResponse] = await Promise.allSettled([
+      api.get('/settings/timetable'),
+      api.get('/settings/general')
+    ])
+    const timetableLogo = timetableResponse.status === 'fulfilled'
+      ? timetableResponse.value.data?.settings?.school_logo_url
+      : ''
+    const generalLogo = generalResponse.status === 'fulfilled'
+      ? generalResponse.value.data?.settings?.school_logo_url
+      : ''
+    schoolLogoPath.value = timetableLogo || generalLogo || ''
+  } catch (error) {
+    schoolLogoPath.value = ''
+  }
 }
 
 const toggleSidebar = () => {
@@ -428,6 +450,7 @@ const syncSidebarState = () => {
 onMounted(() => {
   isDarkMode.value = JSON.parse(localStorage.getItem('adminDarkMode') || 'false')
   applyDarkMode()
+  fetchSchoolLogo()
   fetchNotifications()
   syncSidebarState()
   document.addEventListener('click', closeMenusOnOutsideClick)
@@ -517,11 +540,39 @@ const logout = () => {
   transform: none;
 }
 
+.top-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 0 1 460px;
+}
+
+.school-logo-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #dbe5f3;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.school-logo-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .app-title-block {
   display: grid;
   gap: 0.08rem;
   min-width: 0;
-  flex: 0 1 390px;
 }
 
 .app-title-block strong {
@@ -622,46 +673,19 @@ const logout = () => {
 
 .dark-mode-toggle {
   position: relative;
-  width: 68px;
-  height: 36px;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 18px;
   cursor: pointer;
   color: #2563eb;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  background: #ffffff;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 3px;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06);
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
   transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
-}
-
-.dark-mode-toggle::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.3;
-  transform: translateY(-50%);
-}
-
-.dark-mode-toggle::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 11px;
-  width: 9px;
-  height: 9px;
-  border: 2px solid currentColor;
-  border-left-color: transparent;
-  border-radius: 50%;
-  opacity: 0.45;
-  transform: translateY(-50%) rotate(-22deg);
 }
 
 .dark-mode-toggle:hover,
@@ -674,23 +698,36 @@ const logout = () => {
 .theme-icon {
   position: relative;
   z-index: 1;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #ffffff;
+  width: 36px;
+  height: 36px;
+  border-radius: 14px;
+  background: #f8fbff;
+  border: 1px solid #dbe5f3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   box-shadow:
-    inset -7px -4px 0 0 currentColor,
-    0 5px 14px rgba(37, 99, 235, 0.2);
-  transform: translateX(0);
-  transition: transform 0.24s ease, background 0.22s ease, box-shadow 0.22s ease;
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, color 0.22s ease;
 }
 
-.theme-icon.sun {
-  background: #f8fafc;
+.theme-icon.active {
+  background: #f8fbff;
+  border-color: #dbe5f3;
   box-shadow:
-    0 0 0 5px rgba(96, 165, 250, 0.12),
-    0 5px 14px rgba(0, 0, 0, 0.24);
-  transform: translateX(31px);
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.theme-icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .bell-icon {
@@ -1030,6 +1067,17 @@ const logout = () => {
     flex-basis: auto;
   }
 
+  .top-brand {
+    flex: 1;
+    gap: 0.55rem;
+  }
+
+  .school-logo-frame {
+    flex-basis: 38px;
+    width: 38px;
+    height: 38px;
+  }
+
   .app-title-block strong {
     font-size: 1.12rem;
   }
@@ -1078,30 +1126,26 @@ body.admin-dark-mode .app-title-block span {
   color: #94a3b8;
 }
 
-body.admin-dark-mode .dark-mode-toggle {
-  background: linear-gradient(135deg, #020617 0%, #111827 100%);
+body.admin-dark-mode .school-logo-frame {
+  background: #0f172a;
   border-color: #334155;
-  color: #bfdbfe;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    0 8px 22px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+body.admin-dark-mode .dark-mode-toggle {
+  background: #ffffff;
+  color: #2563eb;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
 }
 
 body.admin-dark-mode .dark-mode-toggle:hover,
 body.admin-dark-mode .dark-mode-toggle:focus-visible {
-  border-color: #60a5fa;
-  box-shadow:
-    inset 0 1px 1px rgba(255, 255, 255, 0.05),
-    0 8px 24px rgba(37, 99, 235, 0.24);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.26);
 }
 
-body.admin-dark-mode .dark-mode-toggle::before {
-  color: #64748b;
-}
-
-body.admin-dark-mode .dark-mode-toggle::after {
-  color: #bfdbfe;
-  opacity: 1;
+body.admin-dark-mode .theme-icon {
+  background: #f8fbff;
+  border-color: #dbe5f3;
 }
 
 body.admin-dark-mode .search-bar input,

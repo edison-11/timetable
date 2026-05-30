@@ -123,7 +123,7 @@ class Teacher {
     const where = [];
     const values = [];
     if (filters.school_id) {
-      where.push('t.school_id = ?');
+      where.push(filters.include_unassigned ? '(t.school_id = ? OR t.school_id IS NULL)' : 't.school_id = ?');
       values.push(filters.school_id);
     }
 
@@ -177,7 +177,7 @@ class Teacher {
     const where = ['status = ?'];
     const values = [status];
     if (filters.school_id) {
-      where.push('school_id = ?');
+      where.push(filters.include_unassigned ? '(school_id = ? OR school_id IS NULL)' : 'school_id = ?');
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(
@@ -299,7 +299,7 @@ class Teacher {
     const where = ['status = "active"'];
     const values = [];
     if (filters.school_id) {
-      where.push('school_id = ?');
+      where.push(filters.include_unassigned ? '(school_id = ? OR school_id IS NULL)' : 'school_id = ?');
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(

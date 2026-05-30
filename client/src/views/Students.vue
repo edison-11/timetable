@@ -27,6 +27,78 @@
         <button type="button" class="secondary-btn" @click="loadStudents">Refresh</button>
       </section>
 
+      <section class="attendance-panel">
+        <div class="attendance-header-row">
+          <div>
+            <h2>Attendance by Date</h2>
+            <p>Select a date to review recorded attendance for all classes or one class.</p>
+          </div>
+          <button type="button" class="secondary-btn" :disabled="loadingAttendanceRecords" @click="loadAttendanceRecords">
+            {{ loadingAttendanceRecords ? 'Loading...' : 'View Attendance' }}
+          </button>
+        </div>
+
+        <div class="attendance-filters">
+          <label>
+            <span>Date</span>
+            <input v-model="attendanceFilters.date" type="date">
+          </label>
+          <label>
+            <span>Class</span>
+            <select v-model="attendanceFilters.class_id">
+              <option value="">All classes</option>
+              <option v-for="cls in classes" :key="cls.class_id" :value="String(cls.class_id)">
+                {{ cls.class_name }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div class="attendance-summary-row">
+          <span><strong>{{ attendanceRecords.length }}</strong> records</span>
+          <span><strong>{{ attendanceCounts.present }}</strong> present</span>
+          <span><strong>{{ attendanceCounts.absent }}</strong> absent</span>
+          <span><strong>{{ attendanceCounts.late }}</strong> late</span>
+          <span><strong>{{ attendanceCounts.excused }}</strong> excused</span>
+        </div>
+
+        <div class="attendance-record-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Class</th>
+                <th>Period / Module</th>
+                <th>Status</th>
+                <th>Teacher</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="record in attendanceRecords" :key="record.attendance_id">
+                <td>
+                  <strong>{{ record.student_name || '-' }}</strong>
+                  <small>{{ record.student_number || '' }}</small>
+                </td>
+                <td>{{ record.class_name || '-' }}</td>
+                <td>
+                  <strong>{{ record.module_name || record.period_label || 'Study period' }}</strong>
+                  <small>{{ formatTimeRange(record) }}</small>
+                </td>
+                <td><span class="attendance-status" :class="record.status">{{ record.status }}</span></td>
+                <td>{{ record.teacher_name || '-' }}</td>
+                <td>{{ record.notes || '-' }}</td>
+              </tr>
+              <tr v-if="!attendanceRecords.length">
+                <td colspan="6" class="empty-row">
+                  {{ loadingAttendanceRecords ? 'Loading attendance...' : 'No attendance recorded for this date.' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="table-panel">
         <table>
           <thead>
@@ -235,6 +307,12 @@ const showAbsenceModal = ref(false)
 const selectedStudent = ref(null)
 const absentRecords = ref([])
 const loadingAbsences = ref(false)
+const attendanceRecords = ref([])
+const loadingAttendanceRecords = ref(false)
+const attendanceFilters = ref({
+  date: new Date().toISOString().slice(0, 10),
+  class_id: ''
+})
 const absenceFilters = ref({
   from_date: '',
   to_date: ''
@@ -275,6 +353,19 @@ const filteredStudents = computed(() => {
       student.parent_email
     ].filter(Boolean).join(' ').toLowerCase()
     return matchesClass && (!query || haystack.includes(query))
+  })
+})
+
+const attendanceCounts = computed(() => {
+  return attendanceRecords.value.reduce((counts, record) => {
+    const status = record.status || 'present'
+    counts[status] = (counts[status] || 0) + 1
+    return counts
+  }, {
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0
   })
 })
 
@@ -356,6 +447,28 @@ const loadStudents = async () => {
 const loadClasses = async () => {
   const response = await api.get('/classes')
   classes.value = response.data.classes || []
+}
+
+const loadAttendanceRecords = async () => {
+  if (!attendanceFilters.value.date) {
+    showMessage('Select attendance date first', 'error')
+    return
+  }
+
+  loadingAttendanceRecords.value = true
+  try {
+    const response = await api.get('/students/attendance/records', {
+      params: {
+        attendance_date: attendanceFilters.value.date,
+        class_id: attendanceFilters.value.class_id || undefined
+      }
+    })
+    attendanceRecords.value = response.data.attendance || []
+  } catch (error) {
+    showMessage(error.response?.data?.message || 'Could not load attendance records', 'error')
+  } finally {
+    loadingAttendanceRecords.value = false
+  }
 }
 
 const openCreate = () => {
@@ -481,6 +594,7 @@ const formatTimeRange = (record) => {
 
 onMounted(async () => {
   await Promise.all([loadClasses(), loadStudents()])
+  await loadAttendanceRecords()
 })
 </script>
 
@@ -493,6 +607,7 @@ onMounted(async () => {
 .page-header,
 .toolbar,
 .table-panel,
+.attendance-panel,
 .student-form {
   background: #ffffff;
   border: 1px solid #dbe5f3;
@@ -531,6 +646,90 @@ onMounted(async () => {
   grid-template-columns: minmax(0, 1fr) 220px auto;
   gap: 0.75rem;
   padding: 1rem;
+}
+
+.attendance-panel {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+}
+
+.attendance-header-row,
+.attendance-summary-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.attendance-header-row h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 1.1rem;
+}
+
+.attendance-header-row p {
+  margin: 0.25rem 0 0;
+  color: #64748b;
+}
+
+.attendance-filters {
+  display: grid;
+  grid-template-columns: 220px 260px;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.attendance-summary-row {
+  justify-content: flex-start;
+}
+
+.attendance-summary-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  color: #334155;
+  background: #f1f5f9;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.attendance-record-table {
+  overflow-x: auto;
+}
+
+.attendance-status {
+  display: inline-flex;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  color: #1e293b;
+  background: #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: capitalize;
+}
+
+.attendance-status.present {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.attendance-status.absent {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.attendance-status.late {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.attendance-status.excused {
+  color: #075985;
+  background: #e0f2fe;
 }
 
 input,
@@ -726,6 +925,7 @@ label span {
 @media (max-width: 720px) {
   .page-header,
   .toolbar,
+  .attendance-filters,
   .form-grid {
     grid-template-columns: 1fr;
   }

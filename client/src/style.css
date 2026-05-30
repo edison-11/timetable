@@ -1185,6 +1185,13 @@ body.admin-dark-mode {
   color: #e5e7eb;
 }
 
+body.admin-dark-mode #app {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 32rem),
+    linear-gradient(135deg, #020617 0%, #0f172a 58%, #111827 100%) !important;
+}
+
 body.admin-dark-mode .dashboard-container,
 body.admin-dark-mode .classes-container,
 body.admin-dark-mode .teachers-container,
@@ -1622,6 +1629,191 @@ body.admin-dark-mode .warning-message {
   border-color: rgba(245, 158, 11, 0.34) !important;
 }
 
+/* Dark-mode coverage for superadmin and settings pages with scoped component styles. */
+body.admin-dark-mode .platform-dashboard,
+body.admin-dark-mode .settings-control,
+body.admin-dark-mode .schools-page {
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode .platform-dashboard .page-head h1,
+body.admin-dark-mode .platform-dashboard .panel-head h2,
+body.admin-dark-mode .platform-dashboard .metric-card strong,
+body.admin-dark-mode .platform-dashboard .report-grid strong,
+body.admin-dark-mode .platform-dashboard .activity-row strong,
+body.admin-dark-mode .settings-control .settings-hero h1,
+body.admin-dark-mode .settings-control .card-heading h2,
+body.admin-dark-mode .settings-control .settings-card h2,
+body.admin-dark-mode .settings-control .settings-card h3,
+body.admin-dark-mode .settings-control .nav-item span,
+body.admin-dark-mode .settings-control .field,
+body.admin-dark-mode .settings-control .field span,
+body.admin-dark-mode .settings-control .switch-card strong,
+body.admin-dark-mode .settings-control .toggle-row strong,
+body.admin-dark-mode .settings-control .session-item strong,
+body.admin-dark-mode .settings-control .account-summary strong,
+body.admin-dark-mode .settings-control .activity-row strong,
+body.admin-dark-mode .schools-page .page-header h1,
+body.admin-dark-mode .schools-page .summary-grid strong,
+body.admin-dark-mode .schools-page td strong {
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode .platform-dashboard .page-head p,
+body.admin-dark-mode .platform-dashboard .panel-head span,
+body.admin-dark-mode .platform-dashboard .panel-head button,
+body.admin-dark-mode .platform-dashboard .metric-card small,
+body.admin-dark-mode .platform-dashboard .metric-card em,
+body.admin-dark-mode .platform-dashboard .report-grid small,
+body.admin-dark-mode .platform-dashboard .report-grid span,
+body.admin-dark-mode .platform-dashboard .bar-label,
+body.admin-dark-mode .platform-dashboard .activity-row p,
+body.admin-dark-mode .platform-dashboard .activity-row time,
+body.admin-dark-mode .settings-control .settings-hero p,
+body.admin-dark-mode .settings-control .card-heading p,
+body.admin-dark-mode .settings-control .eyebrow,
+body.admin-dark-mode .settings-control .switch-card small,
+body.admin-dark-mode .settings-control .toggle-row small,
+body.admin-dark-mode .settings-control .session-item span,
+body.admin-dark-mode .settings-control .session-item em,
+body.admin-dark-mode .settings-control .account-summary span,
+body.admin-dark-mode .settings-control .activity-row span,
+body.admin-dark-mode .settings-control .credentials-card p,
+body.admin-dark-mode .settings-control .credentials-card li,
+body.admin-dark-mode .schools-page .page-header p,
+body.admin-dark-mode .schools-page .summary-grid span,
+body.admin-dark-mode .schools-page td small,
+body.admin-dark-mode .schools-page .state {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .platform-dashboard .metric-card,
+body.admin-dark-mode .platform-dashboard .panel,
+body.admin-dark-mode .platform-dashboard .report-grid > div,
+body.admin-dark-mode .settings-control .settings-hero,
+body.admin-dark-mode .settings-control .settings-nav,
+body.admin-dark-mode .settings-control .settings-card,
+body.admin-dark-mode .settings-control .credentials-card,
+body.admin-dark-mode .settings-control .session-item,
+body.admin-dark-mode .settings-control .switch-card,
+body.admin-dark-mode .settings-control .toggle-row,
+body.admin-dark-mode .settings-control .theme-card,
+body.admin-dark-mode .settings-control .activity-row,
+body.admin-dark-mode .settings-control .confirm-modal,
+body.admin-dark-mode .schools-page .summary-grid article,
+body.admin-dark-mode .schools-page .table-card {
+  background: rgba(15, 23, 42, 0.96) !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+body.admin-dark-mode .platform-dashboard .panel-head,
+body.admin-dark-mode .settings-control .card-heading,
+body.admin-dark-mode .settings-control .activity-row.head {
+  border-color: #243244 !important;
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode .platform-dashboard .bar {
+  background: #0b1220 !important;
+}
+
+body.admin-dark-mode .platform-dashboard .activity-row {
+  border-bottom-color: #243244 !important;
+}
+
+body.admin-dark-mode .settings-control .nav-item {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .settings-control .nav-item:hover,
+body.admin-dark-mode .settings-control .nav-item.active,
+body.admin-dark-mode .settings-control .theme-card.active {
+  background: #172554 !important;
+  border-color: #3b82f6 !important;
+  color: #dbeafe !important;
+}
+
+body.admin-dark-mode .settings-control .tool-btn.secondary,
+body.admin-dark-mode .settings-control .tool-btn.ghost,
+body.admin-dark-mode .settings-control .mobile-nav-toggle {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #dbeafe !important;
+}
+
+body.admin-dark-mode .schools-page {
+  min-height: calc(100vh - 6rem);
+  background: transparent !important;
+}
+
+body.admin-dark-mode .schools-page input,
+body.admin-dark-mode .schools-page select {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode .schools-page input::placeholder {
+  color: #94a3b8 !important;
+}
+
+body.admin-dark-mode .schools-page button {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.admin-dark-mode .schools-page table {
+  background: #0b1220 !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode .schools-page th {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #f8fafc !important;
+}
+
+body.admin-dark-mode .schools-page td {
+  background: transparent !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.admin-dark-mode .schools-page .setup-grid span {
+  border: 1px solid #243244 !important;
+  background: #0b1220 !important;
+  color: #dbeafe !important;
+}
+
+body.admin-dark-mode .schools-page .status {
+  border: 1px solid rgba(245, 158, 11, 0.34) !important;
+  background: rgba(180, 83, 9, 0.22) !important;
+  color: #fde68a !important;
+}
+
+body.admin-dark-mode .schools-page .status.active {
+  border-color: rgba(34, 197, 94, 0.34) !important;
+  background: rgba(21, 128, 61, 0.22) !important;
+  color: #bbf7d0 !important;
+}
+
+body.admin-dark-mode .schools-page .status.rejected,
+body.admin-dark-mode .schools-page .status.inactive,
+body.admin-dark-mode .schools-page .status.deactivated {
+  border-color: rgba(248, 113, 113, 0.34) !important;
+  background: rgba(153, 27, 27, 0.24) !important;
+  color: #fecaca !important;
+}
+
+body.admin-dark-mode .schools-page .status.suspended {
+  border-color: rgba(251, 146, 60, 0.34) !important;
+  background: rgba(154, 52, 18, 0.24) !important;
+  color: #fed7aa !important;
+}
+
 body.admin-dark-mode .status-badge.inactive,
 body.admin-dark-mode .alert-danger,
 body.admin-dark-mode .status-message.error,
@@ -1915,256 +2107,4 @@ body.teacher-dark-mode .time-col.evening-break,
 body.teacher-dark-mode .break-fill.evening-break {
   background: rgba(30, 64, 175, 0.26) !important;
   color: #bfdbfe !important;
-}
-
-/* Enterprise consistency layer */
-:root {
-  --surface-0: #ffffff;
-  --surface-1: #f8fafc;
-  --surface-2: #eef4ff;
-  --border-subtle: #d8e2f0;
-  --text-strong: #0b1220;
-  --text-body: #1e293b;
-  --text-soft: #64748b;
-  --brand-primary: #0f62fe;
-  --brand-primary-dark: #0b4fd0;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --shadow-soft: 0 14px 35px rgba(15, 23, 42, 0.08);
-  --space-2: 0.5rem;
-  --space-6: 2rem;
-}
-
-body {
-  background: var(--surface-1);
-  color: var(--text-body);
-  text-rendering: optimizeLegibility;
-}
-
-h1,
-.page-title,
-.dashboard-title-row h1 {
-  color: var(--text-strong);
-  font-size: clamp(1.65rem, 1.3rem + 0.8vw, 2.25rem);
-  font-weight: 800;
-  line-height: 1.12;
-  margin-bottom: var(--space-2);
-}
-
-h2,
-.section-title {
-  color: var(--text-strong);
-  font-size: 1.35rem;
-  font-weight: 750;
-  line-height: 1.25;
-}
-
-h3,
-.card-title {
-  color: var(--text-strong);
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-p,
-label,
-td,
-th,
-input,
-select,
-textarea,
-button {
-  line-height: 1.5;
-}
-
-.card,
-.card-custom,
-.panel,
-.panel-card,
-.dashboard-card,
-.metric-card,
-.stat-card,
-.form-card,
-.table-wrapper,
-.modal-content,
-.empty-state,
-.platform-card,
-.register-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-soft);
-}
-
-.form-control,
-.form-select,
-.search-input,
-.filter-input,
-.filter-select,
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
-select,
-textarea {
-  border-radius: var(--radius-sm);
-  border-color: var(--border-subtle);
-  color: var(--text-strong);
-  min-height: 44px;
-}
-
-.form-control:focus,
-.form-select:focus,
-.search-input:focus,
-.filter-input:focus,
-.filter-select:focus,
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
-select:focus,
-textarea:focus {
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 0.2rem rgba(15, 98, 254, 0.16);
-  outline: none;
-}
-
-.btn,
-.action-btn,
-.quick-action-btn,
-.primary-btn,
-.secondary-btn {
-  align-items: center;
-  border-radius: var(--radius-sm);
-  display: inline-flex;
-  font-weight: 700;
-  gap: 0.45rem;
-  justify-content: center;
-  min-height: 42px;
-  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
-}
-
-.btn-primary,
-.primary-btn {
-  background: var(--brand-primary);
-  border-color: var(--brand-primary);
-  color: #ffffff;
-}
-
-.btn-primary:hover,
-.primary-btn:hover {
-  background: var(--brand-primary-dark);
-  border-color: var(--brand-primary-dark);
-  color: #ffffff;
-}
-
-.table-responsive,
-.table-wrapper {
-  overflow-x: auto;
-}
-
-table {
-  color: var(--text-body);
-  font-size: 0.92rem;
-}
-
-th {
-  color: var(--text-soft);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-td,
-th {
-  vertical-align: middle;
-}
-
-.empty-state {
-  color: var(--text-soft);
-  padding: var(--space-6);
-  text-align: center;
-}
-
-.status-badge,
-.badge {
-  border-radius: 999px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  padding: 0.35rem 0.7rem;
-}
-
-body.admin-dark-mode,
-body.teacher-dark-mode {
-  --surface-0: #0f172a;
-  --surface-1: #08111f;
-  --surface-2: #111827;
-  --border-subtle: #263244;
-  --text-strong: #f8fafc;
-  --text-body: #e2e8f0;
-  --text-soft: #a9b7c9;
-  --brand-primary: #60a5fa;
-  --brand-primary-dark: #3b82f6;
-  --shadow-soft: none;
-}
-
-body.admin-dark-mode .register-page,
-body.teacher-dark-mode .register-page,
-body.admin-dark-mode .status-page,
-body.teacher-dark-mode .status-page,
-body.admin-dark-mode .platform-dashboard,
-body.teacher-dark-mode .platform-dashboard,
-body.admin-dark-mode .schools-page,
-body.teacher-dark-mode .schools-page {
-  background: var(--surface-1) !important;
-  color: var(--text-body) !important;
-}
-
-body.admin-dark-mode .register-card,
-body.teacher-dark-mode .register-card,
-body.admin-dark-mode .platform-card,
-body.teacher-dark-mode .platform-card,
-body.admin-dark-mode .schools-card,
-body.teacher-dark-mode .schools-card,
-body.admin-dark-mode .status-card,
-body.teacher-dark-mode .status-card,
-body.admin-dark-mode .modal-content,
-body.teacher-dark-mode .modal-content {
-  background: var(--surface-0) !important;
-  border-color: var(--border-subtle) !important;
-  color: var(--text-body) !important;
-}
-
-body.admin-dark-mode .form-control,
-body.admin-dark-mode .form-select,
-body.teacher-dark-mode .form-control,
-body.teacher-dark-mode .form-select,
-body.admin-dark-mode .register-page input,
-body.admin-dark-mode .register-page select,
-body.admin-dark-mode .register-page textarea,
-body.teacher-dark-mode .register-page input,
-body.teacher-dark-mode .register-page select,
-body.teacher-dark-mode .register-page textarea {
-  background: #111827 !important;
-  border-color: var(--border-subtle) !important;
-  color: var(--text-strong) !important;
-}
-
-body.admin-dark-mode .register-page input::placeholder,
-body.admin-dark-mode .register-page textarea::placeholder,
-body.teacher-dark-mode .register-page input::placeholder,
-body.teacher-dark-mode .register-page textarea::placeholder {
-  color: #94a3b8 !important;
-}
-
-body.admin-dark-mode .role-card,
-body.teacher-dark-mode .role-card,
-body.admin-dark-mode .info-panel,
-body.teacher-dark-mode .info-panel,
-body.admin-dark-mode .form-section,
-body.teacher-dark-mode .form-section {
-  background: #111827 !important;
-  border-color: var(--border-subtle) !important;
-  color: var(--text-body) !important;
-}
-
-body.admin-dark-mode .role-card.active,
-body.teacher-dark-mode .role-card.active {
-  background: #172554 !important;
-  border-color: var(--brand-primary) !important;
 }

@@ -373,7 +373,9 @@ router.put('/timetable', auth, [
     }),
   body('school_logo_url').optional({ nullable: true }).trim().isLength({ max: 1000 }),
   body('prepared_by').optional({ nullable: true }).trim().isLength({ max: 120 }),
-  body('approved_by').optional({ nullable: true }).trim().isLength({ max: 120 })
+  body('approved_by').optional({ nullable: true }).trim().isLength({ max: 120 }),
+  body('header_position').optional().isIn(['left', 'center', 'right']).withMessage('Header position must be left, center, or right'),
+  body('custom_header_content').optional({ nullable: true }).trim().isLength({ max: 1000 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -426,7 +428,9 @@ router.put('/timetable', auth, [
         : undefined,
       school_logo_url: req.body.school_logo_url,
       prepared_by: req.body.prepared_by,
-      approved_by: req.body.approved_by
+      approved_by: req.body.approved_by,
+      header_position: req.body.header_position,
+      custom_header_content: req.body.custom_header_content
     });
 
     res.json({

@@ -131,7 +131,7 @@ const router = createRouter({
       path: '/settings',
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin', 'super_admin'] }
     },
     {
       path: '/teacher/register',

@@ -22,8 +22,9 @@
             <button
               class="view-btn"
               :class="{ active: viewMode === 'day' }"
-              @click="viewMode = 'day'"
-              title="Daily View"
+              :disabled="!canShowDayView"
+              @click="setViewMode('day')"
+              :title="dayViewDisabledReason || 'Daily View'"
             >
               <i class="bi bi-calendar-day"></i>
               <span>Day</span>
@@ -65,7 +66,7 @@
         <article>
           <span>Today</span>
           <strong>{{ todayLessons.length }}</strong>
-          <small>{{ todayName || 'No school day' }}</small>
+          <small>{{ todayStatusLabel }}</small>
         </article>
         <article>
           <span>Next</span>
@@ -76,6 +77,9 @@
 
       <div v-if="loading" class="state-panel">Loading timetable...</div>
       <div v-else-if="loadError" class="state-panel error">{{ loadError }}</div>
+      <div v-else-if="!canShowDayView" class="state-panel info">
+        {{ dayViewDisabledReason }} Weekly timetable is still available.
+      </div>
 
       <section v-if="showFilters" class="filters-panel panel-card">
         <div class="filter-group">
@@ -209,7 +213,7 @@
         </div>
       </section>
 
-      <section v-else-if="!loading && !loadError && viewMode === 'day'" class="day-view-section timetable-output-card">
+      <section v-else-if="!loading && !loadError && viewMode === 'day' && canShowDayView" class="day-view-section timetable-output-card">
         <div class="day-selector">
           <button
             v-for="day in days"
@@ -304,7 +308,7 @@ import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
 import { buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
-import { SCHOOL_DAYS, getSchoolDayName, getSchoolWeekDate, getMondayOfWeek } from '@/utils/dayHelpers'
+import { SCHOOL_DAYS, getSchoolDayName, getSchoolWeekDate, getMondayOfWeek, isAcademicWeekend } from '@/utils/dayHelpers'
 
 const authStore = useAuthStore()
 
@@ -330,6 +334,16 @@ const currentTeacherId = computed(() => authStore.currentUser?.teacher_id || aut
 const teacherName = computed(() => {
   const user = authStore.currentUser || {}
   return user.name || user.full_name || user.teacher_name || user.email || 'Teacher'
+})
+
+const teacherWorkingDays = computed(() => {
+  const rawDays = authStore.currentUser?.available_days || authStore.currentUser?.availableDays || ''
+  const parsedDays = Array.isArray(rawDays)
+    ? rawDays
+    : String(rawDays || '').split(',').map(day => day.trim()).filter(Boolean)
+
+  const validDays = parsedDays.filter(day => days.includes(day))
+  return validDays.length ? validDays : days
 })
 
 const normalizeTime = (time) => String(time || '').slice(0, 5)
@@ -426,6 +440,26 @@ const allLessons = computed(() => {
 
 const todayName = computed(() => getSchoolDayName(new Date()) || '')
 
+const isTodayTeacherWorkingDay = computed(() => {
+  return Boolean(todayName.value && teacherWorkingDays.value.includes(todayName.value))
+})
+
+const canShowDayView = computed(() => !isAcademicWeekend(new Date()) && isTodayTeacherWorkingDay.value)
+
+const todayStatusLabel = computed(() => {
+  if (isAcademicWeekend(new Date())) return 'Weekend'
+  if (!todayName.value) return 'No school day'
+  if (!isTodayTeacherWorkingDay.value) return `${todayName.value} off`
+  return todayName.value
+})
+
+const dayViewDisabledReason = computed(() => {
+  if (canShowDayView.value) return ''
+  if (isAcademicWeekend(new Date())) return 'Day view is hidden during the weekend.'
+  if (todayName.value && !isTodayTeacherWorkingDay.value) return `Day view is hidden because ${todayName.value} is not your working day.`
+  return 'Day view is hidden today.'
+})
+
 const totalLessons = computed(() => allLessons.value.length)
 
 const todayLessons = computed(() => allLessons.value.filter((lesson) => lesson.day === todayName.value))
@@ -454,6 +488,18 @@ const getDayLessons = (day) => {
     .map(row => toLesson(row.entriesByDay[day]))
 }
 
+const setViewMode = (mode) => {
+  if (mode === 'day' && !canShowDayView.value) {
+    viewMode.value = 'week'
+    return
+  }
+
+  viewMode.value = mode
+  if (mode === 'day' && todayName.value) {
+    selectedDayView.value = todayName.value
+  }
+}
+
 const getBreakIcon = (breakType) => {
   const icons = {
     break: 'bi bi-cup-hot',
@@ -479,18 +525,89 @@ const escapeCsvValue = (value) => {
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
-const buildExportRows = () => {
-  const rows = [['Slot', 'Time', ...days]]
+const areSameLessonBlock = (first, second) => {
+  if (!first || !second) return false
+  if ((first.entry_type || 'lesson') !== (second.entry_type || 'lesson')) return false
+  if (String(first.assignment_id || '') && String(second.assignment_id || '')) {
+    return String(first.assignment_id) === String(second.assignment_id)
+  }
 
-  for (const row of processedTimetable.value) {
+  return String(first.module_name || '') === String(second.module_name || '')
+    && String(first.class_name || '') === String(second.class_name || '')
+    && String(first.room_id || first.room_name || first.room || '') === String(second.room_id || second.room_name || second.room || '')
+}
+
+const buildMergedTimetableRows = () => {
+  const rows = processedTimetable.value
+  return rows.map((row, rowIndex) => {
+    if (row.type === 'break') return row
+
+    const cellsByDay = {}
+    days.forEach((day) => {
+      const entry = row.entriesByDay?.[day]
+      if (!entry) {
+        cellsByDay[day] = { entry: null, rowspan: 1, skip: false }
+        return
+      }
+
+      const previousRow = rows[rowIndex - 1]
+      const previousEntry = previousRow?.type === 'period' ? previousRow.entriesByDay?.[day] : null
+      if (areSameLessonBlock(previousEntry, entry)) {
+        cellsByDay[day] = { entry, rowspan: 1, skip: true }
+        return
+      }
+
+      let rowspan = 1
+      for (let nextIndex = rowIndex + 1; nextIndex < rows.length; nextIndex += 1) {
+        const nextRow = rows[nextIndex]
+        if (nextRow.type !== 'period' || !areSameLessonBlock(entry, nextRow.entriesByDay?.[day])) break
+        rowspan += 1
+      }
+
+      cellsByDay[day] = { entry, rowspan, skip: false }
+    })
+
+    return { ...row, cellsByDay }
+  })
+}
+
+const formatExportLesson = (lesson, span = 1) => {
+  const lines = [
+    lesson.subject,
+    `Class: ${lesson.class}`,
+    `Room: ${lesson.room}`
+  ]
+  if (span > 1) lines.push(`${span} slots`)
+  return lines.join('\n')
+}
+
+const getExportFileBaseName = () => {
+  const safeName = String(teacherName.value || 'teacher')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `${safeName || 'teacher'}-timetable`
+}
+
+const buildExportRows = () => {
+  const rows = [
+    ['Teacher', teacherName.value],
+    ['Week', formattedWeek.value],
+    [],
+    ['Slot', 'Time', ...days]
+  ]
+
+  for (const row of buildMergedTimetableRows()) {
     if (row.type === 'break') {
       rows.push([row.label, formatTimeRange(row.start_time, row.end_time), ...days.map(() => row.label)])
     } else {
       const rowData = [row.period, formatTimeRange(row.start_time, row.end_time)]
       for (const day of days) {
-        if (row.entriesByDay[day]) {
-          const lesson = toLesson(row.entriesByDay[day])
-          rowData.push(`${lesson.subject} (${lesson.class}, ${lesson.room})`)
+        const cell = row.cellsByDay?.[day]
+        if (cell?.skip) {
+          rowData.push('Continued from previous slot')
+        } else if (cell?.entry) {
+          rowData.push(formatExportLesson(toLesson(cell.entry), cell.rowspan))
         } else {
           rowData.push('')
         }
@@ -511,19 +628,21 @@ const escapeHtml = (value) => String(value ?? '')
 
 const buildTimetableHtml = () => {
   const header = ['Slot', 'Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
-  const body = processedTimetable.value.map((row) => {
+  const body = buildMergedTimetableRows().map((row) => {
     if (row.type === 'break') {
       return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(row.label)}</td><td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td><td colspan="${days.length}"></td></tr>`
     }
 
     const cells = days.map((day) => {
-      const entry = row.entriesByDay[day]
-      const lesson = entry ? toLesson(entry) : null
+      const cell = row.cellsByDay?.[day]
+      if (cell?.skip) return ''
+      const lesson = cell?.entry ? toLesson(cell.entry) : null
       if (!lesson) return '<td class="empty-cell"></td>'
-      return `<td><div class="lesson-card ${escapeHtml(lesson.type)}" style="border-left-color:${lesson.color}">
+      return `<td rowspan="${cell.rowspan || 1}"><div class="lesson-card ${escapeHtml(lesson.type)}" style="border-left-color:${lesson.color}">
         <strong>${escapeHtml(lesson.subject)}</strong>
-        <span>${escapeHtml(lesson.class)}</span>
-        <small>${escapeHtml(lesson.room)}</small>
+        <span>Class: ${escapeHtml(lesson.class)}</span>
+        <small>Room: ${escapeHtml(lesson.room)}</small>
+        ${cell.rowspan > 1 ? `<em>${cell.rowspan} slots</em>` : ''}
       </div></td>`
     }).join('')
     return `<tr><td class="slot-cell">${escapeHtml(row.period)}</td><td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>${cells}</tr>`
@@ -535,22 +654,20 @@ const buildTimetableHtml = () => {
   <meta charset="utf-8">
   <title>${escapeHtml(teacherName.value)} Timetable</title>
   <style>
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #111827; background: #ffffff; }
-    h1 { font-size: 11px; line-height: 1.05; margin: 0 0 1px; page-break-after: avoid; break-after: avoid; }
-    .subtitle { margin: 0 0 3px; color: #475569; font-size: 6px; line-height: 1.05; page-break-after: avoid; break-after: avoid; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
-    thead { display: table-header-group; }
-    tr { page-break-inside: avoid; break-inside: avoid; }
-    th, td { border: 1px solid #cbd5e1; padding: 2px 3px; font-size: 6px; line-height: 1; vertical-align: top; height: 18px; }
-    th { background: #2563eb; color: white; text-align: left; height: 14px; }
+    @page { size: landscape; margin: 10mm; }
+    body { font-family: Arial, sans-serif; color: #111827; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .subtitle { margin: 0 0 10px; color: #475569; font-size: 12px; }
+    .teacher-meta { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: #111827; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th, td { border: 1px solid #cbd5e1; padding: 5px; font-size: 10px; vertical-align: top; height: 38px; }
+    th { background: #2563eb; color: white; text-align: left; }
     .time-cell { background: #f8fafc; font-weight: 700; }
     .empty-cell { background: #ffffff; }
     .lesson-card { min-height: 14px; padding: 1px 2px; border-left: 3px solid #3b82f6; background: #eff6ff; border-radius: 3px; }
     .lesson-card.activity { background: #f0fdf4; }
-    .lesson-card strong, .lesson-card span, .lesson-card small { display: block; }
-    .lesson-card small { font-size: 5px; text-transform: uppercase; }
+    .lesson-card strong, .lesson-card span, .lesson-card small, .lesson-card em { display: block; }
+    .lesson-card em { margin-top: 3px; color: #1d4ed8; font-style: normal; font-weight: 700; }
     .break-row td { background: #e8f7e9; font-weight: 700; text-align: center; }
     .break-row.lunch td { background: #fff4c7; }
     .break-row.assembly td { background: #e9f2ff; }
@@ -562,13 +679,14 @@ const buildTimetableHtml = () => {
 </head>
 <body>
   <h1>${escapeHtml(teacherName.value)} Timetable</h1>
+  <p class="teacher-meta">Teacher: ${escapeHtml(teacherName.value)}</p>
   <p class="subtitle">Weekly timetable - ${escapeHtml(formattedWeek.value)}</p>
   <table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>
 </body>
 </html>`
 }
 
-const buildPdfRows = () => processedTimetable.value.map((row) => {
+const buildPdfRows = () => buildMergedTimetableRows().map((row) => {
   if (row.type === 'break') {
     const fill = row.breakType === 'lunch' ? '#fff4c7' : row.breakType === 'assembly' ? '#e9f2ff' : '#e8f7e9'
     return {
@@ -587,11 +705,12 @@ const buildPdfRows = () => processedTimetable.value.map((row) => {
       { text: String(row.period), fill: '#f8fafc', bold: true },
       { text: formatTimeRange(row.start_time, row.end_time), fill: '#f8fafc', bold: true },
       ...days.map((day) => {
-        const entry = row.entriesByDay[day]
-        const lesson = entry ? toLesson(entry) : null
+        const cell = row.cellsByDay?.[day]
+        if (cell?.skip) return { text: 'Continued', fill: '#eff6ff', color: '#1d4ed8', bold: false }
+        const lesson = cell?.entry ? toLesson(cell.entry) : null
         if (!lesson) return { text: '', fill: '#ffffff' }
         return {
-          text: `${lesson.subject}\n${lesson.class}\n${lesson.room}`,
+          text: formatExportLesson(lesson, cell.rowspan),
           fill: lesson.type === 'activity' ? '#f0fdf4' : '#eff6ff',
           color: '#111827',
           bold: true
@@ -626,15 +745,15 @@ const openPdfPrintWindow = () => {
   printWindow.print()
 }
 
-const downloadTimetable = (format = 'pdf') => {
-  const selectedFormat = String(format || 'pdf').toLowerCase()
-  const baseName = 'teacher-timetable'
+const downloadTimetable = (format = 'csv') => {
+  const selectedFormat = String(format || 'csv').toLowerCase()
+  const baseName = getExportFileBaseName()
   const html = buildTimetableHtml()
 
   if (selectedFormat === 'pdf') {
     downloadTimetablePdf({
       title: `${teacherName.value} Timetable`,
-      subtitle: `Weekly timetable - ${formattedWeek.value}`,
+      subtitle: `Teacher: ${teacherName.value} - Weekly timetable - ${formattedWeek.value}`,
       headers: ['Slot', 'Time', ...days],
       rows: buildPdfRows(),
       filename: `${baseName}.pdf`,
@@ -674,7 +793,8 @@ const loadTimetable = async () => {
 }
 
 onMounted(async () => {
-  selectedDayView.value = 'Monday'
+  selectedDayView.value = todayName.value || 'Monday'
+  if (!canShowDayView.value) viewMode.value = 'week'
   await loadTimetable()
 })
 </script>
@@ -779,6 +899,12 @@ onMounted(async () => {
   color: #b91c1c;
 }
 
+.state-panel.info {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
 .header-controls {
   display: flex;
   gap: 1.5rem;
@@ -818,6 +944,13 @@ onMounted(async () => {
 .view-btn:hover {
   color: #111827;
   background: rgba(37, 99, 235, 0.05);
+}
+
+.view-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  color: #94a3b8;
+  background: transparent;
 }
 
 .action-controls {

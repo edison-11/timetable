@@ -1,49 +1,29 @@
 <template>
   <AppLayout>
     <div class="timetable-container">
-      <header class="studio-header">
-        <div>
-          <p class="eyebrow">Scheduling workspace</p>
-          <h1>Timetable Studio</h1>
-          <p class="studio-subtitle">Assign teaching loads, set generation rules, and review class timetables from one control panel.</p>
-        </div>
-        <div class="studio-actions">
-          <button class="icon-button" type="button" title="Refresh timetable" @click="loadTimetable">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.66 5.66M4 12A8 8 0 0 1 17.66 6.34M17 3v4h4M7 21v-4H3"/></svg>
-          </button>
-          <button class="btn-primary" type="button" @click="openAssignmentForm">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Add Assignment
-          </button>
-          <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
-            {{ loading ? 'Working...' : 'Generate' }}
-          </button>
-        </div>
-      </header>
-
+      <section class="studio-card">
       <section class="metrics-grid" aria-label="Timetable summary">
         <div class="metric-card">
           <span class="metric-icon class-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>
+            <BookOpen />
           </span>
           <div><strong>{{ classes.length }}</strong><span>Classes</span></div>
         </div>
         <div class="metric-card">
           <span class="metric-icon teacher-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>
+            <Users />
           </span>
           <div><strong>{{ teachers.length }}</strong><span>Teachers</span></div>
         </div>
         <div class="metric-card">
           <span class="metric-icon module-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>
+            <LibraryBig />
           </span>
           <div><strong>{{ modules.length }}</strong><span>Modules</span></div>
         </div>
         <div class="metric-card">
           <span class="metric-icon schedule-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 8h3v3H9z"/></svg>
+            <CalendarDays />
           </span>
           <div><strong>{{ timetableEntries.length }}</strong><span>Entries</span></div>
         </div>
@@ -61,7 +41,7 @@
               <h2 id="assignmentModalTitle">Add Assignment</h2>
             </div>
             <button class="icon-button" type="button" title="Close form" @click="closeAssignmentForm">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <X />
             </button>
           </div>
 
@@ -111,7 +91,7 @@
           <div class="modal-footer">
             <button class="btn-secondary" type="button" @click="closeAssignmentForm">Cancel</button>
             <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading || !isAssignmentFormValid">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+              <Plus />
               {{ loading ? 'Adding...' : 'Add Assignment' }}
             </button>
           </div>
@@ -119,17 +99,17 @@
       </div>
 
       <section class="control-grid">
-        <article ref="generationPanel" class="panel-card">
+        <article ref="generationPanel" class="panel-card" :class="{ 'floating-form-card': showGenerationRules }">
           <div class="panel-heading">
             <span class="panel-icon generate-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 14-5M20 11a8 8 0 0 1-14 5M18 3v5h-5M6 21v-5h5"/></svg>
+              <RefreshCw />
             </span>
             <div>
               <h2>Generation Rules</h2>
               <p>Choose scope and period length.</p>
             </div>
-            <button class="btn-secondary panel-toggle-button" type="button" @click="showGenerationRules = !showGenerationRules">
-              {{ showGenerationRules ? 'Hide Fields' : 'Use Fields' }}
+            <button class="icon-button panel-icon-button" type="button" title="Use generation fields" aria-label="Use generation fields" @click="showGenerationRules = !showGenerationRules">
+              <Pencil />
             </button>
           </div>
 
@@ -195,7 +175,7 @@
                   <span v-else>Logo</span>
                 </div>
                 <label class="btn-secondary upload-logo-button">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+                  <Upload />
                   {{ logoUploading ? 'Uploading...' : 'Upload School Logo' }}
                   <input type="file" accept="image/png,image/jpeg" :disabled="logoUploading" @change="handleSchoolLogoUpload">
                 </label>
@@ -209,7 +189,31 @@
                   <label class="form-label">Approved By</label>
                   <input v-model.trim="generateSettings.approved_by" type="text" class="form-control" placeholder="Name or title">
                 </div>
+                <div>
+                  <label class="form-label">Header Position</label>
+                  <select v-model="generateSettings.header_position" class="form-select">
+                    <option value="left">Logo and class on left</option>
+                    <option value="center">Logo and class centered</option>
+                    <option value="right">Logo and class on right</option>
+                  </select>
+                </div>
+                <div class="form-grid-full">
+                  <label class="form-label">Extra Header Content</label>
+                  <textarea
+                    v-model.trim="generateSettings.custom_header_content"
+                    class="form-control custom-content-input"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Add any extra text to show in the downloaded timetable"
+                  ></textarea>
+                </div>
               </div>
+            </div>
+
+            <div class="modal-footer inline-form-footer">
+              <button class="btn-primary" type="button" @click="showGenerationRules = false">
+                Done
+              </button>
             </div>
           </template>
           <div v-else class="collapsed-panel-summary">
@@ -223,15 +227,15 @@
       </section>
 
       <section class="break-rules-section">
-        <article class="panel-card break-rules-card">
+        <article class="panel-card break-rules-card" :class="{ 'floating-form-card': showBreakRuleFields }">
           <div class="rules-card-header">
             <div>
               <h2>Period-Based Break Rules</h2>
               <p>Break placement by teaching period count.</p>
             </div>
             <div class="rules-header-actions">
-              <button class="btn-secondary panel-toggle-button" type="button" @click="showBreakRuleFields = !showBreakRuleFields">
-                {{ showBreakRuleFields ? 'Hide Fields' : 'Use Fields' }}
+              <button class="icon-button panel-icon-button" type="button" title="Use break rule fields" aria-label="Use break rule fields" @click="showBreakRuleFields = !showBreakRuleFields">
+                <Pencil />
               </button>
               <div class="form-switch">
                 <input id="periodRulesEnabled" v-model="generateSettings.break_period_rules.enabled" type="checkbox">
@@ -270,7 +274,12 @@
               <input v-model.number="generateSettings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
             </div>
           </fieldset>
-          <div v-else class="collapsed-panel-summary">
+          <div v-if="showBreakRuleFields" class="inline-form-footer period-rules-footer">
+            <button class="btn-primary" type="button" @click="showBreakRuleFields = false">
+              Done
+            </button>
+          </div>
+          <div v-if="!showBreakRuleFields" class="collapsed-panel-summary">
             <div>
               <strong>{{ generateSettings.break_period_rules.enabled ? 'Period rules active' : 'Period rules disabled' }}</strong>
               <span>
@@ -286,13 +295,15 @@
         <article class="panel-card">
           <div class="panel-heading compact">
             <span class="panel-icon activity-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 6v14M17 6v14M5 20h14M9 10h6M9 14h6"/></svg>
+              <PanelTop />
             </span>
             <div>
               <h2>Shared Activities</h2>
               <p>Assembly, exams, or events placed across selected classes.</p>
             </div>
-            <button class="btn-secondary" type="button" @click="addSharedActivity">Add Activity</button>
+            <button class="icon-button panel-icon-button" type="button" title="Add shared activity" aria-label="Add shared activity" @click="addSharedActivity">
+              <Plus />
+            </button>
           </div>
 
           <div v-if="!sharedActivities.length" class="shared-empty">No shared activities added</div>
@@ -318,7 +329,7 @@
               <input v-model="activity.end_time" type="time" class="form-control">
             </div>
             <button class="btn-danger" type="button" @click="removeSharedActivity(index)" title="Remove activity">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <X />
             </button>
           </div>
         </article>
@@ -329,10 +340,10 @@
           <strong>{{ generationSummary }}</strong>
           <span>{{ generateSettings.start_time }} - {{ generateSettings.end_time }} with {{ generateSettings.period_minutes }} minute periods</span>
         </div>
-        <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
-          {{ loading ? 'Generating...' : 'Generate Timetable' }}
+        <button class="icon-button success-icon" type="button" title="Generate timetable" aria-label="Generate timetable" @click="generateTimetable" :disabled="loading">
+          <Send />
         </button>
+      </section>
       </section>
 
       <section v-if="displayedTimetables.length > 0" class="timetable-output-card">
@@ -343,11 +354,11 @@
           </div>
           <div class="output-actions">
             <button class="btn-secondary" type="button" @click="copyTimetableSummary">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v13H8zM5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1"/></svg>
+              <Copy />
               Copy
             </button>
             <button class="btn-secondary" type="button" @click="printTimetable">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+              <Printer />
               Print
             </button>
             <select v-model="exportFormat" class="form-select export-select" aria-label="Download format">
@@ -355,7 +366,7 @@
               <option value="docx">Word</option>
             </select>
             <button class="btn-secondary" type="button" @click="downloadTimetable(exportFormat)">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+              <Download />
               Download
             </button>
             <div class="timetable-class-filter">
@@ -381,7 +392,7 @@
               <span class="badge">{{ group.entries.length }} entries</span>
               <div class="export-dropdown">
                 <button class="btn-secondary" @click="toggleExportDropdown(group.class_id)">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 12l-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>
+                  <Download />
                   Export
                 </button>
                 <div v-if="activeExportDropdown === group.class_id" class="export-menu">
@@ -438,7 +449,7 @@
       </section>
 
       <section v-else class="empty-state">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 8h3v3H9z"/></svg>
+        <CalendarDays />
         <h2>No timetable generated yet</h2>
         <p>Add assignments, confirm your generation rules, then create a timetable.</p>
       </section>
@@ -454,6 +465,22 @@ import AppLayout from '@/components/AppLayout.vue'
 import { exportToPDF, exportMultipleTimetablesToPDF } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 import { resolveAssetUrl } from '@/utils/assetUrl'
+import {
+  BookOpen,
+  CalendarDays,
+  Copy,
+  Download,
+  LibraryBig,
+  PanelTop,
+  Pencil,
+  Plus,
+  Printer,
+  RefreshCw,
+  Send,
+  Upload,
+  Users,
+  X
+} from '@lucide/vue'
 
 const route = useRoute()
 const loading = ref(false)
@@ -497,6 +524,8 @@ const generateSettings = ref({
   school_logo_url: '',
   prepared_by: '',
   approved_by: '',
+  header_position: 'left',
+  custom_header_content: '',
   break_period_rules: {
     enabled: true,
     periods_before_morning_break: 3,
@@ -712,7 +741,9 @@ const getExportOptions = (group) => ({
   roomName: group.room_name,
   logoUrl: resolvedSchoolLogoUrl.value,
   preparedBy: generateSettings.value.prepared_by,
-  approvedBy: generateSettings.value.approved_by
+  approvedBy: generateSettings.value.approved_by,
+  headerPosition: generateSettings.value.header_position,
+  customContent: generateSettings.value.custom_header_content
 })
 
 const handleExportPDF = (group) => {
@@ -738,7 +769,9 @@ const getTimetableSettingsPayload = () => ({
   break_period_rules: { ...generateSettings.value.break_period_rules },
   school_logo_url: generateSettings.value.school_logo_url,
   prepared_by: generateSettings.value.prepared_by,
-  approved_by: generateSettings.value.approved_by
+  approved_by: generateSettings.value.approved_by,
+  header_position: generateSettings.value.header_position,
+  custom_header_content: generateSettings.value.custom_header_content
 })
 
 const saveTimetableSettings = async () => {
@@ -781,10 +814,14 @@ const getBreakType = (label) => {
 }
 
 const getBreakLabel = (label) => {
-  const normalized = String(label || '').toLowerCase()
-  if (normalized.includes('morning')) return 'MORNING BREAK'
-  if (normalized.includes('lunch')) return 'LUNCH BREAK'
-  return 'EVENING BREAK'
+  const rawLabel = String(label || 'Break').trim()
+  const readableName = rawLabel.replace(/\s*break\s*/ig, ' ').trim() || rawLabel
+  return readableName
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .split('')
+    .filter((char) => char !== ' ')
+    .join(' ')
 }
 
 const buildTimetableGridRows = (group) => {
@@ -981,6 +1018,10 @@ const buildTimetableHtml = async (groups = displayedTimetables.value, options = 
     : await getLogoDataUrl(resolvedSchoolLogoUrl.value)
   const preparedBy = generateSettings.value.prepared_by || '________________'
   const approvedBy = generateSettings.value.approved_by || '________________'
+  const headerPosition = ['left', 'center', 'right'].includes(generateSettings.value.header_position)
+    ? generateSettings.value.header_position
+    : 'left'
+  const customHeaderContent = String(generateSettings.value.custom_header_content || '').trim()
   const body = groups.map((group) => {
     const className = group.class_name || `Class ${group.class_id}`
     const level = group.level || 'No level set'
@@ -1006,12 +1047,13 @@ const buildTimetableHtml = async (groups = displayedTimetables.value, options = 
     }).join('')
 
     return `<section class="timetable-page">
-      <header class="document-header">
+      <header class="document-header header-${escapeHtml(headerPosition)}">
         ${logoUrl ? `<img class="document-logo" src="${escapeHtml(logoUrl)}" width="42" height="42" style="width:42px;height:42px;max-width:42px;max-height:42px;object-fit:contain;" alt="School logo">` : '<div class="document-logo-placeholder"></div>'}
         <div>
           <h1>${escapeHtml(className)} - Timetable</h1>
           <p class="meta">Level: ${escapeHtml(level)} &nbsp;&nbsp; Room: ${escapeHtml(room)}</p>
           <p class="generated">Generated on ${escapeHtml(today)}</p>
+          ${customHeaderContent ? `<p class="custom-header-content">${escapeHtml(customHeaderContent).replace(/\n/g, '<br>')}</p>` : ''}
         </div>
       </header>
       <table>
@@ -1055,12 +1097,16 @@ const buildTimetableHtml = async (groups = displayedTimetables.value, options = 
     .timetable-page { width: 100%; padding: 0; page-break-after: always; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     .timetable-page:last-child { page-break-after: auto; }
     .document-header { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; page-break-after: avoid; break-after: avoid; }
+    .document-header.header-left { justify-content: flex-start; text-align: left; }
+    .document-header.header-center { justify-content: center; text-align: center; }
+    .document-header.header-right { justify-content: flex-end; text-align: right; }
     .document-logo,
     .document-logo-placeholder { display: block; width: 42px !important; height: 42px !important; max-width: 42px !important; max-height: 42px !important; min-width: 42px; min-height: 42px; border: 1px solid #d8e4f5; border-radius: 5px; object-fit: contain; background: #ffffff; }
     h1 { font-size: 16px; line-height: 1.1; margin: 0 0 3px; font-weight: 700; }
     .meta,
     .generated { margin: 0 0 2px; font-size: 8px; color: #111827; line-height: 1.15; }
     .generated { margin-bottom: 3px; }
+    .custom-header-content { margin: 0; font-size: 8px; line-height: 1.2; color: #1f2937; white-space: pre-line; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     .period-col { width: 6%; }
     .time-col { width: 10%; }
@@ -1378,6 +1424,8 @@ const loadTimetableSettings = async () => {
       generateSettings.value.school_logo_url = timetableSettings.value.school_logo_url || ''
       generateSettings.value.prepared_by = timetableSettings.value.prepared_by || ''
       generateSettings.value.approved_by = timetableSettings.value.approved_by || ''
+      generateSettings.value.header_position = timetableSettings.value.header_position || 'left'
+      generateSettings.value.custom_header_content = timetableSettings.value.custom_header_content || ''
       generateSettings.value.break_period_rules = {
         ...generateSettings.value.break_period_rules,
         ...(timetableSettings.value.break_period_rules || {})
@@ -1442,13 +1490,60 @@ svg {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
+.studio-card {
+  display: grid;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.studio-card .studio-header,
+.studio-card .panel-card,
+.studio-card .generation-bar {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.studio-card .studio-header {
+  padding: 0 0 0.8rem;
+  border-bottom: 1px solid #dbe3ef;
+}
+
+.studio-card .metric-card,
+.studio-card .collapsed-panel-summary {
+  background: #f8fbff;
+}
+
+.studio-card .control-grid,
+.studio-card .break-rules-section,
+.studio-card .metrics-grid {
+  margin-bottom: 0;
+}
+
+.studio-card .generation-bar {
+  padding: 0.8rem 0 0;
+  border-top: 1px solid #dbe3ef;
+}
+
+.studio-card .floating-form-card {
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
 .studio-header {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
-  padding: 1.35rem;
-  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.8rem;
   background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1);
 }
 
@@ -1464,7 +1559,7 @@ svg {
 .studio-header h1,
 .output-toolbar h2 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: 1.45rem;
   line-height: 1.1;
   font-weight: 850;
   letter-spacing: 0;
@@ -1472,9 +1567,9 @@ svg {
 
 .studio-subtitle {
   max-width: 740px;
-  margin: 0.45rem 0 0;
+  margin: 0.35rem 0 0;
   color: #52627a;
-  font-size: 0.98rem;
+  font-size: 0.9rem;
 }
 
 .studio-actions,
@@ -1506,6 +1601,21 @@ svg {
   width: 42px;
   color: #0f172a;
   background: #eef2f7;
+}
+
+.primary-icon {
+  color: #fff;
+  background: #2563eb;
+}
+
+.success-icon {
+  color: #fff;
+  background: #15803d;
+}
+
+.panel-icon-button {
+  width: 38px;
+  min-height: 38px;
 }
 
 .btn-primary,
@@ -1550,16 +1660,16 @@ button:disabled {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .metric-card {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  min-height: 86px;
-  padding: 1rem;
+  min-height: 70px;
+  padding: 0.8rem;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   background: #fff;
@@ -1571,8 +1681,8 @@ button:disabled {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   color: #1d4ed8;
   background: #dbeafe;
@@ -1585,7 +1695,7 @@ button:disabled {
 
 .metric-card strong {
   display: block;
-  font-size: 1.6rem;
+  font-size: 1.25rem;
   line-height: 1;
   font-weight: 900;
 }
@@ -1626,7 +1736,7 @@ button:disabled {
 }
 
 .assignment-modal {
-  width: min(760px, 100%);
+  width: min(680px, 100%);
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
   padding: 1rem;
@@ -1634,6 +1744,40 @@ button:disabled {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.settings-modal,
+.floating-form-card {
+  width: min(760px, calc(100vw - 2rem));
+}
+
+.floating-form-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 60;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.floating-form-card::before {
+  content: '';
+  position: fixed;
+  inset: -100vh -100vw;
+  z-index: -1;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.inline-form-footer {
+  margin-top: 1rem;
+}
+
+.period-rules-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .modal-header {
@@ -1674,7 +1818,7 @@ button:disabled {
 }
 
 .panel-card {
-  padding: 1rem 1.1rem;
+  padding: 0.85rem 1rem;
 }
 
 .panel-heading {
@@ -1682,7 +1826,7 @@ button:disabled {
   grid-template-columns: auto 1fr auto;
   gap: 0.8rem;
   align-items: center;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.65rem;
 }
 
 .panel-heading.compact {
@@ -1692,7 +1836,7 @@ button:disabled {
 
 .panel-heading h2 {
   margin: 0;
-  font-size: 1.08rem;
+  font-size: 0.98rem;
   font-weight: 850;
 }
 
@@ -1716,12 +1860,12 @@ button:disabled {
   justify-content: space-between;
   gap: 1rem;
   margin: 0;
-  padding: 0.85rem 0.95rem;
+  padding: 0.7rem 0.8rem;
   border: 1px solid #dbe7f5;
   border-radius: 8px;
   background: linear-gradient(180deg, #f8fbff, #ffffff);
   color: #475569;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   line-height: 1.45;
 }
 
@@ -1755,6 +1899,10 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
+}
+
+.form-grid-full {
+  grid-column: 1 / -1;
 }
 
 .field-label-row {
@@ -1803,6 +1951,12 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
+.custom-content-input {
+  min-height: 86px;
+  resize: vertical;
+  line-height: 1.35;
+}
+
 .panel-footer {
   margin-top: 1rem;
 }
@@ -1847,7 +2001,7 @@ button:disabled {
   align-items: center;
   margin: 0.9rem 0 0;
   color: #475569;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 700;
 }
 

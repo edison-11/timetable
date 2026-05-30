@@ -301,6 +301,45 @@ class Student {
     return rows;
   }
 
+  static async getAttendanceRecords({ attendance_date, class_id = null, school_id = null }) {
+    await this.ensureSchema();
+    const params = [attendance_date];
+    let filter = 'sa.attendance_date = ?';
+
+    if (class_id) {
+      filter += ' AND sa.class_id = ?';
+      params.push(class_id);
+    }
+
+    if (school_id) {
+      filter += ' AND sa.school_id = ?';
+      params.push(school_id);
+    }
+
+    const [rows] = await db.query(`
+      SELECT sa.*,
+             s.name as student_name,
+             s.student_number,
+             c.class_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name, sa.period_label) as module_name,
+             te.name as teacher_name,
+             t.day_of_week,
+             t.start_time,
+             t.end_time
+      FROM student_attendance sa
+      INNER JOIN student s ON sa.student_id = s.student_id
+      LEFT JOIN class c ON sa.class_id = c.class_id
+      LEFT JOIN timetable t ON sa.timetable_id = t.timetable_id
+      LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
+      LEFT JOIN teacher te ON sa.teacher_id = te.teacher_id
+      WHERE ${filter}
+      ORDER BY c.class_name ASC, s.name ASC, t.start_time ASC, sa.period_label ASC
+    `, params);
+
+    return rows;
+  }
+
   static async getAttendanceHistory(studentId, filters = {}) {
     const params = [studentId];
     let query = `

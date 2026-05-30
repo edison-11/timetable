@@ -66,6 +66,8 @@ class SystemSetting {
     const schoolLogoUrl = await this.get('school_logo_url', '');
     const preparedBy = await this.get('timetable_prepared_by', '');
     const approvedBy = await this.get('timetable_approved_by', '');
+    const headerPosition = await this.get('timetable_header_position', 'left');
+    const customHeaderContent = await this.get('timetable_custom_header_content', '');
     let timetableBreaks = [];
     let breakPeriodRules = {
       enabled: true,
@@ -132,7 +134,11 @@ class SystemSetting {
       break_period_rules: breakPeriodRules,
       school_logo_url: schoolLogoUrl,
       prepared_by: preparedBy,
-      approved_by: approvedBy
+      approved_by: approvedBy,
+      header_position: ['left', 'center', 'right'].includes(headerPosition)
+        ? headerPosition
+        : 'left',
+      custom_header_content: customHeaderContent
     };
   }
 
@@ -182,6 +188,14 @@ class SystemSetting {
 
     if (settings.approved_by !== undefined) {
       await this.set('timetable_approved_by', settings.approved_by);
+    }
+
+    if (settings.header_position !== undefined) {
+      await this.set('timetable_header_position', settings.header_position);
+    }
+
+    if (settings.custom_header_content !== undefined) {
+      await this.set('timetable_custom_header_content', settings.custom_header_content);
     }
 
     return this.getTimetableSettings();

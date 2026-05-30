@@ -46,6 +46,8 @@
               <tr>
                 <th>Teacher</th>
                 <th>Department</th>
+                <th>Classes</th>
+                <th>Modules</th>
                 <th>Status</th>
                 <th>Date Joined</th>
                 <th>Actions</th>
@@ -61,6 +63,12 @@
                 </td>
                 <td>
                   <span class="badge">{{ teacher.department || 'SSOD' }}</span>
+                </td>
+                <td>
+                  <span class="muted-list">{{ teacher.teaching_classes || teacher.head_teacher_classes || 'Not assigned' }}</span>
+                </td>
+                <td>
+                  <span class="muted-list">{{ teacher.assigned_modules || teacher.module_name || 'Not assigned' }}</span>
                 </td>
                 <td>
                   <span :class="getStatusClass(teacher.status)" class="status-badge">
@@ -94,7 +102,7 @@
                 </td>
               </tr>
               <tr v-if="!filteredTeachers.length">
-                <td colspan="5" class="text-center py-4">No teachers found</td>
+                <td colspan="7" class="text-center py-4">No teachers found</td>
               </tr>
             </tbody>
           </table>
@@ -312,6 +320,8 @@
                 <div><span>Email</span><strong>{{ selectedTeacher.email }}</strong></div>
                 <div><span>Phone</span><strong>{{ selectedTeacher.phone || 'Not set' }}</strong></div>
                 <div><span>Department</span><strong>{{ selectedTeacher.department || 'SSOD' }}</strong></div>
+                <div><span>Classes</span><strong>{{ selectedTeacher.teaching_classes || selectedTeacher.head_teacher_classes || 'Not assigned' }}</strong></div>
+                <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || selectedTeacher.module_name || 'Not assigned' }}</strong></div>
                 <div><span>Qualification</span><strong>{{ selectedTeacher.qualification || 'Not set' }}</strong></div>
                 <div><span>National/Staff ID</span><strong>{{ selectedTeacher.national_id || selectedTeacher.employee_id || 'Not set' }}</strong></div>
                 <div><span>Status</span><strong>{{ getStatusLabel(selectedTeacher.status) }}</strong></div>
@@ -389,7 +399,11 @@ const filteredTeachers = computed(() => {
     const searchable = [
       teacher.name,
       teacher.email,
-      department
+      department,
+      teacher.teaching_classes,
+      teacher.head_teacher_classes,
+      teacher.assigned_modules,
+      teacher.module_name
     ].filter(Boolean).join(' ').toLowerCase()
     const matchesSearch = searchable.includes(query)
     const matchesStatus = !statusFilter.value || teacher.status === statusFilter.value
@@ -847,6 +861,14 @@ onMounted(async () => {
   padding: 0.25rem 0.5rem;
   border-radius: 20px;
   font-size: 0.7rem;
+}
+
+.muted-list {
+  display: inline-block;
+  max-width: 220px;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .status-active {
