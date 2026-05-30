@@ -8,12 +8,20 @@
         <div>
           <h1>Timetable Dashboard</h1>
           <p>Overview of timetable statistics and management</p>
+          <small class="school-context">{{ schoolContextLabel }}</small>
         </div>
         <div class="week-picker">
           <span class="calendar-mark"></span>
           <span>{{ weekRange }}</span>
           <span class="chevron">v</span>
         </div>
+        <button class="refresh-dashboard" type="button" :disabled="dashboardLoading" @click="reloadDashboard">
+          {{ dashboardLoading ? 'Refreshing...' : 'Refresh Data' }}
+        </button>
+      </div>
+
+      <div v-if="dashboardLoadError" class="dashboard-error">
+        {{ dashboardLoadError }}
       </div>
 
       <!-- 4 Metric Cards -->
@@ -270,10 +278,12 @@ import { computed, onMounted, ref } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import api from '@/stores/api'
+import { useAuthStore } from '@/stores/auth'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const days = FIXED_DAYS
 const today = new Date()
+const authStore = useAuthStore()
 
 const weekRange = computed(() => {
   const start = new Date(today)
@@ -300,6 +310,26 @@ const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
 const rooms = ref([])
+const dashboardLoadError = ref('')
+const dashboardLoading = ref(false)
+
+const schoolContextLabel = computed(() => {
+  const user = authStore.currentUser || {}
+  const cachedUser = localStorage.getItem('user')
+  let cachedSchoolId = ''
+
+  if (cachedUser) {
+    try {
+      cachedSchoolId = JSON.parse(cachedUser)?.school_id || ''
+    } catch (error) {
+      cachedSchoolId = ''
+    }
+  }
+
+  const schoolId = user.school_id || cachedSchoolId || localStorage.getItem('selectedSchoolId') || ''
+  const role = authStore.currentUserType || localStorage.getItem('userType') || user.role || ''
+  return schoolId ? `School ID: ${schoolId} • Role: ${role || 'admin'}` : 'No school selected for this account'
+})
 
 const icons = {
   calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
@@ -356,7 +386,7 @@ const selectedTimetableGroup = computed(() => {
 const timetableRows = computed(() => buildTimetableGridWithBreaks(visibleEntries.value))
 
 const dashboardStats = computed(() => ({
-  timetables: groupedTimetables.value.length,
+  timetables: timetableEntries.value.length,
   modules: modules.value.length,
   teachers: teachers.value.length,
   rooms: rooms.value.length
@@ -422,6 +452,11 @@ const loadDashboardStatsCards = async () => {
       workloadBuckets: response.data.workload?.buckets || []
     }
   } catch (error) {
+    dashboardLoadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      dashboardLoadError.value ||
+      'Dashboard statistics could not load for this school account.'
     dashboardStatsCards.value = {
       distribution: [],
       roomUtilization: 0,
@@ -455,6 +490,11 @@ const loadTimetable = async () => {
     timetableEntries.value = response.data.timetables || []
     selectedTimetableClassId.value = classOptions.value[0]?.class_id || ''
   } catch (error) {
+    dashboardLoadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      dashboardLoadError.value ||
+      'Timetable data could not load for this school account.'
     timetableEntries.value = []
   }
 }
@@ -520,23 +560,61 @@ const clearNotifications = async () => {
 }
 
 const loadDashboardData = async () => {
+  dashboardLoadError.value = ''
+  const [classesResponse, teachersResponse, modulesResponse, roomsResponse] = await Promise.allSettled([
+    api.get('/classes'),
+    api.get('/teachers'),
+    api.get('/modules'),
+    api.get('/rooms')
+  ])
+
+  classes.value = classesResponse.status === 'fulfilled' ? classesResponse.value.data.classes || [] : []
+  teachers.value = teachersResponse.status === 'fulfilled' ? teachersResponse.value.data.teachers || [] : []
+  modules.value = modulesResponse.status === 'fulfilled' ? modulesResponse.value.data.modules || [] : []
+  rooms.value = roomsResponse.status === 'fulfilled' ? roomsResponse.value.data.rooms || [] : []
+
+  const failedResponse = [classesResponse, teachersResponse, modulesResponse, roomsResponse]
+    .find((response) => response.status === 'rejected')
+
+  if (failedResponse) {
+    const error = failedResponse.reason
+    dashboardLoadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      'Some dashboard data could not load for this school account.'
+  }
+}
+
+const reloadDashboard = async () => {
+  dashboardLoading.value = true
+  dashboardLoadError.value = ''
+
   try {
-    const [classesResponse, teachersResponse, modulesResponse, roomsResponse] = await Promise.all([
-      api.get('/classes'),
-      api.get('/teachers'),
-      api.get('/modules'),
-      api.get('/rooms')
+    await authStore.checkAuth()
+    await Promise.all([
+      loadDashboardData(),
+      loadTimetableSettings(),
+      loadTimetable(),
+      loadNotifications(),
+      loadDashboardStatsCards()
     ])
 
-    classes.value = classesResponse.data.classes || []
-    teachers.value = teachersResponse.data.teachers || []
-    modules.value = modulesResponse.data.modules || []
-    rooms.value = roomsResponse.data.rooms || []
-  } catch (error) {
-    classes.value = []
-    teachers.value = []
-    modules.value = []
-    rooms.value = []
+    const noDataLoaded =
+      !classes.value.length &&
+      !teachers.value.length &&
+      !modules.value.length &&
+      !rooms.value.length &&
+      !timetableEntries.value.length
+
+    if (noDataLoaded && !dashboardLoadError.value) {
+      if (authStore.currentUser?.role === 'super_admin') {
+        dashboardLoadError.value = 'Super Admin view: No data found. Please ensure you have selected a school from the management panel.'
+      } else {
+        dashboardLoadError.value = 'No records found for your school. Please ensure your account is linked to an active school ID.'
+      }
+    }
+  } finally {
+    dashboardLoading.value = false
   }
 }
 
@@ -592,13 +670,7 @@ const confirmRejectPendingItem = async () => {
   }
 }
 
-onMounted(() => {
-  loadDashboardData()
-  loadTimetableSettings()
-  loadTimetable()
-  loadNotifications()
-  loadDashboardStatsCards()
-})
+onMounted(reloadDashboard)
 </script>
 
 <style scoped>
@@ -852,6 +924,25 @@ onMounted(() => {
   font-size: 0.72rem;
 }
 
+.school-context {
+  display: block;
+  margin-top: 0.25rem;
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.dashboard-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .week-picker {
   display: flex;
   align-items: center;
@@ -860,6 +951,20 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+}
+
+.refresh-dashboard {
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 800;
+}
+
+.refresh-dashboard:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .metric-grid {

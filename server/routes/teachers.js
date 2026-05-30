@@ -135,10 +135,10 @@ router.get('/me', auth, async (req, res) => {
 // Get all teachers
 router.get('/', auth, async (req, res) => {
   try {
-    if (req.user?.role === 'super_admin') {
-      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
-    }
     const schoolFilter = getRequestSchoolId(req);
+    if (req.user?.role === 'super_admin' && !schoolFilter) {
+      return res.status(400).json({ message: 'Select a school before viewing teachers.' });
+    }
     const teachers = await Teacher.getAll({ school_id: schoolFilter });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
@@ -150,10 +150,10 @@ router.get('/', auth, async (req, res) => {
 // Get teachers by status
 router.get('/status/:status', auth, async (req, res) => {
   try {
-    if (req.user?.role === 'super_admin') {
-      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
-    }
     const schoolFilter = getRequestSchoolId(req);
+    if (req.user?.role === 'super_admin' && !schoolFilter) {
+      return res.status(400).json({ message: 'Select a school before viewing teachers.' });
+    }
     const teachers = await Teacher.getByStatus(req.params.status, { school_id: schoolFilter });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
@@ -165,10 +165,11 @@ router.get('/status/:status', auth, async (req, res) => {
 // Get active teachers
 router.get('/active', auth, async (req, res) => {
   try {
-    if (req.user?.role === 'super_admin') {
-      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
+    const schoolFilter = getRequestSchoolId(req);
+    if (req.user?.role === 'super_admin' && !schoolFilter) {
+      return res.status(400).json({ message: 'Select a school before viewing teachers.' });
     }
-    const teachers = await Teacher.getByStatus('active', { school_id: getRequestSchoolId(req) });
+    const teachers = await Teacher.getByStatus('active', { school_id: schoolFilter });
     res.json({ teachers: sanitizeTeachers(teachers) });
   } catch (error) {
     console.error(error);
@@ -179,10 +180,10 @@ router.get('/active', auth, async (req, res) => {
 // Get pending teachers
 router.get('/pending', auth, async (req, res) => {
   try {
-    if (req.user?.role === 'super_admin') {
-      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
-    }
     const schoolFilter = getRequestSchoolId(req);
+    if (req.user?.role === 'super_admin' && !schoolFilter) {
+      return res.status(400).json({ message: 'Select a school before viewing teachers.' });
+    }
     const pendingTeachers = await Teacher.getByStatus('pending', { school_id: schoolFilter });
     res.json({ pendingTeachers: sanitizeTeachers(pendingTeachers) });
   } catch (error) {
@@ -205,12 +206,13 @@ router.get('/pending-test', async (req, res) => {
 // Get teacher by ID
 router.get('/:id', auth, async (req, res) => {
   try {
-    if (req.user?.role === 'super_admin') {
-      return res.status(403).json({ message: 'Teacher records are managed by the school DOS.' });
-    }
     const teacher = await Teacher.findById(req.params.id);
     if (!teacher) {
       return res.status(404).json({ message: 'Teacher not found' });
+    }
+    const schoolFilter = getRequestSchoolId(req);
+    if (req.user?.role === 'super_admin' && schoolFilter && Number(teacher.school_id) !== Number(schoolFilter)) {
+      return res.status(403).json({ message: 'Teacher belongs to another school' });
     }
     if (req.user?.role !== 'super_admin' && req.user?.school_id && Number(teacher.school_id) !== Number(req.user.school_id)) {
       return res.status(403).json({ message: 'Teacher belongs to another school' });

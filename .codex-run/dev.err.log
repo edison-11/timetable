@@ -1,0 +1,162 @@
+[2m8:41:48 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of watcher callback 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:41:48 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of component update 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:41:48 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mReferenceError[22m: hydrateProfileForm is not defined
+[39m > setup/< src/components/AppNavbar.vue:442:26
+    440 |  })
+    441 |  
+    442 |  watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
+        |                            ^
+    443 |  
+    444 |  const logout = () => {
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:18
+ > callWithAsyncErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:206:38
+ > doWatch/baseWatchOptions.call node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:887:73
+ > job node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js:1919:17
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:32
+ > flushJobs node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:409:10
+
+[2m8:43:57 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of watcher callback 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:43:57 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of component update 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:43:57 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mReferenceError[22m: hydrateProfileForm is not defined
+[39m > src/components/AppNavbar.vue:442:26
+    440 |  })
+    441 |  
+    442 |  watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
+        |                            ^
+    443 |  
+    444 |  const logout = () => {
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:18
+ > callWithAsyncErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:206:16
+ > baseWatchOptions.call node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:887:46
+ > job node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js:1919:17
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:32
+ > flushJobs node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:408:8
+
+[2m8:43:57 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of watcher callback 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:43:57 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of component update 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:43:57 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mReferenceError[22m: hydrateProfileForm is not defined
+[39m > src/components/AppNavbar.vue:442:26
+    440 |  })
+    441 |  
+    442 |  watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
+        |                            ^
+    443 |  
+    444 |  const logout = () => {
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:18
+ > callWithAsyncErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:206:16
+ > baseWatchOptions.call node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:887:46
+ > job node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js:1919:17
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:32
+ > flushJobs node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:408:8
+
+[2m8:44:03 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of watcher callback 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:44:03 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of component update 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <Dashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:44:03 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mReferenceError[22m: hydrateProfileForm is not defined
+[39m > src/components/AppNavbar.vue:442:26
+    440 |  })
+    441 |  
+    442 |  watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
+        |                            ^
+    443 |  
+    444 |  const logout = () => {
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:18
+ > callWithAsyncErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:206:16
+ > baseWatchOptions.call node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:887:46
+ > job node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js:1919:17
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:32
+ > flushJobs node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:408:8
+
+[2m8:44:44 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of watcher callback 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <SuperAdminDashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:44:44 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of component update 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <SuperAdminDashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:44:44 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mReferenceError[22m: hydrateProfileForm is not defined
+[39m > src/components/AppNavbar.vue:442:26
+    440 |  })
+    441 |  
+    442 |  watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
+        |                            ^
+    443 |  
+    444 |  const logout = () => {
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:18
+ > callWithAsyncErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:206:16
+ > baseWatchOptions.call node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:887:46
+ > job node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js:1919:17
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:32
+ > flushJobs node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:408:8
+
+[2m8:44:44 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of watcher callback 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <SuperAdminDashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:44:44 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m[Vue warn]: Unhandled error during execution of component update 
+  at <AppNavbar> 
+  at <AppLayout> 
+  at <SuperAdminDashboard onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< {} > > 
+  at <RouterView> 
+  at <App>
+[2m8:44:45 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled rejection] [1mReferenceError[22m: hydrateProfileForm is not defined
+[39m > src/components/AppNavbar.vue:442:26
+    440 |  })
+    441 |  
+    442 |  watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
+        |                            ^
+    443 |  
+    444 |  const logout = () => {
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:18
+ > callWithAsyncErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:206:16
+ > baseWatchOptions.call node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:887:46
+ > job node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js:1919:17
+ > callWithErrorHandling node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:199:32
+ > flushJobs node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js:408:8
+

@@ -16,17 +16,18 @@ app.use(cookieParser());
 app.use(express.static(__dirname));
 
 // Routes
-app.use('/api/auth', require('./authRoutes'));
-app.use('/api/modules', require('./moduleRoutes'));
-app.use('/api/teachers', require('./teacherRoutes'));
-app.use('/api/sections', require('./sectionRoutes'));
-app.use('/api/schedules', require('./scheduleRoutes'));
-app.use('/api/pending', require('./pendingRoutes'));
-app.use('/api/classes', require('./classRoutes'));
-app.use('/api/shifts', require('./shiftRoutes'));
-app.use('/api/dos', require('./dosRoutes'));
-app.use('/api/dashboard', require('./dashboardRoutes'));
-app.use('/api/rooms', require('./roomRoutes'));
+app.use('/api/auth', require('./server/routes/auth'));
+app.use('/api/modules', require('./server/routes/modules'));
+app.use('/api/teachers', require('./server/routes/teachers'));
+app.use('/api/sections', require('./server/routes/sections'));
+app.use('/api/pending', require('./server/routes/pending'));
+app.use('/api/classes', require('./server/routes/classes'));
+app.use('/api/shifts', require('./server/routes/shifts'));
+app.use('/api/dos', require('./server/routes/dos'));
+app.use('/api/dashboard', require('./server/routes/dashboard'));
+app.use('/api/rooms', require('./server/routes/rooms'));
+app.use('/api/timetable', require('./server/routes/timetable'));
+app.use('/api/teacher-auth', require('./server/routes/teacher-auth'));
 
 // Test Route
 app.get('/', (req, res) => {

@@ -18,8 +18,8 @@ const requireRoles = (...roles) => (req, res, next) => {
 };
 
 const requireSuperAdmin = requireRoles('super_admin');
-const requireSchoolAdmin = requireRoles('dos');
-const requireManagement = requireRoles('super_admin', 'dos');
+const requireSchoolAdmin = requireRoles('dos', 'admin');
+const requireManagement = requireRoles('super_admin', 'dos', 'admin');
 
 module.exports = {
   hasRole,

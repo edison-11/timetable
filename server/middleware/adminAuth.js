@@ -22,7 +22,7 @@ const adminAuth = async (req, res, next) => {
         return res.status(401).json({ message: 'Token is not valid' });
       }
 
-      const allowedRoles = ['dos', 'super_admin'];
+      const allowedRoles = ['dos', 'admin', 'super_admin'];
       if (!allowedRoles.includes(user.role)) {
         return res.status(403).json({ message: 'Management access required' });
       }

@@ -31,6 +31,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const schoolRoutes = require('./routes/schools');
 const externalAuthRoutes = require('./routes/externalAuth');
 const { adminAuth } = require('./middleware/adminAuth');
+const { requireSchoolAdmin } = require('./middleware/rbac');
 
 const app = express();
 
@@ -76,23 +77,23 @@ app.use('/api/auth/external', externalAuthRoutes);
 app.use('/api/teacher-auth', teacherAuthRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/dos', dosRoutes);
-app.use('/api/teachers', adminAuth, teacherRoutes);
-app.use('/api/modules', adminAuth, moduleRoutes);
-app.use('/api/sections', adminAuth, sectionRoutes);
-app.use('/api/classes', adminAuth, classRoutes);
-app.use('/api/rooms', adminAuth, roomRoutes);
-app.use('/api/shifts', adminAuth, shiftRoutes);
+app.use('/api/teachers', adminAuth, requireSchoolAdmin, teacherRoutes);
+app.use('/api/modules', adminAuth, requireSchoolAdmin, moduleRoutes);
+app.use('/api/sections', adminAuth, requireSchoolAdmin, sectionRoutes);
+app.use('/api/classes', adminAuth, requireSchoolAdmin, classRoutes);
+app.use('/api/rooms', adminAuth, requireSchoolAdmin, roomRoutes);
+app.use('/api/shifts', adminAuth, requireSchoolAdmin, shiftRoutes);
 app.use('/api/breaks', breakRoutes);
-app.use('/api/assignments', adminAuth, assignmentRoutes);
+app.use('/api/assignments', adminAuth, requireSchoolAdmin, assignmentRoutes);
 app.use('/api/timetable', timetableRoutes);
 app.use('/api/upload', uploadRoutes);
-app.use('/api/pending', adminAuth, pendingRoutes);
+app.use('/api/pending', adminAuth, requireSchoolAdmin, pendingRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/absence', absenceRoutes);
 app.use('/api/substitution', substitutionRoutes);
-app.use('/api/students', studentRoutes);
-app.use('/api/dashboard', adminAuth, dashboardRoutes);
+app.use('/api/students', adminAuth, requireSchoolAdmin, studentRoutes);
+app.use('/api/dashboard', adminAuth, requireSchoolAdmin, dashboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

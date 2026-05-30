@@ -1,10 +1,11 @@
 <template>
   <TeacherLayout>
     <div class="timetable-container">
-      <section class="timetable-header">
+      <section class="studio-header">
         <div class="header-content">
-          <h1><i class="bi bi-calendar3"></i> Timetable</h1>
-          <p class="subtitle">{{ formattedWeek }}</p>
+          <p class="eyebrow">Teacher schedule</p>
+          <h1>My Timetable</h1>
+          <p class="studio-subtitle">{{ formattedWeek }} · lessons, breaks, and free periods assigned by DOS.</p>
         </div>
 
         <div class="header-controls">
@@ -29,12 +30,12 @@
             </button>
           </div>
 
-          <div class="action-controls">
-            <button class="action-btn filter-btn" @click="showFilters = !showFilters" title="Filters">
+          <div class="action-controls studio-actions">
+            <button class="btn-secondary filter-btn" @click="showFilters = !showFilters" title="Filters">
               <i class="bi bi-funnel"></i>
               <span>Filter</span>
             </button>
-            <button class="action-btn print-btn" @click="printTimetable" title="Print">
+            <button class="btn-secondary print-btn" @click="printTimetable" title="Print">
               <i class="bi bi-printer"></i>
               <span>Print</span>
             </button>
@@ -42,7 +43,7 @@
               <option value="doc">Word</option>
               <option value="pdf">PDF</option>
             </select>
-            <button class="action-btn download-btn" @click="downloadTimetable(exportFormat)" title="Download">
+            <button class="btn-primary download-btn" @click="downloadTimetable(exportFormat)" title="Download">
               <i class="bi bi-download"></i>
               <span>Download</span>
             </button>
@@ -50,7 +51,7 @@
         </div>
       </section>
 
-      <section class="timetable-summary" aria-label="Timetable summary">
+      <section class="metrics-grid teacher-metrics" aria-label="Timetable summary">
         <article>
           <span>Lessons</span>
           <strong>{{ totalLessons }}</strong>
@@ -76,7 +77,7 @@
       <div v-if="loading" class="state-panel">Loading timetable...</div>
       <div v-else-if="loadError" class="state-panel error">{{ loadError }}</div>
 
-      <section v-if="showFilters" class="filters-panel">
+      <section v-if="showFilters" class="filters-panel panel-card">
         <div class="filter-group">
           <label>Filter by Day</label>
           <select v-model="selectedDay" class="filter-input">
@@ -113,8 +114,15 @@
         <button class="reset-btn" @click="resetFilters">Reset</button>
       </section>
 
-      <section v-if="!loading && !loadError && viewMode === 'week'" class="timetable-section">
-        <div class="timetable-wrapper">
+      <section v-if="!loading && !loadError && viewMode === 'week'" class="timetable-section timetable-output-card">
+        <div class="output-toolbar">
+          <div>
+            <p class="eyebrow">Weekly view</p>
+            <h2>{{ teacherName }} Timetable</h2>
+          </div>
+          <span class="badge">{{ totalLessons }} entries</span>
+        </div>
+        <div class="timetable-wrapper table-responsive">
           <table class="timetable-grid">
             <!-- Table Header -->
             <thead>
@@ -201,7 +209,7 @@
         </div>
       </section>
 
-      <section v-else-if="!loading && !loadError && viewMode === 'day'" class="day-view-section">
+      <section v-else-if="!loading && !loadError && viewMode === 'day'" class="day-view-section timetable-output-card">
         <div class="day-selector">
           <button
             v-for="day in days"
@@ -241,7 +249,6 @@
                 </p>
                 <div class="day-lesson-actions">
                   <button @click="showLessonDetails(lesson)">Details</button>
-                  <button @click="requestChange(lesson)">Request</button>
                 </div>
               </div>
 
@@ -280,9 +287,6 @@
           </div>
 
           <div class="modal-actions">
-            <button @click="requestChange(selectedLesson)" class="btn-primary">
-              <i class="bi bi-pencil"></i> Request
-            </button>
             <button @click="showDetailsModal = false" class="btn-secondary">
               <i class="bi bi-x"></i> Close
             </button>
@@ -295,7 +299,6 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
@@ -303,7 +306,6 @@ import { downloadTimetablePdf } from '@/utils/timetablePdf'
 import { buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 import { SCHOOL_DAYS, getSchoolDayName, getSchoolWeekDate, getMondayOfWeek } from '@/utils/dayHelpers'
 
-const router = useRouter()
 const authStore = useAuthStore()
 
 const viewMode = ref('week')
@@ -646,31 +648,6 @@ const downloadTimetable = (format = 'pdf') => {
 const showLessonDetails = (lesson) => {
   selectedLesson.value = lesson
   showDetailsModal.value = true
-}
-
-const requestChange = (lesson) => {
-  router.push({
-    name: 'TeacherRequests',
-    query: {
-      lessonId: lesson.id,
-      day: lesson.day,
-      time: lesson.time,
-      subject: lesson.subject,
-      class: lesson.class,
-      room: lesson.room
-    }
-  })
-}
-
-const requestFreeSlot = (day, row) => {
-  router.push({
-    name: 'TeacherRequests',
-    query: {
-      type: 'free-slot',
-      day,
-      time: formatTimeRange(row.start_time, row.end_time)
-    }
-  })
 }
 
 const loadTimetable = async () => {
@@ -1660,6 +1637,7 @@ onMounted(async () => {
     padding: 0;
   }
 
+  .studio-header,
   .timetable-header,
   .filters-panel,
   .header-controls,
@@ -1673,6 +1651,351 @@ onMounted(async () => {
 
   .lesson-card {
     page-break-inside: avoid;
+  }
+}
+
+.timetable-container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+  background: transparent;
+  color: #0f172a;
+}
+
+.studio-header,
+.panel-card,
+.timetable-output-card,
+.state-panel {
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.studio-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1.35rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1);
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: #2563eb;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-header h1,
+.output-toolbar h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.8rem;
+  line-height: 1.1;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.studio-subtitle {
+  max-width: 740px;
+  margin: 0.45rem 0 0;
+  color: #52627a;
+  font-size: 0.98rem;
+}
+
+.header-controls,
+.studio-actions,
+.action-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-primary {
+  padding: 0.6rem 1rem;
+  color: #fff;
+  background: #2563eb;
+}
+
+.btn-secondary {
+  padding: 0.55rem 0.85rem;
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.view-controls {
+  border: 1px solid #dbe3ef;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.view-btn {
+  min-height: 38px;
+  border-radius: 7px;
+  border: 0;
+  font-weight: 800;
+}
+
+.view-btn.active {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.export-select,
+.filter-input {
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #0f172a;
+  background: #fff;
+  font-weight: 700;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-metrics article {
+  min-height: 86px;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.teacher-metrics span,
+.teacher-metrics strong,
+.teacher-metrics small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.teacher-metrics strong {
+  margin-top: 0.28rem;
+  color: #0f172a;
+  font-size: 1.6rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.teacher-metrics span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.teacher-metrics small {
+  margin-top: 0.28rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.filters-panel {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.reset-btn {
+  min-height: 42px;
+  border: 0;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-weight: 800;
+}
+
+.timetable-output-card {
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.output-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  background: #fff;
+}
+
+.timetable-grid {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.header-row th,
+.timetable-grid th {
+  min-width: 0;
+  padding: 0.78rem 0.55rem;
+  border: 1px solid #b8c2d1;
+  color: #fff;
+  background: #0f2f5f;
+  font-size: 0.84rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.header-row .day-column.today {
+  background: #123d78;
+  color: #fff;
+}
+
+.timetable-grid td {
+  height: 64px;
+  padding: 0.45rem;
+  border: 1px solid #cbd5e1;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.period-col,
+.time-col {
+  color: #0f172a;
+  background: #f8fafc;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.lesson-cell {
+  min-width: 0;
+  padding: 0.45rem;
+  background: #ffffff;
+}
+
+.lesson-cell.today {
+  background: #f8fbff;
+}
+
+.module-cell {
+  min-height: 50px;
+  padding: 0.45rem;
+  border-left: 4px solid #2563eb;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #111827;
+  text-align: left;
+  cursor: pointer;
+}
+
+.module-cell strong {
+  color: #172554;
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.module-cell small {
+  margin-top: 0.2rem;
+  color: #475569;
+  font-size: 0.67rem;
+}
+
+.room-badge {
+  display: inline-flex;
+  margin-top: 0.28rem;
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  color: #334155;
+  background: rgba(15, 23, 42, 0.08);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+
+.break-label {
+  display: block;
+  color: #0f2f5f;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.period-col.morning-break,
+.time-col.morning-break,
+.break-fill.morning-break {
+  background: #e8f7e9;
+}
+
+.period-col.lunch-break,
+.time-col.lunch-break,
+.break-fill.lunch-break,
+.period-col.lunch,
+.time-col.lunch,
+.break-fill.lunch {
+  background: #fff4c7;
+}
+
+.period-col.evening-break,
+.time-col.evening-break,
+.break-fill.evening-break,
+.period-col.assembly,
+.time-col.assembly,
+.break-fill.assembly {
+  background: #e9f2ff;
+}
+
+@media (max-width: 760px) {
+  .studio-header,
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-header h1 {
+    font-size: 1.45rem;
+  }
+
+  .header-controls,
+  .studio-actions,
+  .output-toolbar {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 </style>

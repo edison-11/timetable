@@ -4,7 +4,7 @@
       <header class="page-header">
         <div>
           <h1>Schools</h1>
-          <p>Approve DOS registrations and monitor school setup without exposing teacher records.</p>
+          <p>Approve DOS registrations, manage school access, and review setup counts.</p>
         </div>
         <div class="filters">
           <input v-model.trim="search" type="search" placeholder="Search schools">
@@ -31,6 +31,11 @@
 
       <section class="table-card">
         <div v-if="loading" class="state">Loading schools...</div>
+        <div v-else-if="loadError" class="state error-state">
+          <strong>Could not load schools from the database.</strong>
+          <span>{{ loadError }}</span>
+          <button type="button" :disabled="loading" @click="loadSchools">Try Again</button>
+        </div>
         <div v-else-if="!filteredSchools.length" class="state">No schools found.</div>
         <div v-else class="table-wrap">
           <table>
@@ -64,7 +69,8 @@
                     <span>{{ school.teacher_count || 0 }} teachers</span>
                     <span>{{ school.student_count || 0 }} students</span>
                     <span>{{ school.class_count || 0 }} classes</span>
-                    <span>{{ school.timetable_entry_count || 0 }} timetable rows</span>
+                    <span>{{ school.subject_count || 0 }} subjects</span>
+                    <span>{{ school.combination_count || 0 }} combinations</span>
                   </div>
                 </td>
                 <td><span class="status" :class="statusClass(school.status)">{{ statusLabel(school.status) }}</span></td>
@@ -138,6 +144,7 @@ const schools = ref([])
 const search = ref('')
 const status = ref('')
 const loading = ref(false)
+const loadError = ref('')
 const actionLoading = ref({})
 const notifications = useNotificationStore()
 
@@ -146,10 +153,12 @@ const hasPendingAction = computed(() => Object.keys(actionLoading.value).length 
 
 const summaryCards = computed(() => [
   { label: 'Schools', value: schools.value.length },
-  { label: 'Pending DOS', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)).length },
+  { label: 'Pending DOS', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status) || school.dos_status === 'pending').length },
   { label: 'Active Schools', value: schools.value.filter((school) => school.status === 'active').length },
   { label: 'Inactive Schools', value: schools.value.filter((school) => ['suspended', 'deactivated', 'inactive', 'rejected'].includes(school.status)).length },
-  { label: 'Teachers Counted', value: schools.value.reduce((sum, school) => sum + Number(school.teacher_count || 0), 0) }
+  { label: 'Teachers Counted', value: schools.value.reduce((sum, school) => sum + Number(school.teacher_count || 0), 0) },
+  { label: 'Classes', value: schools.value.reduce((sum, school) => sum + Number(school.class_count || 0), 0) },
+  { label: 'Combinations', value: schools.value.reduce((sum, school) => sum + Number(school.combination_count || 0), 0) }
 ])
 
 const statusLabel = (value) => {
@@ -176,9 +185,16 @@ const formatDate = (value) => {
   return new Date(value).toLocaleDateString()
 }
 
+const normalizeSchoolsResponse = (data) => {
+  if (Array.isArray(data?.schools)) return data.schools
+  if (Array.isArray(data)) return data
+  return []
+}
+
 const loadSchools = async () => {
   if (loading.value) return
   loading.value = true
+  loadError.value = ''
   try {
     const response = await api.get('/schools', {
       params: {
@@ -186,7 +202,14 @@ const loadSchools = async () => {
         status: status.value || undefined
       }
     })
-    schools.value = response.data.schools || []
+    schools.value = normalizeSchoolsResponse(response.data)
+  } catch (error) {
+    loadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      'Please check that the server is running and connected to MySQL.'
+    schools.value = []
   } finally {
     loading.value = false
   }
@@ -326,7 +349,7 @@ button:disabled {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.85rem;
   margin-bottom: 1rem;
 }
@@ -465,6 +488,20 @@ td small {
   padding: 2rem;
   color: #64748b;
   text-align: center;
+}
+
+.error-state {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: center;
+}
+
+.error-state strong {
+  color: #991b1b;
+}
+
+.error-state span {
+  color: #64748b;
 }
 
 :global(body.admin-dark-mode) .page-header h1,

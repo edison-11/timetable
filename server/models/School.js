@@ -3,9 +3,15 @@ const pool = require('../config/database');
 class School {
   static schemaReady = false;
   static tenantColumnsReady = false;
+  static tenantColumnsPromise = null;
 
   static async ensureSchema() {
     if (this.schemaReady) return;
+
+    // Keep tenant normalization consistent across existing environments.
+    // Many existing tenant rows might have NULL school_id after migrations.
+    // This code only ensures tables/columns exist; backfill is handled in scripts/migrations.
+
 
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS schools (
@@ -85,6 +91,11 @@ class School {
     return rows.length > 0;
   }
 
+  static async tableExists(tableName) {
+    const [rows] = await pool.query('SHOW TABLES LIKE ?', [tableName]);
+    return rows.length > 0;
+  }
+
   static async addColumnIfMissing(tableName, columnName, definition) {
     if (await this.columnExists(tableName, columnName)) return;
     await pool.query(`ALTER TABLE \`${tableName}\` ADD COLUMN ${definition}`);
@@ -115,10 +126,28 @@ class School {
   }
 
   static async addSchoolColumn(tableName) {
+    if (!(await this.tableExists(tableName))) return;
+    if (await this.columnExists(tableName, 'school_id')) return;
+
     try {
-      await pool.execute(`ALTER TABLE ${tableName} ADD COLUMN school_id INT NULL`);
+      await pool.execute(`ALTER TABLE \`${tableName}\` ADD COLUMN school_id INT NULL`);
     } catch (error) {
-      if (!String(error.message || '').toLowerCase().includes('duplicate')) {
+      const message = String(error.message || '').toLowerCase();
+      const canIgnoreAfterRecheck =
+        error.code === 'ER_DUP_FIELDNAME' ||
+        error.code === 'ER_LOCK_DEADLOCK' ||
+        message.includes('duplicate');
+
+      if (canIgnoreAfterRecheck && await this.columnExists(tableName, 'school_id')) {
+        return;
+      }
+
+      if (error.code === 'ER_LOCK_DEADLOCK') {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        if (await this.columnExists(tableName, 'school_id')) return;
+      }
+
+      if (!canIgnoreAfterRecheck) {
         throw error;
       }
     }
@@ -126,7 +155,19 @@ class School {
 
   static async ensureTenantColumns() {
     if (this.tenantColumnsReady) return;
+    if (this.tenantColumnsPromise) return this.tenantColumnsPromise;
 
+    this.tenantColumnsPromise = this.ensureTenantColumnsInternal();
+
+    try {
+      await this.tenantColumnsPromise;
+      this.tenantColumnsReady = true;
+    } finally {
+      this.tenantColumnsPromise = null;
+    }
+  }
+
+  static async ensureTenantColumnsInternal() {
     await this.ensureSchema();
     const tables = [
       'teacher',
@@ -139,7 +180,7 @@ class School {
       'timetable',
       'timetable_entries',
       'attendance',
-      'notifications'
+      'notification'
     ];
 
     for (const table of tables) {
@@ -151,8 +192,6 @@ class School {
         }
       }
     }
-
-    this.tenantColumnsReady = true;
   }
 
   static async create(data) {
@@ -210,7 +249,6 @@ class School {
 
   static async getAll(filters = {}) {
     await this.ensureSchema();
-    await this.ensureTenantColumns();
     const where = ['s.deleted_at IS NULL'];
     const values = [];
 
@@ -225,24 +263,31 @@ class School {
       values.push(term, term, term);
     }
 
+    const hasStudentTable = await this.tableExists('student');
+    const studentCountSelect = hasStudentTable
+      ? '(SELECT COUNT(*) FROM student st WHERE st.school_id = s.school_id) AS student_count'
+      : '0 AS student_count';
+
     const [rows] = await pool.execute(`
       SELECT
         s.*,
         dos.dos_id,
-        dos.full_name AS dos_name,
-        dos.email AS dos_email,
-        dos.phone AS dos_phone,
-        dos.status AS dos_status,
+        COALESCE(dos.full_name, dos_user.full_name, dos_user.username) AS dos_name,
+        COALESCE(dos.email, dos_user.email) AS dos_email,
+        COALESCE(dos.phone, dos_user.phone) AS dos_phone,
+        COALESCE(dos.status, dos_user.status) AS dos_status,
         (SELECT COUNT(*) FROM teacher t WHERE t.school_id = s.school_id) AS teacher_count,
         (SELECT COUNT(*) FROM teacher t WHERE t.school_id = s.school_id AND t.status = 'active') AS active_teacher_count,
         (SELECT COUNT(*) FROM teacher t WHERE t.school_id = s.school_id AND t.status = 'pending') AS pending_teacher_count,
-        (SELECT COUNT(*) FROM student st WHERE st.school_id = s.school_id) AS student_count,
+        ${studentCountSelect},
         (SELECT COUNT(*) FROM class c WHERE c.school_id = s.school_id) AS class_count,
         (SELECT COUNT(*) FROM module m WHERE m.school_id = s.school_id) AS subject_count,
+        (SELECT COUNT(*) FROM assignment a WHERE a.school_id = s.school_id) AS combination_count,
         (SELECT COUNT(*) FROM room r WHERE r.school_id = s.school_id) AS room_count,
         (SELECT COUNT(*) FROM timetable tt WHERE tt.school_id = s.school_id) AS timetable_entry_count
       FROM schools s
       LEFT JOIN directors_of_studies dos ON dos.school_id = s.school_id AND dos.deleted_at IS NULL
+      LEFT JOIN users dos_user ON dos_user.school_id = s.school_id AND dos_user.role = 'dos'
       WHERE ${where.join(' AND ')}
       ORDER BY s.created_at DESC
     `, values);
@@ -284,7 +329,7 @@ class School {
   }
 
   static async getPlatformStats() {
-    await this.ensureTenantColumns();
+    await this.ensureSchema();
     const [[schoolStats]] = await pool.execute(`
       SELECT
         COUNT(*) AS total_schools,
@@ -297,9 +342,25 @@ class School {
     `);
 
     const [[teacherStats]] = await pool.execute('SELECT COUNT(*) AS total_teachers, SUM(status = "active") AS active_teachers FROM teacher');
-    const [[studentStats]] = await pool.execute('SELECT COUNT(*) AS total_students FROM student');
+    const [[classStats]] = await pool.execute('SELECT COUNT(*) AS total_classes FROM class');
+    const [[subjectStats]] = await pool.execute('SELECT COUNT(*) AS total_subjects FROM module');
+    const [[combinationStats]] = await pool.execute('SELECT COUNT(*) AS total_combinations FROM assignment');
     const [[timetableStats]] = await pool.execute('SELECT COUNT(*) AS total_timetable_entries, COUNT(DISTINCT school_id) AS schools_with_timetables FROM timetable');
-    const [[userStats]] = await pool.execute('SELECT COUNT(*) AS total_users, SUM(status = "active") AS active_users FROM users');
+    const [[dosStats]] = await pool.execute(`
+      SELECT
+        COUNT(DISTINCT user_id) AS total_dos,
+        SUM(status = 'active') AS active_dos,
+        SUM(status = 'pending') AS pending_dos
+      FROM (
+        SELECT COALESCE(user_id, CONCAT('director-', dos_id)) AS user_id, status
+        FROM directors_of_studies
+        WHERE deleted_at IS NULL
+        UNION
+        SELECT id AS user_id, status
+        FROM users
+        WHERE role = 'dos'
+      ) dos_accounts
+    `);
 
     return {
       total_schools: Number(schoolStats.total_schools || 0),
@@ -309,11 +370,14 @@ class School {
       inactive_schools: Number(schoolStats.inactive_schools || 0),
       total_teachers: Number(teacherStats.total_teachers || 0),
       active_teachers: Number(teacherStats.active_teachers || 0),
-      total_students: Number(studentStats.total_students || 0),
+      total_classes: Number(classStats.total_classes || 0),
+      total_subjects: Number(subjectStats.total_subjects || 0),
+      total_combinations: Number(combinationStats.total_combinations || 0),
       total_timetable_entries: Number(timetableStats.total_timetable_entries || 0),
       schools_with_timetables: Number(timetableStats.schools_with_timetables || 0),
-      total_users: Number(userStats.total_users || 0),
-      active_users: Number(userStats.active_users || 0)
+      total_dos: Number(dosStats.total_dos || 0),
+      active_dos: Number(dosStats.active_dos || 0),
+      pending_dos: Number(dosStats.pending_dos || 0)
     };
   }
 
@@ -394,8 +458,7 @@ class School {
         (school_id, user_id, actor_role, action, entity_type, entity_id, message)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.school_id || null,
-        data.user_id || null,
+        data.school_id ||  null,
         data.actor_role || null,
         data.action,
         data.entity_type || null,

@@ -15,7 +15,7 @@
         </div>
 
         <div class="loader-copy">
-          <strong>Loading your workspace</strong>
+          <strong>WELCOME TO YOUR DASHBOARD</strong>
           <span class="loader-detail">Preparing dashboard data</span>
         </div>
 
