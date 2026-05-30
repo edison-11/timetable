@@ -505,7 +505,9 @@ onBeforeUnmount(() => {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  color: currentColor;
+  background: #eff6ff;
+  color: #2563eb;
+  transition: color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
 }
 
 .nav-icon :deep(svg) {
@@ -516,6 +518,12 @@ onBeforeUnmount(() => {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .nav-label {
@@ -1101,6 +1109,12 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible {
   color: #1d4ed8;
 }
 
+body.teacher-sidebar-collapsed .teacher-sidebar .nav-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+}
+
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover::after,
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible::after {
   opacity: 1;
@@ -1390,6 +1404,17 @@ body.teacher-dark-mode .confirm-modal {
   background: rgba(17, 24, 39, 0.96) !important;
   color: var(--teacher-text) !important;
   box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28) !important;
+}
+
+body.teacher-dark-mode .teacher-sidebar .nav-icon {
+  background: #172554;
+  color: #93c5fd;
+}
+
+body.teacher-dark-mode .teacher-sidebar .nav-item:hover .nav-icon,
+body.teacher-dark-mode .teacher-sidebar .nav-item.active .nav-icon {
+  background: #3b82f6;
+  color: #ffffff;
 }
 
 body.teacher-dark-mode .studio-header,

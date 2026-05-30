@@ -223,6 +223,12 @@ const academicYear = computed(() => {
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.02);
 }
 
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+  background: #2563eb;
+  color: #ffffff;
+}
+
 .nav-item.active::before {
   opacity: 1;
   transform: translateY(-50%) scaleY(1);
@@ -236,8 +242,8 @@ const academicYear = computed(() => {
   width: 32px;
   height: 32px;
   border-radius: 10px;
-  background: transparent;
-  color: currentColor;
+  background: #eff6ff;
+  color: #2563eb;
   transition: color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
 }
 
@@ -377,23 +383,20 @@ body.sidebar-collapsed .admin-sidebar .nav-item.active::before {
 body.sidebar-collapsed .admin-sidebar .nav-icon {
   width: 34px;
   height: 34px;
-  color: #64748b;
-  background: transparent;
+  color: #2563eb;
+  background: #eff6ff;
   border-radius: 999px;
   transition: color 0.2s ease, transform 0.2s ease;
 }
 
-body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-icon {
-  color: #1d4ed8;
-}
-
+body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-icon,
 body.sidebar-collapsed .admin-sidebar .nav-item.active .nav-icon {
-  color: #2563eb;
+  color: #ffffff;
+  background: #2563eb;
 }
 
 body.sidebar-collapsed .admin-sidebar .nav-item:hover .nav-icon,
 body.sidebar-collapsed .admin-sidebar .nav-item.active .nav-icon {
-  background: transparent;
   transform: scale(1.04);
 }
 
@@ -459,10 +462,21 @@ body.admin-dark-mode .admin-sidebar .nav-item {
   color: #cbd5e1;
 }
 
+body.admin-dark-mode .admin-sidebar .nav-icon {
+  background: #172554;
+  color: #93c5fd;
+}
+
 body.admin-dark-mode .admin-sidebar .nav-item:hover {
   background: #172554;
   border-color: #1d4ed8;
   color: #bfdbfe;
+}
+
+body.admin-dark-mode .admin-sidebar .nav-item:hover .nav-icon,
+body.admin-dark-mode .admin-sidebar .nav-item.active .nav-icon {
+  background: #3b82f6;
+  color: #ffffff;
 }
 
 body.admin-dark-mode .admin-sidebar .nav-item.active {
