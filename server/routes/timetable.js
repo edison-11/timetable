@@ -330,16 +330,22 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
 const buildWeeklyPeriodTargets = (assignments, totalPeriods) => {
   if (!assignments.length || totalPeriods <= 0) return new Map();
 
+  const getAssignmentWeight = (assignment) => {
+    const hours = Math.max(Number(assignment.hours_per_year || 1), 1);
+    if (hours > 100) return hours * 1.5;
+    return hours;
+  };
+
   const totalHours = assignments.reduce((sum, assignment) => {
-    return sum + Math.max(Number(assignment.hours_per_year || 1), 1);
+    return sum + getAssignmentWeight(assignment);
   }, 0);
   const targetItems = assignments.map((assignment) => {
-    const weight = Math.max(Number(assignment.hours_per_year || 1), 1);
+    const weight = getAssignmentWeight(assignment);
     const exactTarget = (weight / totalHours) * totalPeriods;
 
     return {
       assignment,
-      target: Math.floor(exactTarget),
+      target: Math.max(Math.floor(exactTarget), Number(assignment.hours_per_year || 0) > 100 ? 2 : 1),
       remainder: exactTarget - Math.floor(exactTarget)
     };
   });
@@ -544,7 +550,9 @@ router.post('/', adminAuth, [
         type: 'timetable_published',
         title: `Timetable entry published for ${timetable.class_name || 'a class'}`,
         message: `${timetable.module_name || 'A timetable entry'} was scheduled on ${day_of_week} at ${start_time}.`,
-        path: '/timetable',
+        path: '/teacher/timetable',
+        school_id,
+        recipient_role: 'teacher',
         tone: 'blue'
       });
     }
@@ -929,13 +937,25 @@ router.post('/generate', adminAuth, [
         ? classEntryCounts[0].class_name
         : `${classEntryCounts.length} classes`;
 
-      await Notification.create({
-        type: 'timetable_published',
-        title: `New timetable published for ${classSummary}`,
-        message: `${generated.length} timetable entries were generated.`,
-        path: '/timetable',
-        tone: 'blue'
-      });
+      await Promise.all([
+        Notification.create({
+          type: 'timetable_published',
+          title: `New timetable published for ${classSummary}`,
+          message: `${generated.length} timetable entries were generated.`,
+          path: '/timetable',
+          school_id,
+          tone: 'blue'
+        }),
+        Notification.create({
+          type: 'teacher_timetable_published',
+          title: 'Your timetable was updated',
+          message: `${generated.length} weekly timetable entries are now available.`,
+          path: '/teacher/timetable',
+          school_id,
+          recipient_role: 'teacher',
+          tone: 'blue'
+        })
+      ]);
     }
 
     res.status(201).json({

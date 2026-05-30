@@ -4,7 +4,7 @@
       <strong>{{ endAlert.title }}</strong>
       <span>{{ endAlert.message }}</span>
       <button type="button" @click="dismissEndAlert" :title="endAlert.ringing ? 'Stop alarm' : 'Dismiss alert'">
-        <i class="bi bi-x-lg" aria-hidden="true"></i>
+        <X :size="16" :stroke-width="2.4" aria-hidden="true" />
       </button>
     </div>
 
@@ -23,7 +23,8 @@
               :title="alarmEnabled ? 'Turn alarm off' : 'Turn alarm on'"
               @click="toggleAlarm"
             >
-              <i :class="alarmEnabled ? 'bi bi-bell-fill' : 'bi bi-bell-slash-fill'" aria-hidden="true"></i>
+              <Bell v-if="alarmEnabled" :size="11" :stroke-width="2.4" aria-hidden="true" />
+              <BellOff v-else :size="11" :stroke-width="2.4" aria-hidden="true" />
               <span>{{ alarmEnabled ? 'ON' : 'OFF' }}</span>
             </button>
           </div>
@@ -104,6 +105,7 @@ import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { buildTimetableRowsFromSettings } from '@/utils/fixedTimetableStructure'
 import { isAcademicWeekend } from '@/utils/dayHelpers'
+import { Bell, BellOff, X } from '@lucide/vue'
 
 const authStore = useAuthStore()
 

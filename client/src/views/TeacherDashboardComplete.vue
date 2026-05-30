@@ -9,7 +9,7 @@
         </div>
         <div class="hero-actions">
           <button class="primary-action" type="button" @click="navigateTo('/teacher/timetable')">
-            <i class="bi bi-calendar3"></i>
+            <CalendarDays :size="17" :stroke-width="2.2" aria-hidden="true" />
             Timetable
           </button>
         </div>
@@ -17,7 +17,9 @@
 
       <section class="metric-grid" aria-label="Teacher summary">
         <article v-for="card in overviewCards" :key="card.label" class="metric-card">
-          <span class="metric-icon" :class="card.tone"><i :class="card.icon"></i></span>
+          <span class="metric-icon" :class="card.tone">
+            <component :is="card.icon" :size="22" :stroke-width="2.2" aria-hidden="true" />
+          </span>
           <div>
             <strong>{{ card.value }}</strong>
             <span>{{ card.label }}</span>
@@ -41,7 +43,7 @@
               <span>Next</span>
               <h2>{{ nextLesson ? nextLesson.subject : 'No Lesson' }}</h2>
             </div>
-            <i class="bi bi-alarm"></i>
+            <AlarmClock :size="22" :stroke-width="2.2" aria-hidden="true" />
           </div>
 
           <div v-if="nextLesson" class="next-lesson">
@@ -139,7 +141,7 @@
             >
               <span>{{ period.day }}</span>
               <strong>{{ period.time }}</strong>
-              <i class="bi bi-calendar3"></i>
+              <CalendarDays :size="17" :stroke-width="2.2" aria-hidden="true" />
             </button>
           </div>
           <p v-else class="empty-copy">No free slots found.</p>
@@ -175,6 +177,14 @@ import TeacherLayout from '@/components/TeacherLayout.vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { SCHOOL_DAYS, getSchoolDayName, getNextSchoolWeekDate } from '@/utils/dayHelpers'
+import {
+  AlarmClock,
+  CalendarDays,
+  CalendarRange,
+  Grid2X2,
+  Hourglass,
+  Users
+} from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -235,35 +245,35 @@ const overviewCards = computed(() => [
     label: 'Today',
     value: todayClasses.value.length,
     detail: nextLesson.value ? `Next ${formatTime(nextLesson.value.start_time)}` : 'Clear',
-    icon: 'bi bi-calendar-day',
+    icon: CalendarDays,
     tone: 'blue'
   },
   {
     label: 'Week',
     value: weeklyLessons.value,
     detail: `${moduleNames.value.length} subject${moduleNames.value.length === 1 ? '' : 's'}`,
-    icon: 'bi bi-calendar-week',
+    icon: CalendarRange,
     tone: 'green'
   },
   {
     label: 'Classes',
     value: teachingClassNames.value.length,
     detail: compactList(teachingClassNames.value),
-    icon: 'bi bi-collection',
+    icon: Grid2X2,
     tone: 'amber'
   },
   {
     label: 'Students',
     value: totalStudents.value,
     detail: 'Estimated load',
-    icon: 'bi bi-people',
+    icon: Users,
     tone: 'purple'
   },
   {
     label: 'Free',
     value: freePeriods.value,
     detail: 'Open slots',
-    icon: 'bi bi-hourglass-split',
+    icon: Hourglass,
     tone: 'blue'
   }
 ])
@@ -622,9 +632,8 @@ onMounted(async () => {
   text-decoration: none;
 }
 
-.panel-header i {
+.panel-header svg {
   color: #2563eb;
-  font-size: 1.35rem;
 }
 
 .next-lesson {
@@ -775,7 +784,7 @@ onMounted(async () => {
   font-size: 0.82rem;
 }
 
-.free-list i {
+.free-list svg {
   color: #16a34a;
 }
 
@@ -961,7 +970,7 @@ onMounted(async () => {
   color: #93c5fd !important;
 }
 
-:global(body.teacher-dark-mode) .panel-header i {
+:global(body.teacher-dark-mode) .panel-header svg {
   color: #60a5fa !important;
 }
 
@@ -971,7 +980,7 @@ onMounted(async () => {
   color: #ffffff !important;
 }
 
-:global(body.teacher-dark-mode) .primary-action i,
+:global(body.teacher-dark-mode) .primary-action svg,
 :global(body.teacher-dark-mode) .primary-action span {
   color: #ffffff !important;
 }
@@ -981,7 +990,7 @@ onMounted(async () => {
   color: #bfdbfe !important;
 }
 
-:global(body.teacher-dark-mode) .metric-icon i {
+:global(body.teacher-dark-mode) .metric-icon svg {
   color: inherit !important;
 }
 
@@ -1028,5 +1037,33 @@ onMounted(async () => {
 
 :global(body.teacher-dark-mode) .activity-dot.amber {
   background: #f59e0b !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-dashboard-page .metric-card {
+  background: #ffffff !important;
+  border-color: #dbeafe !important;
+  color: #0f172a !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-dashboard-page .metric-card strong {
+  color: #0f172a !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-dashboard-page .metric-card span {
+  color: #334155 !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-dashboard-page .metric-card small {
+  color: #52627a !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-dashboard-page .panel-header span,
+:global(body:not(.teacher-dark-mode)) .teacher-dashboard-page .lesson-table-head span {
+  color: #475569 !important;
+}
+
+:global(body.teacher-dark-mode) .teacher-dashboard-page .metric-card {
+  background: rgba(15, 23, 42, 0.96) !important;
+  border-color: #243244 !important;
 }
 </style>

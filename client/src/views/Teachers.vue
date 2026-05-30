@@ -70,13 +70,13 @@
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
                   <template v-if="teacher.status === 'pending'">
-                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">Details</button>
+                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
                     <button
                       class="btn-approve me-2"
                       @click="approveTeacher(teacher)"
                       :disabled="approvalLoadingId === teacher.teacher_id"
                     >
-                      {{ approvalLoadingId === teacher.teacher_id ? 'Approving...' : 'Approve' }}
+                      {{ approvalLoadingId === teacher.teacher_id ? 'Saving...' : 'Approve' }}
                     </button>
                     <button
                       class="btn-delete"
@@ -87,9 +87,9 @@
                     </button>
                   </template>
                   <template v-else>
-                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">Details</button>
+                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
                     <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
-                    <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
+                    <button class="btn-delete" @click="deleteTeacher(teacher)">Del</button>
                   </template>
                 </td>
               </tr>
@@ -757,8 +757,10 @@ onMounted(async () => {
   background: #f59e0b;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -766,8 +768,10 @@ onMounted(async () => {
   background: #22c55e;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -775,8 +779,10 @@ onMounted(async () => {
   background: #ef4444;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -784,8 +790,10 @@ onMounted(async () => {
   background: #0ea5e9;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -793,8 +801,10 @@ onMounted(async () => {
   background: #22c55e;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -819,15 +829,18 @@ onMounted(async () => {
 
 .table-custom {
   width: 100%;
+  min-width: 780px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .table-custom th,
 .table-custom td {
-  padding: 0.55rem 0.65rem;
+  padding: 0.5rem 0.6rem;
   border-bottom: 1px solid #e2e8f0;
   text-align: left;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .table-custom th {
@@ -835,21 +848,52 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.table-custom th:nth-child(1),
+.table-custom td:nth-child(1) {
+  width: 30%;
+}
+
+.table-custom th:nth-child(2),
+.table-custom td:nth-child(2) {
+  width: 18%;
+}
+
+.table-custom th:nth-child(3),
+.table-custom td:nth-child(3) {
+  width: 14%;
+}
+
+.table-custom th:nth-child(4),
+.table-custom td:nth-child(4) {
+  width: 14%;
+}
+
+.table-custom th:nth-child(5),
+.table-custom td:nth-child(5) {
+  width: 24%;
+}
+
 .teacher-cell {
   display: grid;
   gap: 0.1rem;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .teacher-cell strong {
   color: #0f172a;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .teacher-cell small {
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge {
@@ -858,6 +902,10 @@ onMounted(async () => {
   padding: 0.25rem 0.5rem;
   border-radius: 20px;
   font-size: 0.7rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-active {
@@ -951,5 +999,50 @@ onMounted(async () => {
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+:global(body.admin-dark-mode) .teachers-container {
+  color: #e5edf7;
+}
+
+:global(body.admin-dark-mode) .teachers-container .card-custom,
+:global(body.admin-dark-mode) .teachers-container .modal-content {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container h2,
+:global(body.admin-dark-mode) .teachers-container h5,
+:global(body.admin-dark-mode) .teachers-container .teacher-cell strong,
+:global(body.admin-dark-mode) .teachers-container .details-grid strong,
+:global(body.admin-dark-mode) .teachers-container .table-custom th {
+  color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .teacher-cell small,
+:global(body.admin-dark-mode) .teachers-container .details-grid span,
+:global(body.admin-dark-mode) .teachers-container .table-custom td {
+  color: #cbd5e1 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .table-custom th,
+:global(body.admin-dark-mode) .teachers-container .details-grid div {
+  border-color: #243244 !important;
+  background: #0b1220 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .table-custom td,
+:global(body.admin-dark-mode) .teachers-container .modal-header,
+:global(body.admin-dark-mode) .teachers-container .modal-footer {
+  border-color: #243244 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .form-control,
+:global(body.admin-dark-mode) .teachers-container .form-select {
+  border-color: #334155 !important;
+  background: #0b1220 !important;
+  color: #e5edf7 !important;
 }
 </style>

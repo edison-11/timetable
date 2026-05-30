@@ -231,7 +231,11 @@ class Student {
     return rows;
   }
 
-  static async getTeacherClasses(teacherId) {
+  static async getTeacherClasses(teacherId, filters = {}) {
+    const schoolClause = filters.school_id ? 'AND c.school_id = ?' : '';
+    const values = [teacherId, teacherId, teacherId];
+    if (filters.school_id) values.push(filters.school_id);
+
     const [rows] = await db.query(`
       SELECT DISTINCT c.*,
              sec.section_name,
@@ -244,10 +248,11 @@ class Student {
       LEFT JOIN section sec ON c.section_id = sec.section_id
       LEFT JOIN student s ON s.class_id = c.class_id AND s.status = 'active'
       LEFT JOIN assignment a ON a.class_id = c.class_id
-      WHERE c.class_teacher_id = ? OR a.teacher_id = ?
+      WHERE (c.class_teacher_id = ? OR a.teacher_id = ?)
+      ${schoolClause}
       GROUP BY c.class_id
       ORDER BY c.level, c.class_name
-    `, [teacherId, teacherId, teacherId]);
+    `, values);
 
     return rows;
   }

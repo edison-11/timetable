@@ -3,7 +3,7 @@
     <div class="profile-container">
       <!-- Header -->
       <section class="profile-header">
-        <h1><i class="bi bi-person-circle"></i> My Profile</h1>
+        <h1><UserRound :size="36" :stroke-width="2.2" aria-hidden="true" /> My Profile</h1>
         <p>Manage your profile information and settings</p>
       </section>
 
@@ -31,7 +31,7 @@
             :class="{ active: activeTab === tab }"
             @click="activeTab = tab"
           >
-            <i :class="getTabIcon(tab)"></i>
+            <component :is="getTabIcon(tab)" :size="18" :stroke-width="2.2" aria-hidden="true" />
             <span>{{ tab }}</span>
           </button>
         </section>
@@ -52,7 +52,7 @@
                 {{ getInitials(profileData.name) }}
               </div>
               <button class="photo-upload-btn" @click="triggerPhotoUpload">
-                <i class="bi bi-camera"></i>
+                <Camera :size="18" :stroke-width="2.2" aria-hidden="true" />
               </button>
               <input
                 type="file"
@@ -67,39 +67,45 @@
               <p class="department">{{ profileData.department }}</p>
               <p class="email">{{ profileData.email }}</p>
               <span class="status-badge online">
-                <i class="bi bi-circle-fill"></i> Active
+                <Circle :size="9" fill="currentColor" :stroke-width="0" aria-hidden="true" /> Active
               </span>
             </div>
           </div>
 
           <!-- Quick Info Grid -->
           <div class="info-grid">
-            <div class="info-card">
+            <div class="info-card identity">
+              <span class="info-icon"><BadgeCheck :size="20" :stroke-width="2.2" aria-hidden="true" /></span>
               <label>Employee ID</label>
               <p>{{ profileData.employeeId }}</p>
             </div>
 
-            <div class="info-card">
+            <div class="info-card contact">
+              <span class="info-icon"><Phone :size="20" :stroke-width="2.2" aria-hidden="true" /></span>
               <label>Phone</label>
               <p>{{ profileData.phone }}</p>
             </div>
 
-            <div class="info-card">
+            <div class="info-card subject">
+              <span class="info-icon"><BookMarked :size="20" :stroke-width="2.2" aria-hidden="true" /></span>
               <label>Primary Subject</label>
               <p>{{ profileData.subject }}</p>
             </div>
 
-            <div class="info-card">
+            <div class="info-card qualification">
+              <span class="info-icon"><GraduationCap :size="20" :stroke-width="2.2" aria-hidden="true" /></span>
               <label>Qualification</label>
               <p>{{ profileData.qualification }}</p>
             </div>
 
-            <div class="info-card">
+            <div class="info-card experience">
+              <span class="info-icon"><BriefcaseBusiness :size="20" :stroke-width="2.2" aria-hidden="true" /></span>
               <label>Years of Experience</label>
               <p>{{ profileData.experience }} years</p>
             </div>
 
-            <div class="info-card">
+            <div class="info-card joined">
+              <span class="info-icon"><CalendarPlus :size="20" :stroke-width="2.2" aria-hidden="true" /></span>
               <label>Joining Date</label>
               <p>{{ formatDate(profileData.joinDate) }}</p>
             </div>
@@ -109,22 +115,26 @@
           <div class="stats-section">
             <h3>Statistics</h3>
             <div class="stats-grid">
-              <div class="stat">
+              <div class="stat classes">
+                <Presentation :size="20" :stroke-width="2.2" aria-hidden="true" />
                 <span class="stat-value">{{ stats.totalClasses }}</span>
                 <span class="stat-label">Total Classes</span>
               </div>
 
-              <div class="stat">
+              <div class="stat students">
+                <Users :size="20" :stroke-width="2.2" aria-hidden="true" />
                 <span class="stat-value">{{ stats.students }}</span>
                 <span class="stat-label">Students Taught</span>
               </div>
 
-              <div class="stat">
+              <div class="stat subjects">
+                <BookOpen :size="20" :stroke-width="2.2" aria-hidden="true" />
                 <span class="stat-value">{{ stats.subjects }}</span>
                 <span class="stat-label">Subjects</span>
               </div>
 
-              <div class="stat">
+              <div class="stat pending">
+                <Hourglass :size="20" :stroke-width="2.2" aria-hidden="true" />
                 <span class="stat-value">{{ stats.requestsPending }}</span>
                 <span class="stat-label">Pending Requests</span>
               </div>
@@ -134,13 +144,13 @@
           <!-- Action Buttons -->
           <div class="action-buttons">
             <button class="btn-secondary" @click="activeTab = 'Edit Profile'">
-              <i class="bi bi-pencil"></i> Edit Profile
+              <Pencil :size="18" :stroke-width="2.2" aria-hidden="true" /> Edit Profile
             </button>
             <button class="btn-secondary" @click="activeTab = 'Security'">
-              <i class="bi bi-lock"></i> Change Password
+              <Lock :size="18" :stroke-width="2.2" aria-hidden="true" /> Change Password
             </button>
             <button class="btn-secondary" @click="downloadProfilePDF">
-              <i class="bi bi-download"></i> Download Profile
+              <Download :size="18" :stroke-width="2.2" aria-hidden="true" /> Download Profile
             </button>
           </div>
         </div>
@@ -250,10 +260,10 @@
 
           <div class="form-actions">
             <button type="submit" class="btn-primary">
-              <i class="bi bi-check"></i> Save Changes
+              <Check :size="18" :stroke-width="2.2" aria-hidden="true" /> Save Changes
             </button>
             <button type="button" class="btn-secondary" @click="activeTab = 'Overview'">
-              <i class="bi bi-x"></i> Cancel
+              <X :size="18" :stroke-width="2.2" aria-hidden="true" /> Cancel
             </button>
           </div>
         </form>
@@ -281,7 +291,8 @@
                     class="password-toggle"
                     @click="showPasswords.current = !showPasswords.current"
                   >
-                    <i :class="showPasswords.current ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                    <EyeOff v-if="showPasswords.current" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -300,7 +311,8 @@
                     class="password-toggle"
                     @click="showPasswords.new = !showPasswords.new"
                   >
-                    <i :class="showPasswords.new ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                    <EyeOff v-if="showPasswords.new" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
                   </button>
                 </div>
                 <small class="password-hint">At least 8 characters with uppercase, lowercase, and numbers</small>
@@ -320,22 +332,23 @@
                     class="password-toggle"
                     @click="showPasswords.confirm = !showPasswords.confirm"
                   >
-                    <i :class="showPasswords.confirm ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                    <EyeOff v-if="showPasswords.confirm" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
               <div v-if="passwordError" class="error-message">
-                <i class="bi bi-exclamation-circle"></i>
+                <AlertCircle :size="18" :stroke-width="2.2" aria-hidden="true" />
                 {{ passwordError }}
               </div>
 
               <div class="form-actions">
                 <button type="submit" class="btn-primary">
-                  <i class="bi bi-shield-check"></i> Update Password
+                  <ShieldCheck :size="18" :stroke-width="2.2" aria-hidden="true" /> Update Password
                 </button>
                 <button type="button" class="btn-secondary" @click="activeTab = 'Overview'">
-                  <i class="bi bi-x"></i> Cancel
+                  <X :size="18" :stroke-width="2.2" aria-hidden="true" /> Cancel
                 </button>
               </div>
             </form>
@@ -345,7 +358,7 @@
             <h3>Two-Factor Authentication</h3>
             <p>Add an extra layer of security to your account</p>
             <button class="btn-secondary">
-              <i class="bi bi-shield-lock"></i> Enable 2FA
+              <Shield :size="18" :stroke-width="2.2" aria-hidden="true" /> Enable 2FA
             </button>
           </div>
 
@@ -419,7 +432,7 @@
 
           <div class="form-actions">
             <button class="btn-primary" @click="saveNotificationPrefs">
-              <i class="bi bi-check"></i> Save Preferences
+              <Check :size="18" :stroke-width="2.2" aria-hidden="true" /> Save Preferences
             </button>
           </div>
         </div>
@@ -434,6 +447,33 @@ import { ref, onMounted } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import {
+  AlertCircle,
+  BadgeCheck,
+  Bell,
+  BookMarked,
+  BookOpen,
+  BriefcaseBusiness,
+  CalendarPlus,
+  Camera,
+  Check,
+  Circle,
+  Download,
+  Eye,
+  EyeOff,
+  Hourglass,
+  Lock,
+  Pencil,
+  Phone,
+  Presentation,
+  GraduationCap,
+  Shield,
+  ShieldCheck,
+  UserCheck,
+  UserRound,
+  Users,
+  X
+} from '@lucide/vue'
 
 const activeTab = ref('Overview')
 const fileInput = ref(null)
@@ -553,12 +593,12 @@ const hydrateProfileFromTeacher = (teacher = {}) => {
 
 const getTabIcon = (tab) => {
   const icons = {
-    'Overview': 'bi bi-person-check',
-    'Edit Profile': 'bi bi-pencil',
-    'Security': 'bi bi-lock',
-    'Notifications': 'bi bi-bell'
+    'Overview': UserCheck,
+    'Edit Profile': Pencil,
+    'Security': Lock,
+    'Notifications': Bell
   }
-  return icons[tab] || 'bi bi-gear'
+  return icons[tab] || UserRound
 }
 
 const getInitials = (name) => {
@@ -854,9 +894,9 @@ onMounted(async () => {
   font-weight: 700;
 }
 
-.profile-header h1 i {
+.profile-header h1 svg {
   color: #2563eb;
-  font-size: 2.25rem;
+  flex: 0 0 36px;
 }
 
 .profile-header p {
@@ -1028,12 +1068,38 @@ onMounted(async () => {
 }
 
 .info-card {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  gap: 0.15rem 0.85rem;
+  align-items: center;
   background: #f9fafb;
   padding: 1.25rem;
   border-radius: 8px;
   border-left: 4px solid #2563eb;
   transition: all 0.3s ease;
 }
+
+.info-icon {
+  grid-row: span 2;
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.info-card.contact { border-left-color: #0f766e; }
+.info-card.contact .info-icon { color: #0f766e; background: #ccfbf1; }
+.info-card.subject { border-left-color: #7c3aed; }
+.info-card.subject .info-icon { color: #6d28d9; background: #ede9fe; }
+.info-card.qualification { border-left-color: #b45309; }
+.info-card.qualification .info-icon { color: #b45309; background: #fef3c7; }
+.info-card.experience { border-left-color: #15803d; }
+.info-card.experience .info-icon { color: #15803d; background: #dcfce7; }
+.info-card.joined { border-left-color: #0891b2; }
+.info-card.joined .info-icon { color: #0e7490; background: #cffafe; }
 
 .info-card:hover {
   background: white;
@@ -1076,6 +1142,8 @@ onMounted(async () => {
 }
 
 .stat {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   padding: 1.75rem 1.5rem;
   border-radius: 8px;
@@ -1083,6 +1151,31 @@ onMounted(async () => {
   color: #0c4a6e;
   transition: all 0.3s ease;
 }
+
+.stat::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+}
+
+.stat svg {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  margin-bottom: 0.85rem;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.14);
+  color: #1d4ed8;
+}
+
+.stat.classes svg { background: #dbeafe; color: #1d4ed8; }
+.stat.students svg { background: #dcfce7; color: #15803d; }
+.stat.subjects svg { background: #ede9fe; color: #6d28d9; }
+.stat.pending svg { background: #fef3c7; color: #b45309; }
 
 .stat:hover {
   transform: translateY(-4px);
@@ -1101,6 +1194,60 @@ onMounted(async () => {
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1.4;
+}
+
+:global(body.teacher-dark-mode) .stats-section h3 {
+  color: #f8fafc !important;
+}
+
+:global(body.teacher-dark-mode) .stats-grid .stat {
+  border: 1px solid #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body.teacher-dark-mode) .stats-grid .stat-value {
+  color: #f8fafc !important;
+}
+
+:global(body.teacher-dark-mode) .stats-grid .stat-label {
+  color: #cbd5e1 !important;
+}
+
+:global(.teacher-shell.dark-mode) .profile-container .stats-section h3 {
+  color: #f8fafc !important;
+}
+
+:global(.teacher-shell.dark-mode) .profile-container .stats-grid .stat {
+  border: 1px solid #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  opacity: 1 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body.teacher-dark-mode) .stats-grid .stat svg,
+:global(.teacher-shell.dark-mode) .profile-container .stats-grid .stat svg {
+  background: rgba(96, 165, 250, 0.16) !important;
+  color: #93c5fd !important;
+}
+
+:global(body.teacher-dark-mode) .profile-container .info-icon,
+:global(.teacher-shell.dark-mode) .profile-container .info-icon {
+  background: rgba(96, 165, 250, 0.16) !important;
+  color: #93c5fd !important;
+}
+
+:global(.teacher-shell.dark-mode) .profile-container .stats-grid .stat-value {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+
+:global(.teacher-shell.dark-mode) .profile-container .stats-grid .stat-label {
+  color: #dbeafe !important;
+  opacity: 1 !important;
 }
 
 .action-buttons {

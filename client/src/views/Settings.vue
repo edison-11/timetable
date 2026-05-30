@@ -9,25 +9,26 @@
         </div>
         <div class="hero-actions">
           <button class="tool-btn secondary" type="button" @click="loadProfile">
-            <i class="bi bi-arrow-clockwise"></i>
+            <RefreshCw :size="18" :stroke-width="2.2" aria-hidden="true" />
             Refresh
           </button>
           <button class="tool-btn primary" type="button" @click="saveActiveSection">
-            <i class="bi bi-check2-circle"></i>
+            <CircleCheck :size="18" :stroke-width="2.2" aria-hidden="true" />
             Save Section
           </button>
         </div>
       </header>
 
       <div v-if="toast.message" class="toast-banner" :class="toast.type">
-        <i :class="toast.type === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
+        <CircleCheck v-if="toast.type === 'success'" :size="18" :stroke-width="2.2" aria-hidden="true" />
+        <TriangleAlert v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
         {{ toast.message }}
       </div>
 
       <section class="settings-shell">
         <aside class="settings-nav" :class="{ open: navOpen }">
           <button class="mobile-nav-toggle" type="button" @click="navOpen = !navOpen">
-            <i class="bi bi-sliders"></i>
+            <SlidersHorizontal :size="18" :stroke-width="2.2" aria-hidden="true" />
             Settings Menu
           </button>
           <div class="nav-list">
@@ -39,7 +40,9 @@
               :class="{ active: activeSection === item.id, danger: item.id === 'logout' }"
               @click="selectSection(item.id)"
             >
-              <i :class="item.icon"></i>
+              <span class="nav-icon-wrap" :class="item.tone">
+                <component :is="item.icon" :size="18" :stroke-width="2.2" aria-hidden="true" />
+              </span>
               <span>{{ item.label }}</span>
             </button>
           </div>
@@ -61,7 +64,7 @@
                     <span v-else>{{ initials }}</span>
                   </div>
                   <label class="upload-btn">
-                    <i class="bi bi-cloud-arrow-up"></i>
+                    <CloudUpload :size="18" :stroke-width="2.2" aria-hidden="true" />
                     {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
                     <input type="file" accept="image/*" :disabled="avatarUploading" @change="handleAvatarUpload" />
                   </label>
@@ -111,7 +114,7 @@
                     </div>
                   </label>
                   <button class="tool-btn ghost" type="button" @click="notify('Session revocation is ready for backend token tracking.', 'success')">
-                    <i class="bi bi-box-arrow-right"></i>
+                    <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Logout from all devices
                   </button>
                 </div>
@@ -125,7 +128,7 @@
                 </div>
                 <div class="session-list">
                   <div v-for="session in sessions" :key="session.id" class="session-item">
-                    <i :class="session.icon"></i>
+                    <component :is="session.icon" :size="20" :stroke-width="2.2" aria-hidden="true" />
                     <div>
                       <strong>{{ session.device }}</strong>
                       <span>{{ session.location }} · {{ session.time }}</span>
@@ -151,11 +154,11 @@
                 </div>
                 <div class="quick-tools">
                   <button class="tool-btn secondary" type="button" @click="goToDefaultDashboard">
-                    <i class="bi bi-speedometer2"></i>
+                    <Gauge :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Open Default Dashboard
                   </button>
                   <button class="tool-btn secondary" type="button" @click="router.push('/super-admin/schools')">
-                    <i class="bi bi-building-check"></i>
+                    <Building2 :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Manage Schools
                   </button>
                 </div>
@@ -227,17 +230,17 @@
                 </div>
                 <div class="admin-tool-grid">
                   <button class="tool-action" type="button" @click="runSystemHealthCheck">
-                    <i class="bi bi-heart-pulse"></i>
+                    <HeartPulse :size="24" :stroke-width="2.2" aria-hidden="true" />
                     <strong>Health Check</strong>
                     <small>Verify API access and current admin session.</small>
                   </button>
                   <button class="tool-action" type="button" @click="downloadSettingsBackup">
-                    <i class="bi bi-download"></i>
+                    <Download :size="24" :stroke-width="2.2" aria-hidden="true" />
                     <strong>Export Settings</strong>
                     <small>Download local superadmin preferences as JSON.</small>
                   </button>
                   <button class="tool-action" type="button" @click="resetLocalSettings">
-                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <RotateCcw :size="24" :stroke-width="2.2" aria-hidden="true" />
                     <strong>Reset Local Settings</strong>
                     <small>Restore theme, notifications, and preferences.</small>
                   </button>
@@ -281,6 +284,7 @@
                       <option value="en">English</option>
                       <option value="fr">French</option>
                       <option value="pt">Portuguese</option>
+                      <option value="rw">Kinyarwanda</option>
                     </select>
                   </label>
                   <label class="field">
@@ -313,11 +317,11 @@
                 </div>
                 <div class="appearance-grid">
                   <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="setThemeMode('light')">
-                    <i class="bi bi-brightness-high"></i>
+                    <Sun :size="22" :stroke-width="2.2" aria-hidden="true" />
                     Light Mode
                   </button>
                   <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="setThemeMode('dark')">
-                    <i class="bi bi-moon"></i>
+                    <Moon :size="22" :stroke-width="2.2" aria-hidden="true" />
                     Dark Mode
                   </button>
                 </div>
@@ -363,11 +367,11 @@
                 </div>
                 <div class="quick-tools">
                   <button class="tool-btn secondary" type="button" @click="exportActivityLogs">
-                    <i class="bi bi-file-earmark-arrow-down"></i>
+                    <FileDown :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Export Logs
                   </button>
                   <button class="tool-btn ghost" type="button" @click="clearLocalActivity">
-                    <i class="bi bi-trash3"></i>
+                    <Trash2 :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Clear Local Logs
                   </button>
                 </div>
@@ -384,7 +388,7 @@
                   </div>
                 </div>
                 <button class="tool-btn danger" type="button" @click="showLogoutModal = true">
-                  <i class="bi bi-box-arrow-right"></i>
+                  <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
                   Logout
                 </button>
               </div>
@@ -395,7 +399,7 @@
 
       <div v-if="showLogoutModal" class="modal-backdrop" @click.self="showLogoutModal = false">
         <section class="confirm-modal">
-          <i class="bi bi-exclamation-triangle"></i>
+          <TriangleAlert :size="34" :stroke-width="2.2" aria-hidden="true" />
           <h2>Confirm logout</h2>
           <p>You will be returned to the unified login page.</p>
           <div class="modal-actions">
@@ -414,6 +418,34 @@ import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import { getAppLanguage, setAppLanguage } from '@/utils/language'
+import {
+  Activity,
+  Bell,
+  Building2,
+  CircleCheck,
+  CloudUpload,
+  Download,
+  FileDown,
+  Gauge,
+  Globe2,
+  HeartPulse,
+  Laptop,
+  LogOut,
+  Moon,
+  Palette,
+  RefreshCw,
+  RotateCcw,
+  Shield,
+  SlidersHorizontal,
+  Smartphone,
+  Sun,
+  ToolCase,
+  Trash2,
+  TriangleAlert,
+  UserCircle,
+  UserRoundCog
+} from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -434,15 +466,15 @@ const settingsStorageKeys = {
 }
 
 const navItems = [
-  { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
-  { id: 'security', label: 'Security Settings', icon: 'bi bi-shield-lock' },
-  { id: 'account', label: 'Account Settings', icon: 'bi bi-person-badge' },
-  { id: 'adminTools', label: 'Admin Tools', icon: 'bi bi-tools' },
-  { id: 'notifications', label: 'Notification Settings', icon: 'bi bi-bell' },
-  { id: 'preferences', label: 'System Preferences', icon: 'bi bi-globe2' },
-  { id: 'appearance', label: 'Appearance Settings', icon: 'bi bi-palette' },
-  { id: 'activity', label: 'Activity & Logs', icon: 'bi bi-activity' },
-  { id: 'logout', label: 'Logout Option', icon: 'bi bi-box-arrow-right' }
+  { id: 'profile', label: 'Profile Settings', icon: UserCircle, tone: 'violet' },
+  { id: 'security', label: 'Security Settings', icon: Shield, tone: 'teal' },
+  { id: 'account', label: 'Account Settings', icon: UserRoundCog, tone: 'blue' },
+  { id: 'adminTools', label: 'Admin Tools', icon: ToolCase, tone: 'amber' },
+  { id: 'notifications', label: 'Notification Settings', icon: Bell, tone: 'green' },
+  { id: 'preferences', label: 'System Preferences', icon: Globe2, tone: 'blue' },
+  { id: 'appearance', label: 'Appearance Settings', icon: Palette, tone: 'violet' },
+  { id: 'activity', label: 'Activity & Logs', icon: Activity, tone: 'teal' },
+  { id: 'logout', label: 'Logout Option', icon: LogOut, tone: 'danger' }
 ]
 
 const profile = reactive({
@@ -476,7 +508,7 @@ const notificationOptions = [
 ]
 
 const preferences = reactive({
-  language: 'en',
+  language: getAppLanguage(),
   timeFormat: '24h',
   defaultView: 'Overview',
   uiDensity: 'comfortable'
@@ -490,8 +522,8 @@ const appearance = reactive({
 const accents = ['#2563eb', '#0891b2', '#16a34a', '#7c3aed', '#e11d48']
 
 const sessions = [
-  { id: 1, icon: 'bi bi-laptop', device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
-  { id: 2, icon: 'bi bi-phone', device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
+  { id: 1, icon: Laptop, device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
+  { id: 2, icon: Smartphone, device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
 ]
 
 const activityLogs = ref([
@@ -721,6 +753,7 @@ const saveLocalPreferences = () => {
   localStorage.setItem(settingsStorageKeys.notifications, JSON.stringify(notifications))
   localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
   localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
+  setAppLanguage(preferences.language)
   applyAppearance()
   addActivity(`${activeSection.value} settings saved`, 'Success')
   notify('Settings saved.')
@@ -826,11 +859,22 @@ watch(
   applyAppearance
 )
 
+watch(
+  () => preferences.language,
+  (language) => {
+    setAppLanguage(language)
+    localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
+    addActivity(`Language changed to ${language.toUpperCase()}`, 'Success')
+    notify('Language applied.')
+  }
+)
+
 onMounted(() => {
   const savedNotifications = JSON.parse(localStorage.getItem(settingsStorageKeys.notifications) || '{}')
   Object.assign(notifications, savedNotifications)
   const savedPreferences = JSON.parse(localStorage.getItem(settingsStorageKeys.preferences) || '{}')
   Object.assign(preferences, savedPreferences)
+  preferences.language = savedPreferences.language || getAppLanguage()
   const savedDarkMode = JSON.parse(localStorage.getItem(settingsStorageKeys.darkMode) || 'false')
   appearance.mode = localStorage.getItem(settingsStorageKeys.appearanceMode) || (savedDarkMode ? 'dark' : appearance.mode)
   appearance.accent = localStorage.getItem(settingsStorageKeys.accent) || appearance.accent
@@ -997,6 +1041,29 @@ onMounted(() => {
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
 }
 
+.nav-icon-wrap {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 10px;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.nav-icon-wrap.violet { color: #6d28d9; background: #ede9fe; }
+.nav-icon-wrap.teal { color: #0f766e; background: #ccfbf1; }
+.nav-icon-wrap.blue { color: #1d4ed8; background: #dbeafe; }
+.nav-icon-wrap.amber { color: #b45309; background: #fef3c7; }
+.nav-icon-wrap.green { color: #15803d; background: #dcfce7; }
+.nav-icon-wrap.danger { color: #dc2626; background: #fee2e2; }
+
+.nav-item.active .nav-icon-wrap {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
+}
+
 .nav-item.danger:not(.active) {
   color: #dc2626;
 }
@@ -1041,9 +1108,8 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.tool-action i {
+.tool-action svg {
   color: var(--admin-accent, #2563eb);
-  font-size: 1.35rem;
 }
 
 .tool-action strong {
@@ -1245,9 +1311,8 @@ onMounted(() => {
   color: #64748b;
 }
 
-.session-item i {
+.session-item svg {
   color: var(--admin-accent, #2563eb);
-  font-size: 1.3rem;
 }
 
 .session-item em {
@@ -1397,8 +1462,13 @@ onMounted(() => {
 }
 
 :global(body.admin-dark-mode) .tool-action strong,
-:global(body.admin-dark-mode) .tool-action i {
+:global(body.admin-dark-mode) .tool-action svg {
   color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .nav-icon-wrap {
+  color: #bfdbfe !important;
+  background: rgba(96, 165, 250, 0.16) !important;
 }
 
 :global(body.admin-dark-mode) .tool-action small,
@@ -1408,6 +1478,30 @@ onMounted(() => {
 
 :global(body.admin-dark-mode) .accent-dot.active {
   box-shadow: 0 0 0 3px #f8fafc, 0 0 0 6px rgba(96, 165, 250, 0.28);
+}
+
+:global(body.admin-dark-mode) .settings-control .account-summary div,
+:global(body.admin-dark-mode) .settings-control .theme-card {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .account-summary span,
+:global(body.admin-dark-mode) .settings-control .accent-row {
+  color: #cbd5e1 !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .account-summary strong,
+:global(body.admin-dark-mode) .settings-control .theme-card {
+  color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .theme-card.active {
+  border-color: #60a5fa !important;
+  background: #172554 !important;
+  color: #dbeafe !important;
 }
 
 .modal-backdrop {
@@ -1505,5 +1599,36 @@ onMounted(() => {
   .password-inline {
     grid-template-columns: 1fr;
   }
+}
+</style>
+
+<style>
+body.admin-dark-mode .settings-control .account-summary > div {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+body.admin-dark-mode .settings-control .account-summary > div span {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .settings-control .account-summary > div strong {
+  color: #f8fafc !important;
+}
+
+body:not(.admin-dark-mode) .settings-control .account-summary > div {
+  border-color: #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body:not(.admin-dark-mode) .settings-control .account-summary > div span {
+  color: #64748b !important;
+}
+
+body:not(.admin-dark-mode) .settings-control .account-summary > div strong {
+  color: #0f172a !important;
 }
 </style>

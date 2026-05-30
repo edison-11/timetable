@@ -27,6 +27,7 @@ const notificationRoutes = require('./routes/notifications');
 const absenceRoutes = require('./routes/absence');
 const substitutionRoutes = require('./routes/substitution');
 const studentRoutes = require('./routes/students');
+const teacherStudentRoutes = require('./routes/teacher-students');
 const dashboardRoutes = require('./routes/dashboard');
 const schoolRoutes = require('./routes/schools');
 const externalAuthRoutes = require('./routes/externalAuth');
@@ -84,6 +85,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/absence', absenceRoutes);
 app.use('/api/substitution', substitutionRoutes);
+app.use('/api/teacher-attendance', teacherStudentRoutes);
 app.use('/api/students', adminAuth, requireSchoolAdmin, studentRoutes);
 app.use('/api/dashboard', adminAuth, requireSchoolAdmin, dashboardRoutes);
 

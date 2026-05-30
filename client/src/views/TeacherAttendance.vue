@@ -4,14 +4,17 @@
       <header class="attendance-header">
         <div>
           <h1>Student Attendance</h1>
-          <p>View your class lists and mark attendance by day and study period.</p>
+          <p>Select a class, call each student, then send the report to DOS.</p>
         </div>
         <div class="header-actions">
           <button class="secondary-btn" type="button" :disabled="!students.length" @click="downloadClassList">
             Download List
           </button>
-          <button class="primary-btn" type="button" :disabled="!selectedClassId || saving" @click="saveAttendance">
-            {{ saving ? 'Saving...' : 'Save Attendance' }}
+          <button class="secondary-btn" type="button" :disabled="!selectedClassId || saving" @click="saveAttendance(false)">
+            {{ saving ? 'Saving...' : 'Save' }}
+          </button>
+          <button class="primary-btn" type="button" :disabled="!selectedClassId || saving || !students.length" @click="saveAttendance(true)">
+            {{ saving ? 'Sending...' : 'Report to DOS' }}
           </button>
         </div>
       </header>
@@ -38,12 +41,19 @@
 
       <div v-if="message" class="notice" :class="messageType">{{ message }}</div>
 
+      <section v-if="students.length" class="attendance-summary">
+        <article><span>Total</span><strong>{{ attendanceSummary.total }}</strong></article>
+        <article><span>Present</span><strong>{{ attendanceSummary.present }}</strong></article>
+        <article><span>Absent</span><strong>{{ attendanceSummary.absent }}</strong></article>
+        <article><span>Other</span><strong>{{ attendanceSummary.late + attendanceSummary.excused }}</strong></article>
+      </section>
+
       <LoadingState v-if="loadingClasses" :rows="3" />
 
       <ErrorState
         v-else-if="classesError"
         title="Unable to Load Classes"
-        description="We're having trouble retrieving your classes right now. Please check your connection or try again."
+        :description="classesErrorMessage"
         :action-label="loadingClasses ? 'Retrying...' : 'Retry'"
         @retry="loadClasses"
       />
@@ -79,12 +89,22 @@
               <td>{{ student.sex || '-' }}</td>
               <td>{{ student.student_number }}</td>
               <td>
-                <select v-model="attendanceByStudent[student.student_id].status">
-                  <option value="present">Present</option>
-                  <option value="absent">Absent</option>
-                  <option value="late">Late</option>
-                  <option value="excused">Excused</option>
-                </select>
+                <div class="status-toggle">
+                  <button
+                    type="button"
+                    :class="{ active: attendanceByStudent[student.student_id].status === 'present' }"
+                    @click="markStatus(student.student_id, 'present')"
+                  >
+                    Present
+                  </button>
+                  <button
+                    type="button"
+                    :class="{ active: attendanceByStudent[student.student_id].status === 'absent' }"
+                    @click="markStatus(student.student_id, 'absent')"
+                  >
+                    Absent
+                  </button>
+                </div>
               </td>
               <td>
                 <input v-model="attendanceByStudent[student.student_id].notes" placeholder="Optional note">
@@ -106,7 +126,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import api from '@/stores/api'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -123,6 +143,7 @@ const saving = ref(false)
 const loadingClasses = ref(false)
 const loadingStudents = ref(false)
 const classesError = ref(false)
+const classesErrorMessage = ref("We're having trouble retrieving your classes right now. Please check your connection or try again.")
 const message = ref('')
 const messageType = ref('success')
 
@@ -135,6 +156,17 @@ const showMessage = (text, type = 'success') => {
 }
 
 const selectedClass = () => classes.value.find(cls => String(cls.class_id) === selectedClassId.value)
+
+const attendanceSummary = computed(() => {
+  const records = students.value.map(student => attendanceByStudent[student.student_id]?.status || 'present')
+  return {
+    total: records.length,
+    present: records.filter(status => status === 'present').length,
+    absent: records.filter(status => status === 'absent').length,
+    late: records.filter(status => status === 'late').length,
+    excused: records.filter(status => status === 'excused').length
+  }
+})
 
 const csvEscape = (value) => {
   const text = String(value ?? '')
@@ -184,20 +216,30 @@ const ensureAttendanceRows = () => {
   })
 }
 
+const markStatus = (studentId, status) => {
+  if (!attendanceByStudent[studentId]) {
+    attendanceByStudent[studentId] = { student_id: studentId, status: 'present', notes: '' }
+  }
+  attendanceByStudent[studentId].status = status
+}
+
 const loadClasses = async () => {
   loadingClasses.value = true
   classesError.value = false
+  classesErrorMessage.value = "We're having trouble retrieving your classes right now. Please check your connection or try again."
   message.value = ''
   try {
-    const response = await api.get('/students/teacher/classes')
+    const response = await api.get('/teacher-attendance/classes')
     classes.value = response.data.classes || []
     if (!selectedClassId.value && classes.value.length) {
-      selectedClassId.value = String(classes.value[0].class_id)
+      const classWithStudents = classes.value.find(cls => Number(cls.student_count || 0) > 0)
+      selectedClassId.value = String((classWithStudents || classes.value[0]).class_id)
     }
   } catch (error) {
     classes.value = []
     students.value = []
     classesError.value = true
+    classesErrorMessage.value = error.response?.data?.message || error.response?.data?.code || "We're having trouble retrieving your classes right now. Please check your connection or try again."
   } finally {
     loadingClasses.value = false
   }
@@ -210,7 +252,7 @@ const loadStudents = async () => {
 
   loadingStudents.value = true
   try {
-    const response = await api.get(`/students/teacher/classes/${selectedClassId.value}/students`)
+    const response = await api.get(`/teacher-attendance/classes/${selectedClassId.value}/students`)
     students.value = response.data.students || []
     ensureAttendanceRows()
     await loadAttendance()
@@ -226,7 +268,7 @@ const loadAttendance = async () => {
   if (!selectedClassId.value || !attendanceDate.value) return
 
   try {
-    const response = await api.get('/students/attendance', {
+    const response = await api.get('/teacher-attendance/attendance', {
       params: {
         class_id: selectedClassId.value,
         attendance_date: attendanceDate.value,
@@ -247,7 +289,7 @@ const loadAttendance = async () => {
   }
 }
 
-const saveAttendance = async () => {
+const saveAttendance = async (report = false) => {
   if (!selectedClassId.value) return
   saving.value = true
   try {
@@ -257,14 +299,15 @@ const saveAttendance = async () => {
       notes: attendanceByStudent[student.student_id]?.notes || ''
     }))
 
-    await api.post('/students/attendance', {
+    await api.post('/teacher-attendance/attendance', {
       class_id: Number(selectedClassId.value),
       attendance_date: attendanceDate.value,
       period_label: periodLabel.value,
-      records
+      records,
+      report
     })
 
-    showMessage('Attendance saved')
+    showMessage(report ? 'Attendance report sent to DOS' : 'Attendance saved')
   } catch (error) {
     showMessage("We couldn't save attendance right now. Please try again.", 'error')
   } finally {
@@ -289,6 +332,7 @@ onMounted(async () => {
 .attendance-header,
 .controls-panel,
 .class-strip,
+.attendance-summary,
 .attendance-table {
   background: #ffffff;
   border: 1px solid #dbe5f3;
@@ -390,6 +434,38 @@ select {
   background: #fee2e2;
 }
 
+.attendance-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 0.85rem;
+}
+
+.attendance-summary article {
+  padding: 0.85rem;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.attendance-summary span,
+.attendance-summary strong {
+  display: block;
+}
+
+.attendance-summary span {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.attendance-summary strong {
+  margin-top: 0.2rem;
+  color: #0f172a;
+  font-size: 1.45rem;
+  font-weight: 950;
+}
+
 .class-strip {
   display: flex;
   gap: 0.7rem;
@@ -443,6 +519,35 @@ th {
   text-transform: uppercase;
 }
 
+.status-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(74px, 1fr));
+  gap: 0.35rem;
+}
+
+.status-toggle button {
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  padding: 0.42rem 0.6rem;
+  color: #334155;
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.status-toggle button.active:first-child {
+  border-color: #22c55e;
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-toggle button.active:last-child {
+  border-color: #f59e0b;
+  color: #92400e;
+  background: #fef3c7;
+}
+
 .empty-row {
   text-align: center;
 }
@@ -463,6 +568,7 @@ th {
 :global(body.teacher-dark-mode) .attendance-header,
 :global(body.teacher-dark-mode) .controls-panel,
 :global(body.teacher-dark-mode) .class-strip,
+:global(body.teacher-dark-mode) .attendance-summary,
 :global(body.teacher-dark-mode) .attendance-table {
   background: #111827;
   border-color: #243244;
@@ -476,8 +582,20 @@ th {
 
 :global(body.teacher-dark-mode) .attendance-header p,
 :global(body.teacher-dark-mode) label span,
+:global(body.teacher-dark-mode) .attendance-summary span,
 :global(body.teacher-dark-mode) .table-empty {
   color: #cbd5e1;
+}
+
+:global(body.teacher-dark-mode) .attendance-summary article,
+:global(body.teacher-dark-mode) .status-toggle button {
+  background: #0b1220;
+  border-color: #334155;
+  color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .attendance-summary strong {
+  color: #f8fafc;
 }
 
 :global(body.teacher-dark-mode) input,
