@@ -1,0 +1,19 @@
+
+> cms-system@1.0.0 dev
+> node scripts/dev.js
+
+[dev] starting server and client...
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): server\**\*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node "C:\\Users\\THE 1ST\\OneDrive\\Desktop\\timetable\\server\\index.js"`[39m
+[2m8:38:31 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+
+  [32m[1mVITE[22m v8.0.14[39m  [2mready in [0m[1m1279[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3000[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+Server is running on port 5000
+✅ Connected to MySQL database
+[2m8:38:33 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependencies...

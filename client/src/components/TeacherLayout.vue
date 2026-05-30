@@ -114,7 +114,6 @@
               </div>
               <router-link to="/teacher/profile" class="dropdown-item" @click="showProfileDropdown = false">Profile</router-link>
               <router-link to="/teacher/timetable" class="dropdown-item" @click="showProfileDropdown = false">Timetable</router-link>
-              <router-link to="/teacher/requests" class="dropdown-item" @click="showProfileDropdown = false">Requests</router-link>
               <button type="button" class="dropdown-item danger" @click="logout">Logout</button>
             </div>
           </div>
@@ -186,8 +185,6 @@ const pageTitle = computed(() => {
     TeacherTimetable: 'Timetable',
     TeacherAttendance: 'Attendance',
     TeacherProfile: 'Profile',
-    TeacherRequests: 'Requests',
-    TeacherAnnouncements: 'Announcements',
     TeacherSettings: 'Settings'
   }
   return routeTitle[route.name] || 'Teacher Portal'
@@ -199,8 +196,6 @@ const pageSubtitle = computed(() => {
     TeacherTimetable: 'Weekly lessons, filters, and exports.',
     TeacherAttendance: 'Class attendance by period.',
     TeacherProfile: 'Your teacher details.',
-    TeacherRequests: 'Timetable change requests.',
-    TeacherAnnouncements: 'School updates.',
     TeacherSettings: 'Availability and security.'
   }
   return subtitles[route.name] || 'Teacher workspace'
@@ -212,8 +207,6 @@ const breadcrumbs = computed(() => {
     TeacherTimetable: [{ label: 'Timetable', to: '/teacher/timetable' }],
     TeacherAttendance: [{ label: 'Attendance', to: '/teacher/attendance' }],
     TeacherProfile: [{ label: 'Profile', to: '/teacher/profile' }],
-    TeacherRequests: [{ label: 'Requests', to: '/teacher/requests' }],
-    TeacherAnnouncements: [{ label: 'Announcements', to: '/teacher/announcements' }],
     TeacherSettings: [{ label: 'Settings', to: '/teacher/settings' }]
   }
 
@@ -224,8 +217,6 @@ const icons = {
   dashboard: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5V5.5c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v8c0 .8-.7 1.5-1.5 1.5h-4C4.7 15 4 14.3 4 13.5Zm9-4V5.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5Zm0 8.5v-4c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v4c0 .8-.7 1.5-1.5 1.5h-5c-.8 0-1.5-.7-1.5-1.5ZM4 20.5v-2c0-.8.7-1.5 1.5-1.5h4c.8 0 1.5.7 1.5 1.5v2c0 .8-.7 1.5-1.5 1.5h-4C4.7 22 4 21.3 4 20.5Z"/></svg>',
   timetable: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v4M16 3v4"/><path d="M4 9h16"/><path d="M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"/><path d="M7 12h3M7 16h3M14 12h3M14 16h3"/></svg>',
   attendance: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-5"/><path d="M5 4h14v16H5z"/><path d="M8 17h8"/></svg>',
-  requests: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.5 3 4l4 8-4 8 18-7.5Z"/><path d="M7 12h8"/></svg>',
-  announcements: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11v2a2 2 0 0 0 2 2h2l5 4V5L8 9H6a2 2 0 0 0-2 2Z"/><path d="M17 9a3 3 0 0 1 0 6"/></svg>',
   profile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg>',
   settings: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.08.08a2 2 0 1 1-3.84 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.08-.08a2 2 0 1 1 0-3.84L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.08-.08a2 2 0 1 1 3.84 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.12.38.33.72.6 1l.08.08a2 2 0 1 1 0 3.84L20 14a1.7 1.7 0 0 0-.6 1Z"/></svg>'
 }
@@ -234,8 +225,6 @@ const navItems = [
   { label: 'Dashboard', to: '/teacher/dashboard', icon: icons.dashboard },
   { label: 'Timetable', to: '/teacher/timetable', icon: icons.timetable },
   { label: 'Attendance', to: '/teacher/attendance', icon: icons.attendance },
-  { label: 'Requests', to: '/teacher/requests', icon: icons.requests },
-  { label: 'Announcements', to: '/teacher/announcements', icon: icons.announcements },
   { label: 'Profile', to: '/teacher/profile', icon: icons.profile },
   { label: 'Settings', to: '/teacher/settings', icon: icons.settings }
 ]
@@ -350,7 +339,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .teacher-shell {
   min-height: 100vh;
-  background: #f5f9ff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   color: #0f172a;
 }
 
@@ -601,7 +590,7 @@ onBeforeUnmount(() => {
 }
 
 .teacher-content {
-  background: #f5f9ff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   min-height: calc(100vh - 62px);
   padding: 1.5rem 1.25rem 2rem;
   max-width: 1400px;
@@ -913,7 +902,7 @@ onBeforeUnmount(() => {
 }
 
 .teacher-content {
-  background: #f5f9ff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   min-height: calc(100vh - 62px);
   padding: 0;
 }
@@ -1147,5 +1136,354 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item.active::before {
   body.teacher-sidebar-collapsed .teacher-main {
     margin-left: 0;
   }
+}
+
+body:not(.teacher-dark-mode) .teacher-shell,
+body:not(.teacher-dark-mode) .teacher-content,
+body:not(.teacher-dark-mode) .teacher-dashboard-page,
+body:not(.teacher-dark-mode) .timetable-container,
+body:not(.teacher-dark-mode) .attendance-page,
+body:not(.teacher-dark-mode) .teacher-settings-page,
+body:not(.teacher-dark-mode) .profile-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%) !important;
+  color: #0f172a;
+}
+
+body:not(.teacher-dark-mode) .attendance-header,
+body:not(.teacher-dark-mode) .controls-panel,
+body:not(.teacher-dark-mode) .class-strip,
+body:not(.teacher-dark-mode) .attendance-table,
+body:not(.teacher-dark-mode) .settings-intro,
+body:not(.teacher-dark-mode) .teacher-settings-page .card,
+body:not(.teacher-dark-mode) .profile-header,
+body:not(.teacher-dark-mode) .profile-tabs,
+body:not(.teacher-dark-mode) .profile-section,
+body:not(.teacher-dark-mode) .profile-overview,
+body:not(.teacher-dark-mode) .profile-card,
+body:not(.teacher-dark-mode) .info-card,
+body:not(.teacher-dark-mode) .timeline-card,
+body:not(.teacher-dark-mode) .document-card {
+  border: 1px solid #dbe3ef !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06) !important;
+}
+
+body:not(.teacher-dark-mode) .settings-intro,
+body:not(.teacher-dark-mode) .profile-header,
+body:not(.teacher-dark-mode) .attendance-header {
+  background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1) !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-settings-page h1,
+body:not(.teacher-dark-mode) .profile-header h1,
+body:not(.teacher-dark-mode) .attendance-header h1,
+body:not(.teacher-dark-mode) .profile-section h2,
+body:not(.teacher-dark-mode) .teacher-settings-page .card-title {
+  color: #0f172a !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-settings-page p,
+body:not(.teacher-dark-mode) .profile-header p,
+body:not(.teacher-dark-mode) .attendance-header p,
+body:not(.teacher-dark-mode) .text-muted {
+  color: #52627a !important;
+}
+
+body:not(.teacher-dark-mode) .primary-btn,
+body:not(.teacher-dark-mode) .btn-primary,
+body:not(.teacher-dark-mode) .save-btn,
+body:not(.teacher-dark-mode) .profile-link,
+body:not(.teacher-dark-mode) .photo-upload-btn {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+
+body:not(.teacher-dark-mode) .secondary-btn,
+body:not(.teacher-dark-mode) .btn-secondary,
+body:not(.teacher-dark-mode) .tab-btn,
+body:not(.teacher-dark-mode) .class-strip button {
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: #e0f2fe !important;
+  color: #075985 !important;
+  font-weight: 800 !important;
+}
+
+body:not(.teacher-dark-mode) .tab-btn.active,
+body:not(.teacher-dark-mode) .class-strip button.active,
+body:not(.teacher-dark-mode) .nav-tabs .nav-link.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #2563eb !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-settings-page .card-header,
+body:not(.teacher-dark-mode) .attendance-table th {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body:not(.teacher-dark-mode) input,
+body:not(.teacher-dark-mode) select,
+body:not(.teacher-dark-mode) textarea,
+body:not(.teacher-dark-mode) .form-control,
+body:not(.teacher-dark-mode) .form-select {
+  border-color: #cbd5e1 !important;
+  border-radius: 8px !important;
+}
+
+body.teacher-dark-mode {
+  --teacher-bg: #020617;
+  --teacher-surface: #111827;
+  --teacher-surface-soft: #0b1220;
+  --teacher-border: #243244;
+  --teacher-border-strong: #334155;
+  --teacher-text: #f8fafc;
+  --teacher-muted: #cbd5e1;
+  --teacher-link: #93c5fd;
+}
+
+body.teacher-dark-mode,
+body.teacher-dark-mode .teacher-shell,
+body.teacher-dark-mode .teacher-main,
+body.teacher-dark-mode .teacher-content,
+body.teacher-dark-mode .teacher-dashboard-page,
+body.teacher-dark-mode .timetable-container,
+body.teacher-dark-mode .attendance-page,
+body.teacher-dark-mode .teacher-settings-page,
+body.teacher-dark-mode .profile-container {
+  background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 34%),
+    linear-gradient(135deg, #020617 0%, #0f172a 100%) !important;
+  color: var(--teacher-text) !important;
+}
+
+body.teacher-dark-mode .teacher-navbar,
+body.teacher-dark-mode .teacher-sidebar,
+body.teacher-dark-mode .profile-dropdown,
+body.teacher-dark-mode .notifications-dropdown,
+body.teacher-dark-mode .dashboard-hero,
+body.teacher-dark-mode .metric-card,
+body.teacher-dark-mode .panel,
+body.teacher-dark-mode .timeline-item,
+body.teacher-dark-mode .lesson-row,
+body.teacher-dark-mode .activity-item,
+body.teacher-dark-mode .free-list button,
+body.teacher-dark-mode .next-lesson,
+body.teacher-dark-mode .studio-header,
+body.teacher-dark-mode .timetable-output-card,
+body.teacher-dark-mode .filters-panel,
+body.teacher-dark-mode .panel-card,
+body.teacher-dark-mode .day-view-section,
+body.teacher-dark-mode .day-lesson-card,
+body.teacher-dark-mode .modal-content,
+body.teacher-dark-mode .attendance-header,
+body.teacher-dark-mode .controls-panel,
+body.teacher-dark-mode .class-strip,
+body.teacher-dark-mode .attendance-table,
+body.teacher-dark-mode .settings-intro,
+body.teacher-dark-mode .teacher-settings-page .card,
+body.teacher-dark-mode .teacher-settings-page .card-header,
+body.teacher-dark-mode .profile-header,
+body.teacher-dark-mode .profile-tabs,
+body.teacher-dark-mode .profile-section,
+body.teacher-dark-mode .profile-overview,
+body.teacher-dark-mode .profile-card,
+body.teacher-dark-mode .info-card,
+body.teacher-dark-mode .timeline-card,
+body.teacher-dark-mode .document-card,
+body.teacher-dark-mode .photo-section,
+body.teacher-dark-mode .details-card,
+body.teacher-dark-mode .app-state,
+body.teacher-dark-mode .loading-state,
+body.teacher-dark-mode .confirm-modal {
+  border-color: var(--teacher-border) !important;
+  background: rgba(17, 24, 39, 0.96) !important;
+  color: var(--teacher-text) !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.28) !important;
+}
+
+body.teacher-dark-mode .studio-header,
+body.teacher-dark-mode .dashboard-hero,
+body.teacher-dark-mode .attendance-header,
+body.teacher-dark-mode .settings-intro,
+body.teacher-dark-mode .profile-header {
+  background: linear-gradient(135deg, #0f172a 0%, #111827 58%, #082f49 100%) !important;
+}
+
+body.teacher-dark-mode .module-cell,
+body.teacher-dark-mode .day-lesson-content,
+body.teacher-dark-mode .class-strip button,
+body.teacher-dark-mode .tab-btn,
+body.teacher-dark-mode .nav-tabs,
+body.teacher-dark-mode .nav-tabs .nav-link,
+body.teacher-dark-mode .dropdown-item,
+body.teacher-dark-mode .notification-item,
+body.teacher-dark-mode .account-link,
+body.teacher-dark-mode input,
+body.teacher-dark-mode select,
+body.teacher-dark-mode textarea,
+body.teacher-dark-mode .form-control,
+body.teacher-dark-mode .form-select,
+body.teacher-dark-mode table td,
+body.teacher-dark-mode .lesson-cell,
+body.teacher-dark-mode .period-col,
+body.teacher-dark-mode .time-col,
+body.teacher-dark-mode .skeleton-row {
+  border-color: var(--teacher-border-strong) !important;
+  background: var(--teacher-surface-soft) !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode h1,
+body.teacher-dark-mode h2,
+body.teacher-dark-mode h3,
+body.teacher-dark-mode h4,
+body.teacher-dark-mode h5,
+body.teacher-dark-mode h6,
+body.teacher-dark-mode strong,
+body.teacher-dark-mode .page-title,
+body.teacher-dark-mode .brand-text strong,
+body.teacher-dark-mode .panel-header h2,
+body.teacher-dark-mode .metric-card strong,
+body.teacher-dark-mode .lesson-row strong,
+body.teacher-dark-mode .timeline-item strong,
+body.teacher-dark-mode .activity-item strong,
+body.teacher-dark-mode .profile-header h1,
+body.teacher-dark-mode .profile-section h2,
+body.teacher-dark-mode .teacher-settings-page .card-title,
+body.teacher-dark-mode .attendance-header h1,
+body.teacher-dark-mode .lesson-details-modal h2,
+body.teacher-dark-mode .module-cell strong,
+body.teacher-dark-mode .table-empty strong,
+body.teacher-dark-mode .notifications-header h3,
+body.teacher-dark-mode .profile-dropdown-header strong {
+  color: var(--teacher-text) !important;
+}
+
+body.teacher-dark-mode p,
+body.teacher-dark-mode small,
+body.teacher-dark-mode label,
+body.teacher-dark-mode .page-subtitle,
+body.teacher-dark-mode .studio-subtitle,
+body.teacher-dark-mode .profile-header p,
+body.teacher-dark-mode .attendance-header p,
+body.teacher-dark-mode .teacher-settings-page p,
+body.teacher-dark-mode .text-muted,
+body.teacher-dark-mode .empty-copy,
+body.teacher-dark-mode .metric-card span,
+body.teacher-dark-mode .metric-card small,
+body.teacher-dark-mode .panel-header span,
+body.teacher-dark-mode .timeline-item small,
+body.teacher-dark-mode .lesson-row span,
+body.teacher-dark-mode .activity-item small,
+body.teacher-dark-mode .free-list strong,
+body.teacher-dark-mode .next-lesson span,
+body.teacher-dark-mode .module-cell small,
+body.teacher-dark-mode .room-badge,
+body.teacher-dark-mode .day-date,
+body.teacher-dark-mode .time-pill,
+body.teacher-dark-mode .notification-item em,
+body.teacher-dark-mode .notification-item small,
+body.teacher-dark-mode .notification-empty,
+body.teacher-dark-mode .profile-dropdown-header small {
+  color: var(--teacher-muted) !important;
+}
+
+body.teacher-dark-mode a,
+body.teacher-dark-mode .teacher-breadcrumbs a,
+body.teacher-dark-mode .profile-link {
+  color: var(--teacher-link) !important;
+}
+
+body.teacher-dark-mode input::placeholder,
+body.teacher-dark-mode textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+body.teacher-dark-mode .primary-action,
+body.teacher-dark-mode .primary-btn,
+body.teacher-dark-mode .btn-primary,
+body.teacher-dark-mode .save-btn,
+body.teacher-dark-mode .download-btn,
+body.teacher-dark-mode .photo-upload-btn,
+body.teacher-dark-mode .profile-link {
+  border-color: #2563eb !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.teacher-dark-mode .secondary-action,
+body.teacher-dark-mode .secondary-btn,
+body.teacher-dark-mode .btn-secondary,
+body.teacher-dark-mode .tab-btn,
+body.teacher-dark-mode .class-strip button,
+body.teacher-dark-mode .cancel-btn {
+  border-color: #1d4ed8 !important;
+  background: #172554 !important;
+  color: #bfdbfe !important;
+}
+
+body.teacher-dark-mode .tab-btn.active,
+body.teacher-dark-mode .class-strip button.active,
+body.teacher-dark-mode .nav-tabs .nav-link.active,
+body.teacher-dark-mode .sidebar-nav .nav-item.active {
+  border-color: #3b82f6 !important;
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.teacher-dark-mode table,
+body.teacher-dark-mode .weekly-table,
+body.teacher-dark-mode .attendance-table table {
+  background: var(--teacher-surface) !important;
+  color: var(--teacher-text) !important;
+}
+
+body.teacher-dark-mode table th,
+body.teacher-dark-mode .weekly-table th,
+body.teacher-dark-mode .attendance-table th,
+body.teacher-dark-mode .header-row th {
+  border-color: var(--teacher-border-strong) !important;
+  background: #172554 !important;
+  color: #ffffff !important;
+}
+
+body.teacher-dark-mode table td,
+body.teacher-dark-mode .weekly-table td,
+body.teacher-dark-mode .attendance-table td {
+  border-color: var(--teacher-border) !important;
+}
+
+body.teacher-dark-mode .break-cell,
+body.teacher-dark-mode .break-fill {
+  border-color: #713f12 !important;
+  background: rgba(113, 63, 18, 0.28) !important;
+  color: #fde68a !important;
+}
+
+body.teacher-dark-mode .modal-overlay {
+  background: rgba(2, 6, 23, 0.78) !important;
+}
+
+body.teacher-dark-mode .dropdown-item:hover,
+body.teacher-dark-mode .dropdown-item:focus-visible,
+body.teacher-dark-mode .notification-item:hover,
+body.teacher-dark-mode .notification-item:focus-visible,
+body.teacher-dark-mode .notification-item.unread,
+body.teacher-dark-mode .account-link:hover,
+body.teacher-dark-mode .account-link:focus-visible {
+  background: rgba(37, 99, 235, 0.18) !important;
+  color: #dbeafe !important;
+}
+
+body.teacher-dark-mode .badge,
+body.teacher-dark-mode .status-badge,
+body.teacher-dark-mode .lesson-type,
+body.teacher-dark-mode .day-badge {
+  color: inherit;
 }
 </style>

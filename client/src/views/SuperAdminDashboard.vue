@@ -4,7 +4,7 @@
       <header class="page-head">
         <div>
           <h1>Super Admin Dashboard</h1>
-          <p>Platform-wide school operations, activity, and access monitoring.</p>
+          <p>Manage schools and Directors of Studies without opening teacher records.</p>
         </div>
         <router-link to="/super-admin/schools" class="primary-action">Manage Schools</router-link>
       </header>
@@ -39,7 +39,7 @@
 
         <section id="logs" class="panel">
           <div class="panel-head">
-            <h2>Recent Activities</h2>
+            <h2>DOS & School Activity</h2>
             <button type="button" @click="loadStats">Refresh</button>
           </div>
           <div v-if="!activities.length" class="empty-state">No platform activity yet.</div>
@@ -54,24 +54,24 @@
 
         <section id="reports" class="panel wide">
           <div class="panel-head">
-            <h2>Global Reports</h2>
-            <span>All schools</span>
+            <h2>School Setup Totals</h2>
+            <span>All approved and pending schools</span>
           </div>
           <div class="report-grid">
             <div>
-              <small>Timetable Coverage</small>
-              <strong>{{ stats.schools_with_timetables || 0 }}</strong>
-              <span>schools with generated timetable entries</span>
+              <small>Classes</small>
+              <strong>{{ stats.total_classes || 0 }}</strong>
+              <span>classes created by schools</span>
             </div>
             <div>
-              <small>Active Users</small>
-              <strong>{{ stats.active_users || 0 }}</strong>
-              <span>users currently enabled</span>
+              <small>Teachers</small>
+              <strong>{{ stats.total_teachers || 0 }}</strong>
+              <span>teacher accounts counted only</span>
             </div>
             <div>
-              <small>Active Teachers</small>
-              <strong>{{ stats.active_teachers || 0 }}</strong>
-              <span>teachers approved across the platform</span>
+              <small>Combinations</small>
+              <strong>{{ stats.total_combinations || 0 }}</strong>
+              <span>teacher, subject, and class links</span>
             </div>
           </div>
         </section>
@@ -90,12 +90,12 @@ const activities = ref([])
 
 const metricCards = computed(() => [
   { label: 'Total Schools', value: stats.value.total_schools || 0, caption: 'registered schools', tone: 'blue' },
-  { label: 'Total Teachers', value: stats.value.total_teachers || 0, caption: 'all schools', tone: 'green' },
-  { label: 'Total Students', value: stats.value.total_students || 0, caption: 'all schools', tone: 'violet' },
-  { label: 'Timetable Entries', value: stats.value.total_timetable_entries || 0, caption: 'generated entries', tone: 'amber' },
+  { label: 'DOS Accounts', value: stats.value.total_dos || 0, caption: `${stats.value.active_dos || 0} active`, tone: 'green' },
+  { label: 'Classes', value: stats.value.total_classes || 0, caption: 'across schools', tone: 'violet' },
+  { label: 'Combinations', value: stats.value.total_combinations || 0, caption: 'assigned links', tone: 'amber' },
   { label: 'Active Schools', value: stats.value.active_schools || 0, caption: 'enabled schools', tone: 'green' },
-  { label: 'Suspended Schools', value: stats.value.suspended_schools || 0, caption: 'access blocked', tone: 'amber' },
-  { label: 'Inactive Schools', value: stats.value.inactive_schools || 0, caption: 'disabled or rejected', tone: 'rose' }
+  { label: 'Pending Schools', value: stats.value.pending_schools || 0, caption: 'waiting approval', tone: 'amber' },
+  { label: 'Suspended Schools', value: stats.value.suspended_schools || 0, caption: 'access blocked', tone: 'rose' }
 ])
 
 const statusTotal = computed(() => Math.max(Number(stats.value.total_schools || 0), 1))

@@ -4,7 +4,7 @@
       <header class="page-header">
         <div>
           <h1>Schools</h1>
-          <p>Approve DOS registrations and monitor school setup without exposing teacher records.</p>
+          <p>Approve DOS registrations, manage school access, and review setup counts.</p>
         </div>
         <div class="filters">
           <input v-model.trim="search" type="search" placeholder="Search schools">
@@ -62,7 +62,8 @@
                     <span>{{ school.teacher_count || 0 }} teachers</span>
                     <span>{{ school.student_count || 0 }} students</span>
                     <span>{{ school.class_count || 0 }} classes</span>
-                    <span>{{ school.timetable_entry_count || 0 }} timetable rows</span>
+                    <span>{{ school.subject_count || 0 }} subjects</span>
+                    <span>{{ school.combination_count || 0 }} combinations</span>
                   </div>
                 </td>
                 <td><span class="status" :class="school.status">{{ statusLabel(school.status) }}</span></td>
@@ -99,9 +100,10 @@ const filteredSchools = computed(() => schools.value)
 
 const summaryCards = computed(() => [
   { label: 'Schools', value: schools.value.length },
-  { label: 'Pending DOS', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)).length },
+  { label: 'Pending DOS', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status) || school.dos_status === 'pending').length },
   { label: 'Active Schools', value: schools.value.filter((school) => school.status === 'active').length },
-  { label: 'Teachers Counted', value: schools.value.reduce((sum, school) => sum + Number(school.teacher_count || 0), 0) }
+  { label: 'Classes', value: schools.value.reduce((sum, school) => sum + Number(school.class_count || 0), 0) },
+  { label: 'Combinations', value: schools.value.reduce((sum, school) => sum + Number(school.combination_count || 0), 0) }
 ])
 
 const statusLabel = (value) => {
@@ -214,7 +216,7 @@ button {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.85rem;
   margin-bottom: 1rem;
 }

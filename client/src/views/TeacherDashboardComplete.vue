@@ -12,11 +12,6 @@
             <i class="bi bi-calendar3"></i>
             Timetable
           </button>
-          <button class="secondary-action" type="button" @click="navigateTo('/teacher/requests')">
-            <i class="bi bi-send"></i>
-            Request
-            <span v-if="pendingRequestCount" class="action-badge">{{ pendingRequestCount }}</span>
-          </button>
         </div>
       </section>
 
@@ -52,10 +47,6 @@
           <div v-if="nextLesson" class="next-lesson">
             <strong>{{ getDayName(nextLesson.day) }} · {{ formatTimeRange(nextLesson.start_time, nextLesson.end_time) }}</strong>
             <span>{{ nextLesson.class_name }} · {{ nextLesson.room }}</span>
-            <button type="button" @click="openLessonRequest(nextLesson)">
-              <i class="bi bi-pencil-square"></i>
-              Change
-            </button>
           </div>
           <p v-else class="empty-copy">Your remaining week is clear.</p>
         </section>
@@ -144,11 +135,11 @@
               v-for="(period, index) in freePeriodsDetail.slice(0, 5)"
               :key="`${period.day}-${period.time}-${index}`"
               type="button"
-              @click="requestFreeSlot(period)"
+              @click="navigateTo('/teacher/timetable')"
             >
               <span>{{ period.day }}</span>
               <strong>{{ period.time }}</strong>
-              <i class="bi bi-plus-lg"></i>
+              <i class="bi bi-calendar3"></i>
             </button>
           </div>
           <p v-else class="empty-copy">No free slots found.</p>
@@ -196,7 +187,6 @@ const upcomingClasses = ref([])
 const timetableEntries = ref([])
 const teachingClasses = ref([])
 const headTeacherClasses = ref([])
-const pendingRequestCount = ref(0)
 const loadingDashboard = ref(true)
 const notifications = ref([])
 
@@ -236,7 +226,7 @@ const nextLesson = computed(() => upcomingClasses.value[0] || null)
 
 const todaySummary = computed(() => {
   const count = todayClasses.value.length
-  if (!count) return 'No classes today. Use the free time to prepare or review requests.'
+  if (!count) return 'No classes today. Use the free time to prepare lessons.'
   return `${count} lesson${count === 1 ? '' : 's'} today. ${nextLesson.value ? `Next at ${formatTime(nextLesson.value.start_time)}.` : ''}`
 })
 
@@ -290,15 +280,6 @@ const recentActivities = computed(() => {
     })
   })
 
-  if (pendingRequestCount.value) {
-    activities.push({
-      id: 'pending-requests',
-      title: 'Requests pending',
-      description: `${pendingRequestCount.value} open request${pendingRequestCount.value === 1 ? '' : 's'}`,
-      tone: 'amber'
-    })
-  }
-
   upcomingClasses.value.slice(0, 2).forEach((lesson) => {
     activities.push({
       id: `lesson-${lesson.id}`,
@@ -339,24 +320,6 @@ const compactList = (items) => {
 
 const getNextDateForDay = (dayName) => getNextSchoolWeekDate(dayName, new Date()) || new Date()
 const navigateTo = (path) => router.push(path)
-
-const requestFreeSlot = (period) => {
-  router.push({ name: 'TeacherRequests', query: { type: 'free-slot', day: period.day, time: period.time } })
-}
-
-const openLessonRequest = (lesson) => {
-  router.push({
-    name: 'TeacherRequests',
-    query: {
-      lessonId: lesson.id,
-      day: lesson.day,
-      time: formatTimeRange(lesson.start_time, lesson.end_time),
-      subject: lesson.subject,
-      class: lesson.class_name,
-      room: lesson.room
-    }
-  })
-}
 
 const toDashboardLesson = (entry) => ({
   id: entry.timetable_id,
@@ -433,20 +396,7 @@ const loadTeacherDashboardResources = async () => {
   teachingClasses.value = classesResponse.data.teaching_classes || []
   headTeacherClasses.value = classesResponse.data.head_teacher_classes || []
   hydrateDashboardFromTimetable()
-  await loadPendingRequests()
   await loadNotifications()
-}
-
-const loadPendingRequests = async () => {
-  try {
-    const requests = JSON.parse(localStorage.getItem('teacherRequests') || '[]')
-    pendingRequestCount.value = requests.filter((request) => {
-      const status = String(request.status || request.request_status || '').toLowerCase()
-      return status === 'pending' || status === 'open'
-    }).length
-  } catch (error) {
-    pendingRequestCount.value = 0
-  }
 }
 
 const loadNotifications = async () => {
@@ -474,7 +424,7 @@ onMounted(async () => {
 .teacher-dashboard-page {
   min-height: 100vh;
   padding: 1.5rem;
-  background: #f5f9ff;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   color: #0f172a;
 }
 
@@ -484,11 +434,11 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 1rem;
   padding: 1.35rem;
-  border: 1px solid #bfdbfe;
+  border: 1px solid #dbe3ef;
   border-radius: 8px;
-  background: linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%);
-  color: #ffffff;
-  box-shadow: 0 16px 34px rgba(29, 78, 216, 0.18);
+  background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1);
+  color: #0f172a;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .eyebrow {
@@ -498,7 +448,7 @@ onMounted(async () => {
   font-weight: 850;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  opacity: 0.82;
+  color: #2563eb;
 }
 
 .dashboard-hero h1 {
@@ -510,7 +460,7 @@ onMounted(async () => {
 .dashboard-hero p {
   margin: 0.35rem 0 0;
   max-width: 44rem;
-  color: rgba(255, 255, 255, 0.84);
+  color: #52627a;
 }
 
 .hero-actions {
@@ -529,19 +479,19 @@ onMounted(async () => {
   min-height: 42px;
   padding: 0 1rem;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 0;
   cursor: pointer;
   font-weight: 800;
 }
 
 .primary-action {
-  background: #ffffff;
-  color: #1d4ed8;
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .secondary-action {
-  background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  background: #e0f2fe;
+  color: #075985;
 }
 
 .action-badge {

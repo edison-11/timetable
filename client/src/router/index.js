@@ -59,7 +59,7 @@ const router = createRouter({
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/super-admin/dashboard',
@@ -77,61 +77,61 @@ const router = createRouter({
       path: '/teachers',
       name: 'Teachers',
       component: () => import('@/views/Teachers.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/modules',
       name: 'Modules',
       component: () => import('@/views/Modules.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/classes',
       name: 'Classes',
       component: () => import('@/views/Classes.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/students',
       name: 'Students',
       component: () => import('@/views/Students.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/sections',
       name: 'Sections',
       component: () => import('@/views/Sections.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/shifts',
       name: 'Shifts',
       component: () => import('@/views/Shifts.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/rooms',
       name: 'Rooms',
       component: () => import('@/views/Rooms.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/assignments',
       name: 'Assignments',
       component: () => import('@/views/Assignments.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/timetable',
       name: 'Timetable',
       component: () => import('@/views/Timetable.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/settings',
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
-      meta: { requiresAdminAuth: true }
+      meta: { requiresAdminAuth: true, roles: ['dos'] }
     },
     {
       path: '/teacher/register',
@@ -176,14 +176,12 @@ const router = createRouter({
     {
       path: '/teacher/requests',
       name: 'TeacherRequests',
-      component: () => import('@/views/TeacherRequestsComplete.vue'),
-      meta: { requiresTeacherAuth: true }
+      redirect: '/teacher/dashboard'
     },
     {
       path: '/teacher/announcements',
       name: 'TeacherAnnouncements',
-      component: () => import('@/views/TeacherAnnouncementsComplete.vue'),
-      meta: { requiresTeacherAuth: true }
+      redirect: '/teacher/dashboard'
     },
     {
       path: '/student-portal',
