@@ -39,12 +39,7 @@
               <span>Print</span>
             </button>
             <select v-model="exportFormat" class="export-select" aria-label="Download format">
-<<<<<<< HEAD
               <option value="doc">Word</option>
-=======
-              <option value="csv">CSV</option>
-              <option value="xls">Excel</option>
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
               <option value="pdf">PDF</option>
             </select>
             <button class="action-btn download-btn" @click="downloadTimetable(exportFormat)" title="Download">

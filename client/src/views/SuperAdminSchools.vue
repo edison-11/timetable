@@ -67,12 +67,7 @@
                     <span>{{ school.timetable_entry_count || 0 }} timetable rows</span>
                   </div>
                 </td>
-<<<<<<< HEAD
-                <td>{{ school.registration_number }}</td>
                 <td><span class="status" :class="statusClass(school.status)">{{ statusLabel(school.status) }}</span></td>
-=======
-                <td><span class="status" :class="school.status">{{ statusLabel(school.status) }}</span></td>
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
                 <td>{{ formatDate(school.created_at) }}</td>
                 <td>
                   <div class="actions">
@@ -153,11 +148,8 @@ const summaryCards = computed(() => [
   { label: 'Schools', value: schools.value.length },
   { label: 'Pending DOS', value: schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)).length },
   { label: 'Active Schools', value: schools.value.filter((school) => school.status === 'active').length },
-<<<<<<< HEAD
-  { label: 'Inactive Schools', value: schools.value.filter((school) => ['suspended', 'deactivated', 'inactive', 'rejected'].includes(school.status)).length }
-=======
+  { label: 'Inactive Schools', value: schools.value.filter((school) => ['suspended', 'deactivated', 'inactive', 'rejected'].includes(school.status)).length },
   { label: 'Teachers Counted', value: schools.value.reduce((sum, school) => sum + Number(school.teacher_count || 0), 0) }
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
 ])
 
 const statusLabel = (value) => {

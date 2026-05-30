@@ -13,13 +13,7 @@ import TopFeedback from '@/components/TopFeedback.vue'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()
-<<<<<<< HEAD
-const router = useRouter()
-const isBlockingLoading = computed(() => loadingStore.isBlockingLoading)
-const isRequestLoading = computed(() => loadingStore.isRequestLoading)
-=======
 const isGlobalLoading = computed(() => loadingStore.isLoading)
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
 
 onMounted(async () => {
   loadingStore.startBoot()

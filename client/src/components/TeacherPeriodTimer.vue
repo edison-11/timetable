@@ -483,7 +483,7 @@ const displayStatusMetric = computed(() => {
 })
 
 const timerCaption = computed(() => {
-<<<<<<< HEAD
+  if (weekendMode.value) return 'Weekend break - next school week resumes Monday'
   if (currentLesson.value) {
     return `${activeTimerValue.value} left - ends at ${normalizeTime(currentLesson.value.end_time)}`
   }
@@ -496,9 +496,6 @@ const timerCaption = computed(() => {
   if (nextLesson.value) {
     return `${nextLesson.value.class_name || 'Class'} starts at ${normalizeTime(nextLesson.value.start_time)}`
   }
-=======
-  if (weekendMode.value) return 'Weekend break - next school week resumes Monday'
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
   if (sessionInProgress.value) return `${sessionRemainingTimerValue.value} remaining - day ends at ${daySessionEndTime.value}`
   if (daySessionEnded.value) return `Day session ended at ${daySessionEndTime.value}`
   if (daySessionStartTime.value) return `First period starts at ${daySessionStartTime.value}`

@@ -13,7 +13,24 @@ const tenantTables = [
   'notification'
 ];
 
+const parseArgs = () => {
+  const args = process.argv.slice(2);
+  const result = {};
+
+  for (const arg of args) {
+    if (arg.startsWith('--school-id=')) {
+      result.schoolId = Number(arg.split('=')[1]);
+    }
+    if (arg.startsWith('--school-name=')) {
+      result.schoolName = arg.split('=')[1];
+    }
+  }
+
+  return result;
+};
+
 (async () => {
+  const { schoolId, schoolName } = parseArgs();
   const [schools] = await pool.query(
     `SELECT school_id, school_name
      FROM schools
@@ -25,7 +42,21 @@ const tenantTables = [
     throw new Error('No active school found to receive existing data.');
   }
 
-  const school = schools.find((item) => item.school_name === 'MUBUGATSS') || schools[0];
+  let school = null;
+  if (schoolId) {
+    school = schools.find((item) => Number(item.school_id) === Number(schoolId));
+    if (!school) {
+      throw new Error(`Active school with id=${schoolId} was not found.`);
+    }
+  } else if (schoolName) {
+    school = schools.find((item) => item.school_name.toLowerCase() === schoolName.toLowerCase());
+    if (!school) {
+      throw new Error(`Active school with name='${schoolName}' was not found.`);
+    }
+  } else {
+    school = schools.find((item) => item.school_name === 'MUBUGATSS') || schools[0];
+  }
+
   console.log(`Assigning existing unscoped data to ${school.school_name} (school_id=${school.school_id})`);
 
   for (const tableName of tenantTables) {
@@ -47,6 +78,7 @@ const tenantTables = [
   }
 
   await pool.end();
+  console.log('Done. Existing unscoped data is now linked to the selected school.');
 })().catch(async (error) => {
   console.error(error.message || error);
   try {

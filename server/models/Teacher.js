@@ -303,14 +303,7 @@ class Teacher {
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(
-<<<<<<< HEAD
-      `SELECT teacher_id, name, email, department, school_id, profile_photo
-       FROM teacher
-       WHERE ${where.join(' AND ')}
-       ORDER BY department, name`,
-=======
       `SELECT teacher_id, school_id, name, email, department, profile_photo FROM teacher WHERE ${where.join(' AND ')} ORDER BY department, name`,
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
       values
     );
     return rows;

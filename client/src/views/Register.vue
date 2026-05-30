@@ -25,70 +25,20 @@
         </section>
 
         <template v-if="step === 'details'">
-<<<<<<< HEAD
-          <div v-if="accountType === 'dos'" class="form-section">
-            <div class="section-title">
-              <h2>School Information</h2>
-              <span>Pending approval by Super Admin</span>
-=======
           <h2 class="form-title">Register</h2>
 
           <div class="register-context">
             <div>
-              <strong>Teacher Account</strong>
-              <span>Join an approved school and wait for DOS approval.</span>
+              <strong>{{ accountType === 'dos' ? 'Director of Studies Registration' : 'Teacher Account' }}</strong>
+              <span v-if="accountType === 'dos'">Register a school and request platform approval.</span>
+              <span v-else>Join an approved school and wait for DOS approval.</span>
             </div>
-            <router-link to="/dos/register">Register a School</router-link>
+            <router-link v-if="accountType === 'teacher'" to="/dos/register">Register a School</router-link>
           </div>
 
           <div class="title-rule"></div>
 
-          <div class="register-field">
-            <label for="fullName" class="form-label">Full Name</label>
-            <div class="register-input-wrap">
-              <span class="register-input-icon user-icon" aria-hidden="true"></span>
-              <input
-                id="fullName"
-                v-model.trim="form.full_name"
-                type="text"
-                placeholder="Enter your full name"
-                required
-                class="form-control"
-              />
-            </div>
-          </div>
-
-          <div class="register-field">
-            <label for="email" class="form-label">Email</label>
-            <div class="register-input-wrap">
-              <span class="register-input-icon mail-icon" aria-hidden="true"></span>
-              <input
-                id="email"
-                v-model.trim="form.email"
-                type="email"
-                placeholder="Enter your email address"
-                required
-                class="form-control"
-              />
-            </div>
-          </div>
-
-          <div class="register-grid">
-            <div class="register-field">
-              <label for="phone" class="form-label">Phone Number</label>
-              <div class="register-input-wrap plain-input">
-                <input
-                  id="phone"
-                  v-model.trim="form.phone"
-                  type="tel"
-                  placeholder="Enter phone number"
-                  required
-                  class="form-control"
-                />
-              </div>
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
-            </div>
-
+          <div v-if="accountType === 'dos'" class="register-grid">
             <div class="form-grid">
               <label>
                 <span>School Name</span>
@@ -599,11 +549,6 @@ onBeforeUnmount(() => {
   font-weight: 850;
 }
 
-<<<<<<< HEAD
-.register-card-header p {
-  margin: 0.25rem 0 0;
-  color: #cbd5e1;
-=======
 .register-context {
   display: flex;
   align-items: center;
@@ -647,7 +592,6 @@ onBeforeUnmount(() => {
   height: 1px;
   margin: 16px 0 18px;
   background: #d3dae2;
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
 }
 
 .register-form,
@@ -903,10 +847,6 @@ textarea:focus {
     padding-inline: 1rem;
   }
 
-<<<<<<< HEAD
-  .role-section,
-  .form-grid {
-=======
   .login-row,
   .terms-row,
   .register-context {
@@ -914,7 +854,6 @@ textarea:focus {
   }
 
   .register-grid {
->>>>>>> e13465b9deedc9a146303a1d3a68bd1ccfe46caf
     grid-template-columns: 1fr;
   }
 

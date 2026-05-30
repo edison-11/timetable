@@ -61,19 +61,11 @@
               <button class="btn btn-outline-secondary btn-sm" @click="refreshTimetable" :disabled="loading" title="Refresh">
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
-<<<<<<< HEAD
               <button class="btn btn-outline-secondary btn-sm" @click="downloadPDF" :disabled="loading || !gridRows.length">
                 <i class="bi bi-download me-1"></i>Download PDF
               </button>
               <button class="btn btn-outline-secondary btn-sm" @click="downloadWord" :disabled="loading || !gridRows.length">
                 <i class="bi bi-file-earmark-word me-1"></i>Download Word
-=======
-              <button class="btn btn-outline-secondary btn-sm" @click="downloadCSV" :disabled="loading || !gridRows.length" title="CSV">
-                <i class="bi bi-download"></i>
-              </button>
-              <button class="btn btn-outline-secondary btn-sm" @click="downloadExcel" :disabled="loading || !gridRows.length" title="Excel">
-                <i class="bi bi-file-earmark-spreadsheet"></i>
->>>>>>> 9029b97da280bddff03d081ceece29edd5345372
               </button>
               <button class="btn btn-outline-secondary btn-sm" @click="printTimetable" :disabled="!gridRows.length" title="Print">
                 <i class="bi bi-printer"></i>
@@ -192,14 +184,8 @@
             <div class="setting-group">
               <label class="form-label">Format</label>
               <select v-model="settings.exportFormat" @change="saveSetting('exportFormat')" class="form-select form-select-sm">
-<<<<<<< HEAD
                 <option value="pdf">PDF Document</option>
                 <option value="doc">Word Document</option>
-=======
-                <option value="csv">CSV</option>
-                <option value="excel">Excel</option>
-                <option value="pdf">PDF</option>
->>>>>>> 9029b97da280bddff03d081ceece29edd5345372
               </select>
             </div>
           </div>
