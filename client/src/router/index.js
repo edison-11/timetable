@@ -74,6 +74,48 @@ const router = createRouter({
       meta: { requiresAdminAuth: true, roles: ['super_admin'] }
     },
     {
+      path: '/super-admin/schools/:id',
+      name: 'SuperAdminSchoolWorkspace',
+      component: () => import('@/views/SuperAdminSchoolWorkspace.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/dos',
+      name: 'SuperAdminDos',
+      component: () => import('@/views/SuperAdminDos.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/databases',
+      name: 'SuperAdminDatabases',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/billing',
+      name: 'SuperAdminBilling',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/activity',
+      name: 'SuperAdminActivity',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/reports',
+      name: 'SuperAdminReports',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/administration',
+      name: 'SuperAdminAdministration',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
       path: '/teachers',
       name: 'Teachers',
       component: () => import('@/views/Teachers.vue'),
@@ -131,7 +173,7 @@ const router = createRouter({
       path: '/settings',
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'super_admin'] }
     },
     {
       path: '/teacher/register',

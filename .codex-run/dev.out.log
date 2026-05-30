@@ -17,3 +17,14 @@
 Server is running on port 5000
 ✅ Connected to MySQL database
 [2m8:38:33 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [optimizer] bundling dependencies...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node "C:\\Users\\THE 1ST\\OneDrive\\Desktop\\timetable\\server\\index.js"`[39m
+Server is running on port 5000
+✅ Connected to MySQL database
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node "C:\\Users\\THE 1ST\\OneDrive\\Desktop\\timetable\\server\\index.js"`[39m
+Server is running on port 5000
+✅ Connected to MySQL database
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[client] exited with code 1073807364

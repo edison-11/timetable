@@ -1,7 +1,7 @@
 const School = require('../models/School');
 
-const blockedSchoolStatuses = new Set(['pending_approval', 'pending', 'suspended', 'deactivated', 'inactive', 'rejected']);
-const blockedSubscriptionStatuses = new Set(['suspended']);
+const blockedSchoolStatuses = new Set(['pending_approval', 'pending', 'suspended', 'expired', 'deactivated', 'inactive', 'rejected']);
+const blockedSubscriptionStatuses = new Set(['suspended', 'expired', 'canceled']);
 
 const statusMessage = (school) => {
   if (!school) {
@@ -18,6 +18,10 @@ const statusMessage = (school) => {
 
   if (school.status === 'suspended') {
     return 'Your school account has been suspended. Please contact system administration.';
+  }
+
+  if (school.status === 'expired') {
+    return 'Your school subscription has expired. Please contact system administration.';
   }
 
   if (['deactivated', 'inactive', 'rejected'].includes(school.status)) {

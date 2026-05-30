@@ -8,23 +8,39 @@
       aria-label="Toggle navigation menu"
       @click="toggleSidebar"
     >
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path class="hamburger-line top" d="M4 7h16" />
-        <path class="hamburger-line middle" d="M4 12h16" />
-        <path class="hamburger-line bottom" d="M4 17h16" />
-      </svg>
+      <PanelLeft :size="21" :stroke-width="2.2" aria-hidden="true" />
     </button>
 
-    <div class="app-title-block">
-      <strong>Timetable Management System</strong>
-      <span>Admin Dashboard</span>
-    </div>
-
-    <div class="search-bar">
-      <input v-model="searchQuery" type="search" placeholder="Search anything..." @keyup.enter="runSearch">
+    <div class="search-bar" role="combobox" aria-expanded="true" aria-label="Global command search">
+      <input
+        v-model="searchQuery"
+        ref="searchInput"
+        type="search"
+        placeholder="Search schools, DOS, audits, settings..."
+        autocomplete="off"
+        @focus="searchOpen = true"
+        @input="searchOpen = true"
+        @keydown.down.prevent="moveSearch(1)"
+        @keydown.up.prevent="moveSearch(-1)"
+        @keydown.enter.prevent="runSearch"
+        @keydown.esc="searchOpen = false"
+      >
       <span class="search-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35M11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"/></svg>
+        <Search :size="21" :stroke-width="2.2" />
       </span>
+      <div v-if="searchOpen" class="search-dropdown">
+        <strong>{{ searchQuery ? 'Instant Results' : 'Recent Searches' }}</strong>
+        <button
+          v-for="(item, index) in commandResults"
+          :key="`${item.label}-${item.path}`"
+          type="button"
+          :class="{ active: activeSearchIndex === index }"
+          @mousedown.prevent="selectCommand(item)"
+        >
+          <span>{{ item.type }}</span>
+          <em>{{ item.label }}</em>
+        </button>
+      </div>
     </div>
 
     <div class="navbar-right">
@@ -35,7 +51,8 @@
         :aria-pressed="isDarkMode"
         @click="toggleDarkMode"
       >
-        <span class="theme-icon" :class="{ sun: isDarkMode }"></span>
+        <Sun v-if="isDarkMode" :size="20" :stroke-width="2.2" aria-hidden="true" />
+        <Moon v-else :size="20" :stroke-width="2.2" aria-hidden="true" />
       </button>
 
       <div class="notifications-menu" ref="notificationsMenu">
@@ -48,9 +65,7 @@
           @click="toggleNotifications"
         >
           <span class="bell-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5m4 0a3 3 0 1 1-6 0h6Z"/>
-            </svg>
+            <Bell :size="21" :stroke-width="2.2" />
           </span>
           <span v-if="unreadCount" class="badge">{{ unreadCount }}</span>
       </button>
@@ -64,12 +79,27 @@
             </div>
           </div>
 
-          <div v-if="!notifications.length" class="notification-empty">
-            No notifications yet.
+          <div class="notification-tabs" role="tablist" aria-label="Notification filters">
+            <button
+              v-for="tab in notificationTabs"
+              :key="tab"
+              type="button"
+              :class="{ active: activeNotificationTab === tab }"
+              @click="activeNotificationTab = tab"
+            >
+              {{ tab }}
+            </button>
+          </div>
+
+          <div v-if="!visibleNotifications.length" class="notification-empty">
+            <span aria-hidden="true">!</span>
+            <strong>No notifications found</strong>
+            <small>There is nothing in {{ activeNotificationTab.toLowerCase() }} right now.</small>
+            <button type="button" @click="activeNotificationTab = 'All'">View Notification History</button>
           </div>
 
           <div
-            v-for="notification in notifications"
+            v-for="notification in visibleNotifications"
             :key="notification.id"
             class="notification-item"
             :class="{ unread: !notification.read }"
@@ -96,9 +126,7 @@
               @click.stop="deleteNotification(notification)"
               @keyup.enter.stop="deleteNotification(notification)"
             >
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 6l12 12M18 6 6 18"/>
-              </svg>
+              <X :size="17" :stroke-width="2.2" />
             </span>
           </div>
 
@@ -134,17 +162,31 @@
           </div>
 
           <nav class="account-links" aria-label="Account navigation">
-            <router-link :to="isTeacherAccount ? '/teacher/profile' : '/settings'" class="account-link" @click="showAccountMenu = false">
-              View Profile
+            <router-link :to="isTeacherAccount ? '/teacher/profile' : '/settings?section=profile'" class="account-link" @click="showAccountMenu = false">
+              <UserRound :size="17" :stroke-width="2.2" aria-hidden="true" />
+              <span>Profile</span>
             </router-link>
             <router-link :to="isTeacherAccount ? '/teacher/settings' : '/settings'" class="account-link" @click="showAccountMenu = false">
-              Settings
+              <Settings :size="17" :stroke-width="2.2" aria-hidden="true" />
+              <span>Settings</span>
             </router-link>
             <button class="account-link" type="button" @click="goToDashboardNotifications">
-              Notifications
+              <Bell :size="17" :stroke-width="2.2" aria-hidden="true" />
+              <span>Notifications</span>
             </button>
-            <button class="account-link danger" type="button" @click="logout">
-              Logout
+            <router-link to="/settings?section=security" class="account-link" @click="showAccountMenu = false">
+              <ShieldCheck :size="17" :stroke-width="2.2" aria-hidden="true" />
+              <span>Security</span>
+            </router-link>
+            <button
+              class="account-link danger"
+              type="button"
+              title="Logout"
+              aria-label="Logout"
+              @click="logout"
+            >
+              <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
+              <span>Logout</span>
             </button>
           </nav>
         </div>
@@ -163,11 +205,16 @@
     danger
     @confirm="confirmRejectPendingItem"
   />
+
+  <div v-if="navbarToast" class="navbar-toast" role="status">
+    {{ navbarToast }}
+  </div>
 </template>
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Bell, LogOut, Moon, PanelLeft, Search, Settings, ShieldCheck, Sun, UserRound, X } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
@@ -175,17 +222,34 @@ import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const searchQuery = ref('')
+const searchOpen = ref(false)
+const searchInput = ref(null)
+const activeSearchIndex = ref(0)
+const recentSearches = ref(JSON.parse(localStorage.getItem('adminRecentSearches') || '[]'))
 const showNotifications = ref(false)
 const showAccountMenu = ref(false)
+const activeNotificationTab = ref('Unread')
 const sidebarOpen = ref(false)
 const isDarkMode = ref(false)
 const notificationsMenu = ref(null)
 const accountMenu = ref(null)
 const notifications = ref([])
+const navbarToast = ref('')
 const rejectDialog = ref({ open: false, notification: null, loading: false })
 const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
+const archivedNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('archivedNotificationIds') || '[]').map(String)))
 
+const notificationTabs = ['Unread', 'Read', 'Archived', 'System', 'Billing', 'Security', 'Announcements', 'All']
 const unreadCount = computed(() => notifications.value.filter(item => !item.read).length)
+const visibleNotifications = computed(() => notifications.value.filter((notification) => {
+  const id = String(notification.id)
+  const type = String(notification.category || notification.type || notification.tone || '').toLowerCase()
+  if (activeNotificationTab.value === 'Unread') return !notification.read && !archivedNotificationIds.value.has(id)
+  if (activeNotificationTab.value === 'Read') return notification.read && !archivedNotificationIds.value.has(id)
+  if (activeNotificationTab.value === 'Archived') return archivedNotificationIds.value.has(id)
+  if (activeNotificationTab.value === 'All') return true
+  return type.includes(activeNotificationTab.value.toLowerCase())
+}))
 const currentUser = computed(() => authStore.currentUser || {})
 const isTeacherAccount = computed(() => authStore.currentUserType === 'teacher')
 const isSuperAdminAccount = computed(() => authStore.currentUserType === 'super_admin' || currentUser.value?.role === 'super_admin')
@@ -196,6 +260,34 @@ const profileInitials = computed(() => {
   return name ? name.slice(0, 1).toUpperCase() : 'A'
 })
 const profileImageUrl = computed(() => resolveAssetUrl(currentUser.value.profile_photo))
+const commandItems = computed(() => {
+  const superAdminItems = [
+    { type: 'Dashboard', label: 'Platform Overview', path: '/super-admin/dashboard', terms: ['dashboard', 'platform', 'overview', 'analytics'] },
+    { type: 'Schools', label: 'Schools Section', path: '/super-admin/schools', terms: ['schools', 'school', 'approvals', 'subscriptions'] },
+    { type: 'DOS', label: 'Directors of Studies', path: '/super-admin/dos', terms: ['dos', 'director', 'directors', 'studies', 'accounts'] },
+    { type: 'Databases', label: 'Database Monitoring', path: '/super-admin/databases', terms: ['database', 'databases', 'storage', 'provisioning'] },
+    { type: 'Billing', label: 'Billing Center', path: '/super-admin/billing', terms: ['billing', 'subscriptions', 'revenue', 'plans', 'payments'] },
+    { type: 'Activity', label: 'Activity and Audit Logs', path: '/super-admin/activity', terms: ['audit', 'logs', 'security', 'activity', 'timeline'] },
+    { type: 'Reports', label: 'Reports', path: '/super-admin/reports', terms: ['reports', 'exports', 'csv', 'pdf'] },
+    { type: 'Administration', label: 'Administration Tools', path: '/super-admin/administration', terms: ['administration', 'announcement', 'maintenance', 'backup', 'roles', 'permissions'] },
+    { type: 'Settings', label: 'Settings', path: '/settings', terms: ['settings', 'profile', 'security', 'preferences'] }
+  ]
+  const dosItems = [
+    { type: 'Dashboard', label: 'DOS Dashboard', path: '/dashboard', terms: ['dashboard', 'home'] },
+    { type: 'Timetable', label: 'Timetable', path: '/timetable', terms: ['timetable', 'schedule'] },
+    { type: 'Teachers', label: 'Teachers', path: '/teachers', terms: ['teacher', 'teachers'] },
+    { type: 'Classes', label: 'Classes', path: '/classes', terms: ['class', 'classes'] },
+    { type: 'Settings', label: 'Settings', path: '/settings', terms: ['settings'] }
+  ]
+  return isSuperAdminAccount.value ? superAdminItems : dosItems
+})
+const commandResults = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  const source = query
+    ? commandItems.value.filter((item) => [item.label, item.type, ...item.terms].join(' ').toLowerCase().includes(query))
+    : recentSearches.value.length ? recentSearches.value : commandItems.value.slice(0, 5)
+  return source.slice(0, 8)
+})
 
 const resolveAssetUrl = (path) => {
   if (!path) return ''
@@ -235,24 +327,23 @@ const toggleDarkMode = () => {
 }
 
 const runSearch = () => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return
+  const item = commandResults.value[activeSearchIndex.value] || commandResults.value[0]
+  if (item) selectCommand(item)
+}
 
-  const destinations = [
-    { terms: ['dashboard', 'home', 'overview'], path: '/dashboard' },
-    { terms: ['timetable', 'schedule'], path: '/timetable' },
-    { terms: ['class', 'classes'], path: '/classes' },
-    { terms: ['subject', 'module', 'modules'], path: '/modules' },
-    { terms: ['room', 'rooms', 'classroom'], path: '/rooms' },
-    { terms: ['teacher', 'teachers'], path: '/teachers' },
-    { terms: ['section', 'sections'], path: '/sections' },
-    { terms: ['assignment', 'assignments'], path: '/assignments' },
-    { terms: ['shift', 'shifts'], path: '/shifts' },
-    { terms: ['setting', 'settings'], path: '/settings' }
-  ]
-  const destination = destinations.find(item => item.terms.some(term => term.includes(query) || query.includes(term)))
+const moveSearch = (direction) => {
+  if (!searchOpen.value) searchOpen.value = true
+  const max = Math.max(commandResults.value.length - 1, 0)
+  activeSearchIndex.value = Math.min(max, Math.max(0, activeSearchIndex.value + direction))
+}
 
-  if (destination) router.push(destination.path)
+const selectCommand = (item) => {
+  recentSearches.value = [item, ...recentSearches.value.filter((recent) => recent.path !== item.path)].slice(0, 6)
+  localStorage.setItem('adminRecentSearches', JSON.stringify(recentSearches.value))
+  searchQuery.value = ''
+  searchOpen.value = false
+  activeSearchIndex.value = 0
+  router.push(item.path)
 }
 
 const formatNotificationTime = (dateValue) => {
@@ -298,6 +389,14 @@ const toggleNotifications = () => {
 
   if (showNotifications.value) {
     fetchNotifications()
+  }
+}
+
+const handleGlobalKeydown = (event) => {
+  if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    searchOpen.value = true
+    searchInput.value?.focus()
   }
 }
 
@@ -362,7 +461,7 @@ const approvePendingItem = async (notification) => {
     // Success is indicated by notification refresh
   } catch (error) {
     console.error('Failed to approve registration:', error)
-    alert('Failed to approve registration. Please try again.')
+    showNavbarToast('Failed to approve registration. Please try again.')
   }
 }
 
@@ -388,9 +487,16 @@ const confirmRejectPendingItem = async () => {
     await fetchNotifications()
   } catch (error) {
     console.error('Failed to reject registration:', error)
-    alert('Failed to reject registration. Please try again.')
+    showNavbarToast('Failed to reject registration. Please try again.')
     rejectDialog.value.loading = false
   }
+}
+
+const showNavbarToast = (message) => {
+  navbarToast.value = message
+  window.setTimeout(() => {
+    if (navbarToast.value === message) navbarToast.value = ''
+  }, 3200)
 }
 
 const goToDashboardNotifications = () => {
@@ -408,6 +514,10 @@ const toggleAccountMenu = () => {
 }
 
 const closeMenusOnOutsideClick = (event) => {
+  if (!event.target.closest?.('.search-bar')) {
+    searchOpen.value = false
+  }
+
   if (!notificationsMenu.value?.contains(event.target)) {
     showNotifications.value = false
   }
@@ -432,11 +542,13 @@ onMounted(() => {
   syncSidebarState()
   document.addEventListener('click', closeMenusOnOutsideClick)
   document.addEventListener('sidebar:closed', syncSidebarState)
+  window.addEventListener('keydown', handleGlobalKeydown)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeMenusOnOutsideClick)
   document.removeEventListener('sidebar:closed', syncSidebarState)
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 watch(currentUser, () => hydrateProfileForm({ clearStatus: false }))
@@ -519,36 +631,6 @@ const logout = () => {
   transform: none;
 }
 
-.app-title-block {
-  display: grid;
-  gap: 0.08rem;
-  min-width: 0;
-  flex: 0 1 390px;
-}
-
-.app-title-block strong {
-  overflow: hidden;
-  color: #111827;
-  font-size: clamp(1.5rem, 2.8vw, 2.15rem);
-  font-weight: 950;
-  letter-spacing: 0;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-title-block span {
-  overflow: hidden;
-  color: #64748b;
-  font-size: 0.66rem;
-  font-weight: 850;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 .search-bar {
   position: relative;
   flex: 1;
@@ -589,6 +671,63 @@ const logout = () => {
   stroke-linejoin: round;
 }
 
+.search-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  z-index: 900;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.65rem;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+}
+
+.search-dropdown > strong {
+  color: #64748b;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.search-dropdown button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  padding: 0.55rem;
+  text-align: left;
+}
+
+.search-dropdown button.active,
+.search-dropdown button:hover {
+  background: #eff6ff;
+}
+
+.search-dropdown span {
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.68rem;
+  font-weight: 900;
+  padding: 0.18rem 0.45rem;
+}
+
+.search-dropdown em {
+  font-style: normal;
+  font-weight: 850;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .navbar-right {
   display: flex;
   align-items: center;
@@ -624,75 +763,27 @@ const logout = () => {
 
 .dark-mode-toggle {
   position: relative;
-  width: 68px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border: 1px solid #cbd5e1;
-  border-radius: 999px;
+  border-radius: 50%;
   cursor: pointer;
-  color: #2563eb;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  color: #475569;
+  background: #f8fafc;
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  padding: 3px;
-  box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06);
-  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
-}
-
-.dark-mode-toggle::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 10px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.3;
-  transform: translateY(-50%);
-}
-
-.dark-mode-toggle::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: 11px;
-  width: 9px;
-  height: 9px;
-  border: 2px solid currentColor;
-  border-left-color: transparent;
-  border-radius: 50%;
-  opacity: 0.45;
-  transform: translateY(-50%) rotate(-22deg);
+  justify-content: center;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .dark-mode-toggle:hover,
 .dark-mode-toggle:focus-visible {
   border-color: #93c5fd;
+  color: #2563eb;
+  background: #eff6ff;
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.14);
+  transform: translateY(-1px);
   outline: none;
-}
-
-.theme-icon {
-  position: relative;
-  z-index: 1;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow:
-    inset -7px -4px 0 0 currentColor,
-    0 5px 14px rgba(37, 99, 235, 0.2);
-  transform: translateX(0);
-  transition: transform 0.24s ease, background 0.22s ease, box-shadow 0.22s ease;
-}
-
-.theme-icon.sun {
-  background: #f8fafc;
-  box-shadow:
-    0 0 0 5px rgba(96, 165, 250, 0.12),
-    0 5px 14px rgba(0, 0, 0, 0.24);
-  transform: translateX(31px);
 }
 
 .bell-icon {
@@ -796,11 +887,79 @@ const logout = () => {
 }
 
 .notification-empty {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
   color: #6b7280;
   font-size: 0.85rem;
-  padding: 0.85rem 0.5rem;
+  padding: 1.3rem 0.85rem;
   text-align: center;
   font-weight: 600;
+}
+
+.notification-empty span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 950;
+}
+
+.notification-empty strong {
+  color: #0f172a;
+}
+
+.notification-empty button {
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 850;
+  padding: 0.45rem 0.65rem;
+}
+
+.notification-tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notification-tabs button {
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 850;
+  padding: 0.35rem 0.55rem;
+  white-space: nowrap;
+}
+
+.notification-tabs button.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+.navbar-toast {
+  position: fixed;
+  top: 5rem;
+  right: 1rem;
+  z-index: 1400;
+  max-width: min(360px, calc(100vw - 2rem));
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #991b1b;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+  font-weight: 850;
+  padding: 0.85rem 1rem;
 }
 
 .notification-dot {
@@ -931,21 +1090,21 @@ const logout = () => {
   position: absolute;
   top: calc(100% + 0.75rem);
   right: 0;
-  width: min(360px, calc(100vw - 2rem));
+  width: min(280px, calc(100vw - 2rem));
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
-  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  padding: 0.55rem;
   z-index: 200;
 }
 
 .account-header {
   display: grid;
-  grid-template-columns: 56px 1fr;
-  gap: 0.75rem;
+  grid-template-columns: 42px 1fr;
+  gap: 0.65rem;
   align-items: center;
-  padding-bottom: 0.9rem;
+  padding: 0.45rem 0.5rem 0.7rem;
   border-bottom: 1px solid #e2e8f0;
 }
 
@@ -956,20 +1115,21 @@ const logout = () => {
 
 .account-header strong {
   color: #1f2937;
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: 800;
 }
 
 .account-header small {
   color: #6b7280;
-  margin-top: 0.15rem;
+  margin-top: 0.08rem;
   word-break: break-word;
   font-weight: 600;
+  font-size: 0.72rem;
 }
 
 .account-avatar-large {
-  width: 56px;
-  height: 56px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: #3498db;
   color: white;
@@ -977,42 +1137,49 @@ const logout = () => {
   align-items: center;
   justify-content: center;
   font-weight: 900;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   overflow: hidden;
 }
 
 .account-links {
   display: grid;
-  gap: 0.35rem;
-  padding-top: 0.9rem;
+  gap: 0.18rem;
+  padding-top: 0.45rem;
 }
 
 .account-link {
   display: flex;
   align-items: center;
-  min-height: 42px;
+  gap: 0.62rem;
+  min-height: 38px;
   width: 100%;
   border: 0;
-  border-radius: 8px;
+  border-radius: 9px;
   background: transparent;
   color: #334155;
-  padding: 0 0.8rem;
+  padding: 0 0.65rem;
   text-align: left;
   text-decoration: none;
   font-weight: 800;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
 
 .account-link:hover,
 .account-link:focus-visible {
   background: #f1f5f9;
   color: #2563eb;
+  transform: translateX(3px);
   outline: none;
 }
 
 .account-link.danger {
+  margin-top: 0.35rem;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 9px 9px;
   color: #dc2626;
+  padding-top: 0.55rem;
 }
 
 .account-link.danger:hover,
@@ -1028,15 +1195,6 @@ const logout = () => {
     padding: 0 1rem;
   }
 
-  .app-title-block {
-    flex-basis: auto;
-  }
-
-  .app-title-block strong {
-    font-size: 1.12rem;
-  }
-
-  .app-title-block span,
   .search-bar {
     display: none;
   }
@@ -1072,18 +1230,10 @@ body.admin-dark-mode .notifications-btn:focus-visible {
   color: #bfdbfe;
 }
 
-body.admin-dark-mode .app-title-block strong {
-  color: #f8fafc;
-}
-
-body.admin-dark-mode .app-title-block span {
-  color: #94a3b8;
-}
-
 body.admin-dark-mode .dark-mode-toggle {
-  background: linear-gradient(135deg, #020617 0%, #111827 100%);
+  background: #0f172a;
   border-color: #334155;
-  color: #bfdbfe;
+  color: #facc15;
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.05),
     0 8px 22px rgba(0, 0, 0, 0.2);
@@ -1092,26 +1242,29 @@ body.admin-dark-mode .dark-mode-toggle {
 body.admin-dark-mode .dark-mode-toggle:hover,
 body.admin-dark-mode .dark-mode-toggle:focus-visible {
   border-color: #60a5fa;
+  background: #172554;
+  color: #fde68a;
   box-shadow:
     inset 0 1px 1px rgba(255, 255, 255, 0.05),
     0 8px 24px rgba(37, 99, 235, 0.24);
 }
 
-body.admin-dark-mode .dark-mode-toggle::before {
-  color: #64748b;
-}
-
-body.admin-dark-mode .dark-mode-toggle::after {
-  color: #bfdbfe;
-  opacity: 1;
-}
-
 body.admin-dark-mode .search-bar input,
+body.admin-dark-mode .search-dropdown,
 body.admin-dark-mode .account-dropdown,
 body.admin-dark-mode .notifications-dropdown {
   background: #0f172a !important;
   border-color: #334155;
   color: #e2e8f0;
+}
+
+body.admin-dark-mode .search-dropdown button {
+  color: #f8fafc;
+}
+
+body.admin-dark-mode .search-dropdown button.active,
+body.admin-dark-mode .search-dropdown button:hover {
+  background: #172554;
 }
 
 body.admin-dark-mode .search-bar input::placeholder,
@@ -1155,6 +1308,16 @@ body.admin-dark-mode .account-link:focus-visible {
 }
 
 body.admin-dark-mode .account-link.danger {
+  color: #fecaca;
+}
+
+body.admin-dark-mode .account-link.danger {
+  border-top-color: #263247;
+}
+
+body.admin-dark-mode .account-link.danger:hover,
+body.admin-dark-mode .account-link.danger:focus-visible {
+  background: rgba(127, 29, 29, 0.32);
   color: #fecaca;
 }
 </style>

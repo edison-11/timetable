@@ -14,7 +14,7 @@ class School {
         registration_number VARCHAR(120) NOT NULL UNIQUE,
         school_address TEXT NULL,
         phone VARCHAR(100) NULL,
-        status ENUM('pending_approval', 'active', 'rejected', 'suspended', 'deactivated') NOT NULL DEFAULT 'pending_approval',
+        status ENUM('pending_approval', 'active', 'rejected', 'suspended', 'expired', 'deactivated') NOT NULL DEFAULT 'pending_approval',
         profile_photo VARCHAR(255) NULL,
         approved_at TIMESTAMP NULL,
         rejected_at TIMESTAMP NULL,
@@ -100,7 +100,7 @@ class School {
       await pool.query("UPDATE schools SET status = 'deactivated' WHERE status = 'inactive'");
       await pool.query(`
         ALTER TABLE schools
-        MODIFY status ENUM('pending_approval', 'active', 'rejected', 'suspended', 'deactivated') NOT NULL DEFAULT 'pending_approval'
+        MODIFY status ENUM('pending_approval', 'active', 'rejected', 'suspended', 'expired', 'deactivated') NOT NULL DEFAULT 'pending_approval'
       `);
       await pool.query(`
         ALTER TABLE directors_of_studies
@@ -114,7 +114,46 @@ class School {
     await this.addColumnIfMissing('schools', 'district', 'district VARCHAR(120) NULL');
     await this.addColumnIfMissing('schools', 'sector', 'sector VARCHAR(120) NULL');
     await this.addColumnIfMissing('schools', 'school_type', 'school_type VARCHAR(120) NULL');
-    await this.addColumnIfMissing('schools', 'subscription_status', "subscription_status ENUM('trial', 'active', 'past_due', 'suspended') NOT NULL DEFAULT 'trial'");
+    await this.addColumnIfMissing('schools', 'subscription_status', "subscription_status ENUM('trial', 'active', 'past_due', 'suspended', 'expired', 'canceled') NOT NULL DEFAULT 'trial'");
+    await this.addColumnIfMissing('schools', 'subscription_plan', "subscription_plan VARCHAR(80) NOT NULL DEFAULT 'Starter'");
+    await this.addColumnIfMissing('schools', 'subscription_expires_at', 'subscription_expires_at DATE NULL');
+    await this.addColumnIfMissing('schools', 'auto_renewal', "auto_renewal ENUM('enabled', 'disabled') NOT NULL DEFAULT 'enabled'");
+    await this.addColumnIfMissing('activity_logs', 'device', 'device VARCHAR(255) NULL');
+    await this.addColumnIfMissing('activity_logs', 'browser', 'browser VARCHAR(255) NULL');
+    await this.addColumnIfMissing('activity_logs', 'ip_address', 'ip_address VARCHAR(80) NULL');
+    await this.addColumnIfMissing('activity_logs', 'location', 'location VARCHAR(255) NULL');
+    await pool.query(`
+      ALTER TABLE schools
+      MODIFY subscription_status ENUM('trial', 'active', 'past_due', 'suspended', 'expired', 'canceled') NOT NULL DEFAULT 'trial'
+    `);
+  }
+
+  static async ensurePlatformTables() {
+    await this.ensureSchema();
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS support_notes (
+        note_id INT AUTO_INCREMENT PRIMARY KEY,
+        school_id INT NOT NULL,
+        user_id INT NULL,
+        note TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_support_school (school_id)
+      )
+    `);
+
+    await pool.execute(`
+      CREATE TABLE IF NOT EXISTS billing_events (
+        billing_event_id INT AUTO_INCREMENT PRIMARY KEY,
+        school_id INT NOT NULL,
+        event_type VARCHAR(80) NOT NULL,
+        plan VARCHAR(80) NULL,
+        amount DECIMAL(10,2) NULL,
+        status VARCHAR(80) NULL,
+        message TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_billing_school (school_id)
+      )
+    `);
   }
 
   static async addSchoolColumn(tableName) {
@@ -158,8 +197,8 @@ class School {
     await this.ensureSchema();
     const [result] = await pool.execute(
       `INSERT INTO schools
-        (school_name, school_email, registration_number, school_code, school_address, phone, province, district, sector, school_type, status, subscription_status, profile_photo)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (school_name, school_email, registration_number, school_code, school_address, phone, province, district, sector, school_type, status, subscription_status, subscription_plan, subscription_expires_at, profile_photo)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.school_name,
         data.school_email,
@@ -173,6 +212,8 @@ class School {
         data.school_type || null,
         data.status || 'pending_approval',
         data.subscription_status || 'trial',
+        data.subscription_plan || 'Starter',
+        data.subscription_expires_at || null,
         data.profile_photo || null
       ]
     );
@@ -245,7 +286,8 @@ class School {
         (SELECT COUNT(*) FROM module m WHERE m.school_id = s.school_id) AS subject_count,
         (SELECT COUNT(*) FROM assignment a WHERE a.school_id = s.school_id) AS combination_count,
         (SELECT COUNT(*) FROM room r WHERE r.school_id = s.school_id) AS room_count,
-        (SELECT COUNT(*) FROM timetable tt WHERE tt.school_id = s.school_id) AS timetable_entry_count
+        (SELECT COUNT(*) FROM timetable tt WHERE tt.school_id = s.school_id) AS timetable_entry_count,
+        (SELECT MAX(al.created_at) FROM activity_logs al WHERE al.school_id = s.school_id) AS last_activity_at
       FROM schools s
       LEFT JOIN directors_of_studies dos ON dos.school_id = s.school_id AND dos.deleted_at IS NULL
       LEFT JOIN users dos_user ON dos_user.school_id = s.school_id AND dos_user.role = 'dos'
@@ -270,11 +312,30 @@ class School {
     await pool.execute(`UPDATE schools SET ${assignments.join(', ')} WHERE school_id = ?`, values);
   }
 
-  static async updateSubscriptionStatus(id, subscriptionStatus) {
+  static async updateSubscriptionStatus(id, subscriptionStatus, options = {}) {
     await this.ensureSchema();
+    const fields = ['subscription_status = ?'];
+    const values = [subscriptionStatus];
+
+    if (options.subscription_plan !== undefined) {
+      fields.push('subscription_plan = ?');
+      values.push(options.subscription_plan || 'Starter');
+    }
+
+    if (options.subscription_expires_at !== undefined) {
+      fields.push('subscription_expires_at = ?');
+      values.push(options.subscription_expires_at || null);
+    }
+
+    if (options.auto_renewal !== undefined) {
+      fields.push('auto_renewal = ?');
+      values.push(options.auto_renewal || 'enabled');
+    }
+
+    values.push(id);
     await pool.execute(
-      'UPDATE schools SET subscription_status = ? WHERE school_id = ? AND deleted_at IS NULL',
-      [subscriptionStatus, id]
+      `UPDATE schools SET ${fields.join(', ')} WHERE school_id = ? AND deleted_at IS NULL`,
+      values
     );
   }
 
@@ -294,7 +355,21 @@ class School {
         SUM(status = 'pending_approval') AS pending_schools,
         SUM(status = 'active') AS active_schools,
         SUM(status = 'suspended') AS suspended_schools,
-        SUM(status IN ('deactivated', 'rejected')) AS inactive_schools
+        SUM(status = 'expired') AS expired_schools,
+        SUM(status IN ('deactivated', 'rejected')) AS inactive_schools,
+        SUM(subscription_status = 'active') AS active_subscriptions,
+        SUM(subscription_status = 'expired' OR subscription_expires_at < CURRENT_DATE()) AS expired_subscriptions,
+        SUM(subscription_expires_at BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), INTERVAL 30 DAY)) AS expiring_subscriptions,
+        SUM(created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) AS new_schools_30d,
+        SUM(created_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY) AND created_at < DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)) AS previous_schools_30d,
+        SUM(
+          CASE subscription_plan
+            WHEN 'Enterprise' THEN 299
+            WHEN 'Professional' THEN 149
+            WHEN 'Starter' THEN 49
+            ELSE 0
+          END
+        ) AS estimated_monthly_revenue
       FROM schools
       WHERE deleted_at IS NULL
     `);
@@ -325,7 +400,14 @@ class School {
       pending_schools: Number(schoolStats.pending_schools || 0),
       active_schools: Number(schoolStats.active_schools || 0),
       suspended_schools: Number(schoolStats.suspended_schools || 0),
+      expired_schools: Number(schoolStats.expired_schools || 0),
       inactive_schools: Number(schoolStats.inactive_schools || 0),
+      active_subscriptions: Number(schoolStats.active_subscriptions || 0),
+      expired_subscriptions: Number(schoolStats.expired_subscriptions || 0),
+      expiring_subscriptions: Number(schoolStats.expiring_subscriptions || 0),
+      new_schools_30d: Number(schoolStats.new_schools_30d || 0),
+      previous_schools_30d: Number(schoolStats.previous_schools_30d || 0),
+      estimated_monthly_revenue: Number(schoolStats.estimated_monthly_revenue || 0),
       total_teachers: Number(teacherStats.total_teachers || 0),
       active_teachers: Number(teacherStats.active_teachers || 0),
       total_classes: Number(classStats.total_classes || 0),
@@ -358,6 +440,152 @@ class School {
       ORDER BY a.created_at DESC
       LIMIT ${limit}
     `, values);
+
+    return rows;
+  }
+
+  static async getAuditLogs(filters = {}) {
+    await this.ensureSchema();
+    const values = [];
+    const where = [];
+
+    if (filters.school_id) {
+      where.push('a.school_id = ?');
+      values.push(filters.school_id);
+    }
+    if (filters.search) {
+      where.push('(a.action LIKE ? OR a.message LIKE ? OR s.school_name LIKE ? OR a.actor_role LIKE ?)');
+      const term = `%${filters.search}%`;
+      values.push(term, term, term, term);
+    }
+
+    const limit = Math.min(Math.max(Number(filters.limit) || 100, 1), 250);
+    const [rows] = await pool.execute(`
+      SELECT a.*, s.school_name
+      FROM activity_logs a
+      LEFT JOIN schools s ON a.school_id = s.school_id
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+      ORDER BY a.created_at DESC
+      LIMIT ${limit}
+    `, values);
+
+    return rows;
+  }
+
+  static async getDirectorBySchool(schoolId) {
+    await this.ensureSchema();
+    const [rows] = await pool.execute(`
+      SELECT
+        dos.*,
+        u.id AS user_id,
+        u.email AS user_email,
+        u.full_name AS user_full_name,
+        u.status AS user_status,
+        u.last_login
+      FROM directors_of_studies dos
+      LEFT JOIN users u ON u.id = dos.user_id
+      WHERE dos.school_id = ? AND dos.deleted_at IS NULL
+      ORDER BY dos.created_at DESC
+      LIMIT 1
+    `, [schoolId]);
+
+    return rows[0] || null;
+  }
+
+  static async updateDirectorUser(schoolId, data = {}) {
+    await this.ensureSchema();
+    const fields = [];
+    const values = [];
+
+    if (data.user_id !== undefined) {
+      fields.push('user_id = ?');
+      values.push(data.user_id || null);
+    }
+    if (data.full_name !== undefined) {
+      fields.push('full_name = ?');
+      values.push(data.full_name);
+    }
+    if (data.email !== undefined) {
+      fields.push('email = ?');
+      values.push(data.email);
+    }
+    if (data.phone !== undefined) {
+      fields.push('phone = ?');
+      values.push(data.phone || '');
+    }
+    if (data.status !== undefined) {
+      fields.push('status = ?');
+      values.push(data.status);
+    }
+
+    if (!fields.length) return;
+    values.push(schoolId);
+    await pool.execute(
+      `UPDATE directors_of_studies SET ${fields.join(', ')} WHERE school_id = ? AND deleted_at IS NULL`,
+      values
+    );
+  }
+
+  static async addSupportNote(data) {
+    await this.ensurePlatformTables();
+    const [result] = await pool.execute(
+      'INSERT INTO support_notes (school_id, user_id, note) VALUES (?, ?, ?)',
+      [data.school_id, data.user_id || null, data.note]
+    );
+    return result.insertId;
+  }
+
+  static async getSupportNotes(schoolId) {
+    await this.ensurePlatformTables();
+    const [rows] = await pool.execute(`
+      SELECT sn.*, u.full_name, u.email
+      FROM support_notes sn
+      LEFT JOIN users u ON u.id = sn.user_id
+      WHERE sn.school_id = ?
+      ORDER BY sn.created_at DESC
+      LIMIT 50
+    `, [schoolId]);
+    return rows;
+  }
+
+  static async addBillingEvent(data) {
+    await this.ensurePlatformTables();
+    const [result] = await pool.execute(
+      'INSERT INTO billing_events (school_id, event_type, plan, amount, status, message) VALUES (?, ?, ?, ?, ?, ?)',
+      [data.school_id, data.event_type, data.plan || null, data.amount || null, data.status || null, data.message || null]
+    );
+    return result.insertId;
+  }
+
+  static async getBillingEvents(schoolId) {
+    await this.ensurePlatformTables();
+    const [rows] = await pool.execute(
+      'SELECT * FROM billing_events WHERE school_id = ? ORDER BY created_at DESC LIMIT 50',
+      [schoolId]
+    );
+    return rows;
+  }
+
+  static async getDosLoginHistory(schoolId) {
+    await this.ensureSchema();
+    const director = await this.getDirectorBySchool(schoolId);
+    if (!director?.user_id) return [];
+
+    const [rows] = await pool.execute(`
+      SELECT activity_id, user_id, actor_role, action, message, device, browser, ip_address, location, created_at
+      FROM activity_logs
+      WHERE user_id = ? AND action IN ('dos_login', 'dos_password_reset', 'dos_disabled', 'dos_enabled', 'dos_ownership_transferred')
+      ORDER BY created_at DESC
+      LIMIT 50
+    `, [director.user_id]);
+
+    if (!rows.length && director.last_login) {
+      return [{
+        action: 'dos_login',
+        message: 'Last recorded DOS login',
+        created_at: director.last_login
+      }];
+    }
 
     return rows;
   }
@@ -404,8 +632,8 @@ class School {
     await this.ensureSchema();
     await pool.execute(
       `INSERT INTO activity_logs
-        (school_id, user_id, actor_role, action, entity_type, entity_id, message)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (school_id, user_id, actor_role, action, entity_type, entity_id, message, device, browser, ip_address, location)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         data.school_id || null,
         data.user_id || null,
@@ -413,7 +641,11 @@ class School {
         data.action,
         data.entity_type || null,
         data.entity_id || null,
-        data.message || null
+        data.message || null,
+        data.device || null,
+        data.browser || null,
+        data.ip_address || null,
+        data.location || null
       ]
     );
   }

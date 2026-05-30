@@ -186,7 +186,7 @@ const seed = async () => {
       type: 'school_registered',
       title: `New school registration: ${pendingSchool.school_name}`,
       message: `${pendingSchool.school_name} is waiting for super admin approval.`,
-      path: '/super-admin/schools',
+      path: '/super-admin/dashboard#schools',
       tone: 'amber',
       recipient_role: 'super_admin'
     });

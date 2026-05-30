@@ -367,6 +367,14 @@ class User {
       [status, id]
     );
   }
+
+  static async updateRoleAndSchool(id, role, schoolId) {
+    await this.ensureAuthColumns();
+    await pool.query(
+      'UPDATE users SET role = ?, school_id = ? WHERE id = ?',
+      [role, schoolId || null, id]
+    );
+  }
 }
 
 module.exports = User;

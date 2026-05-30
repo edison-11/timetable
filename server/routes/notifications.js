@@ -36,7 +36,7 @@ router.get('/', auth, async (req, res) => {
       type: 'school_pending',
       title: `School pending approval: ${school.school_name}`,
       message: `${school.dos_name || school.school_email} submitted ${school.school_name} for review.`,
-      path: '/super-admin/schools',
+      path: '/super-admin/dashboard#schools',
       tone: 'amber',
       created_at: school.created_at,
       action_required: true,
@@ -80,6 +80,46 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Notification not found' });
     }
     res.json({ message: 'Notification deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/:id/read', auth, async (req, res) => {
+  try {
+    await Notification.markRead(req.params.id, { recipient_role: req.user?.role });
+    res.json({ message: 'Notification marked as read' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/read/all', auth, async (req, res) => {
+  try {
+    await Notification.markRead(null, { recipient_role: req.user?.role });
+    res.json({ message: 'Notifications marked as read' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/:id/archive', auth, async (req, res) => {
+  try {
+    await Notification.archive(req.params.id, { recipient_role: req.user?.role });
+    res.json({ message: 'Notification archived' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/archive/all', auth, async (req, res) => {
+  try {
+    await Notification.archive(null, { recipient_role: req.user?.role });
+    res.json({ message: 'Notifications archived' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

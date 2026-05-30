@@ -17,6 +17,7 @@
     "ical-generator": "^8.0.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.1",
+    "lucide-vue-next": "^1.0.0",
     "pinia": "^2.1.6",
     "vue": "^3.3.4",
     "vue-router": "^4.2.4",

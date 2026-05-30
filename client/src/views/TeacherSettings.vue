@@ -1,321 +1,332 @@
 <template>
   <TeacherLayout>
-  <div class="teacher-settings-page">
-    <!-- Main Content -->
-    <div class="container py-4">
-      <div class="row">
-        <div class="col-lg-8 mx-auto">
-          <div class="settings-intro mb-4">
+    <div class="teacher-settings-page">
+      <div class="settings-wrap">
+        <header class="settings-intro">
+          <div>
+            <span class="eyebrow">Teacher Workspace</span>
             <h1>Settings</h1>
-            <p>Manage application preferences, availability, and account security. Personal details now live in My Profile.</p>
-            <router-link to="/teacher/profile" class="profile-link">Go to My Profile</router-link>
+            <p>Update your account, teaching availability, timetable view, alerts, and password from one organized place.</p>
           </div>
+          <router-link to="/teacher/profile" class="profile-link">
+            <i class="bi bi-person-circle"></i>
+            My Profile
+          </router-link>
+        </header>
 
-          <div v-if="loadingData" class="settings-skeleton mb-4">
-            <div class="skeleton-line title"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-line short"></div>
-            <div class="skeleton-grid">
-              <div class="skeleton-box" v-for="index in 3" :key="index"></div>
-            </div>
+        <div v-if="loadingData" class="settings-skeleton">
+          <div class="skeleton-line title"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-grid">
+            <div class="skeleton-box" v-for="index in 4" :key="index"></div>
           </div>
+        </div>
 
-          <div v-else>
-            <div v-if="settingsError" class="alert alert-danger mb-4">
+        <div v-else class="settings-shell">
+          <aside class="settings-nav" aria-label="Teacher settings sections">
+            <button
+              v-for="item in settingsSections"
+              :key="item.id"
+              type="button"
+              class="settings-nav-item"
+              :class="{ active: activeTab === item.id }"
+              @click="activeTab = item.id"
+            >
+              <i :class="item.icon"></i>
+              <span>{{ item.label }}</span>
+              <small>{{ item.caption }}</small>
+            </button>
+          </aside>
+
+          <main class="settings-content">
+            <div v-if="settingsError" class="alert alert-danger">
               {{ settingsError }}
             </div>
-            <!-- Tabs Navigation -->
-            <ul class="nav nav-tabs mb-4" role="tablist">
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                :class="{ active: activeTab === 'profile' }"
-                @click="activeTab = 'profile'"
-                type="button"
-              >
-                <i class="bi bi-person-circle me-2"></i>Profile
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                :class="{ active: activeTab === 'availability' }"
-                @click="activeTab = 'availability'"
-                type="button"
-              >
-                <i class="bi bi-calendar-check me-2"></i>Availability
-              </button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button
-                class="nav-link"
-                :class="{ active: activeTab === 'security' }"
-                @click="activeTab = 'security'"
-                type="button"
-              >
-                <i class="bi bi-shield-lock me-2"></i>Security
-              </button>
-            </li>
-          </ul>
 
-          <!-- Profile Tab -->
-          <div v-if="activeTab === 'profile'" class="card shadow-sm">
-            <div class="card-header bg-white border-bottom">
-              <h5 class="card-title mb-0">Profile Settings</h5>
-            </div>
-            <div class="card-body">
+            <section v-if="activeTab === 'account'" class="settings-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Account Details</h2>
+                  <p>Keep the information your DOS uses to identify you correct.</p>
+                </div>
+                <div class="profile-preview">
+                  <img v-if="profileData.profile_photo" :src="profileData.profile_photo" alt="Teacher avatar" />
+                  <span v-else>{{ profileInitial }}</span>
+                </div>
+              </div>
+
               <form @submit.prevent="saveProfile">
-                <div class="row gx-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Full Name</label>
+                <div class="form-grid">
+                  <label>
+                    <span>Full Name</span>
                     <input v-model.trim="profileData.name" type="text" class="form-control" required />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Email</label>
+                  </label>
+                  <label>
+                    <span>Email</span>
                     <input v-model.trim="profileData.email" type="email" class="form-control" required />
-                  </div>
-                </div>
-
-                <div class="row gx-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Department</label>
+                  </label>
+                  <label>
+                    <span>Department</span>
                     <input v-model.trim="profileData.department" type="text" class="form-control" required />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Phone</label>
+                  </label>
+                  <label>
+                    <span>Phone</span>
                     <input v-model.trim="profileData.phone" type="tel" class="form-control" />
-                  </div>
-                </div>
-
-                <div class="row gx-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Staff ID</label>
+                  </label>
+                  <label>
+                    <span>Staff ID</span>
                     <input v-model.trim="profileData.employee_id" type="text" class="form-control" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Qualification</label>
+                  </label>
+                  <label>
+                    <span>Qualification</span>
                     <input v-model.trim="profileData.qualification" type="text" class="form-control" />
-                  </div>
-                </div>
-
-                <div class="row gx-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Subject Specialization</label>
+                  </label>
+                  <label>
+                    <span>Subject Specialization</span>
                     <input v-model.trim="profileData.module_name" type="text" class="form-control" />
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Years of Experience</label>
+                  </label>
+                  <label>
+                    <span>Years of Experience</span>
                     <input v-model.number="profileData.years_experience" type="number" min="0" class="form-control" />
-                  </div>
+                  </label>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Profile Photo</label>
-                  <div class="profile-photo-field d-flex gap-3 align-items-center">
-                    <div class="profile-preview">
-                      <img v-if="profileData.profile_photo" :src="profileData.profile_photo" alt="Teacher avatar" />
-                      <span v-else class="profile-placeholder">T</span>
-                    </div>
-                    <input type="file" accept="image/*" class="form-control" @change="handleAvatarUpload" />
-                  </div>
-                </div>
-
-                <div class="mb-3 form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="scheduleAlert" v-model="profileData.receive_schedule_alerts" />
-                  <label class="form-check-label" for="scheduleAlert">Receive timetable update alerts</label>
-                </div>
+                <label class="upload-row">
+                  <span>Profile Photo</span>
+                  <input type="file" accept="image/*" class="form-control" @change="handleAvatarUpload" />
+                </label>
 
                 <div v-if="messages.profile" class="alert" :class="messagesClass.profile" role="alert">
                   {{ messages.profile }}
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="actions-row">
                   <button type="submit" class="btn btn-primary" :disabled="loadingProfile">
-                    <span v-if="loadingProfile">Updating profile...</span>
-                    <span v-else>Save Profile</span>
+                    {{ loadingProfile ? 'Saving...' : 'Save Account' }}
                   </button>
-                  <button type="button" class="btn btn-outline-secondary" @click="resetProfile">
-                    Reset
-                  </button>
+                  <button type="button" class="btn btn-outline-secondary" @click="resetProfile">Reset</button>
                 </div>
               </form>
-            </div>
-          </div>
+            </section>
 
-          <!-- Availability Tab -->
-          <div v-if="activeTab === 'availability'" class="card shadow-sm">
-            <div class="card-header bg-white border-bottom">
-              <h5 class="card-title mb-0">Availability Settings</h5>
-            </div>
-            <div class="card-body">
+            <section v-if="activeTab === 'availability'" class="settings-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Availability</h2>
+                  <p>Tell the DOS when you can be assigned lessons.</p>
+                </div>
+              </div>
+
               <form @submit.prevent="saveAvailability">
-                <div class="mb-4">
-                  <label class="form-label fw-semibold">Working Days</label>
-                  <div class="row gx-2 gy-2">
-                    <div class="col-6" v-for="day in availableDaysOptions" :key="day">
-                      <div class="form-check">
-                        <input
-                          type="checkbox"
-                          class="form-check-input"
-                          :id="day"
-                          :value="day"
-                          v-model="availableDaysArray"
-                        >
-                        <label class="form-check-label" :for="day">
-                          {{ day }}
-                        </label>
-                      </div>
-                    </div>
-                  </div>
+                <div class="days-grid">
+                  <label v-for="day in availableDaysOptions" :key="day" class="day-chip">
+                    <input type="checkbox" :value="day" v-model="availableDaysArray" />
+                    <span>{{ day }}</span>
+                  </label>
                 </div>
 
-                <div class="row gx-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label">Available From</label>
-                    <input v-model="formData.available_from" type="time" class="form-control">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Available Until</label>
-                    <input v-model="formData.available_to" type="time" class="form-control">
-                  </div>
+                <div class="form-grid compact">
+                  <label>
+                    <span>Available From</span>
+                    <input v-model="formData.available_from" type="time" class="form-control" />
+                  </label>
+                  <label>
+                    <span>Available Until</span>
+                    <input v-model="formData.available_to" type="time" class="form-control" />
+                  </label>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label">Additional Notes</label>
-                  <textarea v-model.trim="formData.notes" rows="4" class="form-control" placeholder="Preferred classrooms, special needs, etc."></textarea>
-                </div>
+                <label>
+                  <span>Planning Notes</span>
+                  <textarea
+                    v-model.trim="formData.notes"
+                    rows="4"
+                    class="form-control"
+                    placeholder="Room preference, lab needs, duty limits, or other scheduling notes."
+                  ></textarea>
+                </label>
 
                 <div v-if="messages.availability" class="alert" :class="messagesClass.availability" role="alert">
                   {{ messages.availability }}
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="actions-row">
                   <button type="submit" class="btn btn-primary" :disabled="loadingAvailability">
-                    <span v-if="loadingAvailability">Saving...</span>
-                    <span v-else>Save Changes</span>
+                    {{ loadingAvailability ? 'Saving...' : 'Save Availability' }}
                   </button>
-                  <button type="button" class="btn btn-outline-secondary" @click="resetAvailability">
-                    Cancel
-                  </button>
+                  <button type="button" class="btn btn-outline-secondary" @click="resetAvailability">Cancel</button>
                 </div>
               </form>
-            </div>
-          </div>
+            </section>
 
-          <!-- Security Tab -->
-          <div v-if="activeTab === 'security'" class="card shadow-sm">
-            <div class="card-header bg-white border-bottom">
-              <h5 class="card-title mb-0">Security Settings</h5>
-            </div>
-            <div class="card-body">
+            <section v-if="activeTab === 'timetable'" class="settings-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Timetable View</h2>
+                  <p>Choose how your timetable opens and what details appear.</p>
+                </div>
+                <router-link to="/teacher/timetable" class="quick-link">Open Timetable</router-link>
+              </div>
+
+              <div class="preference-grid">
+                <label class="preference-card">
+                  <span>Default View</span>
+                  <select v-model="preferences.defaultTimetableView" class="form-select" @change="savePreferences">
+                    <option value="week">Weekly grid</option>
+                    <option value="day">Today view</option>
+                  </select>
+                </label>
+
+                <label class="preference-card">
+                  <span>Time Format</span>
+                  <select v-model="preferences.timeFormat" class="form-select" @change="savePreferences">
+                    <option value="24">24-hour</option>
+                    <option value="12">12-hour</option>
+                  </select>
+                </label>
+
+                <label class="toggle-card">
+                  <input v-model="preferences.highlightToday" type="checkbox" @change="savePreferences" />
+                  <span>
+                    <strong>Highlight today</strong>
+                    <small>Make the current day easier to scan.</small>
+                  </span>
+                </label>
+
+                <label class="toggle-card">
+                  <input v-model="preferences.showRoomCodes" type="checkbox" @change="savePreferences" />
+                  <span>
+                    <strong>Show room codes</strong>
+                    <small>Keep classroom information visible in timetable cells.</small>
+                  </span>
+                </label>
+
+                <label class="toggle-card">
+                  <input v-model="preferences.compactTimetable" type="checkbox" @change="savePreferences" />
+                  <span>
+                    <strong>Compact timetable</strong>
+                    <small>Use tighter rows when you have many lessons.</small>
+                  </span>
+                </label>
+              </div>
+
+              <p v-if="messages.preferences" class="save-note">{{ messages.preferences }}</p>
+            </section>
+
+            <section v-if="activeTab === 'notifications'" class="settings-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Notifications</h2>
+                  <p>Control lesson reminders and update alerts on this device.</p>
+                </div>
+              </div>
+
+              <div class="preference-grid">
+                <label class="toggle-card">
+                  <input v-model="profileData.receive_schedule_alerts" type="checkbox" @change="saveProfile" />
+                  <span>
+                    <strong>Timetable update alerts</strong>
+                    <small>Notify me when my schedule changes.</small>
+                  </span>
+                </label>
+
+                <label class="toggle-card">
+                  <input v-model="preferences.lessonReminders" type="checkbox" @change="savePreferences" />
+                  <span>
+                    <strong>Lesson reminders</strong>
+                    <small>Remind me before the next lesson begins.</small>
+                  </span>
+                </label>
+
+                <label class="preference-card">
+                  <span>Reminder Time</span>
+                  <select v-model.number="preferences.reminderMinutes" class="form-select" @change="savePreferences">
+                    <option :value="5">5 minutes before</option>
+                    <option :value="10">10 minutes before</option>
+                    <option :value="15">15 minutes before</option>
+                    <option :value="30">30 minutes before</option>
+                  </select>
+                </label>
+
+                <label class="toggle-card">
+                  <input v-model="preferences.weekendQuietMode" type="checkbox" @change="savePreferences" />
+                  <span>
+                    <strong>Weekend quiet mode</strong>
+                    <small>Reduce reminders from Friday 6:00 PM to Sunday 6:00 PM.</small>
+                  </span>
+                </label>
+              </div>
+
+              <p v-if="messages.preferences" class="save-note">{{ messages.preferences }}</p>
+            </section>
+
+            <section v-if="activeTab === 'security'" class="settings-panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Security</h2>
+                  <p>Change your password and keep your account protected.</p>
+                </div>
+              </div>
+
               <form @submit.prevent="savePassword">
-                <div class="alert alert-info" role="alert">
-                  <i class="bi bi-info-circle me-2"></i>
-                  Leave the password field blank to keep your current password unchanged.
-                </div>
+                <div class="security-grid">
+                  <label>
+                    <span>New Password</span>
+                    <div class="password-field">
+                      <input
+                        v-model="passwordForm.newPassword"
+                        :type="showNewPassword ? 'text' : 'password'"
+                        class="form-control"
+                        placeholder="Enter new password"
+                        minlength="6"
+                      />
+                      <button type="button" class="password-toggle" @click="showNewPassword = !showNewPassword">
+                        <i :class="showNewPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                      </button>
+                    </div>
+                  </label>
 
-                <div class="mb-3">
-                  <label class="form-label">New Password</label>
-                  <div class="password-field">
-                    <input
-                      v-model="passwordForm.newPassword"
-                      :type="showNewPassword ? 'text' : 'password'"
-                      class="form-control"
-                      placeholder="Enter new password"
-                      minlength="6"
-                    >
-                    <button
-                      type="button"
-                      class="password-toggle"
-                      :aria-label="showNewPassword ? 'Hide password' : 'Show password'"
-                      :title="showNewPassword ? 'Hide password' : 'Show password'"
-                      @click="showNewPassword = !showNewPassword"
-                    >
-                      <svg v-if="showNewPassword" class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M3 3l18 18" />
-                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-                        <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.2 0 8.6 4.3 10 8a13.2 13.2 0 0 1-2.6 4.1" />
-                        <path d="M6.6 6.6A13.1 13.1 0 0 0 2 12c1.4 3.7 4.8 8 10 8 1.8 0 3.4-.5 4.8-1.3" />
-                      </svg>
-                      <svg v-else class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      </svg>
-                    </button>
-                  </div>
-                  <div class="form-text">At least 6 characters for security.</div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label">Confirm Password</label>
-                  <div class="password-field">
-                    <input
-                      v-model="passwordForm.confirmPassword"
-                      :type="showConfirmPassword ? 'text' : 'password'"
-                      class="form-control"
-                      placeholder="Confirm new password"
-                    >
-                    <button
-                      type="button"
-                      class="password-toggle"
-                      :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
-                      :title="showConfirmPassword ? 'Hide password' : 'Show password'"
-                      @click="showConfirmPassword = !showConfirmPassword"
-                    >
-                      <svg v-if="showConfirmPassword" class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M3 3l18 18" />
-                        <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
-                        <path d="M9.9 4.2A10.8 10.8 0 0 1 12 4c5.2 0 8.6 4.3 10 8a13.2 13.2 0 0 1-2.6 4.1" />
-                        <path d="M6.6 6.6A13.1 13.1 0 0 0 2 12c1.4 3.7 4.8 8 10 8 1.8 0 3.4-.5 4.8-1.3" />
-                      </svg>
-                      <svg v-else class="form-signifier-icon" viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
-                      </svg>
-                    </button>
-                  </div>
+                  <label>
+                    <span>Confirm Password</span>
+                    <div class="password-field">
+                      <input
+                        v-model="passwordForm.confirmPassword"
+                        :type="showConfirmPassword ? 'text' : 'password'"
+                        class="form-control"
+                        placeholder="Confirm new password"
+                      />
+                      <button type="button" class="password-toggle" @click="showConfirmPassword = !showConfirmPassword">
+                        <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                      </button>
+                    </div>
+                  </label>
                 </div>
 
                 <div v-if="messages.password" class="alert" :class="messagesClass.password" role="alert">
                   {{ messages.password }}
                 </div>
 
-                <div class="d-flex gap-2">
+                <div class="actions-row">
                   <button type="submit" class="btn btn-primary" :disabled="loadingPassword">
-                    <span v-if="loadingPassword">Updating...</span>
-                    <span v-else>Update Password</span>
+                    {{ loadingPassword ? 'Updating...' : 'Update Password' }}
                   </button>
-                  <button type="button" class="btn btn-outline-secondary" @click="resetPassword">
-                    Cancel
-                  </button>
+                  <button type="button" class="btn btn-outline-secondary" @click="resetPassword">Cancel</button>
                 </div>
               </form>
 
-              <hr class="my-4">
-
-              <div>
-                <h6 class="fw-semibold mb-3">Danger Zone</h6>
-                <p class="text-muted">Once you delete your account, there is no going back. Please be certain.</p>
-                <button type="button" class="btn btn-danger" @click="confirmDeleteAccount">
-                  <i class="bi bi-trash me-2"></i>Delete Account
-                </button>
+              <div class="security-tips">
+                <h3>Account checklist</h3>
+                <ul>
+                  <li>Use a password that is not used on other systems.</li>
+                  <li>Contact the DOS if your email or staff ID is wrong.</li>
+                  <li>Sign out when using a shared computer.</li>
+                </ul>
               </div>
-            </div>
-          </div>
+            </section>
+          </main>
         </div>
       </div>
     </div>
-  </div>
-  </div>
-
-  <ConfirmModal
-    v-model="deleteDialogOpen"
-    title="Delete Account"
-    description="Account deletion is not available yet. This action will be added after account recovery and audit protections are complete."
-    confirm-label="Got it"
-    cancel-label="Close"
-    @confirm="deleteDialogOpen = false"
-  />
   </TeacherLayout>
 </template>
 
@@ -324,15 +335,33 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import TeacherLayout from '@/components/TeacherLayout.vue'
-import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
 const authStore = useAuthStore()
+const teacherPreferencesKey = 'teacherSettingsPreferences'
 
-const activeTab = ref('profile')
+const settingsSections = [
+  { id: 'account', label: 'Account', caption: 'Profile basics', icon: 'bi bi-person-badge' },
+  { id: 'availability', label: 'Availability', caption: 'Teaching hours', icon: 'bi bi-calendar-check' },
+  { id: 'timetable', label: 'Timetable', caption: 'View options', icon: 'bi bi-table' },
+  { id: 'notifications', label: 'Notifications', caption: 'Reminders', icon: 'bi bi-bell' },
+  { id: 'security', label: 'Security', caption: 'Password', icon: 'bi bi-shield-lock' }
+]
+
+const defaultPreferences = {
+  defaultTimetableView: 'week',
+  timeFormat: '24',
+  highlightToday: true,
+  showRoomCodes: true,
+  compactTimetable: false,
+  lessonReminders: true,
+  reminderMinutes: 10,
+  weekendQuietMode: true
+}
+
+const activeTab = ref('account')
 const loadingProfile = ref(false)
 const loadingAvailability = ref(false)
 const loadingPassword = ref(false)
-const deleteDialogOpen = ref(false)
 const loadingData = ref(true)
 const settingsError = ref('')
 
@@ -358,6 +387,8 @@ const formData = ref({
   notes: ''
 })
 
+const preferences = ref({ ...defaultPreferences })
+
 const passwordForm = ref({
   newPassword: '',
   confirmPassword: ''
@@ -366,7 +397,8 @@ const passwordForm = ref({
 const messages = ref({
   profile: '',
   availability: '',
-  password: ''
+  password: '',
+  preferences: ''
 })
 
 const messagesClass = computed(() => ({
@@ -374,6 +406,8 @@ const messagesClass = computed(() => ({
   availability: messages.value.availability.includes('successfully') ? 'alert-success' : 'alert-danger',
   password: messages.value.password.includes('successfully') ? 'alert-success' : 'alert-danger'
 }))
+
+const profileInitial = computed(() => profileData.value.name?.charAt(0)?.toUpperCase() || 'T')
 
 const originalFormData = ref({})
 
@@ -386,6 +420,23 @@ const availableDaysArray = computed({
 
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
+
+const loadPreferences = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(teacherPreferencesKey) || '{}')
+    preferences.value = { ...defaultPreferences, ...saved }
+  } catch (error) {
+    preferences.value = { ...defaultPreferences }
+  }
+}
+
+const savePreferences = () => {
+  localStorage.setItem(teacherPreferencesKey, JSON.stringify(preferences.value))
+  messages.value.preferences = 'Preferences saved on this device.'
+  window.setTimeout(() => {
+    messages.value.preferences = ''
+  }, 2200)
+}
 
 const loadTeacherData = async () => {
   loadingData.value = true
@@ -404,7 +455,7 @@ const loadTeacherData = async () => {
       qualification: teacher.qualification || '',
       years_experience: teacher.years_experience || 0,
       profile_photo: teacher.profile_photo || '',
-      receive_schedule_alerts: true
+      receive_schedule_alerts: teacher.receive_schedule_alerts ?? true
     }
 
     formData.value = {
@@ -435,6 +486,7 @@ const saveAvailability = async () => {
       notes: formData.value.notes
     })
 
+    originalFormData.value = JSON.parse(JSON.stringify(formData.value))
     messages.value.availability = 'Availability updated successfully!'
     await authStore.checkAuth()
   } catch (error) {
@@ -459,6 +511,7 @@ const saveProfile = async () => {
       qualification: profileData.value.qualification,
       yearsExperience: profileData.value.years_experience,
       profile_photo: profileData.value.profile_photo,
+      receive_schedule_alerts: profileData.value.receive_schedule_alerts,
       notes: formData.value.notes,
       availableDays: formData.value.available_days,
       availableFrom: formData.value.available_from,
@@ -536,11 +589,8 @@ const resetPassword = () => {
   messages.value.password = ''
 }
 
-const confirmDeleteAccount = () => {
-  deleteDialogOpen.value = true
-}
-
 onMounted(() => {
+  loadPreferences()
   loadTeacherData()
 })
 </script>
@@ -548,61 +598,175 @@ onMounted(() => {
 <style scoped>
 .teacher-settings-page {
   min-height: 100vh;
-  background: #f8fafc;
   padding: 1.5rem;
+  background: #f8fafc;
+  font-family: var(--app-font);
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
-.profile-photo-container {
-  position: relative;
-}
-
-.profile-photo,
-.profile-photo-placeholder {
-  width: 150px;
-  height: 150px;
-  border-radius: 12px;
-  object-fit: cover;
-  display: block;
+.settings-wrap {
+  width: min(1180px, 100%);
   margin: 0 auto;
 }
 
-.profile-photo-placeholder {
+.settings-intro {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #2563eb;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-intro h1 {
+  margin: 0 0 0.35rem;
+  color: #0f172a;
+  font-size: 1.8rem;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.settings-intro p {
+  max-width: 720px;
+  margin: 0;
+  color: #52627a;
+}
+
+.profile-link,
+.quick-link {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  font-size: 48px;
-  font-weight: bold;
+  gap: 0.45rem;
+  min-height: 42px;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.nav-tabs .nav-link {
-  color: #6c757d;
-  border: none;
-  border-bottom: 3px solid transparent;
-}
-
-.nav-tabs .nav-link.active {
-  color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.profile-photo-field {
-  display: flex;
-  align-items: center;
+.settings-shell {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
   gap: 1rem;
-  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.settings-nav {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.settings-nav-item {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 0 0.65rem;
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  text-align: left;
+}
+
+.settings-nav-item i {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  color: #2563eb;
+  font-size: 1rem;
+}
+
+.settings-nav-item span {
+  color: #0f172a;
+  font-weight: 900;
+}
+
+.settings-nav-item small {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.settings-nav-item.active,
+.settings-nav-item:hover {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.settings-content {
+  min-width: 0;
+}
+
+.settings-panel,
+.settings-skeleton {
+  padding: 1.25rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.panel-heading h2 {
+  margin: 0 0 0.35rem;
+  color: #0f172a;
+  font-size: 1.25rem;
+  line-height: 1.16;
+  font-weight: 900;
+}
+
+.panel-heading p {
+  margin: 0;
+  color: #64748b;
 }
 
 .profile-preview {
-  width: 90px;
-  height: 90px;
-  border-radius: 16px;
-  background: #eef2ff;
+  width: 76px;
+  height: 76px;
+  flex: 0 0 76px;
   display: grid;
   place-items: center;
   overflow: hidden;
   border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #334155;
+  font-size: 1.25rem;
+  font-weight: 900;
 }
 
 .profile-preview img {
@@ -611,59 +775,151 @@ onMounted(() => {
   object-fit: cover;
 }
 
-.profile-placeholder {
-  font-size: 1.75rem;
+.form-grid,
+.preference-grid,
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.form-grid.compact {
+  margin: 1rem 0;
+}
+
+label {
+  display: grid;
+  gap: 0.45rem;
+  color: #0f172a;
+  font-size: 0.92rem;
   font-weight: 800;
-  color: #334155;
 }
 
-.nav-tabs .nav-link:hover {
-  color: #0d6efd;
+label span {
+  overflow-wrap: anywhere;
 }
 
-.card {
-  border: 1px solid #dbeafe;
-}
-
-.alert {
+.form-control,
+.form-select {
+  min-height: 42px;
+  border-color: #cbd5e1;
   border-radius: 8px;
 }
 
-.settings-intro {
-  padding: 1.25rem;
-  background: #ffffff;
-  border: 1px solid #dbeafe;
+.upload-row {
+  margin: 1rem 0;
+}
+
+.days-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.day-chip,
+.toggle-card,
+.preference-card {
+  min-height: 74px;
+  padding: 0.85rem;
+  border: 1px solid #dbe3ef;
   border-radius: 8px;
+  background: #f8fafc;
 }
 
-.settings-intro h1 {
-  margin: 0 0 0.35rem;
-  font-size: 1.45rem;
+.day-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
 }
 
-.settings-intro p {
-  margin: 0 0 0.75rem;
+.day-chip:has(input:checked),
+.toggle-card:has(input:checked) {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.toggle-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.toggle-card input {
+  margin-top: 0.2rem;
+}
+
+.toggle-card strong {
+  display: block;
+  color: #0f172a;
+}
+
+.toggle-card small {
   color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
-.profile-link {
+.actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field .form-control {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.35rem;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
   color: #2563eb;
-  font-weight: 800;
-  text-decoration: none;
 }
 
-.profile-link:hover {
-  text-decoration: underline;
+.security-tips {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.security-tips h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.security-tips ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #475569;
+}
+
+.save-note {
+  margin: 1rem 0 0;
+  color: #15803d;
+  font-weight: 800;
 }
 
 .settings-skeleton {
   display: grid;
   gap: 1rem;
-  padding: 1.5rem;
-  border-radius: 16px;
-  background: #ffffff;
-  border: 1px solid #dbeafe;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
+  margin-top: 1rem;
 }
 
 .settings-skeleton .skeleton-line,
@@ -678,16 +934,17 @@ onMounted(() => {
 .settings-skeleton .title {
   width: 40%;
   height: 24px;
-  border-radius: 12px;
-}
-
-.settings-skeleton .short {
-  width: 60%;
 }
 
 .settings-skeleton .skeleton-grid {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
+}
+
+.settings-skeleton .skeleton-box {
+  height: 84px;
+  border-radius: 8px;
 }
 
 @keyframes loadingShimmer {
@@ -699,48 +956,137 @@ onMounted(() => {
   }
 }
 
-.form-signifier-icon {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+:global(body.teacher-dark-mode) .teacher-settings-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%) !important;
+  color: #e5edf7 !important;
 }
 
-:global(body.teacher-dark-mode) .teacher-settings-page {
-  background: #020617;
-  color: #e5edf7;
+:global(body.teacher-dark-mode) .settings-wrap,
+:global(body.teacher-dark-mode) .settings-shell,
+:global(body.teacher-dark-mode) .settings-content {
+  background: transparent !important;
+  color: #e5edf7 !important;
 }
 
 :global(body.teacher-dark-mode) .settings-intro,
-:global(body.teacher-dark-mode) .card {
-  background: #111827;
-  border-color: #243244;
-  color: #e5edf7;
+:global(body.teacher-dark-mode) .settings-nav,
+:global(body.teacher-dark-mode) .settings-panel,
+:global(body.teacher-dark-mode) .settings-skeleton,
+:global(body.teacher-dark-mode) .day-chip,
+:global(body.teacher-dark-mode) .toggle-card,
+:global(body.teacher-dark-mode) .preference-card,
+:global(body.teacher-dark-mode) .security-tips {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+:global(body.teacher-dark-mode) .settings-skeleton .skeleton-line,
+:global(body.teacher-dark-mode) .settings-skeleton .skeleton-box {
+  background: linear-gradient(90deg, #111827 0%, #1e293b 42%, #111827 100%) !important;
+  background-size: 220% 100% !important;
+}
+
+:global(body.teacher-dark-mode) .settings-intro h1,
+:global(body.teacher-dark-mode) .panel-heading h2,
+:global(body.teacher-dark-mode) .settings-nav-item span,
+:global(body.teacher-dark-mode) .toggle-card strong,
+:global(body.teacher-dark-mode) .preference-card span,
+:global(body.teacher-dark-mode) label,
+:global(body.teacher-dark-mode) .security-tips h3 {
+  color: #f8fafc !important;
 }
 
 :global(body.teacher-dark-mode) .settings-intro p,
-:global(body.teacher-dark-mode) .text-muted {
+:global(body.teacher-dark-mode) .panel-heading p,
+:global(body.teacher-dark-mode) .settings-nav-item small,
+:global(body.teacher-dark-mode) .toggle-card small,
+:global(body.teacher-dark-mode) .security-tips ul {
   color: #cbd5e1 !important;
 }
 
-:global(body.teacher-dark-mode) .card-header {
+:global(body.teacher-dark-mode) .panel-heading {
+  border-bottom-color: #243244 !important;
+}
+
+:global(body.teacher-dark-mode) .settings-nav-item {
+  color: #cbd5e1 !important;
+}
+
+:global(body.teacher-dark-mode) .settings-nav-item i,
+:global(body.teacher-dark-mode) .eyebrow,
+:global(body.teacher-dark-mode) .password-toggle {
+  color: #93c5fd !important;
+}
+
+:global(body.teacher-dark-mode) .settings-nav-item.active,
+:global(body.teacher-dark-mode) .settings-nav-item:hover,
+:global(body.teacher-dark-mode) .day-chip:has(input:checked),
+:global(body.teacher-dark-mode) .toggle-card:has(input:checked) {
+  background: #172554 !important;
+  border-color: #3b82f6 !important;
+}
+
+:global(body.teacher-dark-mode) .form-control,
+:global(body.teacher-dark-mode) .form-select,
+:global(body.teacher-dark-mode) textarea,
+:global(body.teacher-dark-mode) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]) {
   background: #0b1220 !important;
-  border-color: #243244 !important;
-  color: #f8fafc;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
 }
 
-:global(body.teacher-dark-mode) .nav-tabs {
-  border-color: #243244;
+:global(body.teacher-dark-mode) .form-control::placeholder,
+:global(body.teacher-dark-mode) textarea::placeholder,
+:global(body.teacher-dark-mode) input::placeholder {
+  color: #94a3b8 !important;
 }
 
-:global(body.teacher-dark-mode) .nav-tabs .nav-link {
-  color: #cbd5e1;
+:global(body.teacher-dark-mode) .profile-preview {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #dbeafe !important;
 }
 
-:global(body.teacher-dark-mode) .nav-tabs .nav-link.active {
-  background: #172554;
-  color: #dbeafe;
-  border-color: #60a5fa;
+:global(body.teacher-dark-mode) .save-note {
+  color: #86efac !important;
+}
+
+@media (max-width: 900px) {
+  .settings-shell,
+  .form-grid,
+  .preference-grid,
+  .security-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .days-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .teacher-settings-page {
+    padding: 1rem;
+  }
+
+  .settings-intro,
+  .panel-heading {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-nav,
+  .days-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

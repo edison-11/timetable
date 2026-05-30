@@ -291,13 +291,16 @@ router.post('/login', [
       if (!school || ['pending', 'pending_approval'].includes(school.status)) {
         return res.status(403).json({ message: 'Your registration is waiting for system administrator approval.' });
       }
-      if (school.status !== 'active') {
+      if (school.status !== 'active' || ['suspended', 'expired', 'canceled'].includes(school.subscription_status)) {
         return res.status(403).json({
           code: 'SCHOOL_ACCESS_DISABLED',
           school_status: school.status,
+          subscription_status: school.subscription_status,
           message: school.status === 'suspended'
             ? 'Your school account has been suspended. Please contact system administration.'
-            : 'School access disabled by Super Admin.'
+            : school.status === 'expired' || school.subscription_status === 'expired'
+              ? 'Your school subscription has expired. Please contact system administration.'
+              : 'School access disabled by Super Admin.'
         });
       }
     }
