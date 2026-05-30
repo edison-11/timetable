@@ -275,6 +275,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import { notifyInfo, notifySuccess, notifyWarning } from '@/utils/notify'
 
 const openRequestForm = ref(false)
 const requestForm = ref({
@@ -424,18 +425,18 @@ const getNotifIcon = (type) => {
 }
 
 const downloadTimetable = () => {
-  alert('Timetable download feature coming soon!')
+  notifyInfo('Timetable download feature coming soon.')
 }
 
 const submitRequest = () => {
   if (!requestForm.value.type || !requestForm.value.currentLesson) {
-    alert('Please fill in all required fields')
+    notifyWarning('Please fill in all required fields.')
     return
   }
   console.log('Request submitted:', requestForm.value)
   openRequestForm.value = false
   requestForm.value = { type: '', currentLesson: '', requestedChange: '', reason: '' }
-  alert('Request submitted successfully!')
+  notifySuccess('Request submitted successfully!')
 }
 
 onMounted(() => {

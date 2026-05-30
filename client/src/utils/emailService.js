@@ -1,27 +1,8 @@
-import axios from 'axios';
+import api from '@/stores/api';
 
 /**
  * Email Service - Vue.js utility for calling backend email endpoints
  */
-
-const API_BASE_URL = '/api/email';
-
-// Create axios instance with base configuration
-const emailAPI = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Add token to requests if available
-emailAPI.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
 /**
  * Send OTP email
@@ -33,7 +14,7 @@ emailAPI.interceptors.request.use((config) => {
  */
 export const sendOtpEmail = async (email, code, purpose = 'registration', expiresInMinutes = 5) => {
   try {
-    const response = await emailAPI.post('/send-otp', {
+    const response = await api.post('/email/send-otp', {
       to: email,
       code,
       purpose,
@@ -60,7 +41,7 @@ export const sendOtpEmail = async (email, code, purpose = 'registration', expire
  */
 export const sendNotificationEmail = async (email, title, message, actionUrl = null, actionText = 'View Details') => {
   try {
-    const response = await emailAPI.post('/send-notification', {
+    const response = await api.post('/email/send-notification', {
       to: email,
       title,
       message,
@@ -86,7 +67,7 @@ export const sendNotificationEmail = async (email, title, message, actionUrl = n
  */
 export const sendCustomEmail = async (email, subject, html) => {
   try {
-    const response = await emailAPI.post('/send-custom', {
+    const response = await api.post('/email/send-custom', {
       to: email,
       subject,
       html
@@ -107,7 +88,7 @@ export const sendCustomEmail = async (email, subject, html) => {
  */
 export const checkEmailServiceHealth = async () => {
   try {
-    const response = await emailAPI.get('/health');
+    const response = await api.get('/email/health', { showGlobalNotification: false });
     return response.data;
   } catch (error) {
     console.error('Error checking email service health:', error);

@@ -434,6 +434,7 @@ import { ref, onMounted } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import { notifySuccess } from '@/utils/notify'
 
 const activeTab = ref('Overview')
 const fileInput = ref(null)
@@ -700,13 +701,13 @@ const changePassword = () => {
     return
   }
 
-  alert('Password changed successfully!')
+  notifySuccess('Password changed successfully!')
   passwordData.value = { current: '', new: '', confirm: '' }
   activeTab.value = 'Overview'
 }
 
 const saveNotificationPrefs = () => {
-  alert('Notification preferences saved successfully!')
+  notifySuccess('Notification preferences saved successfully!')
 }
 
 const downloadProfilePDF = () => {

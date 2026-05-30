@@ -128,7 +128,8 @@
 </template>
 
 <script>
-import axios from 'axios'
+import api from '@/stores/api'
+import { notifySuccess, notifyWarning } from '@/utils/notify'
 
 export default {
   name: 'EmailVerification',
@@ -191,6 +192,7 @@ export default {
     async sendOTP() {
       if (!this.email) {
         this.errorMessage = 'Please enter your email address'
+        notifyWarning(this.errorMessage)
         return
       }
 
@@ -198,7 +200,7 @@ export default {
       this.errorMessage = ''
 
       try {
-        const response = await axios.post(`${this.API_URL}/email/send-otp`, {
+        const response = await api.post('/email/send-otp', {
           to: this.email,
           purpose: this.purpose,
           expiresInMinutes: 5
@@ -207,6 +209,7 @@ export default {
         if (response.data.success) {
           this.otpSent = true
           this.startCountdown(response.data.expiresIn || 300)
+          notifySuccess(response.data.message || 'Verification code sent.')
           console.log('✅ OTP sent successfully')
         }
       } catch (error) {
@@ -225,6 +228,7 @@ export default {
     async verifyOTP() {
       if (!this.otpCode || this.otpCode.length !== 6) {
         this.errorMessage = 'Please enter a valid 6-digit code'
+        notifyWarning(this.errorMessage)
         return
       }
 
@@ -233,7 +237,7 @@ export default {
       this.showAttemptWarning = false
 
       try {
-        const response = await axios.post(`${this.API_URL}/email/verify-otp`, {
+        const response = await api.post('/email/verify-otp', {
           email: this.email,
           code: this.otpCode
         })
@@ -241,6 +245,7 @@ export default {
         if (response.data.success) {
           this.isVerified = true
           this.clearCountdown()
+          notifySuccess(response.data.message || 'Email verified successfully.')
           console.log('✅ Email verified successfully')
           this.$emit('verified', { email: this.email, purpose: this.purpose })
 
