@@ -67,7 +67,8 @@ const icons = {
 const superAdminSidebarItems = [
   { name: 'Dashboard', path: '/super-admin/dashboard', icon: icons.dashboard },
   { name: 'Schools', path: '/super-admin/schools', icon: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9 21v-6h6v6"/><path d="M9 10h.01M12 10h.01M15 10h.01"/></svg>' },
-  { name: 'DOS', path: '/super-admin/schools', icon: icons.teachers }
+  { name: 'DOS', path: '/super-admin/schools', icon: icons.teachers },
+  { name: 'Settings', path: '/settings', icon: icons.settings }
 ]
 
 const dosSidebarItems = [

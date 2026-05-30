@@ -57,13 +57,13 @@
                 </div>
                 <div class="profile-row">
                   <div class="avatar-preview">
-                    <img v-if="profile.profile_photo" :src="profile.profile_photo" alt="Profile avatar" />
+                    <img v-if="profilePhotoPreview" :src="profilePhotoPreview" alt="Profile avatar" />
                     <span v-else>{{ initials }}</span>
                   </div>
                   <label class="upload-btn">
                     <i class="bi bi-cloud-arrow-up"></i>
-                    Upload Avatar
-                    <input type="file" accept="image/*" @change="handleAvatarUpload" />
+                    {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
+                    <input type="file" accept="image/*" :disabled="avatarUploading" @change="handleAvatarUpload" />
                   </label>
                 </div>
                 <div class="form-grid two">
@@ -149,6 +149,16 @@
                   <div><span>Status</span><strong>{{ account.status }}</strong></div>
                   <div><span>Default Dashboard</span><strong>{{ preferences.defaultView }}</strong></div>
                 </div>
+                <div class="quick-tools">
+                  <button class="tool-btn secondary" type="button" @click="goToDefaultDashboard">
+                    <i class="bi bi-speedometer2"></i>
+                    Open Default Dashboard
+                  </button>
+                  <button class="tool-btn secondary" type="button" @click="router.push('/super-admin/schools')">
+                    <i class="bi bi-building-check"></i>
+                    Manage Schools
+                  </button>
+                </div>
               </div>
             </section>
 
@@ -205,6 +215,32 @@
 
                 <div v-if="adminToolMessage" class="toast-banner warning" :class="adminToolMessageType">
                   {{ adminToolMessage }}
+                </div>
+              </div>
+
+              <div class="settings-card">
+                <div class="card-heading">
+                  <div>
+                    <span class="eyebrow">System Tools</span>
+                    <h2>Maintenance Actions</h2>
+                  </div>
+                </div>
+                <div class="admin-tool-grid">
+                  <button class="tool-action" type="button" @click="runSystemHealthCheck">
+                    <i class="bi bi-heart-pulse"></i>
+                    <strong>Health Check</strong>
+                    <small>Verify API access and current admin session.</small>
+                  </button>
+                  <button class="tool-action" type="button" @click="downloadSettingsBackup">
+                    <i class="bi bi-download"></i>
+                    <strong>Export Settings</strong>
+                    <small>Download local superadmin preferences as JSON.</small>
+                  </button>
+                  <button class="tool-action" type="button" @click="resetLocalSettings">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <strong>Reset Local Settings</strong>
+                    <small>Restore theme, notifications, and preferences.</small>
+                  </button>
                 </div>
               </div>
             </section>
@@ -276,18 +312,27 @@
                   </div>
                 </div>
                 <div class="appearance-grid">
-                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="appearance.mode = 'light'">
+                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="setThemeMode('light')">
                     <i class="bi bi-brightness-high"></i>
                     Light Mode
                   </button>
-                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="appearance.mode = 'dark'">
+                  <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="setThemeMode('dark')">
                     <i class="bi bi-moon"></i>
                     Dark Mode
                   </button>
                 </div>
                 <div class="accent-row">
                   <span>Theme accent preview</span>
-                  <button v-for="accent in accents" :key="accent" type="button" class="accent-dot" :style="{ background: accent }" @click="appearance.accent = accent"></button>
+                  <button
+                    v-for="accent in accents"
+                    :key="accent"
+                    type="button"
+                    class="accent-dot"
+                    :class="{ active: appearance.accent === accent }"
+                    :style="{ background: accent }"
+                    :title="`Use ${accent}`"
+                    @click="setAccent(accent)"
+                  ></button>
                 </div>
                 <label class="field">
                   <span>UI Density</span>
@@ -315,6 +360,16 @@
                     <span>{{ log.time }}</span>
                     <strong>{{ log.status }}</strong>
                   </div>
+                </div>
+                <div class="quick-tools">
+                  <button class="tool-btn secondary" type="button" @click="exportActivityLogs">
+                    <i class="bi bi-file-earmark-arrow-down"></i>
+                    Export Logs
+                  </button>
+                  <button class="tool-btn ghost" type="button" @click="clearLocalActivity">
+                    <i class="bi bi-trash3"></i>
+                    Clear Local Logs
+                  </button>
                 </div>
               </div>
             </section>
@@ -354,10 +409,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/stores/api'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -365,7 +421,17 @@ const authStore = useAuthStore()
 const activeSection = ref('profile')
 const navOpen = ref(false)
 const showLogoutModal = ref(false)
+const avatarUploading = ref(false)
 const toast = reactive({ message: '', type: 'success' })
+const settingsStorageKeys = {
+  notifications: 'adminNotifications',
+  preferences: 'adminPreferences',
+  appearanceMode: 'adminAppearanceMode',
+  darkMode: 'adminDarkMode',
+  accent: 'adminAccent',
+  twoFactor: 'adminTwoFactorEnabled',
+  activity: 'adminActivityLogs'
+}
 
 const navItems = [
   { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
@@ -428,11 +494,11 @@ const sessions = [
   { id: 2, icon: 'bi bi-phone', device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
 ]
 
-const activityLogs = [
+const activityLogs = ref([
   { id: 1, event: 'Profile settings opened', user: 'Admin', time: 'Now', status: 'Viewed' },
   { id: 2, event: 'Timetable module updated', user: 'System', time: 'Today', status: 'Complete' },
   { id: 3, event: 'Login session created', user: 'Admin', time: 'Recent', status: 'Success' }
-]
+])
 
 const superAdminForm = reactive({
   email: '',
@@ -451,6 +517,53 @@ const initials = computed(() => {
   const name = profile.full_name || profile.email || 'A'
   return name.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase()
 })
+
+const resolveAssetUrl = (path) => {
+  if (!path) return ''
+  if (/^https?:\/\//i.test(path) || path.startsWith('data:') || path.startsWith('blob:')) return path
+  const apiRoot = (api.defaults.baseURL || '').replace(/\/api\/?$/, '')
+  return `${apiRoot}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+const profilePhotoPreview = computed(() => resolveAssetUrl(profile.profile_photo))
+
+const addActivity = (event, status = 'Complete', user = profile.full_name || account.role || 'Admin') => {
+  activityLogs.value = [
+    {
+      id: Date.now(),
+      event,
+      user,
+      time: new Date().toLocaleString(),
+      status
+    },
+    ...activityLogs.value
+  ].slice(0, 20)
+  localStorage.setItem(settingsStorageKeys.activity, JSON.stringify(activityLogs.value))
+}
+
+const applyAppearance = () => {
+  const isDark = appearance.mode === 'dark'
+  document.body.classList.toggle('admin-dark-mode', isDark)
+  localStorage.setItem(settingsStorageKeys.appearanceMode, appearance.mode)
+  localStorage.setItem(settingsStorageKeys.darkMode, JSON.stringify(isDark))
+  localStorage.setItem(settingsStorageKeys.accent, appearance.accent)
+  document.documentElement.style.setProperty('--admin-accent', appearance.accent)
+  document.documentElement.style.setProperty('--app-accent', appearance.accent)
+}
+
+const setThemeMode = (mode) => {
+  appearance.mode = mode
+  applyAppearance()
+  addActivity(`${mode === 'dark' ? 'Dark' : 'Light'} theme applied`)
+  notify(`${mode === 'dark' ? 'Dark' : 'Light'} mode applied.`)
+}
+
+const setAccent = (accent) => {
+  appearance.accent = accent
+  applyAppearance()
+  addActivity(`Theme accent changed to ${accent}`)
+  notify('Theme accent applied.')
+}
 
 const generateSuperAdminPassword = () => {
   const random = Math.random().toString(36).slice(-10)
@@ -486,10 +599,12 @@ const createSuperAdmin = async () => {
     }
     adminToolMessageType.value = 'success'
     adminToolMessage.value = 'Super Admin account created successfully.'
+    addActivity(`Super Admin created: ${superAdminForm.email}`, 'Success')
   } catch (error) {
     const message = error.response?.data?.message || 'Unable to create Super Admin.'
     adminToolMessageType.value = 'danger'
     adminToolMessage.value = message
+    addActivity('Super Admin creation failed', 'Failed')
   } finally {
     creatingSuperAdmin.value = false
   }
@@ -527,16 +642,30 @@ const loadProfile = async () => {
   profile.profile_photo = user.profile_photo || ''
   account.role = user.role || authStore.currentUserType || 'admin'
   account.status = user.is_verified === false ? 'Unverified' : 'Active'
+  addActivity('Profile refreshed', 'Viewed')
 }
 
-const handleAvatarUpload = (event) => {
+const handleAvatarUpload = async (event) => {
   const file = event.target.files?.[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    profile.profile_photo = reader.result
+
+  avatarUploading.value = true
+  try {
+    const payload = new FormData()
+    payload.append('photo', file)
+    const response = await api.post('/upload/profile-photo', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    profile.profile_photo = response.data.photo?.path || ''
+    notify('Avatar uploaded. Save profile to apply it.')
+    addActivity('Avatar uploaded', 'Pending save')
+  } catch (error) {
+    notify(error.response?.data?.message || 'Avatar upload failed.', 'danger')
+    addActivity('Avatar upload failed', 'Failed')
+  } finally {
+    avatarUploading.value = false
+    event.target.value = ''
   }
-  reader.readAsDataURL(file)
 }
 
 const saveProfile = async () => {
@@ -551,6 +680,9 @@ const saveProfile = async () => {
     notify(result.error || 'Profile update failed.', 'danger')
     return
   }
+  await authStore.checkAuth()
+  profile.profile_photo = authStore.currentUser?.profile_photo || profile.profile_photo
+  addActivity('Profile settings saved', 'Success')
   notify('Profile settings saved.')
 }
 
@@ -580,14 +712,17 @@ const saveSecurity = async () => {
   }
   security.password = ''
   security.confirmPassword = ''
+  localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
+  addActivity('Security settings saved', 'Success')
   notify('Security settings saved.')
 }
 
 const saveLocalPreferences = () => {
-  localStorage.setItem('adminNotifications', JSON.stringify(notifications))
-  localStorage.setItem('adminPreferences', JSON.stringify(preferences))
-  localStorage.setItem('adminAppearanceMode', appearance.mode)
-  localStorage.setItem('adminAccent', appearance.accent)
+  localStorage.setItem(settingsStorageKeys.notifications, JSON.stringify(notifications))
+  localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
+  localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
+  applyAppearance()
+  addActivity(`${activeSection.value} settings saved`, 'Success')
   notify('Settings saved.')
 }
 
@@ -602,12 +737,111 @@ const logout = () => {
   router.push('/login')
 }
 
+const goToDefaultDashboard = () => {
+  const paths = {
+    Overview: '/super-admin/dashboard',
+    Timetable: '/timetable',
+    Teachers: '/teachers',
+    Reports: '/super-admin/dashboard'
+  }
+  router.push(paths[preferences.defaultView] || '/super-admin/dashboard')
+}
+
+const runSystemHealthCheck = async () => {
+  try {
+    const authenticated = await authStore.checkAuth()
+    if (!authenticated) {
+      notify('Session check failed. Please login again.', 'danger')
+      addActivity('System health check failed', 'Failed')
+      return
+    }
+    await api.get('/auth/me', { showGlobalLoader: false })
+    notify('System health check passed.')
+    addActivity('System health check passed', 'Healthy')
+  } catch (error) {
+    notify(error.response?.data?.message || 'System health check failed.', 'danger')
+    addActivity('System health check failed', 'Failed')
+  }
+}
+
+const downloadJson = (filename, data) => {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+const downloadSettingsBackup = () => {
+  downloadJson('superadmin-settings-backup.json', {
+    profile: {
+      full_name: profile.full_name,
+      email: profile.email,
+      phone: profile.phone
+    },
+    notifications: { ...notifications },
+    preferences: { ...preferences },
+    appearance: { ...appearance },
+    twoFactorEnabled: security.twoFactorEnabled,
+    exportedAt: new Date().toISOString()
+  })
+  notify('Settings backup downloaded.')
+  addActivity('Settings backup exported', 'Success')
+}
+
+const resetLocalSettings = () => {
+  Object.assign(notifications, { email: true, system: true, timetable: true })
+  Object.assign(preferences, {
+    language: 'en',
+    timeFormat: '24h',
+    defaultView: 'Overview',
+    uiDensity: 'comfortable'
+  })
+  security.twoFactorEnabled = false
+  appearance.mode = 'light'
+  appearance.accent = '#2563eb'
+  saveLocalPreferences()
+  notify('Local settings reset.')
+  addActivity('Local settings reset', 'Success')
+}
+
+const exportActivityLogs = () => {
+  downloadJson('superadmin-activity-logs.json', {
+    logs: activityLogs.value,
+    exportedAt: new Date().toISOString()
+  })
+  notify('Activity logs exported.')
+}
+
+const clearLocalActivity = () => {
+  activityLogs.value = []
+  localStorage.setItem(settingsStorageKeys.activity, JSON.stringify(activityLogs.value))
+  notify('Local activity logs cleared.')
+}
+
+watch(
+  () => [appearance.mode, appearance.accent],
+  applyAppearance
+)
+
 onMounted(() => {
-  const savedNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '{}')
+  const savedNotifications = JSON.parse(localStorage.getItem(settingsStorageKeys.notifications) || '{}')
   Object.assign(notifications, savedNotifications)
-  const savedPreferences = JSON.parse(localStorage.getItem('adminPreferences') || '{}')
+  const savedPreferences = JSON.parse(localStorage.getItem(settingsStorageKeys.preferences) || '{}')
   Object.assign(preferences, savedPreferences)
-  appearance.accent = localStorage.getItem('adminAccent') || appearance.accent
+  const savedDarkMode = JSON.parse(localStorage.getItem(settingsStorageKeys.darkMode) || 'false')
+  appearance.mode = localStorage.getItem(settingsStorageKeys.appearanceMode) || (savedDarkMode ? 'dark' : appearance.mode)
+  appearance.accent = localStorage.getItem(settingsStorageKeys.accent) || appearance.accent
+  security.twoFactorEnabled = JSON.parse(localStorage.getItem(settingsStorageKeys.twoFactor) || 'false')
+  try {
+    const savedLogs = JSON.parse(localStorage.getItem(settingsStorageKeys.activity) || '[]')
+    if (Array.isArray(savedLogs) && savedLogs.length) activityLogs.value = savedLogs
+  } catch (error) {
+    localStorage.removeItem(settingsStorageKeys.activity)
+  }
+  applyAppearance()
   loadProfile()
 })
 </script>
@@ -638,7 +872,7 @@ onMounted(() => {
 
 .eyebrow {
   display: block;
-  color: #2563eb;
+  color: var(--admin-accent, #2563eb);
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -687,7 +921,7 @@ onMounted(() => {
 }
 
 .tool-btn.primary {
-  background: #2563eb;
+  background: var(--admin-accent, #2563eb);
   color: #ffffff;
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.24);
 }
@@ -753,12 +987,12 @@ onMounted(() => {
 
 .nav-item:hover {
   background: #eff6ff;
-  color: #1d4ed8;
+  color: var(--admin-accent, #1d4ed8);
   transform: translateX(2px);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, var(--admin-accent, #2563eb), #1d4ed8);
   color: #ffffff;
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
 }
@@ -779,6 +1013,56 @@ onMounted(() => {
 
 .settings-card {
   padding: 1.15rem;
+}
+
+.quick-tools,
+.admin-tool-grid {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.admin-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tool-action {
+  display: grid;
+  gap: 0.35rem;
+  min-height: 132px;
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
+  background: #f8fbff;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-action i {
+  color: var(--admin-accent, #2563eb);
+  font-size: 1.35rem;
+}
+
+.tool-action strong {
+  font-size: 0.95rem;
+}
+
+.tool-action small {
+  color: #64748b;
+  font-weight: 750;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.password-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem;
 }
 
 .credentials-card {
@@ -843,7 +1127,7 @@ onMounted(() => {
 
 .field input:focus,
 .field select:focus {
-  border-color: #2563eb;
+  border-color: var(--admin-accent, #2563eb);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
 }
 
@@ -861,7 +1145,7 @@ onMounted(() => {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  background: linear-gradient(135deg, var(--admin-accent, #2563eb), #38bdf8);
   color: #ffffff;
   font-size: 1.5rem;
   font-weight: 900;
@@ -882,7 +1166,7 @@ onMounted(() => {
   border-radius: 12px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
-  color: #1d4ed8;
+  color: var(--admin-accent, #1d4ed8);
   font-weight: 900;
   cursor: pointer;
 }
@@ -940,7 +1224,7 @@ onMounted(() => {
 
 .switch-card input:checked + span,
 .toggle-row input:checked + span {
-  background: #2563eb;
+  background: var(--admin-accent, #2563eb);
 }
 
 .switch-card input:checked + span::after,
@@ -962,7 +1246,7 @@ onMounted(() => {
 }
 
 .session-item i {
-  color: #2563eb;
+  color: var(--admin-accent, #2563eb);
   font-size: 1.3rem;
 }
 
@@ -1010,9 +1294,9 @@ onMounted(() => {
 }
 
 .theme-card.active {
-  border-color: #2563eb;
+  border-color: var(--admin-accent, #2563eb);
   background: #eff6ff;
-  color: #1d4ed8;
+  color: var(--admin-accent, #1d4ed8);
 }
 
 .accent-row {
@@ -1031,6 +1315,10 @@ onMounted(() => {
   border: 3px solid #ffffff;
   border-radius: 999px;
   box-shadow: 0 0 0 1px #cbd5e1;
+}
+
+.accent-dot.active {
+  box-shadow: 0 0 0 3px #0f172a, 0 0 0 6px rgba(37, 99, 235, 0.24);
 }
 
 .activity-table {
@@ -1085,6 +1373,41 @@ onMounted(() => {
 .toast-banner.danger {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.toast-banner.warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.toast-banner.warning.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.toast-banner.warning.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+:global(body.admin-dark-mode) .tool-action {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+}
+
+:global(body.admin-dark-mode) .tool-action strong,
+:global(body.admin-dark-mode) .tool-action i {
+  color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .tool-action small,
+:global(body.admin-dark-mode) .quick-tools {
+  color: #cbd5e1 !important;
+}
+
+:global(body.admin-dark-mode) .accent-dot.active {
+  box-shadow: 0 0 0 3px #f8fafc, 0 0 0 6px rgba(96, 165, 250, 0.28);
 }
 
 .modal-backdrop {
@@ -1174,7 +1497,12 @@ onMounted(() => {
   .form-grid.two,
   .account-summary,
   .appearance-grid,
+  .admin-tool-grid,
   .activity-row {
+    grid-template-columns: 1fr;
+  }
+
+  .password-inline {
     grid-template-columns: 1fr;
   }
 }

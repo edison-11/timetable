@@ -134,7 +134,7 @@
           </div>
 
           <nav class="account-links" aria-label="Account navigation">
-            <router-link :to="isTeacherAccount ? '/teacher/profile' : '/settings'" class="account-link" @click="showAccountMenu = false">
+            <router-link v-if="isTeacherAccount" to="/teacher/profile" class="account-link" @click="showAccountMenu = false">
               View Profile
             </router-link>
             <router-link :to="isTeacherAccount ? '/teacher/settings' : '/settings'" class="account-link" @click="showAccountMenu = false">

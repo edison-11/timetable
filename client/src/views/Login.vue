@@ -92,24 +92,17 @@
           {{ success }}
         </div>
 
-        <div class="login-divider"><span>or</span></div>
+        <div class="login-divider"><span>Register</span></div>
 
-        <div class="provider-row">
-          <button type="button" class="provider-btn" disabled>
-            <span class="google-mark" aria-hidden="true">G</span>
-            Login with Google
-          </button>
-          <button type="button" class="provider-btn" disabled>
-            <span class="microsoft-mark" aria-hidden="true">
-              <span></span><span></span><span></span><span></span>
-            </span>
-            Login with Microsoft
-          </button>
-        </div>
-
-        <div class="create-row">
-          <span>New user?</span>
-          <router-link to="/teacher/register">Create an Account</router-link>
+        <div class="register-choice-row">
+          <router-link to="/teacher/register" class="register-choice">
+            <strong>Teacher</strong>
+            <span>Create teacher account</span>
+          </router-link>
+          <router-link to="/dos/register" class="register-choice">
+            <strong>DOS</strong>
+            <span>Register school</span>
+          </router-link>
         </div>
       </form>
     </div>
@@ -444,7 +437,7 @@ const handleLogin = async () => {
 }
 
 .forgot-link,
-.create-row a {
+.register-choice {
   color: #1f72c9;
   font-weight: 800;
   text-decoration: underline;
@@ -488,14 +481,14 @@ const handleLogin = async () => {
   background: #c3cbd5;
 }
 
-.provider-row {
+.register-choice-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-bottom: 24px;
 }
 
-.provider-btn {
+.register-choice {
   min-height: 54px;
   margin: 0;
   border: 1px solid #bdc6d1;
@@ -503,45 +496,29 @@ const handleLogin = async () => {
   background: rgba(255, 255, 255, 0.82);
   color: #263244;
   font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.09);
-  opacity: 1;
-}
-
-.google-mark {
-  color: #4285f4;
-  font-size: 1.9rem;
-  font-weight: 900;
-  font-family: Arial, sans-serif;
-  line-height: 1;
-}
-
-.microsoft-mark {
   display: grid;
-  grid-template-columns: repeat(2, 12px);
-  grid-template-rows: repeat(2, 12px);
-  gap: 3px;
-  flex: 0 0 auto;
+  align-content: center;
+  gap: 2px;
+  padding: 0.7rem 0.9rem;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.09);
 }
 
-.microsoft-mark span:nth-child(1) { background: #f1511b; }
-.microsoft-mark span:nth-child(2) { background: #80cc28; }
-.microsoft-mark span:nth-child(3) { background: #00adef; }
-.microsoft-mark span:nth-child(4) { background: #fbbc09; }
+.register-choice:hover {
+  border-color: #2f7cd8;
+  background: #eff6ff;
+  color: #0759b2;
+}
 
-.create-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding-top: 18px;
-  border-top: 1px solid #d3dae2;
-  color: #6c7582;
-  font-size: 1.12rem;
-  font-weight: 700;
+.register-choice strong,
+.register-choice span {
+  display: block;
+}
+
+.register-choice span {
+  color: #64748b;
+  font-size: 0.84rem;
 }
 
 .login-card.is-loading {
@@ -569,12 +546,8 @@ const handleLogin = async () => {
     flex-direction: column;
   }
 
-  .provider-row {
+  .register-choice-row {
     grid-template-columns: 1fr;
-  }
-
-  .create-row {
-    flex-wrap: wrap;
   }
 }
 </style>
