@@ -43,6 +43,7 @@ const createObject = (id, body) => `${id} 0 obj\n${body}\nendobj\n`
 export const downloadTimetablePdf = ({
   title,
   subtitle = '',
+  moduleSummary = [],
   headers,
   rows,
   filename = 'timetable.pdf',
@@ -56,8 +57,11 @@ export const downloadTimetablePdf = ({
   const fixedWidth = fixedColumnWidths.reduce((sum, width) => sum + width, 0)
   const flexibleWidth = (tableWidth - fixedWidth) / Math.max(headers.length - fixedColumnWidths.length, 1)
   const colWidths = headers.map((_, index) => fixedColumnWidths[index] || flexibleWidth)
-  const titleHeight = fitToOnePage ? (subtitle ? 28 : 20) : (subtitle ? 40 : 28)
-  const headerHeight = fitToOnePage ? 18 : 30
+  const summaryRows = Array.isArray(moduleSummary) ? moduleSummary : []
+  const summaryColumns = summaryRows.length > 18 ? 3 : 2
+  const summaryHeight = summaryRows.length ? 22 + Math.ceil(summaryRows.length / summaryColumns) * 14 : 0
+  const titleHeight = (subtitle ? 40 : 28) + summaryHeight
+  const headerHeight = fitToOnePage ? 24 : 30
   const availableRowHeight = (pageHeight - margin * 2 - titleHeight - headerHeight) / Math.max(rows.length, 1)
   const rowHeight = fitToOnePage
     ? Math.max(10, Math.min(46, availableRowHeight))
@@ -90,7 +94,26 @@ export const downloadTimetablePdf = ({
     if (subtitle) {
       text(subtitle, margin, y - (fitToOnePage ? 13 : 18), fitToOnePage ? 7 : 10, '#475569')
     }
-    y -= titleHeight
+    y -= subtitle ? 36 : 24
+
+    if (summaryRows.length) {
+      text(`Modules covered: ${summaryRows.length}`, margin, y, 9, '#1e3a8a')
+      y -= 12
+      const summaryColumnWidth = tableWidth / summaryColumns
+      summaryRows.forEach((item, index) => {
+        const column = index % summaryColumns
+        const row = Math.floor(index / summaryColumns)
+        const x = margin + column * summaryColumnWidth
+        const rowY = y - row * 14
+        const moduleText = `${item.name || item.module || 'Module'} - ${item.classes || item.className || 'Class'}`
+        rect(x, rowY - 12, summaryColumnWidth - 6, 12, '#eff6ff', '#bfdbfe')
+        text(moduleText, x + 4, rowY - 8, 6.5, '#0f172a')
+      })
+      y -= Math.ceil(summaryRows.length / summaryColumns) * 14 + 6
+    } else {
+      y -= titleHeight - (subtitle ? 36 : 24)
+    }
+
     let x = margin
     headers.forEach((header, index) => {
       rect(x, y - headerHeight, colWidths[index], headerHeight, '#0f2f5f', '#0f2f5f')

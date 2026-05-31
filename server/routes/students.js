@@ -1,10 +1,22 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const Student = require('../models/Student');
+const Teacher = require('../models/Teacher');
+const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
+
+const getTeacherIdFromRequest = async (req) => {
+  const directId = req.user?.teacherId || req.user?.teacher_id;
+  if (directId) return directId;
+
+  const email = req.user?.email;
+  if (!email) return null;
+  const teacher = await Teacher.findByEmail(email).catch(() => null);
+  return teacher?.teacher_id || null;
+};
 
 // Create student
 router.post('/', auth, [
@@ -55,12 +67,12 @@ router.get('/', auth, async (req, res) => {
 
 router.get('/teacher/classes', auth, async (req, res) => {
   try {
-    const teacherId = req.user?.teacherId || req.user?.teacher_id;
+    const teacherId = await getTeacherIdFromRequest(req);
     if (!teacherId) {
       return res.status(403).json({ message: 'Teacher account required' });
     }
 
-    const classes = await Student.getTeacherClasses(teacherId);
+    const classes = await Student.getTeacherClasses(teacherId, { school_id: getRequestSchoolId(req) });
     res.json({ classes });
   } catch (error) {
     console.error('Error fetching teacher classes:', error);
@@ -70,12 +82,12 @@ router.get('/teacher/classes', auth, async (req, res) => {
 
 router.get('/teacher/classes/:classId/students', auth, async (req, res) => {
   try {
-    const teacherId = req.user?.teacherId || req.user?.teacher_id;
+    const teacherId = await getTeacherIdFromRequest(req);
     if (!teacherId) {
       return res.status(403).json({ message: 'Teacher account required' });
     }
 
-    const students = await Student.getClassStudentsForTeacher(req.params.classId, teacherId);
+    const students = await Student.getClassStudentsForTeacher(req.params.classId, teacherId, { school_id: getRequestSchoolId(req) });
     if (!students) {
       return res.status(403).json({ message: 'You are not assigned to this class' });
     }
@@ -89,7 +101,7 @@ router.get('/teacher/classes/:classId/students', auth, async (req, res) => {
 
 router.get('/attendance', auth, async (req, res) => {
   try {
-    const teacherId = req.user?.teacherId || req.user?.teacher_id || null;
+    const teacherId = await getTeacherIdFromRequest(req);
     const school_id = getRequestSchoolId(req);
     if (req.user?.type === 'teacher') {
       const students = await Student.getClassStudentsForTeacher(req.query.class_id, teacherId, { school_id });
@@ -148,7 +160,7 @@ router.post('/attendance', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const teacherId = req.user?.teacherId || req.user?.teacher_id || null;
+    const teacherId = await getTeacherIdFromRequest(req);
     const school_id = getRequestSchoolId(req);
     if (req.user?.type === 'teacher') {
       const students = await Student.getClassStudentsForTeacher(req.body.class_id, teacherId, { school_id });
@@ -166,7 +178,42 @@ router.post('/attendance', auth, [
       records: req.body.records.map((record) => ({ ...record, school_id }))
     });
 
-    res.json({ message: 'Attendance saved', attendance: saved });
+    const presentCount = req.body.records.filter((record) => record.status === 'present').length;
+    const absentCount = req.body.records.filter((record) => record.status === 'absent').length;
+    const lateCount = req.body.records.filter((record) => record.status === 'late').length;
+    const excusedCount = req.body.records.filter((record) => record.status === 'excused').length;
+
+    if (req.body.report === true) {
+      const students = await Student.findAll({ class_id: req.body.class_id, status: 'active', school_id });
+      const studentNames = new Map(students.map((student) => [Number(student.student_id), student.name]));
+      const absentNames = req.body.records
+        .filter((record) => record.status === 'absent')
+        .map((record) => studentNames.get(Number(record.student_id)) || `Student #${record.student_id}`);
+      const className = students[0]?.class_name || `Class ${req.body.class_id}`;
+      const teacherName = req.user?.name || req.user?.full_name || 'Teacher';
+
+      await Notification.create({
+        type: 'attendance_report',
+        title: `Attendance report: ${className}`,
+        message: `${teacherName} reported ${req.body.records.length} students for ${req.body.attendance_date} (${req.body.period_label || 'period'}). Present: ${presentCount}, Absent: ${absentCount}, Late: ${lateCount}, Excused: ${excusedCount}. Absent list: ${absentNames.length ? absentNames.join(', ') : 'None'}.`,
+        path: '/students',
+        school_id,
+        recipient_role: 'dos',
+        tone: absentCount ? 'amber' : 'green'
+      });
+    }
+
+    res.json({
+      message: req.body.report === true ? 'Attendance report sent' : 'Attendance saved',
+      attendance: saved,
+      summary: {
+        total: req.body.records.length,
+        present: presentCount,
+        absent: absentCount,
+        late: lateCount,
+        excused: excusedCount
+      }
+    });
   } catch (error) {
     console.error('Error saving attendance:', error);
     res.status(500).json({ message: 'Failed to save attendance' });

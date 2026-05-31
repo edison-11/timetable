@@ -1,182 +1,51 @@
 <template>
   <AppLayout>
-    <div class="admin-settings">
-      <header class="page-head">
-        <h1>Timetable Settings</h1>
-        <p>Configure the school identity, timetable display, alerts, and admin access for your timetable management system.</p>
+    <div class="settings-control" :class="{ 'is-compact': preferences.uiDensity === 'compact' }">
+      <header class="settings-hero">
+        <div>
+          <span class="eyebrow">Admin Control Center</span>
+          <h1>Settings</h1>
+          <p>Manage profile, security, account preferences, notifications, appearance, and activity from one dashboard-grade workspace.</p>
+        </div>
+        <div class="hero-actions">
+          <button class="tool-btn secondary" type="button" @click="loadProfile">
+            <RefreshCw :size="18" :stroke-width="2.2" aria-hidden="true" />
+            Refresh
+          </button>
+          <button class="tool-btn primary" type="button" @click="saveActiveSection">
+            <CircleCheck :size="18" :stroke-width="2.2" aria-hidden="true" />
+            Save Section
+          </button>
+        </div>
       </header>
 
-      <nav class="settings-tabs" aria-label="Settings sections">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          type="button"
-          class="tab-button"
-          :class="{ active: activeTab === tab.id }"
-          @click="activeTab = tab.id"
-        >
-          <i :class="tab.icon"></i>
-          {{ tab.label }}
-        </button>
-      </nav>
-
       <div v-if="toast.message" class="toast-banner" :class="toast.type">
-        <i :class="toast.type === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
+        <CircleCheck v-if="toast.type === 'success'" :size="18" :stroke-width="2.2" aria-hidden="true" />
+        <TriangleAlert v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
         {{ toast.message }}
       </div>
 
-      <section v-if="activeTab === 'general'" class="settings-grid">
-        <form class="panel general-panel" @submit.prevent="saveGeneralSettings">
-          <div class="panel-title">
-            <h2>Timetable System Settings</h2>
-            <p>Manage the school details and default formats used across timetables, exports, and notifications.</p>
-          </div>
-
-          <div class="form-grid two">
-            <label class="field">
-              <span>School Name</span>
-              <input v-model.trim="settings.school_name" type="text" required />
-            </label>
-            <label class="field">
-              <span>School Short Name</span>
-              <input v-model.trim="settings.school_short_name" type="text" />
-              <small>Displayed on timetable pages, printouts, and email alerts</small>
-            </label>
-          </div>
-
-          <div class="form-grid two">
-            <label class="field">
-              <span>School Email</span>
-              <input v-model.trim="settings.school_email" type="email" />
-              <small>Used for timetable notices and official communication</small>
-            </label>
-            <label class="field">
-              <span>School Phone</span>
-              <input v-model.trim="settings.school_phone" type="tel" />
-              <small>Primary contact number for timetable coordination</small>
-            </label>
-          </div>
-
-          <label class="field">
-            <span>School Address</span>
-            <textarea v-model.trim="settings.school_address" rows="3"></textarea>
-          </label>
-
-          <div class="logo-section">
-            <span class="field-label">School Logo</span>
-            <div class="logo-row">
-              <div class="logo-preview">
-                <img v-if="visibleLogoSrc && !logoLoadFailed" :src="visibleLogoSrc" alt="School logo" @error="handleLogoError" />
-                <i v-else class="bi bi-image"></i>
-              </div>
-              <label class="remove-logo" title="Upload school logo">
-                <i class="bi bi-cloud-arrow-up"></i>
-                <input type="file" accept="image/*" @change="uploadLogo" />
-              </label>
-              <button v-if="settings.school_logo_url" class="remove-logo danger" type="button" title="Remove logo" @click="settings.school_logo_url = ''">
-                <i class="bi bi-x"></i>
-              </button>
-            </div>
-          </div>
-
-          <div class="form-grid two">
-            <label class="field">
-              <span>Timezone</span>
-              <select v-model="settings.timezone">
-                <option>(GMT+02:00) East Africa Time</option>
-                <option>(GMT+00:00) Greenwich Mean Time</option>
-                <option>(GMT+01:00) Central Africa Time</option>
-                <option>(GMT+03:00) Eastern Africa Time</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Date Format</span>
-              <select v-model="settings.date_format">
-                <option>May 20, 2024 (MMM DD, YYYY)</option>
-                <option>20 May 2024 (DD MMM YYYY)</option>
-                <option>2024-05-20 (YYYY-MM-DD)</option>
-                <option>20/05/2024 (DD/MM/YYYY)</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-grid two">
-            <label class="field">
-              <span>Time Format</span>
-              <select v-model="settings.time_format">
-                <option>12 Hour (01:30 PM)</option>
-                <option>24 Hour (13:30)</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Currency</span>
-              <select v-model="settings.currency">
-                <option>RWF - Rwanda Franc</option>
-                <option>USD - US Dollar</option>
-                <option>EUR - Euro</option>
-                <option>KES - Kenyan Shilling</option>
-              </select>
-            </label>
-          </div>
-
-          <label class="field">
-            <span>System Language</span>
-            <select v-model="settings.system_language">
-              <option>English</option>
-              <option>French</option>
-              <option>Kinyarwanda</option>
-            </select>
-            <small>Choose the default language for timetable screens and exports</small>
-          </label>
-
-          <div class="form-actions">
-            <button class="save-button" type="submit" :disabled="saving">
-              <i class="bi bi-floppy"></i>
-              {{ saving ? 'Saving...' : 'Save Changes' }}
-            </button>
-          </div>
-        </form>
-
-        <aside class="side-stack">
-          <section class="panel info-panel">
-            <h2>Timetable System Information</h2>
-            <p>Important information about the timetable application.</p>
-            <dl>
-              <div>
-                <dt><i class="bi bi-gear"></i> System Version</dt>
-                <dd>{{ systemInfo.version }}</dd>
-              </div>
-              <div>
-                <dt><i class="bi bi-hdd-network"></i> Environment</dt>
-                <dd class="success">{{ systemInfo.environment }}</dd>
-              </div>
-              <div>
-                <dt><i class="bi bi-database"></i> Database</dt>
-                <dd>{{ systemInfo.database }}</dd>
-              </div>
-              <div>
-                <dt><i class="bi bi-calendar-check"></i> Last Backup</dt>
-                <dd>{{ formattedBackup }}</dd>
-              </div>
-            </dl>
-            <button class="outline-button" type="button" @click="downloadBackup">
-              <i class="bi bi-download"></i>
-              Backup Now
-            </button>
-          </section>
-
-          <section class="panel notifications-panel">
-            <h2>Timetable Notifications</h2>
-            <p>Configure alerts for timetable planning and schedule changes.</p>
-            <label v-for="item in notificationOptions" :key="item.key" class="switch-line">
+      <section class="settings-shell">
+        <aside class="settings-nav" :class="{ open: navOpen }">
+          <button class="mobile-nav-toggle" type="button" @click="navOpen = !navOpen">
+            <SlidersHorizontal :size="18" :stroke-width="2.2" aria-hidden="true" />
+            Settings Menu
+          </button>
+          <div class="nav-list">
+            <button
+              v-for="item in navItems"
+              :key="item.id"
+              type="button"
+              class="nav-item"
+              :class="{ active: activeSection === item.id, danger: item.id === 'logout' }"
+              @click="selectSection(item.id)"
+            >
+              <span class="nav-icon-wrap" :class="item.tone">
+                <component :is="item.icon" :size="18" :stroke-width="2.2" aria-hidden="true" />
+              </span>
               <span>{{ item.label }}</span>
-              <input v-model="settings.notifications[item.key]" type="checkbox" />
-              <i></i>
-            </label>
-            <button class="link-button" type="button" @click="notify('Timetable email templates can be managed from the notification module.', 'success')">
-              Manage Timetable Email Templates <i class="bi bi-arrow-right"></i>
             </button>
-          </section>
+          </div>
         </aside>
 
         <main class="settings-content">
@@ -195,7 +64,7 @@
                     <span v-else>{{ initials }}</span>
                   </div>
                   <label class="upload-btn">
-                    <i class="bi bi-cloud-arrow-up"></i>
+                    <CloudUpload :size="18" :stroke-width="2.2" aria-hidden="true" />
                     {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
                     <input type="file" accept="image/*" :disabled="avatarUploading" @change="handleAvatarUpload" />
                   </label>
@@ -245,7 +114,7 @@
                     </div>
                   </label>
                   <button class="tool-btn ghost" type="button" @click="notify('Session revocation is ready for backend token tracking.', 'success')">
-                    <i class="bi bi-box-arrow-right"></i>
+                    <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Logout from all devices
                   </button>
                 </div>
@@ -259,7 +128,7 @@
                 </div>
                 <div class="session-list">
                   <div v-for="session in sessions" :key="session.id" class="session-item">
-                    <i :class="session.icon"></i>
+                    <component :is="session.icon" :size="20" :stroke-width="2.2" aria-hidden="true" />
                     <div>
                       <strong>{{ session.device }}</strong>
                       <span>{{ session.location }} · {{ session.time }}</span>
@@ -285,11 +154,11 @@
                 </div>
                 <div class="quick-tools">
                   <button class="tool-btn secondary" type="button" @click="goToDefaultDashboard">
-                    <i class="bi bi-speedometer2"></i>
+                    <Gauge :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Open Default Dashboard
                   </button>
                   <button class="tool-btn secondary" type="button" @click="router.push('/super-admin/schools')">
-                    <i class="bi bi-building-check"></i>
+                    <Building2 :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Manage Schools
                   </button>
                 </div>
@@ -361,17 +230,17 @@
                 </div>
                 <div class="admin-tool-grid">
                   <button class="tool-action" type="button" @click="runSystemHealthCheck">
-                    <i class="bi bi-heart-pulse"></i>
+                    <HeartPulse :size="24" :stroke-width="2.2" aria-hidden="true" />
                     <strong>Health Check</strong>
                     <small>Verify API access and current admin session.</small>
                   </button>
                   <button class="tool-action" type="button" @click="downloadSettingsBackup">
-                    <i class="bi bi-download"></i>
+                    <Download :size="24" :stroke-width="2.2" aria-hidden="true" />
                     <strong>Export Settings</strong>
                     <small>Download local superadmin preferences as JSON.</small>
                   </button>
                   <button class="tool-action" type="button" @click="resetLocalSettings">
-                    <i class="bi bi-arrow-counterclockwise"></i>
+                    <RotateCcw :size="24" :stroke-width="2.2" aria-hidden="true" />
                     <strong>Reset Local Settings</strong>
                     <small>Restore theme, notifications, and preferences.</small>
                   </button>
@@ -415,6 +284,7 @@
                       <option value="en">English</option>
                       <option value="fr">French</option>
                       <option value="pt">Portuguese</option>
+                      <option value="rw">Kinyarwanda</option>
                     </select>
                   </label>
                   <label class="field">
@@ -447,11 +317,11 @@
                 </div>
                 <div class="appearance-grid">
                   <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="setThemeMode('light')">
-                    <i class="bi bi-brightness-high"></i>
+                    <Sun :size="22" :stroke-width="2.2" aria-hidden="true" />
                     Light Mode
                   </button>
                   <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="setThemeMode('dark')">
-                    <i class="bi bi-moon"></i>
+                    <Moon :size="22" :stroke-width="2.2" aria-hidden="true" />
                     Dark Mode
                   </button>
                 </div>
@@ -497,11 +367,11 @@
                 </div>
                 <div class="quick-tools">
                   <button class="tool-btn secondary" type="button" @click="exportActivityLogs">
-                    <i class="bi bi-file-earmark-arrow-down"></i>
+                    <FileDown :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Export Logs
                   </button>
                   <button class="tool-btn ghost" type="button" @click="clearLocalActivity">
-                    <i class="bi bi-trash3"></i>
+                    <Trash2 :size="18" :stroke-width="2.2" aria-hidden="true" />
                     Clear Local Logs
                   </button>
                 </div>
@@ -518,7 +388,7 @@
                   </div>
                 </div>
                 <button class="tool-btn danger" type="button" @click="showLogoutModal = true">
-                  <i class="bi bi-box-arrow-right"></i>
+                  <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
                   Logout
                 </button>
               </div>
@@ -527,44 +397,55 @@
         </main>
       </section>
 
-      <section v-else-if="activeTab === 'users'" class="panel placeholder-panel">
-        <h2>Timetable Users</h2>
-        <p>Manage the people who create, approve, teach from, or view the timetable.</p>
-        <div class="summary-grid">
-          <div><span>Signed in as</span><strong>{{ currentUserName }}</strong></div>
-          <div><span>Email</span><strong>{{ currentUserEmail }}</strong></div>
-          <div><span>Status</span><strong>Active</strong></div>
-        </div>
-      </section>
-
-      <section v-else-if="activeTab === 'roles'" class="panel placeholder-panel">
-        <h2>Timetable Roles</h2>
-        <p>Role permissions control who can build schedules, assign teachers, update rooms, and view published timetables.</p>
-        <div class="role-list">
-          <span>Admin</span>
-          <span>Teacher</span>
-          <span>Student</span>
-        </div>
-      </section>
-
-      <section v-else class="panel placeholder-panel">
-        <h2>Timetable Security</h2>
-        <p>Protect timetable editing, exports, and published schedule access from one admin-controlled area.</p>
-        <button class="save-button" type="button" @click="logout">
-          <i class="bi bi-box-arrow-right"></i>
-          Logout
-        </button>
-      </section>
+      <div v-if="showLogoutModal" class="modal-backdrop" @click.self="showLogoutModal = false">
+        <section class="confirm-modal">
+          <TriangleAlert :size="34" :stroke-width="2.2" aria-hidden="true" />
+          <h2>Confirm logout</h2>
+          <p>You will be returned to the unified login page.</p>
+          <div class="modal-actions">
+            <button class="tool-btn secondary" type="button" @click="showLogoutModal = false">Cancel</button>
+            <button class="tool-btn danger" type="button" @click="logout">Logout</button>
+          </div>
+        </section>
+      </div>
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
-import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/stores/api'
+import { getAppLanguage, setAppLanguage } from '@/utils/language'
+import {
+  Activity,
+  Bell,
+  Building2,
+  CircleCheck,
+  CloudUpload,
+  Download,
+  FileDown,
+  Gauge,
+  Globe2,
+  HeartPulse,
+  Laptop,
+  LogOut,
+  Moon,
+  Palette,
+  RefreshCw,
+  RotateCcw,
+  Shield,
+  SlidersHorizontal,
+  Smartphone,
+  Sun,
+  ToolCase,
+  Trash2,
+  TriangleAlert,
+  UserCircle,
+  UserRoundCog
+} from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -572,6 +453,7 @@ const authStore = useAuthStore()
 const activeSection = ref('profile')
 const navOpen = ref(false)
 const showLogoutModal = ref(false)
+const avatarUploading = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 const settingsStorageKeys = {
   notifications: 'adminNotifications',
@@ -584,61 +466,64 @@ const settingsStorageKeys = {
 }
 
 const navItems = [
-  { id: 'profile', label: 'Profile Settings', icon: 'bi bi-person-circle' },
-  { id: 'security', label: 'Security Settings', icon: 'bi bi-shield-lock' },
-  { id: 'account', label: 'Account Settings', icon: 'bi bi-person-badge' },
-  { id: 'adminTools', label: 'Admin Tools', icon: 'bi bi-tools' },
-  { id: 'notifications', label: 'Notification Settings', icon: 'bi bi-bell' },
-  { id: 'preferences', label: 'System Preferences', icon: 'bi bi-globe2' },
-  { id: 'appearance', label: 'Appearance Settings', icon: 'bi bi-palette' },
-  { id: 'activity', label: 'Activity & Logs', icon: 'bi bi-activity' },
-  { id: 'logout', label: 'Logout Option', icon: 'bi bi-box-arrow-right' }
+  { id: 'profile', label: 'Profile Settings', icon: UserCircle, tone: 'violet' },
+  { id: 'security', label: 'Security Settings', icon: Shield, tone: 'teal' },
+  { id: 'account', label: 'Account Settings', icon: UserRoundCog, tone: 'blue' },
+  { id: 'adminTools', label: 'Admin Tools', icon: ToolCase, tone: 'amber' },
+  { id: 'notifications', label: 'Notification Settings', icon: Bell, tone: 'green' },
+  { id: 'preferences', label: 'System Preferences', icon: Globe2, tone: 'blue' },
+  { id: 'appearance', label: 'Appearance Settings', icon: Palette, tone: 'violet' },
+  { id: 'activity', label: 'Activity & Logs', icon: Activity, tone: 'teal' },
+  { id: 'logout', label: 'Logout Option', icon: LogOut, tone: 'danger' }
 ]
 
-const notificationOptions = [
-  { key: 'new_student_registration', label: 'New student added to timetable' },
-  { key: 'new_admission_application', label: 'Teacher assignment changes' },
-  { key: 'news_announcement', label: 'Published timetable announcements' },
-  { key: 'system_updates', label: 'Timetable system updates' },
-  { key: 'weekly_reports', label: 'Weekly timetable reports' },
-  { key: 'marketing_emails', label: 'Timetable email summaries' }
-]
-
-const defaultSettings = () => ({
-  school_name: 'MUDUGA TSS',
-  school_short_name: 'MUDUGA TSS',
-  school_email: 'info@mudugatss.ac.rw',
-  school_phone: '+250 788 123 456',
-  school_address: 'Muduga Sector, Karongi District, Western Province, Rwanda\nP.O. Box 123, Kibuye',
-  school_logo_url: '',
-  timezone: '(GMT+02:00) East Africa Time',
-  date_format: 'May 20, 2024 (MMM DD, YYYY)',
-  time_format: '12 Hour (01:30 PM)',
-  currency: 'RWF - Rwanda Franc',
-  system_language: 'English',
-  notifications: {
-    new_student_registration: true,
-    new_admission_application: true,
-    news_announcement: true,
-    system_updates: true,
-    weekly_reports: false,
-    marketing_emails: false
-  }
+const profile = reactive({
+  full_name: '',
+  email: '',
+  phone: '',
+  profile_photo: ''
 })
 
-const settings = reactive(defaultSettings())
-const systemInfo = reactive({
-  version: 'v1.0.0',
-  environment: 'Production',
-  database: 'SQLite 3',
-  last_backup: new Date().toISOString()
+const security = reactive({
+  password: '',
+  confirmPassword: '',
+  twoFactorEnabled: false
+})
+
+const account = reactive({
+  role: 'admin',
+  status: 'Active'
+})
+
+const notifications = reactive({
+  email: true,
+  system: true,
+  timetable: true
+})
+
+const notificationOptions = [
+  { key: 'email', title: 'Email notifications', description: 'Receive important account and schedule messages by email.' },
+  { key: 'system', title: 'System alerts', description: 'Show operational alerts inside the dashboard.' },
+  { key: 'timetable', title: 'Timetable update alerts', description: 'Notify when schedule data changes.' }
+]
+
+const preferences = reactive({
+  language: getAppLanguage(),
+  timeFormat: '24h',
+  defaultView: 'Overview',
+  uiDensity: 'comfortable'
+})
+
+const appearance = reactive({
+  mode: localStorage.getItem('adminAppearanceMode') || 'light',
+  accent: '#2563eb'
 })
 
 const accents = ['#2563eb', '#0891b2', '#16a34a', '#7c3aed', '#e11d48']
 
 const sessions = [
-  { id: 1, icon: 'bi bi-laptop', device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
-  { id: 2, icon: 'bi bi-phone', device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
+  { id: 1, icon: Laptop, device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
+  { id: 2, icon: Smartphone, device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
 ]
 
 const activityLogs = ref([
@@ -772,7 +657,7 @@ const notify = (message, type = 'success') => {
   toast.type = type
   setTimeout(() => {
     if (toast.message === message) toast.message = ''
-  }, 3000)
+  }, 2800)
 }
 
 const selectSection = (id) => {
@@ -789,16 +674,30 @@ const loadProfile = async () => {
   profile.profile_photo = user.profile_photo || ''
   account.role = user.role || authStore.currentUserType || 'admin'
   account.status = user.is_verified === false ? 'Unverified' : 'Active'
+  addActivity('Profile refreshed', 'Viewed')
 }
 
-const handleAvatarUpload = (event) => {
+const handleAvatarUpload = async (event) => {
   const file = event.target.files?.[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = () => {
-    profile.profile_photo = reader.result
+
+  avatarUploading.value = true
+  try {
+    const payload = new FormData()
+    payload.append('photo', file)
+    const response = await api.post('/upload/profile-photo', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    profile.profile_photo = response.data.photo?.path || ''
+    notify('Avatar uploaded. Save profile to apply it.')
+    addActivity('Avatar uploaded', 'Pending save')
+  } catch (error) {
+    notify(error.response?.data?.message || 'Avatar upload failed.', 'danger')
+    addActivity('Avatar upload failed', 'Failed')
+  } finally {
+    avatarUploading.value = false
+    event.target.value = ''
   }
-  reader.readAsDataURL(file)
 }
 
 const saveProfile = async () => {
@@ -813,6 +712,9 @@ const saveProfile = async () => {
     notify(result.error || 'Profile update failed.', 'danger')
     return
   }
+  await authStore.checkAuth()
+  profile.profile_photo = authStore.currentUser?.profile_photo || profile.profile_photo
+  addActivity('Profile settings saved', 'Success')
   notify('Profile settings saved.')
 }
 
@@ -842,14 +744,18 @@ const saveSecurity = async () => {
   }
   security.password = ''
   security.confirmPassword = ''
+  localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
+  addActivity('Security settings saved', 'Success')
   notify('Security settings saved.')
 }
 
 const saveLocalPreferences = () => {
-  localStorage.setItem('adminNotifications', JSON.stringify(notifications))
-  localStorage.setItem('adminPreferences', JSON.stringify(preferences))
-  localStorage.setItem('adminAppearanceMode', appearance.mode)
-  localStorage.setItem('adminAccent', appearance.accent)
+  localStorage.setItem(settingsStorageKeys.notifications, JSON.stringify(notifications))
+  localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
+  localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
+  setAppLanguage(preferences.language)
+  applyAppearance()
+  addActivity(`${activeSection.value} settings saved`, 'Success')
   notify('Settings saved.')
 }
 
@@ -953,21 +859,42 @@ watch(
   applyAppearance
 )
 
+watch(
+  () => preferences.language,
+  (language) => {
+    setAppLanguage(language)
+    localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
+    addActivity(`Language changed to ${language.toUpperCase()}`, 'Success')
+    notify('Language applied.')
+  }
+)
+
 onMounted(() => {
-  const savedNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '{}')
+  const savedNotifications = JSON.parse(localStorage.getItem(settingsStorageKeys.notifications) || '{}')
   Object.assign(notifications, savedNotifications)
-  const savedPreferences = JSON.parse(localStorage.getItem('adminPreferences') || '{}')
+  const savedPreferences = JSON.parse(localStorage.getItem(settingsStorageKeys.preferences) || '{}')
   Object.assign(preferences, savedPreferences)
-  appearance.accent = localStorage.getItem('adminAccent') || appearance.accent
+  preferences.language = savedPreferences.language || getAppLanguage()
+  const savedDarkMode = JSON.parse(localStorage.getItem(settingsStorageKeys.darkMode) || 'false')
+  appearance.mode = localStorage.getItem(settingsStorageKeys.appearanceMode) || (savedDarkMode ? 'dark' : appearance.mode)
+  appearance.accent = localStorage.getItem(settingsStorageKeys.accent) || appearance.accent
+  security.twoFactorEnabled = JSON.parse(localStorage.getItem(settingsStorageKeys.twoFactor) || 'false')
+  try {
+    const savedLogs = JSON.parse(localStorage.getItem(settingsStorageKeys.activity) || '[]')
+    if (Array.isArray(savedLogs) && savedLogs.length) activityLogs.value = savedLogs
+  } catch (error) {
+    localStorage.removeItem(settingsStorageKeys.activity)
+  }
+  applyAppearance()
   loadProfile()
 })
 </script>
 
 <style scoped>
-.admin-settings {
-  min-height: calc(100vh - 80px);
-  padding: 0.75rem 1.5rem 2.5rem;
-  color: #172554;
+.settings-control {
+  width: min(100%, 1320px);
+  margin: 0 auto;
+  color: #0f172a;
 }
 
 .settings-control.is-compact {
@@ -989,7 +916,7 @@ onMounted(() => {
 
 .eyebrow {
   display: block;
-  color: #2563eb;
+  color: var(--admin-accent, #2563eb);
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -1000,19 +927,27 @@ onMounted(() => {
 .card-heading h2,
 .confirm-modal h2 {
   margin: 0.2rem 0 0;
-  color: #52698f;
-  font-size: 0.82rem;
+  font-weight: 900;
 }
 
-.settings-tabs {
+.settings-hero p,
+.card-heading p {
+  max-width: 48rem;
+  margin: 0.35rem 0 0;
+  color: #64748b;
+}
+
+.hero-actions,
+.modal-actions,
+.security-actions {
   display: flex;
-  gap: 1.25rem;
-  border-bottom: 1px solid #cfd8ea;
-  margin-bottom: 1.25rem;
-  overflow-x: auto;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
-.tab-button {
+.tool-btn {
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1030,7 +965,7 @@ onMounted(() => {
 }
 
 .tool-btn.primary {
-  background: #2563eb;
+  background: var(--admin-accent, #2563eb);
   color: #ffffff;
   box-shadow: 0 12px 24px rgba(37, 99, 235, 0.24);
 }
@@ -1084,41 +1019,67 @@ onMounted(() => {
   align-items: center;
   gap: 0.75rem;
   border: 0;
-  border-bottom: 2px solid transparent;
+  border-radius: 12px;
+  padding: 0.82rem 0.9rem;
   background: transparent;
-  color: #52698f;
-  font-weight: 700;
+  color: #475569;
+  font-weight: 900;
+  text-align: left;
   cursor: pointer;
-  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 .nav-item:hover {
   background: #eff6ff;
-  color: #1d4ed8;
+  color: var(--admin-accent, #1d4ed8);
   transform: translateX(2px);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, var(--admin-accent, #2563eb), #1d4ed8);
   color: #ffffff;
   box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+}
+
+.nav-icon-wrap {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  border-radius: 10px;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.nav-icon-wrap.violet { color: #6d28d9; background: #ede9fe; }
+.nav-icon-wrap.teal { color: #0f766e; background: #ccfbf1; }
+.nav-icon-wrap.blue { color: #1d4ed8; background: #dbeafe; }
+.nav-icon-wrap.amber { color: #b45309; background: #fef3c7; }
+.nav-icon-wrap.green { color: #15803d; background: #dcfce7; }
+.nav-icon-wrap.danger { color: #dc2626; background: #fee2e2; }
+
+.nav-item.active .nav-icon-wrap {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .nav-item.danger:not(.active) {
   color: #dc2626;
 }
 
-.settings-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 260px;
-  gap: 1.25rem;
-  align-items: start;
+.settings-content,
+.section-grid {
+  min-width: 0;
 }
 
-.panel {
-  border: 1px solid #ccd8ec;
-  border-radius: 8px;
-  background: #ffffff;
+.section-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.settings-card {
+  padding: 1.15rem;
 }
 
 .quick-tools,
@@ -1147,9 +1108,8 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.tool-action i {
+.tool-action svg {
   color: var(--admin-accent, #2563eb);
-  font-size: 1.35rem;
 }
 
 .tool-action strong {
@@ -1200,17 +1160,9 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.panel h2 {
-  margin: 0;
-  color: #0f2554;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
 .form-grid {
   display: grid;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.9rem;
 }
 
 .form-grid.two {
@@ -1219,77 +1171,59 @@ onMounted(() => {
 
 .field {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.4rem;
+  font-weight: 900;
 }
 
-.field-label,
 .field span {
-  color: #0f2554;
+  color: #475569;
   font-size: 0.78rem;
-  font-weight: 700;
 }
 
 .field input,
-.field select,
-.field textarea {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid #c8d4e5;
-  border-radius: 6px;
-  background: #fbfdff;
-  color: #172554;
-  font: inherit;
-  padding: 0.55rem 0.65rem;
+.field select {
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 0.65rem 0.8rem;
   outline: none;
-}
-
-.field textarea {
-  min-height: 78px;
-  resize: vertical;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 .field input:focus,
 .field select:focus {
-  border-color: #2563eb;
+  border-color: var(--admin-accent, #2563eb);
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
 }
 
-.logo-section {
-  display: grid;
-  gap: 0.45rem;
-  margin: 0.25rem 0 1rem;
-}
-
-.logo-row {
+.profile-row {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.logo-preview {
-  width: 78px;
-  height: 78px;
+.avatar-preview {
+  width: 86px;
+  height: 86px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
-  border: 1px solid #c8d4e5;
-  border-radius: 6px;
-  background: #f8fbff;
   overflow: hidden;
-  background: linear-gradient(135deg, #2563eb, #38bdf8);
+  background: linear-gradient(135deg, var(--admin-accent, #2563eb), #38bdf8);
   color: #ffffff;
   font-size: 1.5rem;
   font-weight: 900;
 }
 
-.logo-preview img {
+.avatar-preview img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
 }
 
-.remove-logo,
-.outline-button,
-.save-button {
+.upload-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -1298,67 +1232,87 @@ onMounted(() => {
   border-radius: 12px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
-  color: #1d4ed8;
+  color: var(--admin-accent, #1d4ed8);
   font-weight: 900;
   cursor: pointer;
 }
 
-.remove-logo {
-  width: 26px;
-  height: 26px;
-  border: 0;
-  background: #eef3ff;
-  color: #3157f6;
-}
-
-.remove-logo.danger {
-  background: #ff4d5e;
-  color: #ffffff;
-}
-
-.remove-logo input {
+.upload-btn input {
   display: none;
 }
 
-.form-actions {
-  border-top: 1px solid #d8e1ef;
-  margin-top: 1rem;
-  padding-top: 1rem;
+.toggle-list,
+.session-list {
+  display: grid;
+  gap: 0.75rem;
 }
 
-.save-button {
-  border: 0;
-  background: #4b63f4;
-  color: #ffffff;
-  padding: 0.45rem 0.8rem;
+.switch-card,
+.toggle-row,
+.session-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
-.save-button:disabled {
-  cursor: wait;
-  opacity: 0.68;
+.switch-card input,
+.toggle-row input {
+  position: absolute;
+  opacity: 0;
 }
 
-.outline-button {
-  width: 100%;
-  border: 1px solid #c8d4e5;
+.switch-card > span,
+.toggle-row > span {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.switch-card > span::after,
+.toggle-row > span::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: 3px;
+  left: 3px;
+  border-radius: 999px;
   background: #ffffff;
   transition: transform 0.2s ease;
 }
 
 .switch-card input:checked + span,
 .toggle-row input:checked + span {
-  background: #2563eb;
+  background: var(--admin-accent, #2563eb);
 }
 
-.info-panel dl {
+.switch-card input:checked + span::after,
+.toggle-row input:checked + span::after {
+  transform: translateX(18px);
+}
+
+.switch-card div,
+.toggle-row div,
+.session-item div {
   display: grid;
-  gap: 0.7rem;
-  margin: 0.9rem 0;
+  gap: 0.15rem;
 }
 
-.session-item i {
-  color: #2563eb;
-  font-size: 1.3rem;
+.switch-card small,
+.toggle-row small,
+.session-item span {
+  color: #64748b;
+}
+
+.session-item svg {
+  color: var(--admin-accent, #2563eb);
 }
 
 .session-item em {
@@ -1375,27 +1329,28 @@ onMounted(() => {
   gap: 0.75rem;
 }
 
-.info-panel dt {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: #52698f;
-  font-size: 0.76rem;
+.account-summary div,
+.theme-card {
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
 }
 
-.info-panel dd {
-  margin: 0;
-  color: #172554;
-  font-size: 0.76rem;
-  font-weight: 700;
-  text-align: right;
+.account-summary span {
+  display: block;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.75rem;
 }
 
-.info-panel dd.success {
-  color: #18a058;
+.account-summary strong {
+  display: block;
+  margin-top: 0.3rem;
 }
 
-.switch-line {
+.theme-card {
+  min-height: 96px;
   display: grid;
   place-items: center;
   gap: 0.4rem;
@@ -1404,66 +1359,75 @@ onMounted(() => {
 }
 
 .theme-card.active {
-  border-color: #2563eb;
+  border-color: var(--admin-accent, #2563eb);
   background: #eff6ff;
-  color: #1d4ed8;
+  color: var(--admin-accent, #1d4ed8);
 }
 
-.switch-line input {
-  position: absolute;
-  opacity: 0;
+.accent-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+  color: #475569;
+  font-weight: 900;
 }
 
-.switch-line i {
-  width: 30px;
-  height: 16px;
+.accent-dot {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #ffffff;
   border-radius: 999px;
-  background: #172033;
-  position: relative;
+  box-shadow: 0 0 0 1px #cbd5e1;
 }
 
 .accent-dot.active {
   box-shadow: 0 0 0 3px #0f172a, 0 0 0 6px rgba(37, 99, 235, 0.24);
 }
 
-.switch-line i::after {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  top: 2px;
-  left: 2px;
-  border-radius: 999px;
+.activity-table {
+  display: grid;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.activity-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.7fr;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
   background: #ffffff;
-  transition: transform 0.18s ease;
 }
 
-.switch-line input:checked + i {
-  background: #4b63f4;
+.activity-row:last-child {
+  border-bottom: 0;
 }
 
-.switch-line input:checked + i::after {
-  transform: translateX(14px);
+.activity-row.head {
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 900;
 }
 
-.link-button {
-  width: 100%;
-  margin-top: 0.8rem;
-  border: 0;
-  background: transparent;
-  color: #3157f6;
-  font-weight: 700;
-  cursor: pointer;
+.activity-row strong {
+  color: #16a34a;
+}
+
+.danger-zone {
+  border-color: #fecaca;
 }
 
 .toast-banner {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   margin-bottom: 1rem;
-  padding: 0.72rem 0.85rem;
-  border-radius: 8px;
-  font-weight: 700;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  font-weight: 900;
 }
 
 .toast-banner.success {
@@ -1498,8 +1462,13 @@ onMounted(() => {
 }
 
 :global(body.admin-dark-mode) .tool-action strong,
-:global(body.admin-dark-mode) .tool-action i {
+:global(body.admin-dark-mode) .tool-action svg {
   color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .nav-icon-wrap {
+  color: #bfdbfe !important;
+  background: rgba(96, 165, 250, 0.16) !important;
 }
 
 :global(body.admin-dark-mode) .tool-action small,
@@ -1511,59 +1480,118 @@ onMounted(() => {
   box-shadow: 0 0 0 3px #f8fafc, 0 0 0 6px rgba(96, 165, 250, 0.28);
 }
 
-.summary-grid {
+:global(body.admin-dark-mode) .settings-control .account-summary div,
+:global(body.admin-dark-mode) .settings-control .theme-card {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .account-summary span,
+:global(body.admin-dark-mode) .settings-control .accent-row {
+  color: #cbd5e1 !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .account-summary strong,
+:global(body.admin-dark-mode) .settings-control .theme-card {
+  color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .theme-card.active {
+  border-color: #60a5fa !important;
+  background: #172554 !important;
+  color: #dbeafe !important;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 1000;
+}
+
+.confirm-modal {
+  width: min(420px, 100%);
+  padding: 1.25rem;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  text-align: center;
+}
+
+.confirm-modal > i {
+  color: #dc2626;
+  font-size: 2rem;
+}
+
+.confirm-modal p {
+  color: #64748b;
+}
+
+.modal-actions {
+  justify-content: center;
   margin-top: 1rem;
 }
 
-.summary-grid div {
-  display: grid;
-  gap: 0.25rem;
-  border: 1px solid #d8e1ef;
-  border-radius: 8px;
-  padding: 0.85rem;
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.summary-grid span {
-  color: #52698f;
-  font-size: 0.75rem;
+.fade-slide-enter-from,
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
 }
 
-.role-list {
-  display: flex;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-}
-
-.role-list span {
-  border: 1px solid #c8d4e5;
-  border-radius: 999px;
-  padding: 0.4rem 0.75rem;
-  color: #172554;
-  font-weight: 700;
-}
-
-@media (max-width: 1100px) {
-  .settings-grid {
+@media (max-width: 980px) {
+  .settings-shell {
     grid-template-columns: 1fr;
   }
 
-  .side-stack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .settings-nav {
+    position: static;
+  }
+
+  .mobile-nav-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 0;
+    border-radius: 12px;
+    padding: 0.8rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 900;
+  }
+
+  .nav-list {
+    display: none;
+    margin-top: 0.6rem;
+  }
+
+  .settings-nav.open .nav-list {
+    display: grid;
   }
 }
 
-@media (max-width: 740px) {
-  .admin-settings {
-    padding: 0.75rem 0.5rem 1.5rem;
+@media (max-width: 720px) {
+  .settings-hero,
+  .profile-row {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .form-grid.two,
   .account-summary,
   .appearance-grid,
+  .admin-tool-grid,
   .activity-row {
     grid-template-columns: 1fr;
   }
@@ -1571,5 +1599,36 @@ onMounted(() => {
   .password-inline {
     grid-template-columns: 1fr;
   }
+}
+</style>
+
+<style>
+body.admin-dark-mode .settings-control .account-summary > div {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28) !important;
+}
+
+body.admin-dark-mode .settings-control .account-summary > div span {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .settings-control .account-summary > div strong {
+  color: #f8fafc !important;
+}
+
+body:not(.admin-dark-mode) .settings-control .account-summary > div {
+  border-color: #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+body:not(.admin-dark-mode) .settings-control .account-summary > div span {
+  color: #64748b !important;
+}
+
+body:not(.admin-dark-mode) .settings-control .account-summary > div strong {
+  color: #0f172a !important;
 }
 </style>

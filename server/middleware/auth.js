@@ -1,9 +1,31 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Teacher = require('../models/Teacher');
+const db = require('../config/database');
 const { validateSchoolAccess } = require('./schoolAccess');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_here_change_in_production';
+
+const inferTeacherSchoolId = async (teacherId) => {
+  if (!teacherId) return null;
+
+  const [rows] = await db.query(`
+    SELECT school_id
+    FROM (
+      SELECT c.school_id
+      FROM class c
+      WHERE c.class_teacher_id = ? AND c.school_id IS NOT NULL
+      UNION
+      SELECT c.school_id
+      FROM assignment a
+      JOIN class c ON c.class_id = a.class_id
+      WHERE a.teacher_id = ? AND c.school_id IS NOT NULL
+    ) teacher_schools
+    LIMIT 1
+  `, [teacherId, teacherId]);
+
+  return rows[0]?.school_id || null;
+};
 
 const auth = async (req, res, next) => {
   try {
@@ -30,14 +52,21 @@ const auth = async (req, res, next) => {
         });
       }
 
+      const linkedUser = teacher.email ? await User.findByEmail(teacher.email).catch(() => null) : null;
+
+      const schoolId = teacher.school_id || linkedUser?.school_id || await inferTeacherSchoolId(decoded.teacherId);
+
       req.user = {
         ...teacher,
         teacherId: decoded.teacherId,
+        school_id: schoolId || null,
         type: 'teacher',
         role: 'teacher'
       };
-      const schoolAccess = await validateSchoolAccess(req.user);
-      if (!schoolAccess.allowed) return res.status(schoolAccess.statusCode || 403).json(schoolAccess);
+      if (schoolId) {
+        const schoolAccess = await validateSchoolAccess(req.user);
+        if (!schoolAccess.allowed) return res.status(schoolAccess.statusCode || 403).json(schoolAccess);
+      }
       req.teacher = teacher;
       return next();
     }
@@ -68,14 +97,18 @@ const auth = async (req, res, next) => {
         });
       }
 
+      const schoolId = user.school_id || teacher.school_id || await inferTeacherSchoolId(teacher.teacher_id);
+
       req.user = {
         ...user,
         teacherId: teacher.teacher_id,
-        school_id: user.school_id || teacher.school_id || null,
+        school_id: schoolId || null,
         type: 'teacher'
       };
-      const schoolAccess = await validateSchoolAccess(req.user);
-      if (!schoolAccess.allowed) return res.status(schoolAccess.statusCode || 403).json(schoolAccess);
+      if (schoolId) {
+        const schoolAccess = await validateSchoolAccess(req.user);
+        if (!schoolAccess.allowed) return res.status(schoolAccess.statusCode || 403).json(schoolAccess);
+      }
       req.teacher = teacher;
       return next();
     }
