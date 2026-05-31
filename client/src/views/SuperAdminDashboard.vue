@@ -14,18 +14,27 @@
       </header>
 
       <section class="metric-grid" aria-label="Platform metrics">
-        <button
-          v-for="card in metricCards"
-          :key="card.label"
-          type="button"
-          class="metric-card"
-          :class="card.tone"
-          @click="openMetric(card)"
-        >
-          <span>{{ card.label }}</span>
-          <strong>{{ card.value }}</strong>
-          <small>{{ card.caption }}</small>
-        </button>
+        <template v-if="loading">
+          <article v-for="item in 8" :key="item" class="metric-card metric-loading">
+            <span></span>
+            <strong></strong>
+            <small></small>
+          </article>
+        </template>
+        <template v-else>
+          <button
+            v-for="card in metricCards"
+            :key="card.label"
+            type="button"
+            class="metric-card"
+            :class="card.tone"
+            @click="openMetric(card)"
+          >
+            <span>{{ card.label }}</span>
+            <strong>{{ card.value }}</strong>
+            <small>{{ card.caption }}</small>
+          </button>
+        </template>
       </section>
 
       <section class="section-block priority-section">
@@ -505,6 +514,31 @@ onMounted(loadDashboard)
   font-size: 0.76rem;
   font-weight: 950;
   text-transform: uppercase;
+}
+
+.metric-loading {
+  cursor: default;
+}
+
+.metric-loading span,
+.metric-loading strong,
+.metric-loading small {
+  display: block;
+  width: 72%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 200% 100%;
+  animation: shimmer 1.1s infinite;
+}
+
+.metric-loading strong {
+  width: 44%;
+  height: 28px;
+}
+
+.metric-loading small {
+  width: 62%;
 }
 
 .metric-card strong {

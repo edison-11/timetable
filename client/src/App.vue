@@ -1,4 +1,5 @@
 <template>
+  <TopLoadingBar />
   <Preloader :loading="isBlockingLoading" />
   <TopFeedback :loading="isRequestLoading" />
   <router-view />
@@ -15,7 +16,8 @@ import { watchAppLanguage } from '@/utils/language'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()
-const isGlobalLoading = computed(() => loadingStore.isLoading)
+const isBlockingLoading = computed(() => loadingStore.isBlockingLoading)
+const isRequestLoading = computed(() => loadingStore.isRequestLoading)
 let languageObserver = null
 
 onMounted(async () => {

@@ -61,7 +61,6 @@
                       <input type="file" accept="image/*" :disabled="avatarUploading" @change="handleAvatarUpload" />
                     </label>
                     <button class="tool-btn secondary" type="button" @click="removeAvatar">Remove</button>
-                    <button class="tool-btn ghost" type="button" @click="notify('Crop preview is ready for an image-cropper integration.', 'success')">Crop</button>
                   </div>
                 </div>
                 <div class="form-grid two">
@@ -109,13 +108,9 @@
                     <span></span>
                     <div>
                       <strong>Two-factor authentication</strong>
-                      <small>Future-ready protection placeholder.</small>
+                      <small>Save this preference for the current admin account.</small>
                     </div>
                   </label>
-                  <button class="tool-btn ghost" type="button" @click="notify('Session revocation is ready for backend token tracking.', 'success')">
-                    <i class="bi bi-box-arrow-right"></i>
-                    Logout from all devices
-                  </button>
                 </div>
               </div>
               <div class="settings-card">
@@ -273,10 +268,13 @@
       </section>
 
       <div v-if="hasUnsavedChanges" class="sticky-save-bar">
-        <strong>You have unsaved changes</strong>
+        <strong>{{ savingSettings ? 'Saving settings...' : 'You have unsaved changes' }}</strong>
         <div>
-          <button class="tool-btn secondary" type="button" @click="discardChanges">Discard Changes</button>
-          <button class="tool-btn primary" type="button" @click="saveActiveSection">Save Changes</button>
+          <button class="tool-btn secondary" type="button" :disabled="savingSettings" @click="discardChanges">Discard Changes</button>
+          <button class="tool-btn primary inline-loading" type="button" :disabled="savingSettings" @click="saveActiveSection">
+            <i v-if="savingSettings" aria-hidden="true"></i>
+            {{ savingSettings ? 'Saving settings...' : 'Save Changes' }}
+          </button>
         </div>
       </div>
 
@@ -286,9 +284,9 @@
           <h2>You have unsaved changes</h2>
           <p>Do you want to save before leaving this section?</p>
           <div class="modal-actions">
-            <button class="tool-btn primary" type="button" @click="saveAndContinue">Save</button>
-            <button class="tool-btn secondary" type="button" @click="discardAndContinue">Discard</button>
-            <button class="tool-btn ghost" type="button" @click="unsavedModalOpen = false">Cancel</button>
+            <button class="tool-btn primary" type="button" :disabled="savingSettings" @click="saveAndContinue">{{ savingSettings ? 'Saving settings...' : 'Save' }}</button>
+            <button class="tool-btn secondary" type="button" :disabled="savingSettings" @click="discardAndContinue">Discard</button>
+            <button class="tool-btn ghost" type="button" :disabled="savingSettings" @click="unsavedModalOpen = false">Cancel</button>
           </div>
         </section>
       </div>
@@ -328,6 +326,7 @@ const hasUnsavedChanges = ref(false)
 const baselineSnapshot = ref('')
 const suppressDirty = ref(false)
 const avatarUploading = ref(false)
+const savingSettings = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 const settingsStorageKeys = {
   notifications: 'adminNotifications',
@@ -688,9 +687,15 @@ const saveLocalPreferences = () => {
 }
 
 const saveActiveSection = async () => {
-  if (activeSection.value === 'profile') return saveProfile()
-  if (activeSection.value === 'security') return saveSecurity()
-  return saveLocalPreferences()
+  savingSettings.value = true
+  try {
+    if (activeSection.value === 'profile') await saveProfile()
+    else if (activeSection.value === 'security') await saveSecurity()
+    else saveLocalPreferences()
+    notify('Settings updated successfully.')
+  } finally {
+    savingSettings.value = false
+  }
 }
 
 const saveAndContinue = async () => {
@@ -950,6 +955,21 @@ onBeforeUnmount(() => {
   background: #dc2626;
   color: #ffffff;
   box-shadow: 0 12px 24px rgba(220, 38, 38, 0.22);
+}
+
+.tool-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.inline-loading i {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: settings-spin 0.65s linear infinite;
 }
 
 .settings-shell {
@@ -1488,6 +1508,10 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 0.65rem;
   flex-wrap: wrap;
+}
+
+@keyframes settings-spin {
+  to { transform: rotate(360deg); }
 }
 
 :global(body.admin-dark-mode) .tool-action {

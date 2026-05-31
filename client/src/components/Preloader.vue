@@ -15,8 +15,8 @@
         </div>
 
         <div class="loader-copy">
-          <strong>WELCOME TO YOUR DASHBOARD</strong>
-          <span class="loader-detail">Preparing dashboard data</span>
+          <strong>Loading School Management System...</strong>
+          <span class="loader-detail">{{ loadingStep }}</span>
         </div>
 
         <div class="counter-row">
@@ -47,6 +47,7 @@ const props = defineProps({
 })
 
 const progress = ref(0)
+const loadingStep = ref('Verifying permissions...')
 let timer = null
 
 const stopCounter = () => {
@@ -68,11 +69,18 @@ const startCounter = () => {
     } else if (progress.value < 96) {
       progress.value += 1
     }
+
+    if (progress.value >= 55) {
+      loadingStep.value = 'Loading schools...'
+    } else if (progress.value >= 24) {
+      loadingStep.value = 'Verifying permissions...'
+    }
   }, 95)
 }
 
 watch(() => props.loading, (isLoading) => {
   if (isLoading) {
+    loadingStep.value = 'Verifying permissions...'
     startCounter()
     return
   }

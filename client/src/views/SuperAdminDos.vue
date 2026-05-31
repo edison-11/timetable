@@ -22,25 +22,30 @@
           </div>
           <button type="button" class="ghost-button" @click="createDosOpen = false">Cancel</button>
         </div>
-        <div class="create-dos-grid">
-          <label>
-            <span>School</span>
-            <select v-model="newDos.school_id" required>
-              <option value="">Choose school</option>
-              <option v-for="school in schools" :key="school.school_id" :value="school.school_id">
-                {{ school.school_name }}{{ school.dos_name ? ' - replacing current DOS' : '' }}
-              </option>
-            </select>
-          </label>
-          <label><span>Full Name</span><input v-model.trim="newDos.full_name" type="text" autocomplete="off" required></label>
-          <label><span>Email</span><input v-model.trim="newDos.email" type="email" autocomplete="off" required></label>
-          <label><span>Phone</span><input v-model.trim="newDos.phone" type="tel" autocomplete="off"></label>
-          <label><span>National ID</span><input v-model.trim="newDos.national_id" type="text" autocomplete="off"></label>
-          <label><span>Temporary Password</span><input v-model="newDos.password" type="password" autocomplete="new-password" required></label>
-        </div>
+        <fieldset :disabled="creatingDos">
+          <div class="create-dos-grid">
+            <label>
+              <span>School</span>
+              <select v-model="newDos.school_id" required>
+                <option value="">Choose school</option>
+                <option v-for="school in schools" :key="school.school_id" :value="school.school_id">
+                  {{ school.school_name }}{{ school.dos_name ? ' - replacing current DOS' : '' }}
+                </option>
+              </select>
+            </label>
+            <label><span>Full Name</span><input v-model.trim="newDos.full_name" type="text" autocomplete="off" required></label>
+            <label><span>Email</span><input v-model.trim="newDos.email" type="email" autocomplete="off" required></label>
+            <label><span>Phone</span><input v-model.trim="newDos.phone" type="tel" autocomplete="off"></label>
+            <label><span>National ID</span><input v-model.trim="newDos.national_id" type="text" autocomplete="off"></label>
+            <label><span>Temporary Password</span><input v-model="newDos.password" type="password" autocomplete="new-password" required></label>
+          </div>
+        </fieldset>
         <div class="form-actions">
           <span v-if="createDosMessage" :class="createDosMessageType">{{ createDosMessage }}</span>
-          <button type="submit" class="primary-action" :disabled="creatingDos">{{ creatingDos ? 'Creating...' : 'Create DOS' }}</button>
+          <button type="submit" class="primary-action inline-loading" :disabled="creatingDos">
+            <i v-if="creatingDos" aria-hidden="true"></i>
+            {{ creatingDos ? 'Assigning Director of Studies...' : 'Create DOS' }}
+          </button>
         </div>
       </form>
 
@@ -83,10 +88,6 @@
           <strong>{{ selectedIds.length }} selected</strong>
           <select v-model="bulkChoice" aria-label="Bulk action">
             <option value="">Bulk Actions</option>
-            <option value="Activate">Activate</option>
-            <option value="Deactivate">Deactivate</option>
-            <option value="Reset Password">Reset Password</option>
-            <option value="Transfer Ownership">Transfer Ownership</option>
             <option value="Export">Export</option>
           </select>
           <button type="button" class="primary-action" :disabled="!bulkChoice" @click="runBulkAction">Apply</button>
@@ -142,10 +143,6 @@
                   <div v-if="activeMenu === dos.row_id" class="action-menu">
                     <button type="button" @click="selectedDos = dos; activeMenu = ''">View Profile</button>
                     <button type="button" @click="openSchool(dos)">Open School</button>
-                    <button type="button" @click="queueAction('Reset password', dos)">Reset Password</button>
-                    <button type="button" @click="queueAction('Transfer ownership', dos)">Transfer Ownership</button>
-                    <button type="button" @click="queueAction('Deactivate', dos)">Deactivate</button>
-                    <button type="button" class="danger" @click="queueAction('Delete', dos)">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -171,17 +168,9 @@
           <div><dt>Permissions</dt><dd>Manage Timetable, Staff, Exams</dd></div>
         </dl>
         <div class="drawer-actions">
-          <button type="button" class="primary-action" @click="queueAction('Reset password', selectedDos)">Reset Password</button>
-          <button type="button" class="ghost-button" @click="queueAction('Transfer ownership', selectedDos)">Transfer Ownership</button>
-          <button type="button" class="danger-button" @click="queueAction('Deactivate', selectedDos)">Deactivate</button>
+          <button type="button" class="primary-action" @click="openSchool(selectedDos)">Open School</button>
         </div>
       </aside>
-
-      <section v-if="queuedActionText" class="action-toast" role="status">
-        <strong>{{ queuedActionText }}</strong>
-        <small>Action queued for the selected DOS account.</small>
-        <button type="button" @click="queuedActionText = ''">Dismiss</button>
-      </section>
     </section>
   </AppLayout>
 </template>
@@ -204,7 +193,6 @@ const bulkChoice = ref('')
 const activeMenu = ref('')
 const selectedDos = ref(null)
 const loading = ref(false)
-const queuedActionText = ref('')
 const createDosOpen = ref(false)
 const creatingDos = ref(false)
 const createDosMessage = ref('')
@@ -288,7 +276,6 @@ const toggleSelectAll = () => {
 
 const runBulkAction = () => {
   if (bulkChoice.value === 'Export') exportRows()
-  else queuedActionText.value = `${bulkChoice.value} queued for ${selectedIds.value.length} DOS account${selectedIds.value.length === 1 ? '' : 's'}.`
   bulkChoice.value = ''
 }
 
@@ -315,11 +302,6 @@ const openSchool = (dos) => {
   router.push(`/super-admin/schools/${dos.school_id}`)
 }
 
-const queueAction = (action, dos = null) => {
-  queuedActionText.value = dos ? `${action} queued for ${dos.dos_name || dos.school_name}.` : `${action} workflow opened.`
-  activeMenu.value = ''
-}
-
 const createDosAccount = async () => {
   creatingDos.value = true
   createDosMessage.value = ''
@@ -331,7 +313,7 @@ const createDosAccount = async () => {
       national_id: newDos.value.national_id,
       password: newDos.value.password
     })
-    createDosMessage.value = 'DOS account created and assigned.'
+    createDosMessage.value = 'DOS assigned successfully.'
     createDosMessageType.value = 'success'
     newDos.value = emptyNewDos()
     createDosOpen.value = false
@@ -549,6 +531,27 @@ select {
   padding: 0 0.7rem;
 }
 
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.inline-loading {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.inline-loading i {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: spin 0.65s linear infinite;
+}
+
 .filters input {
   flex: 1 1 280px;
 }
@@ -746,28 +749,6 @@ dd {
   font-weight: 800;
 }
 
-.action-toast {
-  position: fixed;
-  right: 1rem;
-  top: 5rem;
-  z-index: 1000;
-  display: grid;
-  gap: 0.25rem;
-  width: min(360px, calc(100vw - 2rem));
-  padding: 0.9rem;
-  border: 1px solid #bbf7d0;
-  border-radius: 14px;
-  background: #f0fdf4;
-  color: #166534;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
-}
-
-.action-toast button {
-  width: fit-content;
-  background: #16a34a;
-  color: #fff;
-}
-
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -775,6 +756,10 @@ button:disabled {
 
 @keyframes shimmer {
   to { background-position: -200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 @media (max-width: 1100px) {

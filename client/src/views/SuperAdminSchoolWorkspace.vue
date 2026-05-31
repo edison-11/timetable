@@ -19,7 +19,33 @@
         </div>
       </header>
 
-      <div v-if="loading" class="state">Loading school dashboard...</div>
+      <div v-if="loading" class="workspace-skeleton" role="status">
+        <article>
+          <strong>School details</strong>
+          <span></span>
+          <span class="short"></span>
+        </article>
+        <article>
+          <strong>DOS information</strong>
+          <span></span>
+          <span class="short"></span>
+        </article>
+        <article>
+          <strong>Statistics</strong>
+          <span></span>
+          <span class="short"></span>
+        </article>
+        <article>
+          <strong>Teachers</strong>
+          <span></span>
+          <span class="short"></span>
+        </article>
+        <article>
+          <strong>Students</strong>
+          <span></span>
+          <span class="short"></span>
+        </article>
+      </div>
       <template v-else>
         <section class="section-block">
           <div class="section-head">
@@ -736,6 +762,41 @@ small,
   text-align: center;
 }
 
+.workspace-skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.85rem;
+}
+
+.workspace-skeleton article {
+  display: grid;
+  gap: 0.65rem;
+  min-height: 128px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #fff;
+  padding: 1rem;
+}
+
+.workspace-skeleton strong {
+  color: #2563eb;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.workspace-skeleton span {
+  width: 84%;
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 200% 100%;
+  animation: shimmer 1.1s infinite;
+}
+
+.workspace-skeleton span.short {
+  width: 56%;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -780,6 +841,10 @@ small,
 
 .modal-actions .danger {
   background: #dc2626;
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
 }
 
 @media (max-width: 900px) {

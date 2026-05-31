@@ -19,15 +19,10 @@ router.get('/stats', async (req, res) => {
   try {
     const school_id = getRequestSchoolId(req);
 
-    // DEBUG: helps identify missing/incorrect tenant context
-    console.log('[DEBUG][dashboard/stats] req.user.role=', req.user?.role, 'req.user.school_id=', req.user?.school_id, 'resolved school_id=', school_id);
-
     const [timetables, rooms] = await Promise.all([
       TimetableEntry.getAll({ school_id }),
       Room.getAll({ school_id })
     ]);
-
-    console.log('[DEBUG][dashboard/stats] timetables.length=', Array.isArray(timetables) ? timetables.length : 'n/a', 'rooms.length=', Array.isArray(rooms) ? rooms.length : 'n/a');
 
     // 1) Timetable Distribution (by module_name)
     const moduleCounts = new Map();

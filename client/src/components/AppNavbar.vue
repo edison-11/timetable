@@ -54,6 +54,7 @@
         <Sun v-if="isDarkMode" :size="20" :stroke-width="2.2" aria-hidden="true" />
         <Moon v-else :size="20" :stroke-width="2.2" aria-hidden="true" />
       </button>
+      <span v-if="themeApplying" class="theme-applying" role="status">Applying theme...</span>
 
       <div class="notifications-menu" ref="notificationsMenu">
         <button
@@ -91,44 +92,51 @@
             </button>
           </div>
 
-          <div v-if="!visibleNotifications.length" class="notification-empty">
+          <div v-if="notificationsLoading" class="notification-loading" role="status">
+            <strong>Loading notifications...</strong>
+            <span v-for="item in 4" :key="item"></span>
+          </div>
+
+          <div v-else-if="!visibleNotifications.length" class="notification-empty">
             <span aria-hidden="true">!</span>
             <strong>No notifications found</strong>
             <small>There is nothing in {{ activeNotificationTab.toLowerCase() }} right now.</small>
             <button type="button" @click="activeNotificationTab = 'All'">View Notification History</button>
           </div>
 
-          <div
-            v-for="notification in visibleNotifications"
-            :key="notification.id"
-            class="notification-item"
-            :class="{ unread: !notification.read }"
-            role="button"
-            tabindex="0"
-            @click="openNotification(notification)"
-            @keyup.enter="openNotification(notification)"
-          >
-            <span class="notification-dot" :class="notification.tone"></span>
-            <span>
-              <strong>{{ notification.title }}</strong>
-              <em v-if="notification.message">{{ notification.message }}</em>
-              <small>{{ notification.time }}</small>
-              <span v-if="notification.action_required" class="notification-actions" @click.stop>
-                <button type="button" class="approve-action" @click="approvePendingItem(notification)">Approve</button>
-                <button type="button" class="reject-action" @click="rejectPendingItem(notification)">Reject</button>
-              </span>
-            </span>
-            <span
-              class="notification-delete"
+          <template v-else>
+            <div
+              v-for="notification in visibleNotifications"
+              :key="notification.id"
+              class="notification-item"
+              :class="{ unread: !notification.read }"
               role="button"
               tabindex="0"
-              title="Delete notification"
-              @click.stop="deleteNotification(notification)"
-              @keyup.enter.stop="deleteNotification(notification)"
+              @click="openNotification(notification)"
+              @keyup.enter="openNotification(notification)"
             >
-              <X :size="17" :stroke-width="2.2" />
-            </span>
-          </div>
+              <span class="notification-dot" :class="notification.tone"></span>
+              <span>
+                <strong>{{ notification.title }}</strong>
+                <em v-if="notification.message">{{ notification.message }}</em>
+                <small>{{ notification.time }}</small>
+                <span v-if="notification.action_required" class="notification-actions" @click.stop>
+                  <button type="button" class="approve-action" @click="approvePendingItem(notification)">Approve</button>
+                  <button type="button" class="reject-action" @click="rejectPendingItem(notification)">Reject</button>
+                </span>
+              </span>
+              <span
+                class="notification-delete"
+                role="button"
+                tabindex="0"
+                title="Delete notification"
+                @click.stop="deleteNotification(notification)"
+                @keyup.enter.stop="deleteNotification(notification)"
+              >
+                <X :size="17" :stroke-width="2.2" />
+              </span>
+            </div>
+          </template>
 
           <button class="view-all-notifications" type="button" @click="goToDashboardNotifications">
             View all notifications
@@ -231,9 +239,11 @@ const showAccountMenu = ref(false)
 const activeNotificationTab = ref('Unread')
 const sidebarOpen = ref(false)
 const isDarkMode = ref(false)
+const themeApplying = ref(false)
 const notificationsMenu = ref(null)
 const accountMenu = ref(null)
 const notifications = ref([])
+const notificationsLoading = ref(false)
 const navbarToast = ref('')
 const rejectDialog = ref({ open: false, notification: null, loading: false })
 const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
@@ -322,8 +332,12 @@ const applyDarkMode = () => {
 }
 
 const toggleDarkMode = () => {
+  themeApplying.value = true
   isDarkMode.value = !isDarkMode.value
   applyDarkMode()
+  window.setTimeout(() => {
+    themeApplying.value = false
+  }, 500)
 }
 
 const runSearch = () => {
@@ -364,8 +378,9 @@ const formatNotificationTime = (dateValue) => {
 }
 
 const fetchNotifications = async () => {
+  notificationsLoading.value = true
   try {
-    const response = await api.get('/notifications?limit=8')
+    const response = await api.get('/notifications?limit=8', { showGlobalLoader: false, showGlobalNotification: false })
     notifications.value = (response.data.notifications || []).map((notification) => ({
       ...notification,
       tone: notification.tone || 'blue',
@@ -376,6 +391,8 @@ const fetchNotifications = async () => {
   } catch (error) {
     console.error('Failed to load notifications', error)
     notifications.value = []
+  } finally {
+    notificationsLoading.value = false
   }
 }
 
@@ -786,6 +803,13 @@ const logout = () => {
   outline: none;
 }
 
+.theme-applying {
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
 .bell-icon {
   display: inline-flex;
   width: 20px;
@@ -921,6 +945,23 @@ const logout = () => {
   padding: 0.45rem 0.65rem;
 }
 
+.notification-loading {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.75rem 0.5rem;
+  color: #2563eb;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.notification-loading span {
+  height: 52px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 200% 100%;
+  animation: notification-shimmer 1.1s infinite;
+}
+
 .notification-tabs {
   display: flex;
   gap: 0.35rem;
@@ -1040,6 +1081,10 @@ const logout = () => {
   width: 100%;
   padding: 0.75rem 0.5rem 0.5rem;
   border-top: 1px solid #e2e8f0;
+}
+
+@keyframes notification-shimmer {
+  to { background-position: -200% 0; }
 }
 
 .account-menu {

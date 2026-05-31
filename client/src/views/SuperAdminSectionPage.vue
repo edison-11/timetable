@@ -11,19 +11,32 @@
       </header>
 
       <div class="module-grid">
-        <article v-for="item in page.cards" :key="item.title">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-          <small>{{ item.text }}</small>
-        </article>
+        <template v-if="loading">
+          <article v-for="item in 4" :key="`module-loading-${item}`" class="skeleton-card">
+            <span></span>
+            <strong></strong>
+            <small></small>
+          </article>
+        </template>
+        <template v-else>
+          <article v-for="item in page.cards" :key="item.title">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <small>{{ item.text }}</small>
+          </article>
+        </template>
       </div>
 
       <section v-if="page.key === 'billing'" class="data-panel">
         <div class="panel-head">
           <h2>Schools needing billing follow-up</h2>
-          <router-link to="/super-admin/schools">Manage schools</router-link>
+          <small v-if="loading">Fetching subscriptions... Calculating balances...</small>
+          <router-link v-else to="/super-admin/schools">Manage schools</router-link>
         </div>
-        <div class="compact-table">
+        <div v-if="loading" class="panel-skeleton">
+          <span v-for="item in 5" :key="item"></span>
+        </div>
+        <div v-else class="compact-table">
           <article v-for="school in billingSchools" :key="school.school_id">
             <strong>{{ school.school_name }}</strong>
             <span>{{ school.subscription_plan || 'Starter' }} / {{ school.subscription_status || 'trial' }}</span>
@@ -35,9 +48,13 @@
       <section v-else-if="page.key === 'activity'" class="data-panel">
         <div class="panel-head">
           <h2>Recent audit activity</h2>
-          <router-link to="/super-admin/dashboard">Dashboard</router-link>
+          <small v-if="loading">Loading recent activities...</small>
+          <router-link v-else to="/super-admin/dashboard">Dashboard</router-link>
         </div>
-        <div class="activity-list">
+        <div v-if="loading" class="panel-skeleton timeline">
+          <span v-for="item in 6" :key="item"></span>
+        </div>
+        <div v-else class="activity-list">
           <article v-for="activity in activities" :key="activity.activity_id || activity.created_at">
             <strong>{{ titleCase(String(activity.action || 'activity').replace(/_/g, ' ')) }}</strong>
             <span>{{ activity.message || activity.school_name || 'Platform event' }}</span>
@@ -49,19 +66,54 @@
       <section v-else-if="page.key === 'reports'" class="data-panel">
         <div class="panel-head">
           <h2>Export center</h2>
-          <small>{{ schools.length }} school records loaded</small>
+          <small>{{ reportStatus }}</small>
+        </div>
+        <div v-if="exporting" class="report-progress" role="status">
+          <span>{{ exportStep }}</span>
+          <i :style="{ width: `${exportProgress}%` }"></i>
         </div>
         <div class="action-grid">
-          <button type="button" @click="downloadCsv('schools')">Export schools CSV</button>
-          <button type="button" @click="downloadCsv('dos')">Export DOS CSV</button>
-          <button type="button" @click="downloadCsv('subscriptions')">Export subscriptions CSV</button>
+          <button type="button" :disabled="exporting || loading" @click="downloadCsv('schools')">Export schools CSV</button>
+          <button type="button" :disabled="exporting || loading" @click="downloadCsv('dos')">Export DOS CSV</button>
+          <button type="button" :disabled="exporting || loading" @click="downloadCsv('subscriptions')">Export subscriptions CSV</button>
         </div>
       </section>
 
       <section v-else-if="page.key === 'administration'" class="data-panel">
         <div class="panel-head">
           <h2>Administration workbench</h2>
-          <small>Operational shortcuts</small>
+          <small>Announcements and operational shortcuts</small>
+        </div>
+        <form class="announcement-composer" @submit.prevent="sendAdministrationAnnouncement">
+          <div>
+            <label>
+              <span>Announcement title</span>
+              <input v-model.trim="announcementForm.title" type="text" autocomplete="off" required>
+            </label>
+            <label>
+              <span>Priority</span>
+              <select v-model="announcementForm.priority">
+                <option>Normal</option>
+                <option>Important</option>
+                <option>Urgent</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>Message</span>
+            <textarea v-model.trim="announcementForm.message" rows="5" required></textarea>
+          </label>
+          <div class="composer-actions">
+            <span v-if="announcementMessage">{{ announcementMessage }}</span>
+            <button type="submit" :disabled="sendingAnnouncement">{{ sendingAnnouncement ? 'Sending announcement...' : 'Send to all schools' }}</button>
+          </div>
+        </form>
+        <div v-if="recentAnnouncements.length" class="compact-table">
+          <article v-for="announcement in recentAnnouncements" :key="announcement.announcement_id">
+            <strong>{{ announcement.title }}</strong>
+            <span>{{ announcement.priority }} / {{ announcement.target_count || 0 }} schools</span>
+            <small>{{ formatRelative(announcement.created_at) }}</small>
+          </article>
         </div>
         <div class="action-grid">
           <button type="button" @click="router.push('/super-admin/schools?status=pending_approval')">Review approvals</button>
@@ -73,9 +125,12 @@
       <section v-else class="data-panel">
         <div class="panel-head">
           <h2>Database readiness</h2>
-          <small>{{ stats.schools_with_timetables || 0 }} schools have timetable data</small>
+          <small :class="databaseStatusTone">{{ databaseStatusLabel }}</small>
         </div>
-        <div class="compact-table">
+        <div v-if="loading" class="panel-skeleton">
+          <span v-for="item in 5" :key="item"></span>
+        </div>
+        <div v-else class="compact-table">
           <article v-for="school in databaseSchools" :key="school.school_id">
             <strong>{{ school.school_name }}</strong>
             <span>{{ school.setupProgress || 0 }}% setup</span>
@@ -98,12 +153,30 @@ const router = useRouter()
 const stats = ref({})
 const schools = ref([])
 const activities = ref([])
+const loading = ref(false)
+const exporting = ref(false)
+const exportStep = ref('')
+const exportProgress = ref(0)
+const sendingAnnouncement = ref(false)
+const announcementMessage = ref('')
+const announcementForm = ref({ title: '', priority: 'Normal', message: '' })
+const announcements = ref([])
 
 const sectionKey = computed(() => String(route.path.split('/').pop() || 'administration'))
 const activeSchools = computed(() => schools.value.filter((school) => school.status === 'active'))
 const pendingSchools = computed(() => schools.value.filter((school) => ['pending', 'pending_approval'].includes(school.status)))
 const billingSchools = computed(() => schools.value.filter((school) => ['past_due', 'expired', 'suspended', 'canceled'].includes(school.subscription_status) || (school.subscription_expires_at && new Date(school.subscription_expires_at) < new Date())).slice(0, 10))
 const databaseSchools = computed(() => schools.value.slice().sort((a, b) => Number(a.setupProgress || 0) - Number(b.setupProgress || 0)).slice(0, 10))
+const reportStatus = computed(() => exporting.value ? exportStep.value : `${schools.value.length} school records loaded`)
+const databaseStatusLabel = computed(() => {
+  if (loading.value) return 'Checking connection...'
+  return stats.value.total_schools !== undefined ? 'Connected' : 'Connection Lost'
+})
+const databaseStatusTone = computed(() => {
+  if (loading.value) return 'checking'
+  return stats.value.total_schools !== undefined ? 'connected' : 'lost'
+})
+const recentAnnouncements = computed(() => announcements.value.slice(0, 5))
 
 const page = computed(() => {
   const common = {
@@ -163,16 +236,27 @@ const page = computed(() => {
 })
 
 const loadSection = async () => {
-  const [statsResponse, schoolsResponse] = await Promise.all([
-    api.get('/schools/stats'),
-    api.get('/schools', { showGlobalNotification: false })
-  ])
-  stats.value = statsResponse.data.stats || {}
-  schools.value = (schoolsResponse.data.schools || []).map((school) => ({
-    ...school,
-    setupProgress: calculateSetupProgress(school)
-  }))
-  activities.value = statsResponse.data.activities || []
+  loading.value = true
+  try {
+    const [statsResponse, schoolsResponse, announcementsResponse] = await Promise.all([
+      api.get('/schools/stats'),
+      api.get('/schools', { showGlobalNotification: false }),
+      api.get('/announcements?limit=5', { showGlobalNotification: false }).catch(() => ({ data: { announcements: [] } }))
+    ])
+    stats.value = statsResponse.data.stats || {}
+    schools.value = (schoolsResponse.data.schools || []).map((school) => ({
+      ...school,
+      setupProgress: calculateSetupProgress(school)
+    }))
+    activities.value = statsResponse.data.activities || []
+    announcements.value = announcementsResponse.data.announcements || []
+  } catch (error) {
+    stats.value = {}
+    schools.value = []
+    activities.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const calculateSetupProgress = (school) => {
@@ -187,7 +271,16 @@ const calculateSetupProgress = (school) => {
   return Math.round((checks.filter(Boolean).length / checks.length) * 100)
 }
 
-const downloadCsv = (type) => {
+const downloadCsv = async (type) => {
+  exporting.value = true
+  exportStep.value = 'Generating report...'
+  exportProgress.value = 25
+  await new Promise((resolve) => setTimeout(resolve, 180))
+  exportStep.value = 'Collecting data...'
+  exportProgress.value = 55
+  await new Promise((resolve) => setTimeout(resolve, 180))
+  exportStep.value = 'Preparing CSV...'
+  exportProgress.value = 82
   const rows = type === 'dos'
     ? schools.value.map((school) => ({ school: school.school_name, dos: school.dos_name || '', email: school.dos_email || '', status: school.status || '' }))
     : type === 'subscriptions'
@@ -205,6 +298,34 @@ const downloadCsv = (type) => {
   link.download = `super-admin-${type}.csv`
   link.click()
   URL.revokeObjectURL(link.href)
+  exportStep.value = 'Download ready.'
+  exportProgress.value = 100
+  window.setTimeout(() => {
+    exporting.value = false
+    exportStep.value = ''
+    exportProgress.value = 0
+  }, 800)
+}
+
+const sendAdministrationAnnouncement = async () => {
+  sendingAnnouncement.value = true
+  announcementMessage.value = ''
+  try {
+    const response = await api.post('/announcements', {
+      title: announcementForm.value.title,
+      message: announcementForm.value.message,
+      priority: announcementForm.value.priority,
+      target_school_ids: []
+    }, { showGlobalNotification: false })
+    const announcement = response.data.announcement
+    announcements.value = [announcement, ...announcements.value].filter(Boolean).slice(0, 5)
+    announcementForm.value = { title: '', priority: 'Normal', message: '' }
+    announcementMessage.value = response.data.message || 'Announcement sent.'
+  } catch (error) {
+    announcementMessage.value = error.response?.data?.message || 'Could not send announcement.'
+  } finally {
+    sendingAnnouncement.value = false
+  }
 }
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-US', {
@@ -286,6 +407,22 @@ small,
   color: var(--section-muted);
 }
 
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--section-border);
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  padding: 0.55rem 0.7rem;
+}
+
+textarea {
+  resize: vertical;
+}
+
 .eyebrow,
 .panel-head a {
   color: var(--section-eyebrow);
@@ -321,6 +458,32 @@ small,
   gap: 0.35rem;
 }
 
+.skeleton-card span,
+.skeleton-card strong,
+.skeleton-card small,
+.panel-skeleton span {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e2e8f0, #f8fafc, #e2e8f0);
+  background-size: 200% 100%;
+  animation: shimmer 1.1s infinite;
+}
+
+.skeleton-card span {
+  width: 58%;
+  height: 13px;
+}
+
+.skeleton-card strong {
+  width: 42%;
+  height: 28px;
+}
+
+.skeleton-card small {
+  width: 72%;
+  height: 13px;
+}
+
 .module-grid span {
   color: var(--section-eyebrow);
   font-size: 0.72rem;
@@ -337,6 +500,98 @@ small,
   display: grid;
   gap: 1rem;
 }
+
+.announcement-composer {
+  display: grid;
+  gap: 0.75rem;
+  border: 1px solid var(--section-border);
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 0.9rem;
+}
+
+.announcement-composer > div:first-child {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px;
+  gap: 0.75rem;
+}
+
+.announcement-composer label {
+  display: grid;
+  gap: 0.35rem;
+  color: var(--section-heading);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.composer-actions span {
+  margin-right: auto;
+  color: #16a34a;
+  font-weight: 900;
+}
+
+.composer-actions button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0 0.85rem;
+}
+
+.panel-skeleton {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.panel-skeleton span {
+  height: 48px;
+  border-radius: 12px;
+}
+
+.panel-skeleton.timeline span {
+  height: 58px;
+}
+
+.report-progress {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 46px;
+  color: var(--section-eyebrow);
+  font-weight: 900;
+}
+
+.report-progress::after {
+  content: "";
+  grid-row: 2;
+  height: 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+}
+
+.report-progress i {
+  grid-row: 2;
+  grid-column: 1;
+  z-index: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+  transition: width 0.18s ease;
+}
+
+.connected { color: #16a34a; }
+.checking { color: #d97706; }
+.lost { color: #dc2626; }
 
 .compact-table,
 .activity-list {
@@ -370,6 +625,24 @@ small,
   font-weight: 900;
 }
 
+.action-grid button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+:global(body.admin-dark-mode) .announcement-composer,
+:global(body.admin-dark-mode) input,
+:global(body.admin-dark-mode) select,
+:global(body.admin-dark-mode) textarea {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
 @media (max-width: 760px) {
   header,
   .panel-head {
@@ -377,7 +650,8 @@ small,
   }
 
   .compact-table article,
-  .activity-list article {
+  .activity-list article,
+  .announcement-composer > div:first-child {
     grid-template-columns: 1fr;
   }
 }
