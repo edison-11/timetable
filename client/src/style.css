@@ -422,11 +422,11 @@ h3 {
 
 .admin-page {
   --admin-header-height: 136px;
-  --admin-sidebar-width: 248px;
+  --admin-sidebar-width: 184px;
 }
 
 body.sidebar-collapsed .admin-page {
-  --admin-sidebar-width: 72px;
+  --admin-sidebar-width: 64px;
 }
 
 .admin-page-shell {
@@ -438,9 +438,10 @@ body.sidebar-collapsed .admin-page {
   position: fixed !important;
   top: var(--admin-header-height);
   bottom: 0;
-  overflow-y: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding-top: 0.5rem;
-  scrollbar-width: none;
+  scrollbar-width: thin;
   -ms-overflow-style: none;
 }
 
@@ -479,7 +480,7 @@ body.sidebar-collapsed .admin-page {
 }
 
 body.sidebar-collapsed .admin-main {
-  margin-left: 72px;
+  margin-left: 64px;
 }
 
 .app-account-trigger {

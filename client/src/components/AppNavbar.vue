@@ -566,7 +566,7 @@ const logout = () => {
   position: fixed;
   top: 0;
   right: 0;
-  left: 248px;
+  left: 184px;
   height: 62px;
   background: #ffffff;
   border-bottom: 1px solid #e2e8f0;
@@ -1204,7 +1204,7 @@ const logout = () => {
 
 <style>
 body.sidebar-collapsed .app-navbar {
-  left: 88px;
+  left: 64px;
 }
 
 body.admin-dark-mode .app-navbar {

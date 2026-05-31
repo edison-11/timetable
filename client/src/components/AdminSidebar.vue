@@ -153,42 +153,45 @@ const academicYear = computed(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 220px;
+  width: 184px;
   height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: #ffffff;
   border-right: 1px solid #dbe5f3;
   box-shadow: 16px 0 34px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 200;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
   transition: width 0.24s ease, transform 0.24s ease, box-shadow 0.24s ease;
 }
 
 .sidebar-brand {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding: 0.75rem 0.65rem;
+  padding: 0.6rem 0.55rem;
   border-bottom: 1px solid #e3ebf7;
-  margin-bottom: 0.65rem;
-  min-height: 84px;
+  margin-bottom: 0.45rem;
+  min-height: 72px;
   transition: padding 0.24s ease, justify-content 0.24s ease;
 }
 
 .brand-mark {
-  flex: 0 0 68px;
-  width: 68px;
-  height: 68px;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #eef6ff;
   border: 1px solid #cfe2ff;
-  border-radius: 14px;
+  border-radius: 12px;
   color: #2563eb;
   box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
 }
@@ -204,21 +207,40 @@ const academicYear = computed(() => {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.65rem;
+  min-height: 0;
+  padding: 0 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.42rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 7px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.45);
+  border-radius: 999px;
 }
 
 .nav-group {
   display: grid;
-  gap: 0.3rem;
+  gap: 0.22rem;
 }
 
 .nav-group-label {
-  padding: 0 0.6rem;
+  padding: 0 0.52rem;
   color: #94a3b8;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -228,14 +250,14 @@ const academicYear = computed(() => {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  min-height: 40px;
-  padding: 0.58rem 0.65rem 0.58rem 0.85rem;
-  border-radius: 12px;
+  gap: 0.58rem;
+  min-height: 36px;
+  padding: 0.48rem 0.5rem 0.48rem 0.72rem;
+  border-radius: 10px;
   color: #475569;
   text-decoration: none;
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 750;
   border: 1px solid transparent;
 }
@@ -243,10 +265,10 @@ const academicYear = computed(() => {
 .nav-item::before {
   content: '';
   position: absolute;
-  left: 0.45rem;
+  left: 0.36rem;
   top: 50%;
   width: 3px;
-  height: 1.45rem;
+  height: 1.28rem;
   border-radius: 999px;
   background: currentColor;
   opacity: 0;
@@ -300,8 +322,9 @@ const academicYear = computed(() => {
 }
 
 .academic-card {
-  margin: 1rem 0.9rem 1.2rem;
-  padding: 1rem;
+  flex: 0 0 auto;
+  margin: 0.75rem 0.65rem 0.85rem;
+  padding: 0.75rem;
   background: #eef6ff;
   border: 1px solid #cfe2ff;
   border-radius: 12px;
@@ -336,7 +359,7 @@ const academicYear = computed(() => {
 
 @media (max-width: 768px) {
   .admin-sidebar {
-    width: min(84vw, 280px);
+    width: min(78vw, 240px);
     transform: translateX(-100%);
     z-index: 300;
   }
@@ -349,8 +372,8 @@ const academicYear = computed(() => {
 
 <style>
 body.sidebar-collapsed .admin-sidebar {
-  width: 88px;
-  overflow: visible;
+  width: 64px;
+  overflow: hidden;
 }
 
 body.sidebar-collapsed .admin-sidebar .sidebar-brand {
@@ -376,14 +399,16 @@ body.sidebar-collapsed .admin-sidebar .sidebar-brand {
 }
 
 body.sidebar-collapsed .admin-sidebar .brand-mark {
-  flex-basis: 54px;
-  width: 54px;
-  height: 54px;
+  flex-basis: 44px;
+  width: 44px;
+  height: 44px;
 }
 
 body.sidebar-collapsed .admin-sidebar .sidebar-nav {
-  padding-inline: 0.5rem;
+  padding-inline: 0.4rem;
   align-items: stretch;
+  overflow-y: auto;
+  overflow-x: visible;
 }
 
 body.sidebar-collapsed .admin-sidebar .nav-item {
@@ -391,7 +416,7 @@ body.sidebar-collapsed .admin-sidebar .nav-item {
   gap: 0;
   padding-inline: 0;
   padding-left: 0;
-  border-radius: 16px;
+  border-radius: 12px;
   transform: none;
   background: transparent;
   border-color: transparent;
@@ -401,7 +426,7 @@ body.sidebar-collapsed .admin-sidebar .nav-item::before {
   left: 50%;
   top: auto;
   bottom: 0.35rem;
-  width: 22px;
+  width: 18px;
   height: 3px;
   transform: translateX(-50%) scaleX(0.25);
 }

@@ -81,16 +81,18 @@ const closeSidebar = () => {
 .app-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   transition: background 0.2s ease;
 }
 
 .main-wrapper {
   flex: 1;
-  margin-left: 220px;
+  margin-left: 184px;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
   transition: margin-left 0.24s ease;
 }
 
@@ -110,11 +112,13 @@ const closeSidebar = () => {
 }
 
 :global(body.sidebar-open) {
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .main-content {
   flex: 1;
+  min-height: calc(100vh - 62px);
+  min-height: calc(100dvh - 62px);
   padding: 1.45rem;
   margin-top: 62px;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
@@ -177,6 +181,6 @@ const closeSidebar = () => {
 
 <style>
 body.sidebar-collapsed .main-wrapper {
-  margin-left: 88px;
+  margin-left: 64px;
 }
 </style>

@@ -359,7 +359,7 @@ onBeforeUnmount(() => {
   position: fixed;
   top: 0;
   left: 0;
-  width: 248px;
+  width: 184px;
   height: 100vh;
   background: #ffffff;
   border-right: 1px solid #dbe5f3;
@@ -373,13 +373,13 @@ onBeforeUnmount(() => {
 }
 
 .sidebar-watch-wrapper {
-  padding: 0 0.75rem 1rem;
+  padding: 0 0.5rem 0.75rem;
 }
 
 .sidebar-watch-wrapper :deep(.period-timer) {
   margin: 0;
   grid-template-columns: 1fr;
-  padding: 0.9rem 0.9rem;
+  padding: 0.65rem 0.65rem;
 }
 
 .sidebar-watch-wrapper :deep(.timer-count) {
@@ -389,7 +389,7 @@ onBeforeUnmount(() => {
 .sidebar-watch-wrapper :deep(.alert-options) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.45rem;
 }
 
 .sidebar-watch-wrapper :deep(.vibration-toggle),
@@ -400,11 +400,11 @@ onBeforeUnmount(() => {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 0.8rem;
-  padding: 1.35rem 0.95rem 1.15rem;
+  gap: 0.55rem;
+  padding: 0.65rem 0.55rem 0.6rem;
   border-bottom: 1px solid #e3ebf7;
-  margin-bottom: 0.9rem;
-  min-height: 126px;
+  margin-bottom: 0.45rem;
+  min-height: 72px;
   color: inherit;
   text-decoration: none;
   cursor: pointer;
@@ -417,16 +417,16 @@ onBeforeUnmount(() => {
 }
 
 .brand-mark {
-  flex: 0 0 110px;
-  width: 110px;
-  height: 110px;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #eef6ff;
   border: 1px solid #cfe2ff;
-  border-radius: 14px;
+  border-radius: 12px;
   box-shadow: 0 10px 24px rgba(37, 99, 235, 0.12);
 }
 
@@ -441,7 +441,7 @@ onBeforeUnmount(() => {
 
 .brand-text strong {
   display: block;
-  font-size: 0.95rem;
+  font-size: 0.82rem;
   color: #172033;
   font-weight: 800;
   line-height: 1.15;
@@ -450,7 +450,7 @@ onBeforeUnmount(() => {
 .brand-text span {
   display: block;
   margin-top: 0.25rem;
-  font-size: 0.66rem;
+  font-size: 0.58rem;
   color: #64748b;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -459,24 +459,24 @@ onBeforeUnmount(() => {
 
 .sidebar-nav {
   flex: 1;
-  padding: 0 0.65rem;
+  padding: 0 0.5rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.28rem;
 }
 
 .nav-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  min-height: 40px;
-  padding: 0.58rem 0.65rem 0.58rem 0.85rem;
-  border-radius: 12px;
+  gap: 0.58rem;
+  min-height: 36px;
+  padding: 0.48rem 0.5rem 0.48rem 0.72rem;
+  border-radius: 10px;
   color: #475569;
   text-decoration: none;
   transition: border-color 0.2s ease, background-color 0.2s ease;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 750;
   border: 1px solid transparent;
 }
@@ -484,10 +484,10 @@ onBeforeUnmount(() => {
 .nav-item::before {
   content: '';
   position: absolute;
-  left: 0.45rem;
+  left: 0.36rem;
   top: 50%;
   width: 3px;
-  height: 1.45rem;
+  height: 1.28rem;
   border-radius: 999px;
   background: currentColor;
   opacity: 0;
@@ -605,7 +605,7 @@ onBeforeUnmount(() => {
 
 .teacher-main {
   min-height: 100vh;
-  margin-left: 248px;
+  margin-left: 184px;
   transition: margin-left 0.24s ease;
 }
 
@@ -1065,7 +1065,7 @@ onBeforeUnmount(() => {
 
 <style>
 body.teacher-sidebar-collapsed .teacher-sidebar {
-  width: 88px;
+  width: 64px;
   overflow: visible;
 }
 
@@ -1074,7 +1074,7 @@ body.teacher-sidebar-collapsed .teacher-sidebar {
 }
 
 body.teacher-sidebar-collapsed .teacher-main {
-  margin-left: 88px;
+  margin-left: 64px;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-brand {
@@ -1096,9 +1096,9 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-label {
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .brand-mark {
-  flex-basis: 50px;
-  width: 50px;
-  height: 50px;
+  flex-basis: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
 }
 
@@ -1107,14 +1107,14 @@ body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-watch-wrapper {
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .sidebar-nav {
-  padding-inline: 0.5rem;
+  padding-inline: 0.4rem;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item {
   justify-content: center;
   gap: 0;
   padding-inline: 0;
-  border-radius: 16px;
+  border-radius: 12px;
   transform: none;
   background: transparent;
   border-color: transparent;
@@ -1175,8 +1175,8 @@ body.teacher-dark-mode.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focu
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-icon {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
 }
 
@@ -1190,7 +1190,7 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::before {
   left: 50%;
   top: auto;
   bottom: 0.35rem;
-  width: 22px;
+  width: 18px;
   height: 3px;
   transform: translateX(-50%) scaleX(0.25);
 }
