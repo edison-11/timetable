@@ -78,7 +78,7 @@ const seed = async () => {
       email: 'superadmin@school.com',
       username: 'superadmin',
       full_name: 'Super Admin',
-      password: 'SuperALdmin!O2026a',
+      password: 'SuperAdmin!2026',
       role: 'super_admin',
       phone: '+250788000000',
       status: 'active',
@@ -118,7 +118,7 @@ const seed = async () => {
 
     console.log('');
     console.log('✅ Accounts seeded successfully:');
-    console.log('  Super Admin -> Email: superadmin@school.com | Password: SuperALdmin!O2026a | Role: super_admin');
+    console.log('  Super Admin -> Email: superadmin@school.com | Password: SuperAdmin!2026 | Role: super_admin');
     console.log('  Admin / DOS -> Email: dos@school.com | Password: DosAdmin!2026 | Role: dos');
     console.log('  Teacher -> Email: teacher1@school.com | Password: TeacherOne!2026 | Role: teacher');
     console.log('');

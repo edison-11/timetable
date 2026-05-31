@@ -501,12 +501,46 @@ const getSubjectColor = (subject) => {
   return moduleColors[total % moduleColors.length]
 }
 
+const abbreviateClassName = (className) => {
+  const text = String(className || '').trim()
+  if (!text || text === 'General') return text || 'General'
+
+  const levelMatch = text.match(/\blevel\s*(\d+)\b/i)
+  const levelLabel = levelMatch ? `L${levelMatch[1]}` : ''
+  const tradeText = text
+    .replace(/\blevel\s*\d+\b/ig, '')
+    .replace(/\b(class|section|year|group)\b/ig, '')
+    .replace(/\b[A-Z]\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const knownTrades = {
+    'software development': 'SWD',
+    networking: 'NET',
+    'computer science': 'CS',
+    'information technology': 'IT',
+    electronics: 'ELEC',
+    electrical: 'ELEC'
+  }
+  const tradeKey = tradeText.toLowerCase()
+  const tradeLabel = knownTrades[tradeKey] || tradeText
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+
+  return [levelLabel, tradeLabel].filter(Boolean).join(' ') || text
+}
+
 const toLesson = (entry) => {
   const isSharedActivity = isActivityEntry(entry)
+  const className = entry.class_name || 'General'
   return {
     id: entry.timetable_id,
     subject: entry.module_name || (isSharedActivity ? 'Shared Activity' : 'Lesson'),
-    class: entry.class_name || 'General',
+    class: className,
+    classShort: abbreviateClassName(className),
     room: entry.room_name || entry.room || 'TBA',
     type: isSharedActivity ? 'activity' : 'lesson',
     color: isSharedActivity ? '#16a34a' : getSubjectColor(entry.module_name),
@@ -522,6 +556,9 @@ const classes = computed(() => {
   const names = new Set()
   timetableEntries.value.forEach((entry) => {
     if (entry.class_name) names.add(entry.class_name)
+  })
+  teacherAssignments.value.forEach((assignment) => {
+    if (assignment.class_name) names.add(assignment.class_name)
   })
   return Array.from(names).sort()
 })
@@ -722,7 +759,7 @@ const exportMergedRows = () => exportTimetableRows.value.map((row) => {
 const formatExportLesson = (lesson, span = 1) => {
   const lines = [
     lesson.subject,
-    `Class: ${lesson.class}`,
+    `Class: ${lesson.classShort || lesson.class}`,
     `Room: ${lesson.room}`
   ]
   if (span > 1) lines.push(`${span} slots`)
@@ -845,11 +882,6 @@ const buildExportRows = () => {
   const rows = [
     ['Teacher', teacherName.value],
     ['Week', formattedWeek.value],
-    ['Assigned modules', exportModuleSummary.value.length],
-    [],
-    ['Modules Covered'],
-    ['Module', 'Class', 'Room', 'Slots'],
-    ...exportModuleSummary.value.map((module) => [module.name, module.classes, module.rooms, module.count || 'Not scheduled']),
     [],
     ['Weekly Schedule'],
     ['Slot', 'Time', ...days]
@@ -891,14 +923,6 @@ const escapeHtml = (value) => String(value ?? '')
 
 const buildTimetableHtml = () => {
   const header = ['Slot', 'Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
-  const moduleSummary = exportModuleSummary.value.map((module) => `
-    <tr>
-      <td>${escapeHtml(module.name)}</td>
-      <td>${escapeHtml(module.classes)}</td>
-      <td>${escapeHtml(module.rooms)}</td>
-      <td>${escapeHtml(module.count || 'Not scheduled')}</td>
-    </tr>
-  `).join('')
   const body = exportMergedRows().map((row) => {
     if (row.type === 'break') {
       return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(row.label)}</td><td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td><td colspan="${days.length}"></td></tr>`
@@ -911,7 +935,7 @@ const buildTimetableHtml = () => {
       if (!lesson) return '<td class="empty-cell"></td>'
       return `<td rowspan="${cell.rowspan || 1}"><div class="lesson-card ${escapeHtml(lesson.type)}" style="border-left-color:${lesson.color}">
         <strong>${escapeHtml(lesson.subject)}</strong>
-        <span>Class: ${escapeHtml(lesson.class)}</span>
+        <span>Class: ${escapeHtml(lesson.classShort || lesson.class)}</span>
         <small>Room: ${escapeHtml(lesson.room)}</small>
         ${cell.rowspan > 1 ? `<em>${cell.rowspan} slots</em>` : ''}
       </div></td>`
@@ -932,14 +956,9 @@ const buildTimetableHtml = () => {
     h2 { font-size: 13px; margin: 14px 0 6px; color: #0f172a; }
     .subtitle { margin: 0; color: #475569; font-size: 12px; }
     .teacher-meta { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: #111827; }
-    .summary-card { min-width: 220px; padding: 9px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; font-size: 11px; color: #1e3a8a; }
-    .summary-card strong { display: block; color: #0f172a; font-size: 18px; line-height: 1; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { border: 1px solid #cbd5e1; padding: 5px; font-size: 10px; vertical-align: top; height: 38px; }
     th { background: #2563eb; color: white; text-align: left; }
-    .module-summary { margin-bottom: 12px; }
-    .module-summary th, .module-summary td { height: auto; font-size: 9px; padding: 4px 5px; }
-    .module-summary th { background: #0f172a; }
     .time-cell { background: #f8fafc; font-weight: 700; }
     .empty-cell { background: #ffffff; }
     .lesson-card { min-height: 28px; padding: 4px; border-left: 5px solid #3b82f6; background: #eff6ff; border-radius: 6px; }
@@ -958,17 +977,7 @@ const buildTimetableHtml = () => {
       <p class="teacher-meta">Teacher: ${escapeHtml(teacherName.value)}</p>
       <p class="subtitle">Weekly timetable - ${escapeHtml(formattedWeek.value)}</p>
     </div>
-    <div class="summary-card">
-      <span>Assigned modules</span>
-      <strong>${exportModuleSummary.value.length}</strong>
-      <span>${exportLessons.value.length} lesson slots</span>
-    </div>
   </header>
-  <h2>Modules Covered</h2>
-  <table class="module-summary">
-    <thead><tr><th>Module</th><th>Class</th><th>Room</th><th>Slots</th></tr></thead>
-    <tbody>${moduleSummary || '<tr><td colspan="4">No modules found.</td></tr>'}</tbody>
-  </table>
   <h2>Weekly Schedule</h2>
   <table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>
 </body>
@@ -1044,7 +1053,6 @@ const downloadTimetable = (format = 'csv') => {
     downloadTimetablePdf({
       title: `${teacherName.value} Timetable`,
       subtitle: `Teacher: ${teacherName.value} - Weekly timetable - ${formattedWeek.value}`,
-      moduleSummary: exportModuleSummary.value,
       headers: ['Slot', 'Time', ...days],
       rows: buildPdfRows(),
       filename: `${baseName}.pdf`,
@@ -1089,7 +1097,7 @@ const loadTimetable = async () => {
     const [settingsResponse, timetableResponse, assignmentsResponse] = await Promise.all([
       api.get('/settings/timetable').catch(() => ({ data: { settings: null } })),
       api.get(`/timetable/teacher/${teacherId}`),
-      api.get(`/assignments/teacher/${teacherId}`).catch(() => ({ data: { assignments: [] } }))
+      api.get('/teacher-auth/me/assignments').catch(() => ({ data: { assignments: [] } }))
     ])
     timetableSettings.value = settingsResponse.data.settings || null
     timetableEntries.value = timetableResponse.data.timetables || []

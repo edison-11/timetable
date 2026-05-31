@@ -20,21 +20,39 @@ const colorCommand = (hex, mode = 'rg') => {
 }
 
 const wrapText = (value, maxChars) => {
-  const words = String(value ?? '').split(/\s+/).filter(Boolean)
   const lines = []
-  let current = ''
+  String(value ?? '')
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      if (line.length <= maxChars) {
+        lines.push(line)
+        return
+      }
 
-  words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word
-    if (next.length > maxChars && current) {
+      lines.push(`${line.slice(0, Math.max(maxChars - 3, 1))}...`)
+    })
+
+  if (!lines.length) {
+    const words = String(value ?? '').split(/\s+/).filter(Boolean)
+    let current = ''
+
+    words.forEach((word) => {
+      const next = current ? `${current} ${word}` : word
+      if (next.length > maxChars && current) {
+        lines.push(current)
+        current = word
+      } else {
+        current = next
+      }
+    })
+
+    if (current) {
       lines.push(current)
-      current = word
-    } else {
-      current = next
     }
-  })
+  }
 
-  if (current) lines.push(current)
   return lines.length ? lines : ['']
 }
 
@@ -66,10 +84,11 @@ export const downloadTimetablePdf = ({
   const rowHeight = fitToOnePage
     ? Math.max(24, Math.min(46, availableRowHeight))
     : 58
-  const maxLinesPerCell = fitToOnePage ? Math.max(2, Math.floor((rowHeight - 8) / 8)) : 4
-  const bodyFontSize = fitToOnePage ? 7 : 8
-  const boldFontSize = fitToOnePage ? 7.5 : 9
-  const lineGap = fitToOnePage ? 8 : 11
+  const maxLinesPerCell = fitToOnePage ? Math.max(3, Math.floor((rowHeight - 6) / 6.5)) : 4
+  const bodyFontSize = fitToOnePage ? 5.8 : 8
+  const boldFontSize = fitToOnePage ? 6.3 : 9
+  const lineGap = fitToOnePage ? 6.5 : 11
+  const firstLineOffset = fitToOnePage ? 8 : 13
   const bottomLimit = margin
   const pages = []
   let y = pageHeight - margin
@@ -144,7 +163,7 @@ export const downloadTimetablePdf = ({
         text(
           line,
           x + 5,
-          y - 13 - lineIndex * lineGap,
+          y - firstLineOffset - lineIndex * lineGap,
           lineIndex === 0 && cell.bold ? boldFontSize : bodyFontSize,
           cell.color || '#111827'
         )

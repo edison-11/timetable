@@ -107,6 +107,46 @@
         </div>
       </div>
 
+      <section class="panel health-panel">
+        <div class="panel-header">
+          <div>
+            <h2>Timetable Health</h2>
+            <p>Missing loads, conflicts, and empty planning spots.</p>
+          </div>
+          <router-link to="/timetable" class="primary-link">Fix Timetable</router-link>
+        </div>
+
+        <div class="health-grid">
+          <article :class="{ warning: healthStats.conflicts > 0 }">
+            <span>Conflicts</span>
+            <strong>{{ healthStats.conflicts }}</strong>
+            <small>{{ healthStats.conflicts ? 'same teacher, same time' : 'no teacher clash found' }}</small>
+          </article>
+          <article :class="{ warning: healthStats.emptySlots > 0 }">
+            <span>Empty Slots</span>
+            <strong>{{ healthStats.emptySlots }}</strong>
+            <small>{{ healthStats.classCount }} classes checked</small>
+          </article>
+          <article :class="{ warning: healthStats.unassignedTeachers > 0 }">
+            <span>No Modules</span>
+            <strong>{{ healthStats.unassignedTeachers }}</strong>
+            <small>teachers without assigned modules</small>
+          </article>
+          <article :class="{ warning: healthStats.pendingTeachers > 0 }">
+            <span>Pending</span>
+            <strong>{{ healthStats.pendingTeachers }}</strong>
+            <small>teachers awaiting approval</small>
+          </article>
+        </div>
+
+        <div class="health-alerts">
+          <div v-for="alert in healthAlerts" :key="alert.label" class="health-alert" :class="alert.tone">
+            <strong>{{ alert.label }}</strong>
+            <span>{{ alert.text }}</span>
+          </div>
+        </div>
+      </section>
+
       <!-- 3 Bottom Cards -->
       <div class="three-cards">
         <div class="panel">
@@ -360,6 +400,82 @@ const dashboardStats = computed(() => ({
   teachers: teachers.value.length,
   rooms: rooms.value.length
 }))
+
+const timetableLessonEntries = computed(() => timetableEntries.value.filter((entry) => {
+  return days.includes(entry.day_of_week) && entry.entry_type !== 'break' && entry.module_name !== 'continue'
+}))
+
+const healthStats = computed(() => {
+  const conflictKeys = new Map()
+  timetableLessonEntries.value.forEach((entry) => {
+    if (!entry.teacher_id || !entry.day_of_week || !entry.start_time) return
+    const key = [entry.teacher_id, entry.day_of_week, normalizeTime(entry.start_time)].join('|')
+    const existing = conflictKeys.get(key) || new Set()
+    existing.add(entry.class_id || entry.class_name || 'unknown')
+    conflictKeys.set(key, existing)
+  })
+
+  const conflicts = Array.from(conflictKeys.values()).filter((classSet) => classSet.size > 1).length
+  const classCount = Math.max(groupedTimetables.value.length, classes.value.length)
+  const expectedSlotsPerClass = 50
+  const scheduledByClass = new Map()
+  timetableLessonEntries.value.forEach((entry) => {
+    const classId = entry.class_id || entry.class_name || 'unknown'
+    scheduledByClass.set(classId, (scheduledByClass.get(classId) || 0) + 1)
+  })
+  const emptySlots = Math.max((classCount * expectedSlotsPerClass) - timetableLessonEntries.value.length, 0)
+  const unassignedTeachers = teachers.value.filter((teacher) => {
+    return !String(teacher.assigned_modules || '').trim()
+  }).length
+  const pendingTeachers = teachers.value.filter((teacher) => teacher.status === 'pending').length
+
+  return {
+    conflicts,
+    emptySlots,
+    unassignedTeachers,
+    pendingTeachers,
+    classCount,
+    scheduledClasses: scheduledByClass.size
+  }
+})
+
+const healthAlerts = computed(() => {
+  const alerts = []
+  if (healthStats.value.conflicts > 0) {
+    alerts.push({
+      label: 'Teacher conflict',
+      text: `${healthStats.value.conflicts} time slot${healthStats.value.conflicts === 1 ? '' : 's'} need review.`,
+      tone: 'danger'
+    })
+  }
+  if (healthStats.value.emptySlots > 0) {
+    alerts.push({
+      label: 'Planning gap',
+      text: `${healthStats.value.emptySlots} expected weekly slot${healthStats.value.emptySlots === 1 ? '' : 's'} are empty.`,
+      tone: 'warning'
+    })
+  }
+  if (healthStats.value.unassignedTeachers > 0) {
+    alerts.push({
+      label: 'Teacher load',
+      text: `${healthStats.value.unassignedTeachers} teacher${healthStats.value.unassignedTeachers === 1 ? '' : 's'} have no assigned module.`,
+      tone: 'warning'
+    })
+  }
+  if (healthStats.value.pendingTeachers > 0) {
+    alerts.push({
+      label: 'Approval',
+      text: `${healthStats.value.pendingTeachers} teacher${healthStats.value.pendingTeachers === 1 ? '' : 's'} awaiting DOS approval.`,
+      tone: 'info'
+    })
+  }
+
+  return alerts.length ? alerts : [{
+    label: 'Healthy timetable',
+    text: 'No urgent timetable issues detected.',
+    tone: 'success'
+  }]
+})
 
 const dashboardStatsCards = ref({
   distribution: [],
@@ -942,6 +1058,102 @@ onMounted(() => {
   margin-left: 0.5rem;
 }
 
+.health-panel .panel-header p {
+  margin: 0.2rem 0 0;
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.health-grid article {
+  padding: 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.health-grid article.warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.health-grid span,
+.health-grid strong,
+.health-grid small {
+  display: block;
+}
+
+.health-grid span {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.health-grid strong {
+  margin-top: 0.18rem;
+  color: #0f172a;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.health-grid small {
+  margin-top: 0.28rem;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.health-alerts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.health-alert {
+  padding: 0.7rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.health-alert strong,
+.health-alert span {
+  display: block;
+}
+
+.health-alert strong {
+  color: #0f172a;
+  font-size: 0.78rem;
+}
+
+.health-alert span {
+  margin-top: 0.2rem;
+  color: #475569;
+  font-size: 0.72rem;
+}
+
+.health-alert.warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.health-alert.danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.health-alert.success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
 .timetable-wrap {
   overflow-x: auto;
 }
@@ -1243,6 +1455,8 @@ onMounted(() => {
   }
 
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .health-grid,
+  .health-alerts { grid-template-columns: 1fr; }
   .three-cards { grid-template-columns: 1fr; }
 }
 </style>

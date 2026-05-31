@@ -22,7 +22,7 @@
       <section class="controls-panel">
         <label>
           <span>Class</span>
-          <select v-model="selectedClassId">
+          <select v-model="selectedClassId" @change="selectClass(selectedClassId)">
             <option value="">Select class</option>
             <option v-for="cls in classes" :key="cls.class_id" :value="String(cls.class_id)">
               {{ cls.class_name }} - {{ cls.teacher_relation === 'class_teacher' ? 'Class teacher' : 'Subject teacher' }}
@@ -45,7 +45,8 @@
         <article><span>Total</span><strong>{{ attendanceSummary.total }}</strong></article>
         <article><span>Present</span><strong>{{ attendanceSummary.present }}</strong></article>
         <article><span>Absent</span><strong>{{ attendanceSummary.absent }}</strong></article>
-        <article><span>Other</span><strong>{{ attendanceSummary.late + attendanceSummary.excused }}</strong></article>
+        <article><span>Late</span><strong>{{ attendanceSummary.late }}</strong></article>
+        <article><span>Other</span><strong>{{ attendanceSummary.excused }}</strong></article>
       </section>
 
       <LoadingState v-if="loadingClasses" :rows="3" />
@@ -64,7 +65,7 @@
           :key="cls.class_id"
           type="button"
           :class="{ active: String(cls.class_id) === selectedClassId }"
-          @click="selectedClassId = String(cls.class_id)"
+          @click="selectClass(String(cls.class_id))"
         >
           <strong>{{ cls.class_name }}</strong>
           <span>{{ cls.student_count || 0 }} students</span>
@@ -92,17 +93,30 @@
                 <div class="status-toggle">
                   <button
                     type="button"
-                    :class="{ active: attendanceByStudent[student.student_id].status === 'present' }"
-                    @click="markStatus(student.student_id, 'present')"
+                    class="status-btn present"
+                    :class="{ active: studentStatus(student.student_id) === 'present' }"
+                    :aria-pressed="studentStatus(student.student_id) === 'present'"
+                    @click.stop.prevent="markStatus(student.student_id, 'present')"
                   >
                     Present
                   </button>
                   <button
                     type="button"
-                    :class="{ active: attendanceByStudent[student.student_id].status === 'absent' }"
-                    @click="markStatus(student.student_id, 'absent')"
+                    class="status-btn absent"
+                    :class="{ active: studentStatus(student.student_id) === 'absent' }"
+                    :aria-pressed="studentStatus(student.student_id) === 'absent'"
+                    @click.stop.prevent="markStatus(student.student_id, 'absent')"
                   >
                     Absent
+                  </button>
+                  <button
+                    type="button"
+                    class="status-btn late"
+                    :class="{ active: studentStatus(student.student_id) === 'late' }"
+                    :aria-pressed="studentStatus(student.student_id) === 'late'"
+                    @click.stop.prevent="markStatus(student.student_id, 'late')"
+                  >
+                    Late
                   </button>
                 </div>
               </td>
@@ -126,7 +140,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import api from '@/stores/api'
 import TeacherLayout from '@/components/TeacherLayout.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
@@ -216,11 +230,22 @@ const ensureAttendanceRows = () => {
   })
 }
 
-const markStatus = (studentId, status) => {
+const ensureAttendanceRow = (studentId) => {
   if (!attendanceByStudent[studentId]) {
     attendanceByStudent[studentId] = { student_id: studentId, status: 'present', notes: '' }
   }
-  attendanceByStudent[studentId].status = status
+  return attendanceByStudent[studentId]
+}
+
+const studentStatus = (studentId) => ensureAttendanceRow(studentId).status
+
+const markStatus = (studentId, status) => {
+  ensureAttendanceRow(studentId).status = status
+}
+
+const selectClass = async (classId) => {
+  selectedClassId.value = String(classId || '')
+  await loadStudents()
 }
 
 const loadClasses = async () => {
@@ -231,9 +256,11 @@ const loadClasses = async () => {
   try {
     const response = await api.get('/teacher-attendance/classes')
     classes.value = response.data.classes || []
-    if (!selectedClassId.value && classes.value.length) {
+    if (classes.value.length) {
       const classWithStudents = classes.value.find(cls => Number(cls.student_count || 0) > 0)
-      selectedClassId.value = String((classWithStudents || classes.value[0]).class_id)
+      const currentClass = classes.value.find(cls => String(cls.class_id) === selectedClassId.value)
+      selectedClassId.value = String((currentClass || classWithStudents || classes.value[0]).class_id)
+      await loadStudents()
     }
   } catch (error) {
     classes.value = []
@@ -314,9 +341,6 @@ const saveAttendance = async (report = false) => {
     saving.value = false
   }
 }
-
-watch(selectedClassId, loadStudents)
-watch([attendanceDate, periodLabel], loadAttendance)
 
 onMounted(async () => {
   await loadClasses()
@@ -436,7 +460,7 @@ select {
 
 .attendance-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.75rem;
   padding: 0.85rem;
 }
@@ -521,11 +545,15 @@ th {
 
 .status-toggle {
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(74px, 1fr));
+  grid-template-columns: repeat(3, minmax(68px, 1fr));
   gap: 0.35rem;
+  position: relative;
+  z-index: 2;
 }
 
-.status-toggle button {
+.status-toggle .status-btn {
+  appearance: none;
+  min-height: 36px;
   border: 1px solid #cbd5e1;
   border-radius: 7px;
   padding: 0.42rem 0.6rem;
@@ -534,18 +562,35 @@ th {
   font-size: 0.78rem;
   font-weight: 850;
   cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.status-toggle button.active:first-child {
-  border-color: #22c55e;
-  color: #166534;
+.status-toggle .status-btn.present.active {
+  border-color: #16a34a;
+  color: #14532d;
   background: #dcfce7;
+  box-shadow: inset 0 0 0 1px rgba(22, 163, 74, 0.28), 0 0 0 3px rgba(34, 197, 94, 0.14);
 }
 
-.status-toggle button.active:last-child {
-  border-color: #f59e0b;
-  color: #92400e;
+.status-toggle .status-btn.absent.active {
+  border-color: #dc2626;
+  color: #7f1d1d;
+  background: #fee2e2;
+  box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.28), 0 0 0 3px rgba(248, 113, 113, 0.14);
+}
+
+.status-toggle .status-btn.late.active {
+  border-color: #d97706;
+  color: #78350f;
   background: #fef3c7;
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.28), 0 0 0 3px rgba(245, 158, 11, 0.14);
+}
+
+.status-toggle .status-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 .empty-row {
@@ -565,41 +610,96 @@ th {
   color: #e5edf7;
 }
 
+:global(body.dark) .attendance-page,
 :global(body.teacher-dark-mode) .attendance-header,
+:global(body.dark) .attendance-header,
 :global(body.teacher-dark-mode) .controls-panel,
+:global(body.dark) .controls-panel,
 :global(body.teacher-dark-mode) .class-strip,
+:global(body.dark) .class-strip,
 :global(body.teacher-dark-mode) .attendance-summary,
-:global(body.teacher-dark-mode) .attendance-table {
+:global(body.dark) .attendance-summary,
+:global(body.teacher-dark-mode) .attendance-table,
+:global(body.dark) .attendance-table {
   background: #111827;
   border-color: #243244;
   color: #e5edf7;
 }
 
 :global(body.teacher-dark-mode) .attendance-header h1,
+:global(body.dark) .attendance-header h1,
 :global(body.teacher-dark-mode) .table-empty strong {
   color: #f8fafc;
 }
 
 :global(body.teacher-dark-mode) .attendance-header p,
+:global(body.dark) .attendance-header p,
 :global(body.teacher-dark-mode) label span,
+:global(body.dark) label span,
 :global(body.teacher-dark-mode) .attendance-summary span,
+:global(body.dark) .attendance-summary span,
 :global(body.teacher-dark-mode) .table-empty {
   color: #cbd5e1;
 }
 
 :global(body.teacher-dark-mode) .attendance-summary article,
-:global(body.teacher-dark-mode) .status-toggle button {
+:global(body.dark) .attendance-summary article,
+:global(body.teacher-dark-mode) .status-toggle .status-btn,
+:global(body.dark) .status-toggle .status-btn {
   background: #0b1220;
   border-color: #334155;
   color: #e5edf7;
+}
+
+:global(body.teacher-dark-mode) .status-toggle .status-btn.present.active {
+  border-color: #22c55e;
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.22);
+}
+
+:global(body.dark) .status-toggle .status-btn.present.active {
+  border-color: #22c55e;
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.22);
+}
+
+:global(body.teacher-dark-mode) .status-toggle .status-btn.absent.active {
+  border-color: #f87171;
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.22);
+}
+
+:global(body.dark) .status-toggle .status-btn.absent.active {
+  border-color: #f87171;
+  color: #fecaca;
+  background: rgba(220, 38, 38, 0.22);
+}
+
+:global(body.teacher-dark-mode) .status-toggle .status-btn.late.active {
+  border-color: #f59e0b;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.22);
+}
+
+:global(body.dark) .status-toggle .status-btn.late.active {
+  border-color: #f59e0b;
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.22);
 }
 
 :global(body.teacher-dark-mode) .attendance-summary strong {
   color: #f8fafc;
 }
 
+:global(body.dark) .attendance-summary strong {
+  color: #f8fafc;
+}
+
 :global(body.teacher-dark-mode) input,
+:global(body.dark) input,
 :global(body.teacher-dark-mode) select,
+:global(body.dark) select,
+:global(body.dark) .class-strip button,
 :global(body.teacher-dark-mode) .class-strip button {
   background: #0b1220;
   border-color: #334155;
@@ -611,11 +711,26 @@ th {
   color: #cbd5e1;
 }
 
+:global(body.dark) th {
+  background: #0b1220;
+  color: #cbd5e1;
+}
+
 :global(body.teacher-dark-mode) td {
   border-color: #243244;
 }
 
+:global(body.dark) td {
+  border-color: #243244;
+}
+
 :global(body.teacher-dark-mode) .class-strip button.active {
+  background: #172554;
+  color: #dbeafe;
+  border-color: #60a5fa;
+}
+
+:global(body.dark) .class-strip button.active {
   background: #172554;
   color: #dbeafe;
   border-color: #60a5fa;

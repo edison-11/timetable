@@ -53,6 +53,30 @@
         {{ cleanMessage(assignmentMessage) }}
       </div>
 
+      <section class="assigned-loads-panel panel-card">
+        <div class="panel-heading compact">
+          <span class="panel-icon module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>
+          </span>
+          <div>
+            <h2>Assigned Teaching Loads</h2>
+            <p>Modules assigned to teachers before and after timetable generation.</p>
+          </div>
+          <span class="summary-pill">{{ assignmentCards.length }} modules</span>
+        </div>
+
+        <div v-if="assignmentCards.length" class="assigned-loads-grid">
+          <article v-for="item in assignmentCards" :key="item.key" class="assigned-load-card">
+            <div>
+              <strong>{{ item.module_name }}</strong>
+              <span>{{ item.teacher_name }} - {{ item.class_name }}</span>
+            </div>
+            <small>{{ item.level || 'Level' }} - {{ item.hours_per_year || 0 }} hrs/year</small>
+          </article>
+        </div>
+        <div v-else class="shared-empty">No assignments found. Add assignments to make modules appear here.</div>
+      </section>
+
       <div v-if="showAssignmentForm" class="modal-overlay" @click.self="closeAssignmentForm">
         <div class="assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
           <div class="modal-header">
@@ -441,6 +465,7 @@ const loading = ref(false)
 const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
+const assignments = ref([])
 const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const generationPanel = ref(null)
@@ -614,13 +639,38 @@ const groupedTimetables = computed(() => {
   return Array.from(groups.values())
 })
 
+const assignmentCards = computed(() => {
+  return assignments.value
+    .map((assignment) => ({
+      key: `${assignment.assignment_id || ''}-${assignment.teacher_id}-${assignment.module_id}-${assignment.class_id}`,
+      module_name: assignment.module_name || 'Assigned module',
+      teacher_name: assignment.teacher_name || 'Teacher',
+      class_name: assignment.class_name || 'Class',
+      level: assignment.level || '',
+      hours_per_year: Number(assignment.hours_per_year || 0)
+    }))
+    .sort((a, b) => `${a.class_name} ${a.module_name}`.localeCompare(`${b.class_name} ${b.module_name}`))
+})
+
 const classesWithTimetables = computed(() => {
-  return groupedTimetables.value
-    .map(group => ({
+  const classMap = new Map()
+  groupedTimetables.value.forEach(group => {
+    classMap.set(String(group.class_id), {
       class_id: group.class_id,
       class_name: group.class_name || `Class ${group.class_id}`
-    }))
-    .sort((a, b) => String(a.class_name).localeCompare(String(b.class_name)))
+    })
+  })
+  assignments.value.forEach((assignment) => {
+    if (!assignment.class_id) return
+    const key = String(assignment.class_id)
+    if (!classMap.has(key)) {
+      classMap.set(key, {
+        class_id: assignment.class_id,
+        class_name: assignment.class_name || `Class ${assignment.class_id}`
+      })
+    }
+  })
+  return Array.from(classMap.values()).sort((a, b) => String(a.class_name).localeCompare(String(b.class_name)))
 })
 
 const displayedTimetables = computed(() => {
@@ -1182,6 +1232,16 @@ const loadModules = async () => {
   } catch (e) { console.error(e) }
 }
 
+const loadAssignments = async () => {
+  try {
+    const res = await api.get('/assignments')
+    assignments.value = res.data.assignments || []
+  } catch (e) {
+    assignments.value = []
+    console.error(e)
+  }
+}
+
 const loadTimetableSettings = async () => {
   try {
     const res = await api.get('/settings/timetable')
@@ -1202,7 +1262,7 @@ const loadTimetableSettings = async () => {
 }
 
 const loadSetupData = async () => {
-  await Promise.all([loadClasses(), loadTeachers(), loadModules(), loadTimetableSettings()])
+  await Promise.all([loadClasses(), loadTeachers(), loadModules(), loadAssignments(), loadTimetableSettings()])
 }
 
 const loadTimetable = async () => {
@@ -2017,6 +2077,67 @@ fieldset:disabled {
 .empty-state p {
   margin: 0;
   color: #64748b;
+}
+
+.assigned-loads-panel {
+  margin-bottom: 1rem;
+}
+
+.assigned-loads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.assigned-load-card {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 104px;
+  padding: 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.assigned-load-card strong,
+.assigned-load-card span,
+.assigned-load-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigned-load-card strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.assigned-load-card span {
+  margin-top: 0.2rem;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.assigned-load-card small {
+  align-self: end;
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.shared-empty {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-weight: 800;
+  text-align: center;
 }
 
 @media (max-width: 1100px) {
