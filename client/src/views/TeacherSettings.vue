@@ -9,7 +9,7 @@
             <p>Update your account, teaching availability, timetable view, alerts, and password from one organized place.</p>
           </div>
           <router-link to="/teacher/profile" class="profile-link">
-            <i class="bi bi-person-circle"></i>
+            <UserRound :size="17" :stroke-width="2.2" aria-hidden="true" />
             My Profile
           </router-link>
         </header>
@@ -32,7 +32,9 @@
               :class="{ active: activeTab === item.id }"
               @click="activeTab = item.id"
             >
-              <i :class="item.icon"></i>
+              <span class="settings-icon" :class="item.tone">
+                <component :is="item.icon" :size="20" :stroke-width="2.2" aria-hidden="true" />
+              </span>
               <span>{{ item.label }}</span>
               <small>{{ item.caption }}</small>
             </button>
@@ -281,7 +283,8 @@
                         minlength="6"
                       />
                       <button type="button" class="password-toggle" @click="showNewPassword = !showNewPassword">
-                        <i :class="showNewPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                        <EyeOff v-if="showNewPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                        <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
                       </button>
                     </div>
                   </label>
@@ -296,7 +299,8 @@
                         placeholder="Confirm new password"
                       />
                       <button type="button" class="password-toggle" @click="showConfirmPassword = !showConfirmPassword">
-                        <i :class="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                        <EyeOff v-if="showConfirmPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                        <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
                       </button>
                     </div>
                   </label>
@@ -335,16 +339,26 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import {
+  Bell,
+  CalendarCheck,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Table2,
+  UserRound,
+  UserRoundCog
+} from '@lucide/vue'
 
 const authStore = useAuthStore()
 const teacherPreferencesKey = 'teacherSettingsPreferences'
 
 const settingsSections = [
-  { id: 'account', label: 'Account', caption: 'Profile basics', icon: 'bi bi-person-badge' },
-  { id: 'availability', label: 'Availability', caption: 'Teaching hours', icon: 'bi bi-calendar-check' },
-  { id: 'timetable', label: 'Timetable', caption: 'View options', icon: 'bi bi-table' },
-  { id: 'notifications', label: 'Notifications', caption: 'Reminders', icon: 'bi bi-bell' },
-  { id: 'security', label: 'Security', caption: 'Password', icon: 'bi bi-shield-lock' }
+  { id: 'account', label: 'Account', caption: 'Profile basics', icon: UserRoundCog, tone: 'violet' },
+  { id: 'availability', label: 'Availability', caption: 'Teaching hours', icon: CalendarCheck, tone: 'green' },
+  { id: 'timetable', label: 'Timetable', caption: 'View options', icon: Table2, tone: 'blue' },
+  { id: 'notifications', label: 'Notifications', caption: 'Reminders', icon: Bell, tone: 'amber' },
+  { id: 'security', label: 'Security', caption: 'Password', icon: ShieldCheck, tone: 'teal' }
 ]
 
 const defaultPreferences = {
@@ -693,13 +707,22 @@ onMounted(() => {
   text-align: left;
 }
 
-.settings-nav-item i {
+.settings-icon {
   grid-row: span 2;
-  display: grid;
+  display: inline-grid;
   place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   color: #2563eb;
-  font-size: 1rem;
+  background: #dbeafe;
 }
+
+.settings-icon.violet { color: #6d28d9; background: #ede9fe; }
+.settings-icon.green { color: #15803d; background: #dcfce7; }
+.settings-icon.blue { color: #1d4ed8; background: #dbeafe; }
+.settings-icon.amber { color: #b45309; background: #fef3c7; }
+.settings-icon.teal { color: #0f766e; background: #ccfbf1; }
 
 .settings-nav-item span {
   color: #0f172a;
@@ -1017,10 +1040,14 @@ label span {
   color: #cbd5e1 !important;
 }
 
-:global(body.teacher-dark-mode) .settings-nav-item i,
+:global(body.teacher-dark-mode) .settings-icon,
 :global(body.teacher-dark-mode) .eyebrow,
 :global(body.teacher-dark-mode) .password-toggle {
   color: #93c5fd !important;
+}
+
+:global(body.teacher-dark-mode) .settings-icon {
+  background: rgba(96, 165, 250, 0.16) !important;
 }
 
 :global(body.teacher-dark-mode) .settings-nav-item.active,

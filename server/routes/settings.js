@@ -141,6 +141,141 @@ router.put('/admin', auth, [
   }
 });
 
+router.get('/general', auth, async (req, res) => {
+  try {
+    const notificationKeys = [
+      'new_student_registration',
+      'new_admission_application',
+      'news_announcement',
+      'system_updates',
+      'weekly_reports',
+      'marketing_emails'
+    ];
+
+    const settings = {
+      school_name: await SystemSetting.get('school_name', 'MUDUGA TSS'),
+      school_short_name: await SystemSetting.get('school_short_name', 'MUDUGA TSS'),
+      school_email: await SystemSetting.get('school_email', 'info@mudugatss.ac.rw'),
+      school_phone: await SystemSetting.get('school_phone', '+250 788 123 456'),
+      school_address: await SystemSetting.get(
+        'school_address',
+        'Muduga Sector, Karongi District, Western Province, Rwanda\nP.O. Box 123, Kibuye'
+      ),
+      school_logo_url: await SystemSetting.get('school_logo_url', ''),
+      timezone: await SystemSetting.get('system_timezone', '(GMT+02:00) East Africa Time'),
+      date_format: await SystemSetting.get('system_date_format', 'May 20, 2024 (MMM DD, YYYY)'),
+      time_format: await SystemSetting.get('system_time_format', '12 Hour (01:30 PM)'),
+      currency: await SystemSetting.get('system_currency', 'RWF - Rwanda Franc'),
+      system_language: await SystemSetting.get('system_language', 'English'),
+      notifications: {}
+    };
+
+    for (const key of notificationKeys) {
+      const defaultValue = ['weekly_reports', 'marketing_emails'].includes(key) ? 'false' : 'true';
+      settings.notifications[key] = (await SystemSetting.get(`notification_${key}`, defaultValue)) === 'true';
+    }
+
+    res.json({
+      settings,
+      system: {
+        version: await SystemSetting.get('system_version', 'v1.0.0'),
+        environment: process.env.NODE_ENV || 'Production',
+        database: await SystemSetting.get('database_status', 'SQLite 3'),
+        last_backup: await SystemSetting.get('last_backup_at', new Date().toISOString())
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.put('/general', auth, [
+  body('school_name').trim().notEmpty().withMessage('School name is required'),
+  body('school_short_name').optional().trim().isLength({ max: 80 }),
+  body('school_email').optional().trim().isEmail().withMessage('Enter a valid school email'),
+  body('school_phone').optional().trim().isLength({ max: 40 }),
+  body('school_address').optional().trim().isLength({ max: 1000 }),
+  body('school_logo_url').optional({ nullable: true }).trim().isLength({ max: 1000 }),
+  body('timezone').optional().trim().isLength({ max: 120 }),
+  body('date_format').optional().trim().isLength({ max: 80 }),
+  body('time_format').optional().trim().isLength({ max: 80 }),
+  body('currency').optional().trim().isLength({ max: 80 }),
+  body('system_language').optional().trim().isLength({ max: 60 }),
+  body('notifications').optional().isObject()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const textFields = {
+      school_name: req.body.school_name,
+      school_short_name: req.body.school_short_name,
+      school_email: req.body.school_email,
+      school_phone: req.body.school_phone,
+      school_address: req.body.school_address,
+      school_logo_url: req.body.school_logo_url,
+      system_timezone: req.body.timezone,
+      system_date_format: req.body.date_format,
+      system_time_format: req.body.time_format,
+      system_currency: req.body.currency,
+      system_language: req.body.system_language
+    };
+
+    for (const [key, value] of Object.entries(textFields)) {
+      if (value !== undefined) {
+        await SystemSetting.set(key, String(value || '').trim());
+      }
+    }
+
+    const notificationKeys = [
+      'new_student_registration',
+      'new_admission_application',
+      'news_announcement',
+      'system_updates',
+      'weekly_reports',
+      'marketing_emails'
+    ];
+
+    if (req.body.notifications) {
+      for (const key of notificationKeys) {
+        if (req.body.notifications[key] !== undefined) {
+          await SystemSetting.set(`notification_${key}`, Boolean(req.body.notifications[key]));
+        }
+      }
+    }
+
+    const settings = {
+      school_name: await SystemSetting.get('school_name', 'MUDUGA TSS'),
+      school_short_name: await SystemSetting.get('school_short_name', 'MUDUGA TSS'),
+      school_email: await SystemSetting.get('school_email', 'info@mudugatss.ac.rw'),
+      school_phone: await SystemSetting.get('school_phone', '+250 788 123 456'),
+      school_address: await SystemSetting.get('school_address', ''),
+      school_logo_url: await SystemSetting.get('school_logo_url', ''),
+      timezone: await SystemSetting.get('system_timezone', '(GMT+02:00) East Africa Time'),
+      date_format: await SystemSetting.get('system_date_format', 'May 20, 2024 (MMM DD, YYYY)'),
+      time_format: await SystemSetting.get('system_time_format', '12 Hour (01:30 PM)'),
+      currency: await SystemSetting.get('system_currency', 'RWF - Rwanda Franc'),
+      system_language: await SystemSetting.get('system_language', 'English'),
+      notifications: {}
+    };
+
+    for (const key of notificationKeys) {
+      settings.notifications[key] = (await SystemSetting.get(`notification_${key}`, 'false')) === 'true';
+    }
+
+    res.json({
+      message: 'General settings updated successfully',
+      settings
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/timetable', auth, async (req, res) => {
   try {
     const settings = await SystemSetting.getTimetableSettings();
@@ -235,7 +370,12 @@ router.put('/timetable', auth, [
       }
 
       return true;
-    })
+    }),
+  body('school_logo_url').optional({ nullable: true }).trim().isLength({ max: 1000 }),
+  body('prepared_by').optional({ nullable: true }).trim().isLength({ max: 120 }),
+  body('approved_by').optional({ nullable: true }).trim().isLength({ max: 120 }),
+  body('header_position').optional().isIn(['left', 'center', 'right']).withMessage('Header position must be left, center, or right'),
+  body('custom_header_content').optional({ nullable: true }).trim().isLength({ max: 1000 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -285,7 +425,12 @@ router.put('/timetable', auth, [
             lunch_break_minutes: Number(req.body.break_period_rules.lunch_break_minutes || 45),
             afternoon_break_minutes: Number(req.body.break_period_rules.afternoon_break_minutes || 30)
           }
-        : undefined
+        : undefined,
+      school_logo_url: req.body.school_logo_url,
+      prepared_by: req.body.prepared_by,
+      approved_by: req.body.approved_by,
+      header_position: req.body.header_position,
+      custom_header_content: req.body.custom_header_content
     });
 
     res.json({

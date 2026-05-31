@@ -48,7 +48,10 @@ router.post('/', auth, [
 // Get all modules
 router.get('/', auth, async (req, res) => {
   try {
-    const modules = await Module.getAll({ school_id: getRequestSchoolId(req) });
+    const modules = await Module.getAll({
+      school_id: getRequestSchoolId(req),
+      include_unassigned: req.user?.role !== 'super_admin'
+    });
     res.json({ modules });
   } catch (error) {
     console.error(error);

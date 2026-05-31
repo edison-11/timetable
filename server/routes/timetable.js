@@ -252,19 +252,19 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
       periods: toPositiveInteger(rules.periods_before_morning_break, 3),
       break_name: 'Morning Break',
       break_label: 'MORNING BREAK',
-      break_duration: toPositiveInteger(rules.morning_break_minutes, 15)
+      break_duration: toPositiveInteger(rules.morning_break_minutes, 30)
     },
     {
       periods: toPositiveInteger(rules.periods_before_lunch, 2),
       break_name: 'Lunch Break',
       break_label: 'LUNCH BREAK',
-      break_duration: toPositiveInteger(rules.lunch_break_minutes, 85)
+      break_duration: toPositiveInteger(rules.lunch_break_minutes, 45)
     },
     {
       periods: toPositiveInteger(rules.periods_before_afternoon_break, 3),
       break_name: 'Evening Break',
       break_label: 'EVENING BREAK',
-      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 5)
+      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 30)
     },
     {
       periods: toNonNegativeInteger(rules.periods_after_afternoon_break, 2)
@@ -330,16 +330,22 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
 const buildWeeklyPeriodTargets = (assignments, totalPeriods) => {
   if (!assignments.length || totalPeriods <= 0) return new Map();
 
+  const getAssignmentWeight = (assignment) => {
+    const hours = Math.max(Number(assignment.hours_per_year || 1), 1);
+    if (hours > 100) return hours * 1.5;
+    return hours;
+  };
+
   const totalHours = assignments.reduce((sum, assignment) => {
-    return sum + Math.max(Number(assignment.hours_per_year || 1), 1);
+    return sum + getAssignmentWeight(assignment);
   }, 0);
   const targetItems = assignments.map((assignment) => {
-    const weight = Math.max(Number(assignment.hours_per_year || 1), 1);
+    const weight = getAssignmentWeight(assignment);
     const exactTarget = (weight / totalHours) * totalPeriods;
 
     return {
       assignment,
-      target: Math.floor(exactTarget),
+      target: Math.max(Math.floor(exactTarget), Number(assignment.hours_per_year || 0) > 100 ? 2 : 1),
       remainder: exactTarget - Math.floor(exactTarget)
     };
   });
@@ -385,8 +391,9 @@ const rankAssignmentsByWeeklyTarget = (
         && Number(assignment.teacher_id) === Number(preferredTeacherId)
         ? 0.85
         : 0;
-      const blockSizeBonus = getDesiredBlockSize(assignment, weeklyTargets) * 0.6;
-      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 60, 1.0);
+      const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
+      const blockSizeBonus = desiredBlockSize > 1 ? desiredBlockSize * 4 : 0;
+      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 40, 3.0);
 
       return {
         assignment,
@@ -412,6 +419,16 @@ const getDesiredBlockSize = (assignment, weeklyTargets = null) => {
   if (periodsPerYear > 100) return 3;
   if (periodsPerYear >= 50) return 2;
   return 1;
+};
+
+const getPreferredBlockSize = (assignment, scheduled, remainingTarget, weeklyTargets = null) => {
+  const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
+  if (desiredBlockSize === 1) return 1;
+
+  // Large modules should open as a full block so they stay close together.
+  if (scheduled === 0) return desiredBlockSize;
+
+  return Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
 };
 
 const areAdjacentLessonSlots = (previous, next) => {
@@ -544,7 +561,9 @@ router.post('/', adminAuth, [
         type: 'timetable_published',
         title: `Timetable entry published for ${timetable.class_name || 'a class'}`,
         message: `${timetable.module_name || 'A timetable entry'} was scheduled on ${day_of_week} at ${start_time}.`,
-        path: '/timetable',
+        path: '/teacher/timetable',
+        school_id,
+        recipient_role: 'teacher',
         tone: 'blue'
       });
     }
@@ -775,17 +794,13 @@ router.post('/generate', adminAuth, [
 
         if (currentBlock?.assignment) {
           const desiredBlockSize = getDesiredBlockSize(currentBlock.assignment, weeklyTargets);
-          const currentTarget = weeklyTargets.get(currentBlock.assignment.assignment_id) || 0;
-          const currentScheduled = scheduledCounts.get(currentBlock.assignment.assignment_id) || 0;
-          const remainingTarget = currentTarget - currentScheduled;
           const continuationSlots = getConsecutiveSlots(
             generationItems,
             itemIndex,
-            Math.min(desiredBlockSize - currentBlock.count, Math.max(remainingTarget, 0))
+            desiredBlockSize - currentBlock.count
           );
 
           if (currentBlock.count < desiredBlockSize
-            && remainingTarget > 0
             && isAdjacentToCurrentBlock
             && continuationSlots.length
             && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))) {
@@ -818,7 +833,12 @@ router.post('/generate', adminAuth, [
             const target = weeklyTargets.get(assignment.assignment_id) || 0;
             const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
             const remainingTarget = Math.max(target - scheduled, 0);
-            const maxBlockSize = Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
+            const maxBlockSize = getPreferredBlockSize(
+              assignment,
+              scheduled,
+              remainingTarget,
+              weeklyTargets
+            );
             let blockSlots = [];
 
             for (let blockSize = maxBlockSize; blockSize >= 1; blockSize -= 1) {
@@ -929,13 +949,25 @@ router.post('/generate', adminAuth, [
         ? classEntryCounts[0].class_name
         : `${classEntryCounts.length} classes`;
 
-      await Notification.create({
-        type: 'timetable_published',
-        title: `New timetable published for ${classSummary}`,
-        message: `${generated.length} timetable entries were generated.`,
-        path: '/timetable',
-        tone: 'blue'
-      });
+      await Promise.all([
+        Notification.create({
+          type: 'timetable_published',
+          title: `New timetable published for ${classSummary}`,
+          message: `${generated.length} timetable entries were generated.`,
+          path: '/timetable',
+          school_id,
+          tone: 'blue'
+        }),
+        Notification.create({
+          type: 'teacher_timetable_published',
+          title: 'Your timetable was updated',
+          message: `${generated.length} weekly timetable entries are now available.`,
+          path: '/teacher/timetable',
+          school_id,
+          recipient_role: 'teacher',
+          tone: 'blue'
+        })
+      ]);
     }
 
     res.status(201).json({
@@ -972,7 +1004,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
       return res.status(403).json({ message: 'You can only view your own timetable' });
     }
 
-    const school_id = req.user?.school_id || null;
+    const school_id = getRequestSchoolId(req);
     const timetables = await TimetableEntry.getByTeacher(requestedTeacherId, { school_id });
     res.json({ timetables });
   } catch (error) {
@@ -984,7 +1016,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
 // Get timetable by class
 router.get('/class/:class_id', auth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: req.user?.school_id || getRequestSchoolId(req) });
+    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -995,7 +1027,7 @@ router.get('/class/:class_id', auth, async (req, res) => {
 // Get weekly schedule for class
 router.get('/class/:class_id/weekly', auth, async (req, res) => {
   try {
-    const schedule = await TimetableEntry.getWeeklySchedule(req.params.class_id);
+    const schedule = await TimetableEntry.getWeeklySchedule(req.params.class_id, { school_id: getRequestSchoolId(req) });
     res.json({ schedule });
   } catch (error) {
     console.error(error);

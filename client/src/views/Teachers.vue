@@ -46,6 +46,8 @@
               <tr>
                 <th>Teacher</th>
                 <th>Department</th>
+                <th>Classes</th>
+                <th>Modules</th>
                 <th>Status</th>
                 <th>Date Joined</th>
                 <th>Actions</th>
@@ -63,6 +65,12 @@
                   <span class="badge">{{ teacher.department || 'SSOD' }}</span>
                 </td>
                 <td>
+                  <span class="muted-list">{{ teacher.teaching_classes || teacher.head_teacher_classes || 'Not assigned' }}</span>
+                </td>
+                <td>
+                  <span class="muted-list">{{ teacher.assigned_modules || teacher.module_name || 'Not assigned' }}</span>
+                </td>
+                <td>
                   <span :class="getStatusClass(teacher.status)" class="status-badge">
                     {{ getStatusLabel(teacher.status) }}
                   </span>
@@ -70,13 +78,13 @@
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
                   <template v-if="teacher.status === 'pending'">
-                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">Details</button>
+                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
                     <button
                       class="btn-approve me-2"
                       @click="approveTeacher(teacher)"
                       :disabled="approvalLoadingId === teacher.teacher_id"
                     >
-                      {{ approvalLoadingId === teacher.teacher_id ? 'Approving...' : 'Approve' }}
+                      {{ approvalLoadingId === teacher.teacher_id ? 'Saving...' : 'Approve' }}
                     </button>
                     <button
                       class="btn-delete"
@@ -87,14 +95,14 @@
                     </button>
                   </template>
                   <template v-else>
-                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">Details</button>
+                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
                     <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
-                    <button class="btn-delete" @click="deleteTeacher(teacher)">Delete</button>
+                    <button class="btn-delete" @click="deleteTeacher(teacher)">Del</button>
                   </template>
                 </td>
               </tr>
               <tr v-if="!filteredTeachers.length">
-                <td colspan="5" class="text-center py-4">No teachers found</td>
+                <td colspan="7" class="text-center py-4">No teachers found</td>
               </tr>
             </tbody>
           </table>
@@ -142,19 +150,15 @@
                   </div>
                   <div class="col-md-6">
                     <label for="teacherPassword" class="form-label">Password *</label>
-                    <div class="input-group">
-                      <input 
-                        :type="showNewTeacherPassword ? 'text' : 'password'" 
-                        class="form-control" 
-                        id="teacherPassword" 
-                        v-model="newTeacher.password"
-                        required
-                        placeholder="Minimum 6 characters"
-                      >
-                      <button type="button" class="btn-outline" @click="showNewTeacherPassword = !showNewTeacherPassword">
-                        {{ showNewTeacherPassword ? 'Hide' : 'Show' }}
-                      </button>
-                    </div>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="teacherPassword"
+                      v-model="newTeacher.password"
+                      required
+                      autocomplete="new-password"
+                      placeholder="Minimum 6 characters"
+                    >
                     <div class="invalid-feedback" v-if="errors.password">
                       {{ errors.password }}
                     </div>
@@ -251,19 +255,15 @@
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <label for="editTeacherPassword" class="form-label">Password (leave blank to keep current)</label>
-                    <div class="input-group">
-                      <input 
-                        :type="showEditTeacherPassword ? 'text' : 'password'" 
-                        class="form-control" 
-                        id="editTeacherPassword" 
-                        v-model="editingTeacher.password"
-                        placeholder="Enter new password or leave blank"
-                      >
-                      <button type="button" class="btn-outline" @click="showEditTeacherPassword = !showEditTeacherPassword">
-                        {{ showEditTeacherPassword ? 'Hide' : 'Show' }}
-                      </button>
-                    </div>
+                    <label for="editTeacherPassword" class="form-label">Reset Password (leave blank to keep current)</label>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="editTeacherPassword"
+                      v-model="editingTeacher.password"
+                      autocomplete="new-password"
+                      placeholder="Enter new password or leave blank"
+                    >
                     <div class="invalid-feedback" v-if="editErrors.password">
                       {{ editErrors.password }}
                     </div>
@@ -320,6 +320,8 @@
                 <div><span>Email</span><strong>{{ selectedTeacher.email }}</strong></div>
                 <div><span>Phone</span><strong>{{ selectedTeacher.phone || 'Not set' }}</strong></div>
                 <div><span>Department</span><strong>{{ selectedTeacher.department || 'SSOD' }}</strong></div>
+                <div><span>Classes</span><strong>{{ selectedTeacher.teaching_classes || selectedTeacher.head_teacher_classes || 'Not assigned' }}</strong></div>
+                <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || selectedTeacher.module_name || 'Not assigned' }}</strong></div>
                 <div><span>Qualification</span><strong>{{ selectedTeacher.qualification || 'Not set' }}</strong></div>
                 <div><span>National/Staff ID</span><strong>{{ selectedTeacher.national_id || selectedTeacher.employee_id || 'Not set' }}</strong></div>
                 <div><span>Status</span><strong>{{ getStatusLabel(selectedTeacher.status) }}</strong></div>
@@ -360,8 +362,6 @@ const searchQuery = ref('')
 const statusFilter = ref('')
 const departmentFilter = ref('')
 const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
-const showNewTeacherPassword = ref(false)
-const showEditTeacherPassword = ref(false)
 
 // Edit functionality
 const editingTeacher = ref({
@@ -399,7 +399,11 @@ const filteredTeachers = computed(() => {
     const searchable = [
       teacher.name,
       teacher.email,
-      department
+      department,
+      teacher.teaching_classes,
+      teacher.head_teacher_classes,
+      teacher.assigned_modules,
+      teacher.module_name
     ].filter(Boolean).join(' ').toLowerCase()
     const matchesSearch = searchable.includes(query)
     const matchesStatus = !statusFilter.value || teacher.status === statusFilter.value
@@ -510,7 +514,6 @@ const handleAddTeacher = async () => {
 
 const openAddModal = () => {
   errors.value = {}
-  showNewTeacherPassword.value = false
   const modal = document.getElementById('addTeacherModal')
   Modal.getOrCreateInstance(modal).show()
 }
@@ -757,8 +760,10 @@ onMounted(async () => {
   background: #f59e0b;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -766,8 +771,10 @@ onMounted(async () => {
   background: #22c55e;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -775,8 +782,10 @@ onMounted(async () => {
   background: #ef4444;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -784,8 +793,10 @@ onMounted(async () => {
   background: #0ea5e9;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -793,8 +804,10 @@ onMounted(async () => {
   background: #22c55e;
   color: white;
   border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.26rem 0.55rem;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 800;
   cursor: pointer;
 }
 
@@ -819,15 +832,18 @@ onMounted(async () => {
 
 .table-custom {
   width: 100%;
+  min-width: 780px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .table-custom th,
 .table-custom td {
-  padding: 0.55rem 0.65rem;
+  padding: 0.5rem 0.6rem;
   border-bottom: 1px solid #e2e8f0;
   text-align: left;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .table-custom th {
@@ -835,21 +851,52 @@ onMounted(async () => {
   font-weight: 600;
 }
 
+.table-custom th:nth-child(1),
+.table-custom td:nth-child(1) {
+  width: 30%;
+}
+
+.table-custom th:nth-child(2),
+.table-custom td:nth-child(2) {
+  width: 18%;
+}
+
+.table-custom th:nth-child(3),
+.table-custom td:nth-child(3) {
+  width: 14%;
+}
+
+.table-custom th:nth-child(4),
+.table-custom td:nth-child(4) {
+  width: 14%;
+}
+
+.table-custom th:nth-child(5),
+.table-custom td:nth-child(5) {
+  width: 24%;
+}
+
 .teacher-cell {
   display: grid;
   gap: 0.1rem;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .teacher-cell strong {
   color: #0f172a;
-  font-size: 0.92rem;
+  font-size: 0.86rem;
   line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .teacher-cell small {
   color: #64748b;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge {
@@ -858,6 +905,18 @@ onMounted(async () => {
   padding: 0.25rem 0.5rem;
   border-radius: 20px;
   font-size: 0.7rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.muted-list {
+  display: inline-block;
+  max-width: 220px;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .status-active {
@@ -951,5 +1010,50 @@ onMounted(async () => {
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+:global(body.admin-dark-mode) .teachers-container {
+  color: #e5edf7;
+}
+
+:global(body.admin-dark-mode) .teachers-container .card-custom,
+:global(body.admin-dark-mode) .teachers-container .modal-content {
+  border-color: #243244 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container h2,
+:global(body.admin-dark-mode) .teachers-container h5,
+:global(body.admin-dark-mode) .teachers-container .teacher-cell strong,
+:global(body.admin-dark-mode) .teachers-container .details-grid strong,
+:global(body.admin-dark-mode) .teachers-container .table-custom th {
+  color: #f8fafc !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .teacher-cell small,
+:global(body.admin-dark-mode) .teachers-container .details-grid span,
+:global(body.admin-dark-mode) .teachers-container .table-custom td {
+  color: #cbd5e1 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .table-custom th,
+:global(body.admin-dark-mode) .teachers-container .details-grid div {
+  border-color: #243244 !important;
+  background: #0b1220 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .table-custom td,
+:global(body.admin-dark-mode) .teachers-container .modal-header,
+:global(body.admin-dark-mode) .teachers-container .modal-footer {
+  border-color: #243244 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .form-control,
+:global(body.admin-dark-mode) .teachers-container .form-select {
+  border-color: #334155 !important;
+  background: #0b1220 !important;
+  color: #e5edf7 !important;
 }
 </style>

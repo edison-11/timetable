@@ -61,11 +61,11 @@
               <button class="btn btn-outline-secondary btn-sm" @click="refreshTimetable" :disabled="loading" title="Refresh">
                 <i class="bi bi-arrow-clockwise"></i>
               </button>
-              <button class="btn btn-outline-secondary btn-sm" @click="downloadCSV" :disabled="loading || !gridRows.length" title="CSV">
-                <i class="bi bi-download"></i>
+              <button class="btn btn-outline-secondary btn-sm" @click="downloadPDF" :disabled="loading || !gridRows.length">
+                <i class="bi bi-download me-1"></i>Download PDF
               </button>
-              <button class="btn btn-outline-secondary btn-sm" @click="downloadExcel" :disabled="loading || !gridRows.length" title="Excel">
-                <i class="bi bi-file-earmark-spreadsheet"></i>
+              <button class="btn btn-outline-secondary btn-sm" @click="downloadWord" :disabled="loading || !gridRows.length">
+                <i class="bi bi-file-earmark-word me-1"></i>Download Word
               </button>
               <button class="btn btn-outline-secondary btn-sm" @click="printTimetable" :disabled="!gridRows.length" title="Print">
                 <i class="bi bi-printer"></i>
@@ -184,9 +184,8 @@
             <div class="setting-group">
               <label class="form-label">Format</label>
               <select v-model="settings.exportFormat" @change="saveSetting('exportFormat')" class="form-select form-select-sm">
-                <option value="csv">CSV</option>
-                <option value="excel">Excel</option>
-                <option value="pdf">PDF</option>
+                <option value="pdf">PDF Document</option>
+                <option value="doc">Word Document</option>
               </select>
             </div>
           </div>
@@ -309,9 +308,9 @@
               <span class="action-icon violet"><i class="bi bi-gear"></i></span>
               <div><strong>Open Settings</strong><small>Edit your profile and availability</small></div>
             </button>
-            <button type="button" class="action-item" @click="downloadCSV" :disabled="!gridRows.length">
+            <button type="button" class="action-item" @click="downloadPDF" :disabled="!gridRows.length">
               <span class="action-icon green"><i class="bi bi-download"></i></span>
-              <div><strong>Export CSV</strong><small>Download your timetable</small></div>
+              <div><strong>Export PDF</strong><small>Download your timetable</small></div>
             </button>
           </div>
         </div>
@@ -325,6 +324,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
+import { exportToPDF, exportToWord } from '@/utils/exportTimetable'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -351,7 +351,7 @@ const settings = ref({
   exportIncludeClass: true,
   exportIncludeRoom: true,
   exportIncludeTime: true,
-  exportFormat: 'csv',
+  exportFormat: 'pdf',
   weekStartDay: 'monday',
   showBreaks: true,
   highlightToday: true,
@@ -554,48 +554,14 @@ const refreshTimetable = () => {
   loadTimetable()
 }
 
-const buildCSVRows = () => {
-  const header = ['Period', 'Time', ...days]
-  const rows = [header]
+const teacherTimetableName = computed(() => teacher.value?.name || 'Teacher_Timetable')
 
-  gridRows.value.forEach((row) => {
-    if (row.type === 'break') return
-    const line = [row.period, formatTimeRange(row.start_time, row.end_time)]
-    days.forEach((day) => {
-      const e = row.entriesByDay[day]
-      if (!e) {
-        line.push('')
-        return
-      }
-      const parts = []
-      if (e.module_name) parts.push(e.module_name)
-      if (showClass.value && e.class_name) parts.push(`Class: ${e.class_name}`)
-      if (showRoom.value && (e.room_name || e.room)) parts.push(`Room: ${e.room_name || e.room}`)
-      line.push(parts.join(' | '))
-    })
-    rows.push(line)
-  })
-
-  return rows
+const downloadPDF = () => {
+  exportToPDF(timetableEntries.value, teacherTimetableName.value)
 }
 
-const downloadCSV = () => {
-  try {
-    const csvRows = buildCSVRows()
-    const csvContent = csvRows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    const name = `timetable_${teacher.value?.teacher_id || 'teacher'}.csv`
-    a.setAttribute('download', name)
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-  } catch (err) {
-    console.error('CSV export failed', err)
-  }
+const downloadWord = () => {
+  exportToWord(timetableEntries.value, teacherTimetableName.value)
 }
 
 const printTimetable = () => {
@@ -622,27 +588,6 @@ const loadSettings = () => {
     })
   } catch (err) {
     console.error('Failed to load settings:', err)
-  }
-}
-
-const downloadExcel = () => {
-  try {
-    const csvRows = buildCSVRows()
-    let html = '<table><tr>' + csvRows[0].map(cell => `<th>${cell}</th>`).join('') + '</tr>'
-    for (let i = 1; i < csvRows.length; i++) {
-      html += '<tr>' + csvRows[i].map(cell => `<td>${cell}</td>`).join('') + '</tr>'
-    }
-    html += '</table>'
-    
-    const uri = 'data:application/vnd.ms-excel;base64,' + btoa(unescape(encodeURIComponent(html)))
-    const a = document.createElement('a')
-    a.href = uri
-    a.download = `timetable_${teacher.value?.teacher_id || 'teacher'}.xls`
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-  } catch (err) {
-    console.error('Excel export failed', err)
   }
 }
 

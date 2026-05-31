@@ -31,7 +31,7 @@ class Module {
     const where = [];
     const values = [];
     if (filters.school_id) {
-      where.push('school_id = ?');
+      where.push(filters.include_unassigned ? '(school_id = ? OR school_id IS NULL)' : 'school_id = ?');
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(`SELECT * FROM module ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY department, module_name`, values);

@@ -275,6 +275,55 @@ onBeforeUnmount(() => {
   background: #1fb35d;
 }
 
+:global(body.admin-dark-mode) .preloader-container,
+:global(body.teacher-dark-mode) .preloader-container,
+:global(.teacher-shell.dark-mode) .preloader-container {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(37, 99, 235, 0.2), transparent 32%),
+    radial-gradient(circle at 82% 22%, rgba(20, 184, 166, 0.18), transparent 30%),
+    linear-gradient(135deg, #020617 0%, #0f172a 52%, #111827 100%);
+}
+
+:global(body.admin-dark-mode) .brand-loader,
+:global(body.teacher-dark-mode) .brand-loader,
+:global(.teacher-shell.dark-mode) .brand-loader {
+  border-color: rgba(148, 163, 184, 0.34);
+  background: rgba(15, 23, 42, 0.96);
+  color: #e5edf7;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.54);
+}
+
+:global(body.admin-dark-mode) .brand-logo,
+:global(body.teacher-dark-mode) .brand-logo,
+:global(.teacher-shell.dark-mode) .brand-logo {
+  background: #f8fafc;
+}
+
+:global(body.admin-dark-mode) .loader-copy strong,
+:global(body.teacher-dark-mode) .loader-copy strong,
+:global(.teacher-shell.dark-mode) .loader-copy strong {
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+:global(body.admin-dark-mode) .loader-detail,
+:global(body.teacher-dark-mode) .loader-detail,
+:global(.teacher-shell.dark-mode) .loader-detail {
+  color: #bfdbfe;
+}
+
+:global(body.admin-dark-mode) .counter-value,
+:global(body.teacher-dark-mode) .counter-value,
+:global(.teacher-shell.dark-mode) .counter-value {
+  color: #67e8f9;
+}
+
+:global(body.admin-dark-mode) .progress-track,
+:global(body.teacher-dark-mode) .progress-track,
+:global(.teacher-shell.dark-mode) .progress-track {
+  background: #1f2937;
+}
+
 .preloader-fade-enter-active,
 .preloader-fade-leave-active {
   transition: opacity 0.28s ease;

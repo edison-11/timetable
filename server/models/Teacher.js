@@ -14,13 +14,11 @@ class Teacher {
 
   static async ensureProfileColumns() {
     const columns = [
-      'school_code VARCHAR(100) NULL',
       'school_id INT NULL',
+      'school_code VARCHAR(100) NULL',
       'profile_photo VARCHAR(255) NULL',
       'employee_id VARCHAR(100) NULL',
-      'national_id VARCHAR(100) NULL',
       'phone VARCHAR(100) NULL',
-      'gender VARCHAR(40) NULL',
       'module_name VARCHAR(255) NULL',
       'qualification VARCHAR(255) NULL',
       'years_experience INT NULL',
@@ -39,15 +37,6 @@ class Teacher {
         }
       }
     }
-
-    try {
-      await pool.execute(`
-        ALTER TABLE teacher
-        MODIFY status ENUM('pending', 'active', 'disabled', 'suspended', 'rejected') NOT NULL DEFAULT 'pending'
-      `)
-    } catch (error) {
-      console.error('Error normalizing teacher status column:', error.message)
-    }
   }
 
   static async create(teacherData) {
@@ -59,12 +48,10 @@ class Teacher {
       department = 'SSOD',
       status = 'active',
       date_joined,
-      school_code,
       school_id,
+      school_code,
       employee_id,
-      national_id,
       phone,
-      gender,
       module_name,
       qualification,
       years_experience,
@@ -76,7 +63,7 @@ class Teacher {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const [result] = await pool.execute(
-      'INSERT INTO teacher (name, email, password, department, status, date_joined, school_code, school_id, employee_id, national_id, phone, gender, module_name, qualification, years_experience, available_days, available_from, available_to, notes, profile_photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO teacher (name, email, password, department, status, date_joined, school_id, school_code, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         name,
         email,
@@ -84,20 +71,17 @@ class Teacher {
         department,
         status,
         date_joined || new Date(),
-        school_code || null,
         school_id || null,
+        school_code || null,
         employee_id || null,
-        national_id || null,
         phone || null,
-        gender || null,
         module_name || null,
         qualification || null,
         years_experience || null,
         available_days || null,
         available_from || null,
         available_to || null,
-        notes || null,
-        teacherData.profile_photo || null
+        notes || null
       ]
     );
 
@@ -107,7 +91,7 @@ class Teacher {
   static async findByEmail(email) {
     await this.ensureProfileColumns();
     const [rows] = await pool.execute(
-      'SELECT teacher_id, school_id, name, email, password, department, status, date_joined, school_code, employee_id, national_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, profile_photo, created_at FROM teacher WHERE LOWER(email) = LOWER(?)',
+      'SELECT teacher_id, name, email, password, department, status, date_joined, school_id, school_code, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, profile_photo, created_at FROM teacher WHERE LOWER(email) = LOWER(?)',
       [email]
     );
     return rows[0];
@@ -116,7 +100,7 @@ class Teacher {
   static async findById(id) {
     await this.ensureProfileColumns();
     const [rows] = await pool.execute(
-      'SELECT teacher_id, school_id, name, email, department, status, date_joined, profile_photo, employee_id, national_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, created_at FROM teacher WHERE teacher_id = ?',
+      'SELECT teacher_id, name, email, department, status, date_joined, school_id, profile_photo, employee_id, phone, module_name, qualification, years_experience, available_days, available_from, available_to, notes, created_at FROM teacher WHERE teacher_id = ?',
       [id]
     );
     return rows[0];
@@ -138,24 +122,22 @@ class Teacher {
     await this.ensureProfileColumns();
     const where = [];
     const values = [];
-
     if (filters.school_id) {
-      where.push('t.school_id = ?');
+      where.push(filters.include_unassigned ? '(t.school_id = ? OR t.school_id IS NULL)' : 't.school_id = ?');
       values.push(filters.school_id);
     }
 
     const [rows] = await pool.execute(`
       SELECT
         t.teacher_id,
-        t.school_id,
         t.name,
         t.email,
         t.department,
         t.status,
         t.date_joined,
+        t.school_id,
         t.profile_photo,
         t.employee_id,
-        t.national_id,
         t.phone,
         t.module_name,
         t.qualification,
@@ -172,15 +154,14 @@ class Teacher {
       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
       GROUP BY
         t.teacher_id,
-        t.school_id,
         t.name,
         t.email,
         t.department,
         t.status,
         t.date_joined,
+        t.school_id,
         t.profile_photo,
         t.employee_id,
-        t.national_id,
         t.phone,
         t.module_name,
         t.qualification,
@@ -195,14 +176,15 @@ class Teacher {
     await this.ensureProfileColumns();
     const where = ['status = ?'];
     const values = [status];
-
     if (filters.school_id) {
-      where.push('school_id = ?');
+      where.push(filters.include_unassigned ? '(school_id = ? OR school_id IS NULL)' : 'school_id = ?');
       values.push(filters.school_id);
     }
-
     const [rows] = await pool.execute(
-      `SELECT teacher_id, school_id, name, email, department, status, date_joined, profile_photo, employee_id, national_id, phone, module_name, qualification, years_experience, created_at FROM teacher WHERE ${where.join(' AND ')} ORDER BY name`,
+      `SELECT teacher_id, name, email, department, status, date_joined, school_id, profile_photo, created_at
+       FROM teacher
+       WHERE ${where.join(' AND ')}
+       ORDER BY name`,
       values
     );
     return rows;
@@ -217,10 +199,9 @@ class Teacher {
       department,
       status,
       date_joined,
-      profile_photo,
       school_id,
+      profile_photo,
       employee_id,
-      national_id,
       phone,
       module_name,
       qualification,
@@ -258,21 +239,17 @@ class Teacher {
       updateFields.push('date_joined = ?');
       updateValues.push(date_joined);
     }
-    if (profile_photo !== undefined) {
-      updateFields.push('profile_photo = ?');
-      updateValues.push(profile_photo || null);
-    }
     if (school_id !== undefined) {
       updateFields.push('school_id = ?');
       updateValues.push(school_id || null);
     }
+    if (profile_photo !== undefined) {
+      updateFields.push('profile_photo = ?');
+      updateValues.push(profile_photo || null);
+    }
     if (employee_id !== undefined) {
       updateFields.push('employee_id = ?');
       updateValues.push(employee_id || null);
-    }
-    if (national_id !== undefined) {
-      updateFields.push('national_id = ?');
-      updateValues.push(national_id || null);
     }
     if (phone !== undefined) {
       updateFields.push('phone = ?');
@@ -322,7 +299,7 @@ class Teacher {
     const where = ['status = "active"'];
     const values = [];
     if (filters.school_id) {
-      where.push('school_id = ?');
+      where.push(filters.include_unassigned ? '(school_id = ? OR school_id IS NULL)' : 'school_id = ?');
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(

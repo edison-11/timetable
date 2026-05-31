@@ -5,7 +5,7 @@
         <div class="header-content">
           <p class="eyebrow">Teacher schedule</p>
           <h1>My Timetable</h1>
-          <p class="studio-subtitle">{{ formattedWeek }} · lessons, breaks, and free periods assigned by DOS.</p>
+          <p class="studio-subtitle">{{ formattedWeek }} · week view</p>
         </div>
 
         <div class="header-controls">
@@ -16,7 +16,7 @@
               @click="viewMode = 'week'"
               title="Weekly View"
             >
-              <i class="bi bi-layout-three-columns"></i>
+              <Columns3 :size="17" :stroke-width="2.2" aria-hidden="true" />
               <span>Week</span>
             </button>
             <button
@@ -26,27 +26,36 @@
               @click="setViewMode('day')"
               :title="dayViewDisabledReason || 'Daily View'"
             >
-              <i class="bi bi-calendar-day"></i>
+              <CalendarDays :size="17" :stroke-width="2.2" aria-hidden="true" />
               <span>Day</span>
             </button>
           </div>
 
           <div class="action-controls studio-actions">
+            <button
+              class="btn-secondary modules-btn"
+              type="button"
+              :disabled="!moduleProgressCards.length"
+              @click="showAssignedModulesModal = true"
+              title="Assigned Modules"
+            >
+              <BookOpen :size="17" :stroke-width="2.2" aria-hidden="true" />
+              <span>Modules</span>
+            </button>
             <button class="btn-secondary filter-btn" @click="showFilters = !showFilters" title="Filters">
-              <i class="bi bi-funnel"></i>
+              <Filter :size="17" :stroke-width="2.2" aria-hidden="true" />
               <span>Filter</span>
             </button>
             <button class="btn-secondary print-btn" @click="printTimetable" title="Print">
-              <i class="bi bi-printer"></i>
+              <Printer :size="17" :stroke-width="2.2" aria-hidden="true" />
               <span>Print</span>
             </button>
             <select v-model="exportFormat" class="export-select" aria-label="Download format">
-              <option value="csv">CSV</option>
-              <option value="xls">Excel</option>
+              <option value="doc">Word</option>
               <option value="pdf">PDF</option>
             </select>
             <button class="btn-primary download-btn" @click="downloadTimetable(exportFormat)" title="Download">
-              <i class="bi bi-download"></i>
+              <Download :size="17" :stroke-width="2.2" aria-hidden="true" />
               <span>Download</span>
             </button>
           </div>
@@ -55,9 +64,9 @@
 
       <section class="metrics-grid teacher-metrics" aria-label="Timetable summary">
         <article>
-          <span>Lessons</span>
+          <span>Slots</span>
           <strong>{{ totalLessons }}</strong>
-          <small>This week</small>
+          <small>Week</small>
         </article>
         <article>
           <span>Classes</span>
@@ -72,13 +81,13 @@
         <article>
           <span>Next</span>
           <strong>{{ nextLesson ? nextLesson.time : 'Clear' }}</strong>
-          <small>{{ nextLesson ? `${nextLesson.subject} · ${nextLesson.class}` : 'No lesson found' }}</small>
+          <small>{{ nextLesson ? `${nextLesson.subject} · ${nextLesson.class}` : 'Free' }}</small>
         </article>
       </section>
 
       <div v-if="loading" class="state-panel">Loading timetable...</div>
       <div v-else-if="loadError" class="state-panel error">{{ loadError }}</div>
-      <div v-else-if="!canShowDayView" class="state-panel info">
+      <div v-else-if="viewMode === 'day' && !canShowDayView" class="state-panel info">
         {{ dayViewDisabledReason }} Weekly timetable is still available.
       </div>
 
@@ -177,6 +186,7 @@
                       class="module-cell"
                       :class="{ 'activity-cell': row.entriesByDay[day].entry_type === 'activity' }"
                       :data-module="row.entriesByDay[day].module_name"
+                      :title="`${row.entriesByDay[day].module_name || 'Lesson'} - ${row.entriesByDay[day].class_name || 'General'} - ${row.entriesByDay[day].room_name || row.entriesByDay[day].room || 'TBA'}`"
                       @click="showLessonDetails(toLesson(row.entriesByDay[day]))"
                     >
                       <strong>{{ row.entriesByDay[day].module_name }}</strong>
@@ -229,7 +239,7 @@
 
         <div class="day-schedule">
           <div v-if="getDayLessons(selectedDayView).length === 0" class="empty-day">
-            <i class="bi bi-calendar-check"></i>
+            <CalendarCheck :size="36" :stroke-width="1.9" aria-hidden="true" />
             <h3>No classes on {{ selectedDayView }}</h3>
             <p>Free day.</p>
           </div>
@@ -247,10 +257,10 @@
               <div class="day-lesson-content" :style="{ borderLeftColor: lesson.color }">
                 <h3>{{ lesson.subject }}</h3>
                 <p>
-                  <i class="bi bi-people"></i> {{ lesson.class }}
+                  <Users :size="15" :stroke-width="2.2" aria-hidden="true" /> {{ lesson.class }}
                 </p>
                 <p>
-                  <i class="bi bi-door-closed"></i> {{ lesson.room }}
+                  <DoorClosed :size="15" :stroke-width="2.2" aria-hidden="true" /> {{ lesson.room }}
                 </p>
                 <div class="day-lesson-actions">
                   <button @click="showLessonDetails(lesson)">Details</button>
@@ -263,11 +273,117 @@
       </section>
     </div>
 
+    <!-- Assigned Modules Modal -->
+    <div v-if="showAssignedModulesModal" class="modal-overlay" @click.self="showAssignedModulesModal = false">
+      <div class="modal-content assigned-modules-modal">
+        <button class="modal-close" @click="showAssignedModulesModal = false">
+          <X :size="18" :stroke-width="2.4" aria-hidden="true" />
+        </button>
+
+        <div class="module-progress-header">
+          <div>
+            <p class="eyebrow">Assigned</p>
+            <h2>My Modules</h2>
+          </div>
+          <span>{{ moduleProgressCards.length }} total</span>
+        </div>
+
+        <div class="module-progress-grid compact-module-grid">
+          <button
+            v-for="module in moduleProgressCards"
+            :key="module.name"
+            type="button"
+            class="module-progress-card"
+            @click="showModuleDetails(module)"
+          >
+            <div class="module-card-top">
+              <strong>{{ module.name }}</strong>
+              <span>{{ module.percent }}%</span>
+            </div>
+            <div class="progress-track-mini" aria-hidden="true">
+              <span :style="{ width: `${module.percent}%` }"></span>
+            </div>
+            <div class="module-card-meta">
+              <small>{{ module.levels || 'Level' }}</small>
+              <small>{{ module.scheduledSlots }}/{{ module.targetSlots }}</small>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Module Details Modal -->
+    <div v-if="showModuleDetailsModal" class="modal-overlay" @click.self="showModuleDetailsModal = false">
+      <div class="modal-content module-detail-modal">
+        <button class="modal-close" @click="showModuleDetailsModal = false">
+          <X :size="18" :stroke-width="2.4" aria-hidden="true" />
+        </button>
+
+        <div v-if="selectedModule">
+          <div class="module-detail-hero">
+            <div>
+              <p class="eyebrow">Module details</p>
+              <h2>{{ selectedModule.name }}</h2>
+              <span>{{ selectedModule.department || 'Software Development' }}</span>
+            </div>
+            <div class="module-percent-ring" :style="{ background: `conic-gradient(#2563eb 0 ${selectedModule.percent}%, #e2e8f0 ${selectedModule.percent}% 100%)` }">
+              <strong>{{ selectedModule.percent }}%</strong>
+              <small>covered</small>
+            </div>
+          </div>
+
+          <div class="details-grid module-detail-grid">
+            <div class="detail-item">
+              <label>Classes</label>
+              <p>{{ selectedModule.classes || 'Not assigned' }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Level</label>
+              <p>{{ selectedModule.levels || 'Not set' }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Rooms</label>
+              <p>{{ selectedModule.rooms || 'TBA' }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Weekly slots</label>
+              <p>{{ selectedModule.scheduledSlots }} of {{ selectedModule.targetSlots }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Hours per year</label>
+              <p>{{ selectedModule.hoursPerYear || 'Not set' }}</p>
+            </div>
+            <div class="detail-item">
+              <label>Status</label>
+              <p>{{ selectedModule.status }}</p>
+            </div>
+          </div>
+
+          <div class="module-schedule-list">
+            <h3>Scheduled lessons</h3>
+            <div v-if="selectedModule.lessons.length" class="module-schedule-items">
+              <div v-for="lesson in selectedModule.lessons" :key="lesson.id || `${lesson.day}-${lesson.time}`">
+                <strong>{{ lesson.day }} · {{ lesson.time }}</strong>
+                <span>{{ lesson.class }} · {{ lesson.room }}</span>
+              </div>
+            </div>
+            <p v-else class="empty-copy">This module is assigned but has not been placed on the weekly timetable yet.</p>
+          </div>
+
+          <div class="modal-actions">
+            <button @click="showModuleDetailsModal = false" class="btn-secondary">
+              <X :size="16" :stroke-width="2.4" aria-hidden="true" /> Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Lesson Details Modal -->
     <div v-if="showDetailsModal" class="modal-overlay" @click.self="showDetailsModal = false">
       <div class="modal-content">
         <button class="modal-close" @click="showDetailsModal = false">
-          <i class="bi bi-x-lg"></i>
+          <X :size="18" :stroke-width="2.4" aria-hidden="true" />
         </button>
 
         <div v-if="selectedLesson" class="lesson-details-modal">
@@ -293,7 +409,7 @@
 
           <div class="modal-actions">
             <button @click="showDetailsModal = false" class="btn-secondary">
-              <i class="bi bi-x"></i> Close
+              <X :size="16" :stroke-width="2.4" aria-hidden="true" /> Close
             </button>
           </div>
         </div>
@@ -310,6 +426,18 @@ import { useAuthStore } from '@/stores/auth'
 import { downloadTimetablePdf } from '@/utils/timetablePdf'
 import { buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 import { SCHOOL_DAYS, getSchoolDayName, getSchoolWeekDate, getMondayOfWeek, isAcademicWeekend } from '@/utils/dayHelpers'
+import {
+  BookOpen,
+  CalendarCheck,
+  CalendarDays,
+  Columns3,
+  DoorClosed,
+  Download,
+  Filter,
+  Printer,
+  Users,
+  X
+} from '@lucide/vue'
 
 const authStore = useAuthStore()
 
@@ -322,8 +450,12 @@ const showFilters = ref(false)
 const selectedDayView = ref('Monday')
 const showDetailsModal = ref(false)
 const selectedLesson = ref(null)
-const exportFormat = ref('csv')
+const showAssignedModulesModal = ref(false)
+const showModuleDetailsModal = ref(false)
+const selectedModule = ref(null)
+const exportFormat = ref('pdf')
 const timetableEntries = ref([])
+const teacherAssignments = ref([])
 const timetableSettings = ref(null)
 const loading = ref(false)
 const loadError = ref('')
@@ -331,7 +463,7 @@ const loadError = ref('')
 const days = SCHOOL_DAYS
 const moduleColors = ['#3b82f6', '#14b8a6', '#f59e0b', '#8b5cf6', '#ec4899', '#22c55e', '#06b6d4', '#f97316']
 
-const currentTeacherId = computed(() => authStore.currentUser?.teacher_id || authStore.currentUser?.id || null)
+const currentTeacherId = computed(() => authStore.currentUser?.teacher_id || authStore.currentUser?.teacherId || null)
 const teacherName = computed(() => {
   const user = authStore.currentUser || {}
   return user.name || user.full_name || user.teacher_name || user.email || 'Teacher'
@@ -429,6 +561,14 @@ const processedTimetable = computed(() => {
   })
 })
 
+const exportTimetableRows = computed(() => {
+  const exportEntries = timetableEntries.value.filter((entry) => {
+    const isOwnLesson = String(entry.teacher_id || '') === String(currentTeacherId.value || '')
+    return isOwnLesson || isActivityEntry(entry) || isBreakEntry(entry)
+  })
+  return buildFixedTimetableRows(exportEntries, days, timetableSettings.value)
+})
+
 const allLessons = computed(() => {
   const lessons = []
   processedTimetable.value.forEach((row) => {
@@ -501,15 +641,6 @@ const setViewMode = (mode) => {
   }
 }
 
-const getBreakIcon = (breakType) => {
-  const icons = {
-    break: 'bi bi-cup-hot',
-    lunch: 'bi bi-cup-straw',
-    assembly: 'bi bi-people'
-  }
-  return icons[breakType] || 'bi bi-clock'
-}
-
 const resetFilters = () => {
   selectedDay.value = ''
   selectedClass.value = ''
@@ -538,8 +669,8 @@ const areSameLessonBlock = (first, second) => {
     && String(first.room_id || first.room_name || first.room || '') === String(second.room_id || second.room_name || second.room || '')
 }
 
-const buildMergedTimetableRows = () => {
-  const rows = processedTimetable.value
+const buildMergedTimetableRows = (sourceRows = processedTimetable.value) => {
+  const rows = sourceRows
   return rows.map((row, rowIndex) => {
     if (row.type === 'break') return row
 
@@ -572,6 +703,21 @@ const buildMergedTimetableRows = () => {
   })
 }
 
+const exportMergedRows = () => exportTimetableRows.value.map((row) => {
+  if (row.type === 'break') return row
+
+  const cellsByDay = {}
+  days.forEach((day) => {
+    cellsByDay[day] = {
+      entry: row.entriesByDay?.[day] || null,
+      rowspan: 1,
+      skip: false
+    }
+  })
+
+  return { ...row, cellsByDay }
+})
+
 const formatExportLesson = (lesson, span = 1) => {
   const lines = [
     lesson.subject,
@@ -581,6 +727,110 @@ const formatExportLesson = (lesson, span = 1) => {
   if (span > 1) lines.push(`${span} slots`)
   return lines.join('\n')
 }
+
+const exportLessons = computed(() => {
+  const lessons = []
+  exportTimetableRows.value.forEach((row) => {
+    if (row.type !== 'break') {
+      Object.values(row.entriesByDay || {}).forEach((entry) => {
+        if (entry && !isBreakEntry(entry)) lessons.push(toLesson(entry))
+      })
+    }
+  })
+  return lessons
+})
+
+const exportModuleSummary = computed(() => {
+  const modules = new Map()
+
+  teacherAssignments.value.forEach((assignment) => {
+    const name = assignment.module_name || assignment.subject_name || 'Assigned module'
+    const current = modules.get(name) || { name, classes: new Set(), rooms: new Set(), count: 0 }
+    if (assignment.class_name) current.classes.add(assignment.class_name)
+    if (assignment.room_name || assignment.room) current.rooms.add(assignment.room_name || assignment.room)
+    modules.set(name, current)
+  })
+
+  exportLessons.value.forEach((lesson) => {
+    const name = lesson.subject || 'Lesson'
+    const current = modules.get(name) || { name, classes: new Set(), rooms: new Set(), count: 0 }
+    if (lesson.class) current.classes.add(lesson.class)
+    if (lesson.room) current.rooms.add(lesson.room)
+    current.count += 1
+    modules.set(name, current)
+  })
+
+  return Array.from(modules.values())
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((module) => ({
+      name: module.name,
+      classes: Array.from(module.classes).sort().join(', ') || 'General',
+      rooms: Array.from(module.rooms).sort().join(', ') || 'TBA',
+      count: module.count,
+      status: module.count ? 'Scheduled' : 'Assigned'
+    }))
+})
+
+const moduleProgressCards = computed(() => {
+  const modules = new Map()
+
+  teacherAssignments.value.forEach((assignment) => {
+    const name = assignment.module_name || 'Assigned module'
+    const current = modules.get(name) || {
+      name,
+      department: assignment.teacher_department || 'Software Development',
+      classes: new Set(),
+      levels: new Set(),
+      rooms: new Set(),
+      hoursPerYear: Number(assignment.hours_per_year || 0),
+      scheduledSlots: 0,
+      targetSlots: Math.max(1, Math.ceil(Number(assignment.hours_per_year || 40) / 40)),
+      lessons: []
+    }
+
+    if (assignment.class_name) current.classes.add(assignment.class_name)
+    if (assignment.level) current.levels.add(assignment.level)
+    if (assignment.room_name || assignment.room) current.rooms.add(assignment.room_name || assignment.room)
+    current.hoursPerYear = Math.max(current.hoursPerYear, Number(assignment.hours_per_year || 0))
+    current.targetSlots = Math.max(current.targetSlots, Math.ceil(Number(assignment.hours_per_year || 40) / 40))
+    modules.set(name, current)
+  })
+
+  exportLessons.value.forEach((lesson) => {
+    const name = lesson.subject || 'Lesson'
+    const current = modules.get(name) || {
+      name,
+      department: 'Software Development',
+      classes: new Set(),
+      levels: new Set(),
+      rooms: new Set(),
+      hoursPerYear: 0,
+      scheduledSlots: 0,
+      targetSlots: 1,
+      lessons: []
+    }
+
+    current.scheduledSlots += 1
+    if (lesson.class) current.classes.add(lesson.class)
+    if (lesson.room) current.rooms.add(lesson.room)
+    current.lessons.push(lesson)
+    modules.set(name, current)
+  })
+
+  return Array.from(modules.values())
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((module) => {
+      const percent = Math.min(100, Math.round((module.scheduledSlots / Math.max(module.targetSlots, 1)) * 100))
+      return {
+        ...module,
+        classes: Array.from(module.classes).sort().join(', '),
+        levels: Array.from(module.levels).sort().join(', '),
+        rooms: Array.from(module.rooms).sort().join(', '),
+        percent,
+        status: percent >= 100 ? 'Fully covered this week' : module.scheduledSlots ? 'In progress' : 'Assigned, not scheduled'
+      }
+    })
+})
 
 const getExportFileBaseName = () => {
   const safeName = String(teacherName.value || 'teacher')
@@ -594,11 +844,17 @@ const buildExportRows = () => {
   const rows = [
     ['Teacher', teacherName.value],
     ['Week', formattedWeek.value],
+    ['Assigned modules', exportModuleSummary.value.length],
     [],
+    ['Modules Covered'],
+    ['Module', 'Class', 'Room', 'Slots'],
+    ...exportModuleSummary.value.map((module) => [module.name, module.classes, module.rooms, module.count || 'Not scheduled']),
+    [],
+    ['Weekly Schedule'],
     ['Slot', 'Time', ...days]
   ]
 
-  for (const row of buildMergedTimetableRows()) {
+  for (const row of exportMergedRows()) {
     if (row.type === 'break') {
       rows.push([row.label, formatTimeRange(row.start_time, row.end_time), ...days.map(() => row.label)])
     } else {
@@ -606,7 +862,7 @@ const buildExportRows = () => {
       for (const day of days) {
         const cell = row.cellsByDay?.[day]
         if (cell?.skip) {
-          rowData.push('Continued from previous slot')
+          rowData.push('')
         } else if (cell?.entry) {
           rowData.push(formatExportLesson(toLesson(cell.entry), cell.rowspan))
         } else {
@@ -620,11 +876,6 @@ const buildExportRows = () => {
   return rows
 }
 
-const convertToCSV = () => {
-  const rows = buildExportRows()
-  return rows.map(row => row.map(escapeCsvValue).join(',')).join('\n')
-}
-
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -634,7 +885,15 @@ const escapeHtml = (value) => String(value ?? '')
 
 const buildTimetableHtml = () => {
   const header = ['Slot', 'Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
-  const body = buildMergedTimetableRows().map((row) => {
+  const moduleSummary = exportModuleSummary.value.map((module) => `
+    <tr>
+      <td>${escapeHtml(module.name)}</td>
+      <td>${escapeHtml(module.classes)}</td>
+      <td>${escapeHtml(module.rooms)}</td>
+      <td>${escapeHtml(module.count || 'Not scheduled')}</td>
+    </tr>
+  `).join('')
+  const body = exportMergedRows().map((row) => {
     if (row.type === 'break') {
       return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(row.label)}</td><td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td><td colspan="${days.length}"></td></tr>`
     }
@@ -662,33 +921,59 @@ const buildTimetableHtml = () => {
   <style>
     @page { size: landscape; margin: 10mm; }
     body { font-family: Arial, sans-serif; color: #111827; }
-    h1 { font-size: 20px; margin: 0 0 4px; }
-    .subtitle { margin: 0 0 10px; color: #475569; font-size: 12px; }
-    .teacher-meta { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: #111827; }
+    .export-header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #dbeafe; }
+    h1 { font-size: 22px; margin: 0 0 4px; color: #0f172a; }
+    h2 { font-size: 13px; margin: 14px 0 6px; color: #0f172a; }
+    .subtitle { margin: 0; color: #475569; font-size: 12px; }
+    .teacher-meta { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: #111827; }
+    .summary-card { min-width: 220px; padding: 9px 12px; border: 1px solid #bfdbfe; border-radius: 8px; background: #eff6ff; font-size: 11px; color: #1e3a8a; }
+    .summary-card strong { display: block; color: #0f172a; font-size: 18px; line-height: 1; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     th, td { border: 1px solid #cbd5e1; padding: 5px; font-size: 10px; vertical-align: top; height: 38px; }
     th { background: #2563eb; color: white; text-align: left; }
+    .module-summary { margin-bottom: 12px; }
+    .module-summary th, .module-summary td { height: auto; font-size: 9px; padding: 4px 5px; }
+    .module-summary th { background: #0f172a; }
     .time-cell { background: #f8fafc; font-weight: 700; }
     .empty-cell { background: #ffffff; }
-    .lesson-card { min-height: 28px; padding: 4px; border-left: 5px solid #3b82f6; background: #eff6ff; border-radius: 6px; }
+    .lesson-card { min-height: 14px; padding: 1px 2px; border-left: 3px solid #3b82f6; background: #eff6ff; border-radius: 3px; }
     .lesson-card.activity { background: #f0fdf4; }
     .lesson-card strong, .lesson-card span, .lesson-card small, .lesson-card em { display: block; }
     .lesson-card em { margin-top: 3px; color: #1d4ed8; font-style: normal; font-weight: 700; }
     .break-row td { background: #e8f7e9; font-weight: 700; text-align: center; }
     .break-row.lunch td { background: #fff4c7; }
     .break-row.assembly td { background: #e9f2ff; }
+    @page { size: A4 landscape; margin: 3mm; mso-page-orientation: landscape; }
+    @media print {
+      html, body { width: 291mm; min-height: 204mm; }
+    }
   </style>
 </head>
 <body>
-  <h1>${escapeHtml(teacherName.value)} Timetable</h1>
-  <p class="teacher-meta">Teacher: ${escapeHtml(teacherName.value)}</p>
-  <p class="subtitle">Weekly timetable - ${escapeHtml(formattedWeek.value)}</p>
+  <header class="export-header">
+    <div>
+      <h1>${escapeHtml(teacherName.value)} Timetable</h1>
+      <p class="teacher-meta">Teacher: ${escapeHtml(teacherName.value)}</p>
+      <p class="subtitle">Weekly timetable - ${escapeHtml(formattedWeek.value)}</p>
+    </div>
+    <div class="summary-card">
+      <span>Assigned modules</span>
+      <strong>${exportModuleSummary.value.length}</strong>
+      <span>${exportLessons.value.length} lesson slots</span>
+    </div>
+  </header>
+  <h2>Modules Covered</h2>
+  <table class="module-summary">
+    <thead><tr><th>Module</th><th>Class</th><th>Room</th><th>Slots</th></tr></thead>
+    <tbody>${moduleSummary || '<tr><td colspan="4">No modules found.</td></tr>'}</tbody>
+  </table>
+  <h2>Weekly Schedule</h2>
   <table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>
 </body>
 </html>`
 }
 
-const buildPdfRows = () => buildMergedTimetableRows().map((row) => {
+const buildPdfRows = () => exportMergedRows().map((row) => {
   if (row.type === 'break') {
     const fill = row.breakType === 'lunch' ? '#fff4c7' : row.breakType === 'assembly' ? '#e9f2ff' : '#e8f7e9'
     return {
@@ -708,7 +993,7 @@ const buildPdfRows = () => buildMergedTimetableRows().map((row) => {
       { text: formatTimeRange(row.start_time, row.end_time), fill: '#f8fafc', bold: true },
       ...days.map((day) => {
         const cell = row.cellsByDay?.[day]
-        if (cell?.skip) return { text: 'Continued', fill: '#eff6ff', color: '#1d4ed8', bold: false }
+        if (cell?.skip) return { text: '', fill: '#eff6ff', color: '#1d4ed8', bold: false }
         const lesson = cell?.entry ? toLesson(cell.entry) : null
         if (!lesson) return { text: '', fill: '#ffffff' }
         return {
@@ -751,35 +1036,31 @@ const downloadTimetable = (format = 'csv') => {
   const selectedFormat = String(format || 'csv').toLowerCase()
   const baseName = getExportFileBaseName()
   const html = buildTimetableHtml()
-  const rows = buildExportRows()
 
   if (selectedFormat === 'pdf') {
     downloadTimetablePdf({
       title: `${teacherName.value} Timetable`,
       subtitle: `Teacher: ${teacherName.value} - Weekly timetable - ${formattedWeek.value}`,
+      moduleSummary: exportModuleSummary.value,
       headers: ['Slot', 'Time', ...days],
       rows: buildPdfRows(),
       filename: `${baseName}.pdf`,
       fitToOnePage: true
     })
-  } else if (selectedFormat === 'xls') {
-    downloadFile(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
-  } else if (selectedFormat === 'doc') {
-    downloadFile(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
-  } else if (selectedFormat === 'json') {
-    downloadFile(JSON.stringify(processedTimetable.value, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
-  } else if (selectedFormat === 'txt') {
-    downloadFile(rows.map(row => row.join(' | ')).join('\n'), `${baseName}.txt`, 'text/plain;charset=utf-8')
-  } else if (selectedFormat === 'html') {
-    downloadFile(html, `${baseName}.html`, 'text/html;charset=utf-8')
   } else {
-    downloadFile(convertToCSV(), `${baseName}.csv`, 'text/csv;charset=utf-8')
+    downloadFile(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
   }
 }
 
 const showLessonDetails = (lesson) => {
   selectedLesson.value = lesson
   showDetailsModal.value = true
+}
+
+const showModuleDetails = (module) => {
+  selectedModule.value = module
+  showAssignedModulesModal.value = false
+  showModuleDetailsModal.value = true
 }
 
 const loadTimetable = async () => {
@@ -792,12 +1073,14 @@ const loadTimetable = async () => {
       throw new Error('Teacher profile was not loaded.')
     }
 
-    const [settingsResponse, timetableResponse] = await Promise.all([
+    const [settingsResponse, timetableResponse, assignmentsResponse] = await Promise.all([
       api.get('/settings/timetable').catch(() => ({ data: { settings: null } })),
-      api.get(`/timetable/teacher/${teacherId}`)
+      api.get(`/timetable/teacher/${teacherId}`),
+      api.get(`/assignments/teacher/${teacherId}`).catch(() => ({ data: { assignments: [] } }))
     ])
     timetableSettings.value = settingsResponse.data.settings || null
     timetableEntries.value = timetableResponse.data.timetables || []
+    teacherAssignments.value = assignmentsResponse.data.assignments || []
   } catch (error) {
     loadError.value = error.response?.data?.message || error.message || 'Failed to load timetable.'
   } finally {
@@ -1964,6 +2247,72 @@ onMounted(async () => {
   font-weight: 700;
 }
 
+:global(body.teacher-dark-mode) .teacher-metrics article {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+:global(.teacher-shell.dark-mode) .teacher-metrics article {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+:global(body.teacher-dark-mode) .teacher-metrics strong {
+  color: #f8fafc !important;
+}
+
+:global(.teacher-shell.dark-mode) .teacher-metrics strong {
+  color: #f8fafc !important;
+}
+
+:global(body.teacher-dark-mode) .teacher-metrics span,
+:global(body.teacher-dark-mode) .teacher-metrics small {
+  color: #cbd5e1 !important;
+}
+
+:global(.teacher-shell.dark-mode) .teacher-metrics span,
+:global(.teacher-shell.dark-mode) .teacher-metrics small {
+  color: #cbd5e1 !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-metrics article {
+  border-color: #dbe3ef !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-metrics strong {
+  color: #0f172a !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-metrics span {
+  color: #334155 !important;
+}
+
+:global(body:not(.teacher-dark-mode)) .teacher-metrics small {
+  color: #52627a !important;
+}
+
+:global(.teacher-shell.dark-mode) .teacher-metrics article {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34) !important;
+}
+
+:global(.teacher-shell.dark-mode) .teacher-metrics strong {
+  color: #f8fafc !important;
+}
+
+:global(.teacher-shell.dark-mode) .teacher-metrics span,
+:global(.teacher-shell.dark-mode) .teacher-metrics small {
+  color: #cbd5e1 !important;
+}
+
 .filters-panel {
   margin-bottom: 1rem;
   padding: 1rem;
@@ -2056,6 +2405,7 @@ onMounted(async () => {
   min-width: 0;
   padding: 0.45rem;
   background: #ffffff;
+  overflow: hidden;
 }
 
 .lesson-cell.today {
@@ -2064,29 +2414,43 @@ onMounted(async () => {
 
 .module-cell {
   min-height: 50px;
-  padding: 0.45rem;
+  max-width: 100%;
+  padding: 0.38rem 0.42rem;
   border-left: 4px solid #2563eb;
   border-radius: 8px;
   background: #eff6ff;
   color: #111827;
   text-align: left;
   cursor: pointer;
+  overflow: hidden;
 }
 
 .module-cell strong {
+  display: block;
+  max-width: 100%;
   color: #172554;
-  font-size: 0.76rem;
-  line-height: 1.2;
+  font-size: 0.7rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .module-cell small {
+  display: block;
+  max-width: 100%;
   margin-top: 0.2rem;
   color: #475569;
-  font-size: 0.67rem;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .room-badge {
   display: inline-flex;
+  max-width: 100%;
   margin-top: 0.28rem;
   padding: 0.08rem 0.38rem;
   border-radius: 999px;
@@ -2094,6 +2458,9 @@ onMounted(async () => {
   background: rgba(15, 23, 42, 0.08);
   font-size: 0.62rem;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .break-label {
@@ -2125,6 +2492,259 @@ onMounted(async () => {
 .time-col.assembly,
 .break-fill.assembly {
   background: #e9f2ff;
+}
+
+.module-progress-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+}
+
+.modules-btn {
+  white-space: nowrap;
+}
+
+.assigned-modules-modal {
+  max-width: 920px;
+}
+
+.compact-module-grid {
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.module-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.module-progress-header h2 {
+  margin: 0.2rem 0 0;
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.module-progress-header > span {
+  color: #2563eb;
+  font-size: 0.85rem;
+  font-weight: 850;
+}
+
+.module-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.module-progress-card {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 126px;
+  padding: 0.95rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.module-progress-card:hover,
+.module-progress-card:focus-visible {
+  border-color: #60a5fa;
+  box-shadow: 0 18px 38px rgba(37, 99, 235, 0.15);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.module-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.module-card-top strong {
+  min-width: 0;
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-card-top span {
+  flex: 0 0 auto;
+  color: #2563eb;
+  font-size: 1rem;
+  font-weight: 950;
+  font-variant-numeric: tabular-nums;
+}
+
+.progress-track-mini {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.progress-track-mini span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #14b8a6);
+}
+
+.module-card-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #52627a;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.module-card-meta small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.module-detail-modal {
+  max-width: 760px;
+}
+
+.module-detail-hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fbff, #eff6ff);
+}
+
+.module-detail-hero h2 {
+  margin: 0.2rem 0;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 950;
+}
+
+.module-detail-hero span {
+  color: #52627a;
+  font-weight: 800;
+}
+
+.module-percent-ring {
+  width: 92px;
+  height: 92px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border-radius: 50%;
+  background: conic-gradient(#2563eb 0 75%, #e2e8f0 75% 100%);
+  color: #ffffff;
+}
+
+.module-percent-ring strong,
+.module-percent-ring small {
+  color: #ffffff;
+  line-height: 1;
+}
+
+.module-percent-ring strong {
+  font-size: 1.35rem;
+  font-weight: 950;
+}
+
+.module-percent-ring small {
+  margin-top: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.module-detail-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.module-schedule-list {
+  margin-top: 1rem;
+}
+
+.module-schedule-list h3 {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.module-schedule-items {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.module-schedule-items div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.module-schedule-items strong {
+  color: #0f172a;
+}
+
+.module-schedule-items span {
+  color: #52627a;
+  font-weight: 750;
+}
+
+:global(body.teacher-dark-mode) .module-progress-section,
+:global(.teacher-shell.dark-mode) .module-progress-section,
+:global(body.teacher-dark-mode) .module-progress-card,
+:global(.teacher-shell.dark-mode) .module-progress-card {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+}
+
+:global(body.teacher-dark-mode) .module-progress-header h2,
+:global(.teacher-shell.dark-mode) .module-progress-header h2,
+:global(body.teacher-dark-mode) .module-card-top strong,
+:global(.teacher-shell.dark-mode) .module-card-top strong,
+:global(body.teacher-dark-mode) .module-schedule-list h3,
+:global(.teacher-shell.dark-mode) .module-schedule-list h3,
+:global(body.teacher-dark-mode) .module-schedule-items strong,
+:global(.teacher-shell.dark-mode) .module-schedule-items strong {
+  color: #f8fafc !important;
+}
+
+:global(body.teacher-dark-mode) .module-card-meta,
+:global(.teacher-shell.dark-mode) .module-card-meta,
+:global(body.teacher-dark-mode) .module-schedule-items span,
+:global(.teacher-shell.dark-mode) .module-schedule-items span {
+  color: #cbd5e1 !important;
+}
+
+:global(body.teacher-dark-mode) .module-detail-hero,
+:global(.teacher-shell.dark-mode) .module-detail-hero,
+:global(body.teacher-dark-mode) .module-schedule-items div,
+:global(.teacher-shell.dark-mode) .module-schedule-items div {
+  border-color: #243244 !important;
+  background: #111827 !important;
 }
 
 @media (max-width: 760px) {

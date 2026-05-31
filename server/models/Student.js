@@ -231,7 +231,11 @@ class Student {
     return rows;
   }
 
-  static async getTeacherClasses(teacherId) {
+  static async getTeacherClasses(teacherId, filters = {}) {
+    const schoolClause = filters.school_id ? 'AND c.school_id = ?' : '';
+    const values = [teacherId, teacherId, teacherId];
+    if (filters.school_id) values.push(filters.school_id);
+
     const [rows] = await db.query(`
       SELECT DISTINCT c.*,
              sec.section_name,
@@ -244,10 +248,11 @@ class Student {
       LEFT JOIN section sec ON c.section_id = sec.section_id
       LEFT JOIN student s ON s.class_id = c.class_id AND s.status = 'active'
       LEFT JOIN assignment a ON a.class_id = c.class_id
-      WHERE c.class_teacher_id = ? OR a.teacher_id = ?
+      WHERE (c.class_teacher_id = ? OR a.teacher_id = ?)
+      ${schoolClause}
       GROUP BY c.class_id
       ORDER BY c.level, c.class_name
-    `, [teacherId, teacherId, teacherId]);
+    `, values);
 
     return rows;
   }
@@ -296,6 +301,45 @@ class Student {
     const [rows] = await db.query(`
       SELECT * FROM student_attendance
       WHERE ${filter}
+    `, params);
+
+    return rows;
+  }
+
+  static async getAttendanceRecords({ attendance_date, class_id = null, school_id = null }) {
+    await this.ensureSchema();
+    const params = [attendance_date];
+    let filter = 'sa.attendance_date = ?';
+
+    if (class_id) {
+      filter += ' AND sa.class_id = ?';
+      params.push(class_id);
+    }
+
+    if (school_id) {
+      filter += ' AND sa.school_id = ?';
+      params.push(school_id);
+    }
+
+    const [rows] = await db.query(`
+      SELECT sa.*,
+             s.name as student_name,
+             s.student_number,
+             c.class_name,
+             COALESCE(NULLIF(t.module_name, ''), m.module_name, sa.period_label) as module_name,
+             te.name as teacher_name,
+             t.day_of_week,
+             t.start_time,
+             t.end_time
+      FROM student_attendance sa
+      INNER JOIN student s ON sa.student_id = s.student_id
+      LEFT JOIN class c ON sa.class_id = c.class_id
+      LEFT JOIN timetable t ON sa.timetable_id = t.timetable_id
+      LEFT JOIN assignment a ON t.assignment_id = a.assignment_id
+      LEFT JOIN module m ON a.module_id = m.module_id
+      LEFT JOIN teacher te ON sa.teacher_id = te.teacher_id
+      WHERE ${filter}
+      ORDER BY c.class_name ASC, s.name ASC, t.start_time ASC, sa.period_label ASC
     `, params);
 
     return rows;

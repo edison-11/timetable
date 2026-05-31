@@ -2,9 +2,16 @@ const pool = require('../config/database');
 
 class School {
   static schemaReady = false;
+  static tenantColumnsReady = false;
+  static tenantColumnsPromise = null;
 
   static async ensureSchema() {
     if (this.schemaReady) return;
+
+    // Keep tenant normalization consistent across existing environments.
+    // Many existing tenant rows might have NULL school_id after migrations.
+    // This code only ensures tables/columns exist; backfill is handled in scripts/migrations.
+
 
     await pool.execute(`
       CREATE TABLE IF NOT EXISTS schools (
@@ -96,6 +103,7 @@ class School {
 
   static async ensureProfileColumns() {
     try {
+      await pool.query("UPDATE schools SET status = 'deactivated' WHERE status IS NULL OR status = ''");
       await pool.query("UPDATE schools SET status = 'pending_approval' WHERE status = 'pending'");
       await pool.query("UPDATE schools SET status = 'deactivated' WHERE status = 'inactive'");
       await pool.query(`
@@ -157,16 +165,48 @@ class School {
   }
 
   static async addSchoolColumn(tableName) {
+    if (!(await this.tableExists(tableName))) return;
+    if (await this.columnExists(tableName, 'school_id')) return;
+
     try {
-      await pool.execute(`ALTER TABLE ${tableName} ADD COLUMN school_id INT NULL`);
+      await pool.execute(`ALTER TABLE \`${tableName}\` ADD COLUMN school_id INT NULL`);
     } catch (error) {
-      if (!String(error.message || '').toLowerCase().includes('duplicate')) {
+      const message = String(error.message || '').toLowerCase();
+      const canIgnoreAfterRecheck =
+        error.code === 'ER_DUP_FIELDNAME' ||
+        error.code === 'ER_LOCK_DEADLOCK' ||
+        message.includes('duplicate');
+
+      if (canIgnoreAfterRecheck && await this.columnExists(tableName, 'school_id')) {
+        return;
+      }
+
+      if (error.code === 'ER_LOCK_DEADLOCK') {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        if (await this.columnExists(tableName, 'school_id')) return;
+      }
+
+      if (!canIgnoreAfterRecheck) {
         throw error;
       }
     }
   }
 
   static async ensureTenantColumns() {
+    if (this.tenantColumnsReady) return;
+    if (this.tenantColumnsPromise) return this.tenantColumnsPromise;
+
+    this.tenantColumnsPromise = this.ensureTenantColumnsInternal();
+
+    try {
+      await this.tenantColumnsPromise;
+      this.tenantColumnsReady = true;
+    } finally {
+      this.tenantColumnsPromise = null;
+    }
+  }
+
+  static async ensureTenantColumnsInternal() {
     await this.ensureSchema();
     const tables = [
       'teacher',
@@ -179,7 +219,7 @@ class School {
       'timetable',
       'timetable_entries',
       'attendance',
-      'notifications'
+      'notification'
     ];
 
     for (const table of tables) {
@@ -250,7 +290,6 @@ class School {
 
   static async getAll(filters = {}) {
     await this.ensureSchema();
-    await this.ensureTenantColumns();
     const where = ['s.deleted_at IS NULL'];
     const values = [];
 
@@ -295,7 +334,10 @@ class School {
       ORDER BY s.created_at DESC
     `, values);
 
-    return rows;
+    return rows.map((row) => ({
+      ...row,
+      status: row.status || 'deactivated'
+    }));
   }
 
   static async updateStatus(id, status) {
@@ -620,6 +662,15 @@ class School {
     return rows[0] || null;
   }
 
+  static async findDirectorBySchoolId(schoolId) {
+    await this.ensureSchema();
+    const [rows] = await pool.execute(
+      'SELECT * FROM directors_of_studies WHERE school_id = ? AND deleted_at IS NULL LIMIT 1',
+      [schoolId]
+    );
+    return rows[0] || null;
+  }
+
   static async updateDirectorStatusBySchool(schoolId, status) {
     await this.ensureSchema();
     await pool.execute(
@@ -635,8 +686,7 @@ class School {
         (school_id, user_id, actor_role, action, entity_type, entity_id, message, device, browser, ip_address, location)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.school_id || null,
-        data.user_id || null,
+        data.school_id ||  null,
         data.actor_role || null,
         data.action,
         data.entity_type || null,

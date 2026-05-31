@@ -338,7 +338,13 @@ class TimetableEntry {
     await pool.execute(`DELETE FROM timetable WHERE class_id = ?${schoolClause}`, values);
   }
 
-  static async getWeeklySchedule(class_id) {
+  static async getWeeklySchedule(class_id, filters = {}) {
+    const where = ['t.class_id = ?'];
+    const values = [class_id];
+    if (filters.school_id) {
+      where.push('t.school_id = ?');
+      values.push(filters.school_id);
+    }
     const [rows] = await pool.execute(`
       SELECT t.*, 
              c.class_name,
@@ -357,9 +363,9 @@ class TimetableEntry {
       LEFT JOIN teacher tr ON a.teacher_id = tr.teacher_id
       LEFT JOIN room r ON t.room_id = r.room_id
       LEFT JOIN room cr ON c.room_id = cr.room_id
-      WHERE t.class_id = ?
+      WHERE ${where.join(' AND ')}
       ORDER BY FIELD(t.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), t.start_time
-    `, [class_id]);
+    `, values);
     return rows;
   }
 }

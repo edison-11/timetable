@@ -43,6 +43,7 @@ const createObject = (id, body) => `${id} 0 obj\n${body}\nendobj\n`
 export const downloadTimetablePdf = ({
   title,
   subtitle = '',
+  moduleSummary = [],
   headers,
   rows,
   filename = 'timetable.pdf',
@@ -56,16 +57,19 @@ export const downloadTimetablePdf = ({
   const fixedWidth = fixedColumnWidths.reduce((sum, width) => sum + width, 0)
   const flexibleWidth = (tableWidth - fixedWidth) / Math.max(headers.length - fixedColumnWidths.length, 1)
   const colWidths = headers.map((_, index) => fixedColumnWidths[index] || flexibleWidth)
-  const titleHeight = subtitle ? 40 : 28
+  const summaryRows = Array.isArray(moduleSummary) ? moduleSummary : []
+  const summaryColumns = summaryRows.length > 18 ? 3 : 2
+  const summaryHeight = summaryRows.length ? 22 + Math.ceil(summaryRows.length / summaryColumns) * 14 : 0
+  const titleHeight = (subtitle ? 40 : 28) + summaryHeight
   const headerHeight = fitToOnePage ? 24 : 30
   const availableRowHeight = (pageHeight - margin * 2 - titleHeight - headerHeight) / Math.max(rows.length, 1)
   const rowHeight = fitToOnePage
-    ? Math.max(24, Math.min(46, availableRowHeight))
+    ? Math.max(10, Math.min(46, availableRowHeight))
     : 58
-  const maxLinesPerCell = fitToOnePage ? Math.max(2, Math.floor((rowHeight - 8) / 8)) : 4
-  const bodyFontSize = fitToOnePage ? 7 : 8
-  const boldFontSize = fitToOnePage ? 7.5 : 9
-  const lineGap = fitToOnePage ? 8 : 11
+  const maxLinesPerCell = fitToOnePage ? Math.max(1, Math.floor((rowHeight - 4) / 6)) : 4
+  const bodyFontSize = fitToOnePage ? Math.max(4.4, Math.min(7, rowHeight * 0.34)) : 8
+  const boldFontSize = fitToOnePage ? Math.max(4.8, Math.min(7.5, rowHeight * 0.38)) : 9
+  const lineGap = fitToOnePage ? Math.max(5, Math.min(8, rowHeight * 0.36)) : 11
   const bottomLimit = margin
   const pages = []
   let y = pageHeight - margin
@@ -86,15 +90,34 @@ export const downloadTimetablePdf = ({
   }
 
   const drawHeader = () => {
-    text(title, margin, y, 18, '#0f172a')
+    text(title, margin, y, fitToOnePage ? 12 : 18, '#0f172a')
     if (subtitle) {
-      text(subtitle, margin, y - 18, 10, '#475569')
+      text(subtitle, margin, y - (fitToOnePage ? 13 : 18), fitToOnePage ? 7 : 10, '#475569')
     }
-    y -= titleHeight
+    y -= subtitle ? 36 : 24
+
+    if (summaryRows.length) {
+      text(`Modules covered: ${summaryRows.length}`, margin, y, 9, '#1e3a8a')
+      y -= 12
+      const summaryColumnWidth = tableWidth / summaryColumns
+      summaryRows.forEach((item, index) => {
+        const column = index % summaryColumns
+        const row = Math.floor(index / summaryColumns)
+        const x = margin + column * summaryColumnWidth
+        const rowY = y - row * 14
+        const moduleText = `${item.name || item.module || 'Module'} - ${item.classes || item.className || 'Class'}`
+        rect(x, rowY - 12, summaryColumnWidth - 6, 12, '#eff6ff', '#bfdbfe')
+        text(moduleText, x + 4, rowY - 8, 6.5, '#0f172a')
+      })
+      y -= Math.ceil(summaryRows.length / summaryColumns) * 14 + 6
+    } else {
+      y -= titleHeight - (subtitle ? 36 : 24)
+    }
+
     let x = margin
     headers.forEach((header, index) => {
       rect(x, y - headerHeight, colWidths[index], headerHeight, '#0f2f5f', '#0f2f5f')
-      text(header, x + 6, y - (fitToOnePage ? 16 : 19), fitToOnePage ? 8 : 9, '#ffffff')
+      text(header, x + 5, y - (fitToOnePage ? 12 : 19), fitToOnePage ? 6.5 : 9, '#ffffff')
       x += colWidths[index]
     })
     y -= headerHeight
@@ -115,13 +138,13 @@ export const downloadTimetablePdf = ({
       const fill = cell.fill || (row.type === 'break' ? '#e8f7e9' : '#ffffff')
       rect(x, y - rowHeight, width, rowHeight, fill, '#cbd5e1')
 
-      const maxChars = Math.max(Math.floor(width / 5.2), 8)
+      const maxChars = Math.max(Math.floor(width / (fitToOnePage ? 4.6 : 5.2)), 8)
       const lines = wrapText(cell.text, maxChars).slice(0, maxLinesPerCell)
       lines.forEach((line, lineIndex) => {
         text(
           line,
-          x + 5,
-          y - 13 - lineIndex * lineGap,
+          x + 4,
+          y - (fitToOnePage ? 8 : 13) - lineIndex * lineGap,
           lineIndex === 0 && cell.bold ? boldFontSize : bodyFontSize,
           cell.color || '#111827'
         )

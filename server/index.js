@@ -27,6 +27,7 @@ const notificationRoutes = require('./routes/notifications');
 const absenceRoutes = require('./routes/absence');
 const substitutionRoutes = require('./routes/substitution');
 const studentRoutes = require('./routes/students');
+const teacherStudentRoutes = require('./routes/teacher-students');
 const dashboardRoutes = require('./routes/dashboard');
 const schoolRoutes = require('./routes/schools');
 const externalAuthRoutes = require('./routes/externalAuth');
@@ -36,7 +37,9 @@ const { requireSchoolAdmin } = require('./middleware/rbac');
 const app = express();
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 app.use(cors());
 
 // Rate limiting
@@ -57,7 +60,13 @@ const clientDistPath = path.resolve(__dirname, '../client/dist');
 const clientSourcePath = path.resolve(__dirname, '../client');
 const clientAppPath = fs.existsSync(clientDistPath) ? clientDistPath : clientSourcePath;
 
-app.use(express.static(clientAppPath));
+app.use(express.static(clientAppPath, {
+  setHeaders: (res, filePath) => {
+    if (path.basename(filePath) === 'index.html') {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 if (!fs.existsSync(clientDistPath)) {
   console.warn(`Warning: client dist folder not found at ${clientDistPath}`);
 }
@@ -84,6 +93,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/absence', absenceRoutes);
 app.use('/api/substitution', substitutionRoutes);
+app.use('/api/teacher-attendance', teacherStudentRoutes);
 app.use('/api/students', adminAuth, requireSchoolAdmin, studentRoutes);
 app.use('/api/dashboard', adminAuth, requireSchoolAdmin, dashboardRoutes);
 
@@ -94,8 +104,13 @@ app.get('/api/health', (req, res) => {
 
 // SPA fallback - serve the built client when available, otherwise the source client shell
 app.get('*', (req, res) => {
+  if (req.path.startsWith('/assets/')) {
+    return res.status(404).send('Asset not found.');
+  }
+
   const indexPath = path.join(clientAppPath, 'index.html');
   if (fs.existsSync(indexPath)) {
+    res.setHeader('Cache-Control', 'no-store');
     res.sendFile(indexPath);
   } else {
     res.status(404).send('Client files not found.');
