@@ -33,6 +33,30 @@
         {{ cleanMessage(assignmentMessage) }}
       </div>
 
+      <section class="assigned-loads-panel panel-card">
+        <div class="panel-heading compact">
+          <span class="panel-icon module-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>
+          </span>
+          <div>
+            <h2>Assigned Teaching Loads</h2>
+            <p>Modules assigned to teachers before and after timetable generation.</p>
+          </div>
+          <span class="summary-pill">{{ assignmentCards.length }} modules</span>
+        </div>
+
+        <div v-if="assignmentCards.length" class="assigned-loads-grid">
+          <article v-for="item in assignmentCards" :key="item.key" class="assigned-load-card">
+            <div>
+              <strong>{{ item.module_name }}</strong>
+              <span>{{ item.teacher_name }} - {{ item.class_name }}</span>
+            </div>
+            <small>{{ item.level || 'Level' }} - {{ item.hours_per_year || 0 }} hrs/year</small>
+          </article>
+        </div>
+        <div v-else class="shared-empty">No assignments found. Add assignments to make modules appear here.</div>
+      </section>
+
       <div v-if="showAssignmentForm" class="modal-overlay" @click.self="closeAssignmentForm">
         <div class="assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
           <div class="modal-header">
@@ -130,6 +154,15 @@
                 </select>
               </div>
               <div>
+                <label class="form-label">Shift</label>
+                <select v-model="generateSettings.shift_id" class="form-select">
+                  <option value="">All Shifts</option>
+                  <option v-for="shift in availableShifts" :key="shift.shift_id" :value="shift.shift_id">
+                    {{ shift.shift_name }} · {{ formatTimeRange(shift.start_time, shift.end_time) }}
+                  </option>
+                </select>
+              </div>
+              <div>
                 <label class="form-label">Start Time</label>
                 <input v-model="generateSettings.start_time" type="time" class="form-control">
               </div>
@@ -139,7 +172,7 @@
               </div>
               <div>
                 <label class="form-label">Period Minutes</label>
-                <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="1" max="180">
+                <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="40" max="40" readonly>
               </div>
               <div>
                 <label class="form-label">Slots</label>
@@ -417,13 +450,13 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in buildDisplayTimetableGrid(group)" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
+                <tr v-for="row in buildDisplayTimetableGrid(group)" :key="row.key" :class="row.type !== 'period' ? `break-row ${row.breakType}` : ''">
                   <td class="period-col" :class="row.breakType">
-                    <span v-if="row.type === 'break'" class="break-label">{{ row.label }}</span>
+                    <span v-if="row.type !== 'period'" class="break-label">{{ row.label }}</span>
                     <span v-else>{{ row.period }}</span>
                   </td>
                   <td class="time-col" :class="row.breakType">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
-                  <td v-if="row.type === 'break'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
+                  <td v-if="row.type !== 'period'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
                   <template v-else>
                     <template v-for="day in days" :key="day">
                       <td v-if="!row.cellsByDay?.[day]?.skip" :rowspan="row.cellsByDay?.[day]?.rowspan || 1">
@@ -487,6 +520,7 @@ const loading = ref(false)
 const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
+const assignments = ref([])
 const timetableEntries = ref([])
 const assignmentMessage = ref('')
 const generationPanel = ref(null)
@@ -514,10 +548,11 @@ const assignment = ref(emptyAssignment())
 const generateSettings = ref({
   class_id: '',
   level: '',
+  shift_id: '',
   start_time: '08:00',
   end_time: '17:15',
-  period_minutes: 45,
-  teacher_changeover_minutes: 0,
+  period_minutes: 40,
+  teacher_changeover_minutes: 5,
   replace_existing: true,
   selected_days: [...FIXED_DAYS],
   status: 'draft',
@@ -564,7 +599,9 @@ const isAssignmentFormValid = computed(() => {
 const generationSummary = computed(() => {
   const scope = generateSettings.value.class_id
     ? classes.value.find(cls => String(cls.class_id) === String(generateSettings.value.class_id))?.class_name || 'Selected class'
-    : 'All classes'
+    : generateSettings.value.shift_id
+      ? `${availableShifts.value.find(shift => String(shift.shift_id) === String(generateSettings.value.shift_id))?.shift_name || 'Selected shift'} classes`
+      : 'All classes'
   const daysCount = generateSettings.value.selected_days.length
   return `${scope} across ${daysCount} day${daysCount === 1 ? '' : 's'}`
 })
@@ -620,7 +657,7 @@ const addSharedActivity = () => {
     activity_name: '',
     day_of_week: 'all',
     start_time: '08:00',
-    end_time: '08:45'
+    end_time: '08:40'
   })
 }
 
@@ -654,6 +691,20 @@ const availableLevels = computed(() => {
   return Array.from(levels).sort()
 })
 
+const availableShifts = computed(() => {
+  const shifts = new Map()
+  classes.value.forEach((cls) => {
+    if (!cls.shift_id) return
+    shifts.set(String(cls.shift_id), {
+      shift_id: String(cls.shift_id),
+      shift_name: cls.shift_name || 'Shift',
+      start_time: cls.shift_start_time || generateSettings.value.start_time,
+      end_time: cls.shift_end_time || generateSettings.value.end_time
+    })
+  })
+  return Array.from(shifts.values()).sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
+})
+
 const groupedTimetables = computed(() => {
   const groups = new Map()
   timetableEntries.value.forEach(entry => {
@@ -678,13 +729,38 @@ const groupedTimetables = computed(() => {
   return Array.from(groups.values())
 })
 
+const assignmentCards = computed(() => {
+  return assignments.value
+    .map((assignment) => ({
+      key: `${assignment.assignment_id || ''}-${assignment.teacher_id}-${assignment.module_id}-${assignment.class_id}`,
+      module_name: assignment.module_name || 'Assigned module',
+      teacher_name: assignment.teacher_name || 'Teacher',
+      class_name: assignment.class_name || 'Class',
+      level: assignment.level || '',
+      hours_per_year: Number(assignment.hours_per_year || 0)
+    }))
+    .sort((a, b) => `${a.class_name} ${a.module_name}`.localeCompare(`${b.class_name} ${b.module_name}`))
+})
+
 const classesWithTimetables = computed(() => {
-  return groupedTimetables.value
-    .map(group => ({
+  const classMap = new Map()
+  groupedTimetables.value.forEach(group => {
+    classMap.set(String(group.class_id), {
       class_id: group.class_id,
       class_name: group.class_name || `Class ${group.class_id}`
-    }))
-    .sort((a, b) => String(a.class_name).localeCompare(String(b.class_name)))
+    })
+  })
+  assignments.value.forEach((assignment) => {
+    if (!assignment.class_id) return
+    const key = String(assignment.class_id)
+    if (!classMap.has(key)) {
+      classMap.set(key, {
+        class_id: assignment.class_id,
+        class_name: assignment.class_name || `Class ${assignment.class_id}`
+      })
+    }
+  })
+  return Array.from(classMap.values()).sort((a, b) => String(a.class_name).localeCompare(String(b.class_name)))
 })
 
 const displayedTimetables = computed(() => {
@@ -723,7 +799,7 @@ const toggleExportDropdown = (classId) => {
 
 const withGroupRoomFallback = (rows, group) => {
   return rows.map((row) => {
-    if (row.type === 'break') return row
+    if (row.type !== 'period') return row
     const entriesByDay = {}
     days.forEach((day) => {
       const entry = row.entriesByDay?.[day]
@@ -903,7 +979,7 @@ const areSameDisplayBlock = (first, second) => {
 const buildDisplayTimetableGrid = (group) => {
   const rows = buildTimetableGridWithBreaks(group)
   return rows.map((row) => {
-    if (row.type === 'break') return row
+    if (row.type !== 'period') return row
 
     const cellsByDay = {}
     days.forEach((day) => {
@@ -929,7 +1005,7 @@ const buildTimetableExportRows = (groups = displayedTimetables.value) => {
 
   groups.forEach((group) => {
     buildTimetableGridWithBreaks(group).forEach((row) => {
-      if (row.type === 'break') {
+      if (row.type !== 'period') {
         rows.push([
           group.class_name || `Class ${group.class_id}`,
           row.label,
@@ -1027,7 +1103,7 @@ const buildTimetableHtml = async (groups = displayedTimetables.value, options = 
     const level = group.level || 'No level set'
     const room = group.room_name || 'No room set'
     const rows = buildTimetableGridWithBreaks(group).map((row) => {
-      if (row.type === 'break') {
+      if (row.type !== 'period') {
         return `<tr class="break-row ${row.breakType}">
           <td class="period-cell">${escapeHtml(row.label)}</td>
           <td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>
@@ -1287,7 +1363,7 @@ const copyTimetableSummary = async () => {
   const summary = displayedTimetables.value.map((group) => {
     const lines = [`${group.class_name || `Class ${group.class_id}`} (${group.entries.length} entries)`]
     buildTimetableGridWithBreaks(group).forEach((row) => {
-      if (row.type === 'break') {
+      if (row.type !== 'period') {
         lines.push(`${formatTimeRange(row.start_time, row.end_time)}: ${row.label}`)
         return
       }
@@ -1364,9 +1440,10 @@ const generateTimetable = async () => {
     const payload = {
       class_id: generateSettings.value.class_id,
       level: generateSettings.value.level,
+      shift_id: generateSettings.value.shift_id,
       replace_existing: generateSettings.value.replace_existing,
       start_time: generateSettings.value.start_time,
-      period_minutes: generateSettings.value.period_minutes,
+      period_minutes: 40,
       days: [...FIXED_DAYS],
       end_time: generateSettings.value.end_time,
       status: generateSettings.value.status,
@@ -1412,6 +1489,16 @@ const loadModules = async () => {
   } catch (e) { console.error(e) }
 }
 
+const loadAssignments = async () => {
+  try {
+    const res = await api.get('/assignments')
+    assignments.value = res.data.assignments || []
+  } catch (e) {
+    assignments.value = []
+    console.error(e)
+  }
+}
+
 const loadTimetableSettings = async () => {
   try {
     const res = await api.get('/settings/timetable')
@@ -1419,8 +1506,8 @@ const loadTimetableSettings = async () => {
     if (timetableSettings.value) {
       generateSettings.value.start_time = timetableSettings.value.start_time || generateSettings.value.start_time
       generateSettings.value.end_time = timetableSettings.value.end_time || generateSettings.value.end_time
-      generateSettings.value.period_minutes = Number(timetableSettings.value.period_minutes || generateSettings.value.period_minutes)
-      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 0)
+      generateSettings.value.period_minutes = 40
+      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 5)
       generateSettings.value.school_logo_url = timetableSettings.value.school_logo_url || ''
       generateSettings.value.prepared_by = timetableSettings.value.prepared_by || ''
       generateSettings.value.approved_by = timetableSettings.value.approved_by || ''
@@ -1437,7 +1524,7 @@ const loadTimetableSettings = async () => {
 }
 
 const loadSetupData = async () => {
-  await Promise.all([loadClasses(), loadTeachers(), loadModules(), loadTimetableSettings()])
+  await Promise.all([loadClasses(), loadTeachers(), loadModules(), loadAssignments(), loadTimetableSettings()])
 }
 
 const loadTimetable = async () => {
@@ -2303,6 +2390,7 @@ fieldset:disabled {
   border: 1px solid #cbd5e1;
   text-align: center;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .period-col,
@@ -2342,6 +2430,13 @@ fieldset:disabled {
   background: #e9f2ff;
 }
 
+.period-col.shift-slot,
+.time-col.shift-slot,
+.break-fill.shift-slot {
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
 .module-cell {
   display: flex;
   flex-direction: column;
@@ -2349,28 +2444,35 @@ fieldset:disabled {
   min-height: 50px;
   height: 100%;
   width: 100%;
+  max-width: 100%;
   padding: 0.45rem;
   border-left: 4px solid #2563eb;
   border-radius: 8px;
   background: #eff6ff;
   text-align: left;
+  overflow: hidden;
 }
 
 .module-cell strong,
 .module-cell small {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .module-cell strong {
   color: #172554;
   font-size: 0.76rem;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .module-cell small {
   margin-top: 0.2rem;
   color: #475569;
   font-size: 0.67rem;
+  white-space: nowrap;
 }
 
 .module-cell.activity-cell {
@@ -2380,6 +2482,7 @@ fieldset:disabled {
 
 .room-badge {
   display: inline-flex;
+  max-width: 100%;
   margin-top: 0.28rem;
   padding: 0.08rem 0.38rem;
   border-radius: 999px;
@@ -2387,6 +2490,9 @@ fieldset:disabled {
   background: rgba(15, 23, 42, 0.08);
   font-size: 0.62rem;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-slot {
@@ -2416,6 +2522,67 @@ fieldset:disabled {
 .empty-state p {
   margin: 0;
   color: #64748b;
+}
+
+.assigned-loads-panel {
+  margin-bottom: 1rem;
+}
+
+.assigned-loads-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+}
+
+.assigned-load-card {
+  display: grid;
+  gap: 0.55rem;
+  min-height: 104px;
+  padding: 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.assigned-load-card strong,
+.assigned-load-card span,
+.assigned-load-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assigned-load-card strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.assigned-load-card span {
+  margin-top: 0.2rem;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.assigned-load-card small {
+  align-self: end;
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.shared-empty {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-weight: 800;
+  text-align: center;
 }
 
 @media (max-width: 1100px) {

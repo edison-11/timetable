@@ -216,6 +216,18 @@ const router = createRouter({
       meta: { requiresTeacherAuth: true }
     },
     {
+      path: '/teacher/notifications',
+      name: 'TeacherNotifications',
+      component: () => import('@/views/TeacherNotifications.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/current-counter',
+      name: 'TeacherCurrentCounter',
+      component: () => import('@/views/TeacherCurrentCounter.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
       path: '/teacher/profile',
       name: 'TeacherProfile',
       component: () => import('@/views/TeacherProfileComplete.vue'),

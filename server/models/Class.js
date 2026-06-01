@@ -47,6 +47,9 @@ class Class {
     return `
       SELECT c.*,
              s.shift_name,
+             s.start_time as shift_start_time,
+             s.end_time as shift_end_time,
+             s.teacher_changeover_minutes as shift_changeover_minutes,
              d.name as dos_name,
              sec.section_name,
              r.room_name,

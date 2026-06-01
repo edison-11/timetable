@@ -2,8 +2,8 @@ import { defineStore } from 'pinia'
 
 export const useLoadingStore = defineStore('loading', {
   state: () => ({
-    visible: true,
-    bootLoading: true,
+    visible: false,
+    bootLoading: false,
     routeLoading: false,
     pendingRequests: 0,
     hideTimer: null

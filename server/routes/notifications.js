@@ -55,6 +55,7 @@ router.get('/', auth, async (req, res) => {
       message: notification.message,
       path: notification.path,
       tone: notification.tone,
+      read_at: notification.read_at,
       created_at: notification.created_at,
       action_required: false
     }));

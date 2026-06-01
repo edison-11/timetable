@@ -7,7 +7,8 @@ export const useAuthStore = defineStore('auth', {
     token: null,
     userType: null,
     loading: false,
-    error: null
+    error: null,
+    lastAuthCheckedAt: 0
   }),
 
   getters: {
@@ -33,6 +34,7 @@ export const useAuthStore = defineStore('auth', {
         this.token = token
         this.user = user
         this.userType = loginType
+        this.lastAuthCheckedAt = Date.now()
         
         localStorage.setItem('token', token)
         localStorage.setItem('userType', loginType)
@@ -84,6 +86,7 @@ export const useAuthStore = defineStore('auth', {
         this.token = token
         this.user = user
         this.userType = userType
+        this.lastAuthCheckedAt = Date.now()
         
         localStorage.setItem('token', token)
         localStorage.setItem('userType', userType)
@@ -110,6 +113,7 @@ export const useAuthStore = defineStore('auth', {
       this.token = null
       this.userType = null
       this.error = null
+      this.lastAuthCheckedAt = 0
       
       localStorage.removeItem('token')
       localStorage.removeItem('userType')
@@ -135,6 +139,7 @@ export const useAuthStore = defineStore('auth', {
           : response.data.user
 
         this.user = user
+        this.lastAuthCheckedAt = Date.now()
 
         if (this.userType === 'teacher') {
           localStorage.setItem('teacher', JSON.stringify(user))
@@ -151,10 +156,12 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async checkAuth() {
+    async checkAuth({ force = false } = {}) {
       const token = this.token || localStorage.getItem('token')
       const storedUserType = this.userType || localStorage.getItem('userType')
       const userType = storedUserType || (localStorage.getItem('teacher') ? 'teacher' : localStorage.getItem('user') ? 'admin' : null)
+      const now = Date.now()
+      const authCacheWindow = 60 * 1000
 
       if (!token) {
         this.logout()
@@ -182,10 +189,15 @@ export const useAuthStore = defineStore('auth', {
         }
       }
 
+      if (!force && this.user && this.lastAuthCheckedAt && now - this.lastAuthCheckedAt < authCacheWindow) {
+        return true
+      }
+
       try {
         if (userType === 'teacher') {
           const response = await api.get('/teacher-auth/me')
           this.user = response.data.teacher
+          this.lastAuthCheckedAt = Date.now()
           localStorage.setItem('userType', 'teacher')
           localStorage.setItem('teacher', JSON.stringify(this.user))
           return true
@@ -201,6 +213,7 @@ export const useAuthStore = defineStore('auth', {
 
         this.user = user
         this.userType = user.role
+        this.lastAuthCheckedAt = Date.now()
         localStorage.setItem('userType', user.role)
         localStorage.setItem('user', JSON.stringify(user))
         localStorage.removeItem('teacher')

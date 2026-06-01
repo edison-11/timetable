@@ -56,7 +56,7 @@ class SystemSetting {
     const teacherChangeoverMinutes = Number(
       await this.get('teacher_changeover_minutes', '5')
     );
-    const periodMinutes = Number(await this.get('period_minutes', '45'));
+    const periodMinutes = 40;
     const timetableStartTime = await this.get('timetable_start_time', '08:00');
     const timetableEndTime = await this.get('timetable_end_time', '17:15');
     const breakStartTime = await this.get('break_start_time', '11:00');
@@ -125,7 +125,7 @@ class SystemSetting {
         : 5,
       period_minutes: Number.isFinite(periodMinutes) && periodMinutes > 0
         ? periodMinutes
-        : 45,
+        : 40,
       start_time: timetableStartTime,
       end_time: timetableEndTime,
       break_start_time: breakStartTime,

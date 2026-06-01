@@ -328,6 +328,21 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
+router.get('/me/assignments', auth, async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    if (!teacherId) {
+      return res.status(401).json({ message: 'Not a teacher account' });
+    }
+
+    const assignments = await Assignment.getByTeacher(teacherId, { school_id: req.user.school_id || null });
+    res.json({ assignments });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 router.get('/me/classes', auth, async (req, res) => {
   try {
     const teacherId = req.user.teacherId;

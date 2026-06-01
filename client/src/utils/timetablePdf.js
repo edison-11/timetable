@@ -20,21 +20,39 @@ const colorCommand = (hex, mode = 'rg') => {
 }
 
 const wrapText = (value, maxChars) => {
-  const words = String(value ?? '').split(/\s+/).filter(Boolean)
   const lines = []
-  let current = ''
+  String(value ?? '')
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      if (line.length <= maxChars) {
+        lines.push(line)
+        return
+      }
 
-  words.forEach((word) => {
-    const next = current ? `${current} ${word}` : word
-    if (next.length > maxChars && current) {
+      lines.push(`${line.slice(0, Math.max(maxChars - 3, 1))}...`)
+    })
+
+  if (!lines.length) {
+    const words = String(value ?? '').split(/\s+/).filter(Boolean)
+    let current = ''
+
+    words.forEach((word) => {
+      const next = current ? `${current} ${word}` : word
+      if (next.length > maxChars && current) {
+        lines.push(current)
+        current = word
+      } else {
+        current = next
+      }
+    })
+
+    if (current) {
       lines.push(current)
-      current = word
-    } else {
-      current = next
     }
-  })
+  }
 
-  if (current) lines.push(current)
   return lines.length ? lines : ['']
 }
 
@@ -66,10 +84,11 @@ export const downloadTimetablePdf = ({
   const rowHeight = fitToOnePage
     ? Math.max(10, Math.min(46, availableRowHeight))
     : 58
-  const maxLinesPerCell = fitToOnePage ? Math.max(1, Math.floor((rowHeight - 4) / 6)) : 4
-  const bodyFontSize = fitToOnePage ? Math.max(4.4, Math.min(7, rowHeight * 0.34)) : 8
-  const boldFontSize = fitToOnePage ? Math.max(4.8, Math.min(7.5, rowHeight * 0.38)) : 9
-  const lineGap = fitToOnePage ? Math.max(5, Math.min(8, rowHeight * 0.36)) : 11
+  const maxLinesPerCell = fitToOnePage ? Math.max(3, Math.floor((rowHeight - 6) / 6.5)) : 4
+  const bodyFontSize = fitToOnePage ? 5.8 : 8
+  const boldFontSize = fitToOnePage ? 6.3 : 9
+  const lineGap = fitToOnePage ? 6.5 : 11
+  const firstLineOffset = fitToOnePage ? 8 : 13
   const bottomLimit = margin
   const pages = []
   let y = pageHeight - margin
@@ -143,8 +162,8 @@ export const downloadTimetablePdf = ({
       lines.forEach((line, lineIndex) => {
         text(
           line,
-          x + 4,
-          y - (fitToOnePage ? 8 : 13) - lineIndex * lineGap,
+          x + 5,
+          y - firstLineOffset - lineIndex * lineGap,
           lineIndex === 0 && cell.bold ? boldFontSize : bodyFontSize,
           cell.color || '#111827'
         )

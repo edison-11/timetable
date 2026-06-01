@@ -4,9 +4,6 @@ import router from './router'
 import App from './App.vue'
 import './style.css'
 
-// Import Bootstrap JavaScript
-import "bootstrap/dist/js/bootstrap.bundle.min.js"
-
 const app = createApp(App)
 const pinia = createPinia()
 

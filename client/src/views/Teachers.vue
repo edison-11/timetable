@@ -3,23 +3,71 @@
     <div class="teachers-container">
       <div class="card-custom">
         <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="h3 fw-semibold text-dark">All Teachers</h2>
-          <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
-            Add New Teacher
+          <div>
+            <h2 class="h3 fw-semibold text-dark mb-1">All Teachers</h2>
+            <p class="teacher-page-subtitle">Review staff, approvals, classes, and assigned modules.</p>
+          </div>
+          <div class="teacher-toolbar">
+            <button class="btn-secondary" type="button" :disabled="!filteredTeachers.length" @click="exportTeachers">
+              Export CSV
+            </button>
+            <button class="btn-primary" data-bs-toggle="modal" data-bs-target="#addTeacherModal">
+              Add New Teacher
+            </button>
+          </div>
+        </div>
+
+        <section class="teacher-summary-grid">
+          <article>
+            <span>Total</span>
+            <strong>{{ teacherStats.total }}</strong>
+            <small>teachers</small>
+          </article>
+          <article>
+            <span>Active</span>
+            <strong>{{ teacherStats.active }}</strong>
+            <small>approved</small>
+          </article>
+          <article>
+            <span>Pending</span>
+            <strong>{{ teacherStats.pending }}</strong>
+            <small>need review</small>
+          </article>
+          <article>
+            <span>Assigned</span>
+            <strong>{{ teacherStats.withModules }}</strong>
+            <small>with modules</small>
+          </article>
+          <article>
+            <span>No Load</span>
+            <strong>{{ teacherStats.unassigned }}</strong>
+            <small>no modules</small>
+          </article>
+        </section>
+
+        <div class="quick-filter-row">
+          <button
+            v-for="filter in quickFilters"
+            :key="filter.value"
+            type="button"
+            :class="{ active: quickFilter === filter.value }"
+            @click="quickFilter = filter.value"
+          >
+            {{ filter.label }}
           </button>
         </div>
 
         <!-- Search and Filter -->
         <div class="row g-3 mb-4">
-          <div class="col-md-4">
+          <div class="col-md-3">
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search teachers..."
+              placeholder="Search name, email, class, module..."
               class="form-control"
             />
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <select v-model="departmentFilter" class="form-select">
               <option value="">All Departments</option>
               <option v-for="department in departmentOptions" :key="department" :value="department">
@@ -27,7 +75,7 @@
               </option>
             </select>
           </div>
-          <div class="col-md-4">
+          <div class="col-md-3">
             <select v-model="statusFilter" class="form-select">
               <option value="">All Status</option>
               <option value="active">Active</option>
@@ -35,6 +83,15 @@
               <option value="on_leave">On Leave</option>
               <option value="pending">Pending</option>
               <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <select v-model="sortMode" class="form-select">
+              <option value="newest">Newest first</option>
+              <option value="name">Name A-Z</option>
+              <option value="status">Status</option>
+              <option value="modules">Most modules</option>
+              <option value="classes">Most classes</option>
             </select>
           </div>
         </div>
@@ -49,6 +106,8 @@
                 <th>Classes</th>
                 <th>Modules</th>
                 <th>Status</th>
+                <th>Classes</th>
+                <th>Modules</th>
                 <th>Date Joined</th>
                 <th>Actions</th>
               </tr>
@@ -74,6 +133,18 @@
                   <span :class="getStatusClass(teacher.status)" class="status-badge">
                     {{ getStatusLabel(teacher.status) }}
                   </span>
+                </td>
+                <td>
+                  <div class="compact-list-cell">
+                    <strong>{{ splitList(teacher.teaching_classes || teacher.head_teacher_classes).length }}</strong>
+                    <small>{{ shortList(teacher.teaching_classes || teacher.head_teacher_classes, 'No classes') }}</small>
+                  </div>
+                </td>
+                <td>
+                  <div class="compact-list-cell">
+                    <strong>{{ splitList(teacher.assigned_modules).length }}</strong>
+                    <small>{{ shortList(teacher.assigned_modules, 'No modules') }}</small>
+                  </div>
                 </td>
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
@@ -338,6 +409,8 @@
                 <div><span>National/Staff ID</span><strong>{{ selectedTeacher.national_id || selectedTeacher.employee_id || 'Not set' }}</strong></div>
                 <div><span>Status</span><strong>{{ getStatusLabel(selectedTeacher.status) }}</strong></div>
                 <div><span>Date Joined</span><strong>{{ formatDate(selectedTeacher.date_joined) }}</strong></div>
+                <div><span>Classes</span><strong>{{ selectedTeacher.teaching_classes || selectedTeacher.head_teacher_classes || 'No classes assigned' }}</strong></div>
+                <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || 'No modules assigned' }}</strong></div>
               </div>
             </div>
           </div>
@@ -374,6 +447,8 @@ const teachers = ref([])
 const searchQuery = ref('')
 const statusFilter = ref('')
 const departmentFilter = ref('')
+const quickFilter = ref('all')
+const sortMode = ref('newest')
 const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
 
 // Edit functionality
@@ -406,9 +481,42 @@ const selectedTeacher = ref(null)
 const errors = ref({})
 const showNewTeacherPassword = ref(false)
 const showEditTeacherPassword = ref(false)
+const quickFilters = [
+  { label: 'All', value: 'all' },
+  { label: 'Active', value: 'active' },
+  { label: 'Pending', value: 'pending' },
+  { label: 'No Modules', value: 'unassigned' },
+  { label: 'On Leave', value: 'on_leave' }
+]
+
+const splitList = (value) => String(value || '')
+  .split(',')
+  .map(item => item.trim())
+  .filter(Boolean)
+
+const shortList = (value, fallback = 'None') => {
+  const items = splitList(value)
+  if (!items.length) return fallback
+  if (items.length <= 2) return items.join(', ')
+  return `${items.slice(0, 2).join(', ')} +${items.length - 2}`
+}
+
+const teacherStats = computed(() => {
+  const total = teachers.value.length
+  const active = teachers.value.filter(teacher => teacher.status === 'active').length
+  const pending = teachers.value.filter(teacher => teacher.status === 'pending').length
+  const withModules = teachers.value.filter(teacher => splitList(teacher.assigned_modules).length > 0).length
+  return {
+    total,
+    active,
+    pending,
+    withModules,
+    unassigned: total - withModules
+  }
+})
 
 const filteredTeachers = computed(() => {
-  return teachers.value.filter(teacher => {
+  const filtered = teachers.value.filter(teacher => {
     const department = teacher.department || 'SSOD'
     const query = searchQuery.value.toLowerCase()
     const searchable = [
@@ -423,7 +531,27 @@ const filteredTeachers = computed(() => {
     const matchesSearch = searchable.includes(query)
     const matchesStatus = !statusFilter.value || teacher.status === statusFilter.value
     const matchesDepartment = !departmentFilter.value || department === departmentFilter.value
-    return matchesSearch && matchesStatus && matchesDepartment
+    const matchesQuickFilter =
+      quickFilter.value === 'all'
+      || teacher.status === quickFilter.value
+      || (quickFilter.value === 'unassigned' && !splitList(teacher.assigned_modules).length)
+    return matchesSearch && matchesStatus && matchesDepartment && matchesQuickFilter
+  })
+
+  return filtered.sort((a, b) => {
+    if (sortMode.value === 'name') {
+      return String(a.name || '').localeCompare(String(b.name || ''))
+    }
+    if (sortMode.value === 'status') {
+      return String(a.status || '').localeCompare(String(b.status || ''))
+    }
+    if (sortMode.value === 'modules') {
+      return splitList(b.assigned_modules).length - splitList(a.assigned_modules).length
+    }
+    if (sortMode.value === 'classes') {
+      return splitList(b.teaching_classes || b.head_teacher_classes).length - splitList(a.teaching_classes || a.head_teacher_classes).length
+    }
+    return new Date(b.created_at || b.date_joined || 0) - new Date(a.created_at || a.date_joined || 0)
   })
 })
 
@@ -457,6 +585,37 @@ const getStatusLabel = (status) => {
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   return new Date(dateString).toLocaleDateString()
+}
+
+const csvEscape = (value) => {
+  const text = String(value ?? '')
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+const exportTeachers = () => {
+  const headers = ['Name', 'Email', 'Department', 'Status', 'Classes', 'Modules', 'Date Joined']
+  const rows = filteredTeachers.value.map((teacher) => ({
+    Name: teacher.name,
+    Email: teacher.email,
+    Department: teacher.department || 'SSOD',
+    Status: getStatusLabel(teacher.status),
+    Classes: teacher.teaching_classes || teacher.head_teacher_classes || '',
+    Modules: teacher.assigned_modules || '',
+    'Date Joined': formatDate(teacher.date_joined)
+  }))
+  const csv = [
+    headers.map(csvEscape).join(','),
+    ...rows.map(row => headers.map(header => csvEscape(row[header])).join(','))
+  ].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `teachers-${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 const validateForm = () => {
@@ -776,6 +935,84 @@ onMounted(async () => {
   margin-bottom: 1.5rem;
 }
 
+.teacher-page-subtitle {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.teacher-toolbar {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.teacher-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.teacher-summary-grid article {
+  padding: 0.85rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.teacher-summary-grid span,
+.teacher-summary-grid strong,
+.teacher-summary-grid small {
+  display: block;
+}
+
+.teacher-summary-grid span {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.teacher-summary-grid strong {
+  color: #0f172a;
+  font-size: 1.35rem;
+  line-height: 1.1;
+  margin-top: 0.25rem;
+}
+
+.teacher-summary-grid small {
+  color: #64748b;
+  font-weight: 700;
+  margin-top: 0.15rem;
+}
+
+.quick-filter-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.quick-filter-row button {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 850;
+  padding: 0.42rem 0.75rem;
+}
+
+.quick-filter-row button.active {
+  background: #dbeafe;
+  border-color: #2563eb;
+  color: #1d4ed8;
+}
+
 .btn-primary {
   background: linear-gradient(135deg, #3b82f6, #2563eb);
   color: white;
@@ -878,7 +1115,7 @@ onMounted(async () => {
 
 .table-custom {
   width: 100%;
-  min-width: 780px;
+  min-width: 980px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -899,27 +1136,37 @@ onMounted(async () => {
 
 .table-custom th:nth-child(1),
 .table-custom td:nth-child(1) {
-  width: 30%;
+  width: 24%;
 }
 
 .table-custom th:nth-child(2),
 .table-custom td:nth-child(2) {
-  width: 18%;
+  width: 14%;
 }
 
 .table-custom th:nth-child(3),
 .table-custom td:nth-child(3) {
-  width: 14%;
+  width: 10%;
 }
 
 .table-custom th:nth-child(4),
 .table-custom td:nth-child(4) {
-  width: 14%;
+  width: 13%;
 }
 
 .table-custom th:nth-child(5),
 .table-custom td:nth-child(5) {
-  width: 24%;
+  width: 17%;
+}
+
+.table-custom th:nth-child(6),
+.table-custom td:nth-child(6) {
+  width: 10%;
+}
+
+.table-custom th:nth-child(7),
+.table-custom td:nth-child(7) {
+  width: 12%;
 }
 
 .teacher-cell {
@@ -943,6 +1190,25 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.compact-list-cell {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.compact-list-cell strong {
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+.compact-list-cell small {
+  color: #64748b;
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge {
@@ -1073,21 +1339,40 @@ onMounted(async () => {
 :global(body.admin-dark-mode) .teachers-container h2,
 :global(body.admin-dark-mode) .teachers-container h5,
 :global(body.admin-dark-mode) .teachers-container .teacher-cell strong,
+:global(body.admin-dark-mode) .teachers-container .compact-list-cell strong,
+:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid strong,
 :global(body.admin-dark-mode) .teachers-container .details-grid strong,
 :global(body.admin-dark-mode) .teachers-container .table-custom th {
   color: #f8fafc !important;
 }
 
+:global(body.admin-dark-mode) .teachers-container .teacher-page-subtitle,
 :global(body.admin-dark-mode) .teachers-container .teacher-cell small,
+:global(body.admin-dark-mode) .teachers-container .compact-list-cell small,
+:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid span,
+:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid small,
 :global(body.admin-dark-mode) .teachers-container .details-grid span,
 :global(body.admin-dark-mode) .teachers-container .table-custom td {
   color: #cbd5e1 !important;
 }
 
 :global(body.admin-dark-mode) .teachers-container .table-custom th,
+:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid article,
 :global(body.admin-dark-mode) .teachers-container .details-grid div {
   border-color: #243244 !important;
   background: #0b1220 !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .quick-filter-row button {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #dbeafe !important;
+}
+
+:global(body.admin-dark-mode) .teachers-container .quick-filter-row button.active {
+  border-color: #60a5fa !important;
+  background: #172554 !important;
+  color: #bfdbfe !important;
 }
 
 :global(body.admin-dark-mode) .teachers-container .table-custom td,
@@ -1101,5 +1386,16 @@ onMounted(async () => {
   border-color: #334155 !important;
   background: #0b1220 !important;
   color: #e5edf7 !important;
+}
+
+@media (max-width: 900px) {
+  .teacher-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .teacher-toolbar {
+    justify-content: flex-start;
+    margin-top: 0.75rem;
+  }
 }
 </style>

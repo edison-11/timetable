@@ -26,15 +26,11 @@
           @click="closeMobileSidebar"
         >
           <span class="nav-icon">
-            <component :is="item.icon" aria-hidden="true" />
+            <component :is="item.icon" :class="item.tone" aria-hidden="true" />
           </span>
           <span class="nav-label">{{ item.label }}</span>
         </router-link>
       </nav>
-
-      <div class="sidebar-watch-wrapper">
-        <TeacherPeriodTimer class="sidebar-timer-widget" />
-      </div>
 
     </aside>
 
@@ -58,26 +54,34 @@
         </div>
 
         <div class="navbar-right">
-          <div class="notifications-container" ref="notificationsMenu">
+          <div class="notifications-container notifications-menu" ref="notificationsMenu">
             <button
-              class="icon-button"
+              class="icon-button notifications-btn"
               type="button"
               title="Notifications"
+              aria-label="Notifications"
               :aria-expanded="showNotifications"
               @click="toggleNotifications"
             >
               <span class="bell-icon" aria-hidden="true">
-                <Bell />
+                <Bell :size="21" :stroke-width="2.2" />
               </span>
               <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
             </button>
 
             <div v-if="showNotifications" class="notifications-dropdown">
-              <div class="dropdown-header">
+              <div class="dropdown-header notifications-header">
                 <strong>Notifications</strong>
-                <button type="button" @click="markAllRead">Mark read</button>
+                <div class="notification-header-actions">
+                  <button type="button" @click="openNotificationsPanel">View all</button>
+                </div>
               </div>
-              <div v-if="!notifications.length" class="empty-state">No notifications yet.</div>
+              <div v-if="!notifications.length" class="notification-empty">
+                <span aria-hidden="true">!</span>
+                <strong>No notifications found</strong>
+                <small>There are no teacher alerts right now.</small>
+                <button type="button" @click="openNotificationsPanel">View Notification History</button>
+              </div>
               <button
                 v-for="notif in notifications.slice(0, 5)"
                 :key="notif.id"
@@ -86,9 +90,18 @@
                 :class="{ unread: !notif.read }"
                 @click="openNotification(notif)"
               >
-                <strong>{{ notif.title }}</strong>
-                <span>{{ notif.message }}</span>
-                <small>{{ formatTime(notif.created_at) }}</small>
+                <span class="notification-dot blue"></span>
+                <span>
+                  <strong>{{ notif.title }}</strong>
+                  <em>{{ notif.message }}</em>
+                  <small>{{ formatTime(notif.created_at) }}</small>
+                </span>
+                <span class="notification-delete" aria-hidden="true">
+                  <ChevronRight :size="16" :stroke-width="2.2" />
+                </span>
+              </button>
+              <button class="view-all-notifications" type="button" @click="openNotificationsPanel">
+                View all notifications
               </button>
             </div>
           </div>
@@ -140,11 +153,11 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
-import TeacherPeriodTimer from '@/components/TeacherPeriodTimer.vue'
 import {
   Bell,
   CalendarDays,
   ChevronRight,
+  Clock3,
   ClipboardCheck,
   LayoutDashboard,
   Moon,
@@ -196,6 +209,8 @@ const pageTitle = computed(() => {
     TeacherDashboard: 'Dashboard',
     TeacherTimetable: 'Timetable',
     TeacherAttendance: 'Attendance',
+    TeacherNotifications: 'Notifications',
+    TeacherCurrentCounter: 'Current Counter',
     TeacherProfile: 'Profile',
     TeacherSettings: 'Settings'
   }
@@ -207,6 +222,8 @@ const pageSubtitle = computed(() => {
     TeacherDashboard: 'Today, next lesson, and open slots.',
     TeacherTimetable: 'Weekly lessons, filters, and exports.',
     TeacherAttendance: 'Class attendance by period.',
+    TeacherNotifications: 'Timetable alerts and school updates.',
+    TeacherCurrentCounter: 'Live lesson timer and next period.',
     TeacherProfile: 'Your teacher details.',
     TeacherSettings: 'Availability and security.'
   }
@@ -218,6 +235,8 @@ const breadcrumbs = computed(() => {
     TeacherDashboard: [],
     TeacherTimetable: [{ label: 'Timetable', to: '/teacher/timetable' }],
     TeacherAttendance: [{ label: 'Attendance', to: '/teacher/attendance' }],
+    TeacherNotifications: [{ label: 'Notifications', to: '/teacher/notifications' }],
+    TeacherCurrentCounter: [{ label: 'Current Counter', to: '/teacher/current-counter' }],
     TeacherProfile: [{ label: 'Profile', to: '/teacher/profile' }],
     TeacherSettings: [{ label: 'Settings', to: '/teacher/settings' }]
   }
@@ -226,11 +245,13 @@ const breadcrumbs = computed(() => {
 })
 
 const navItems = [
-  { label: 'Dashboard', to: '/teacher/dashboard', icon: LayoutDashboard },
-  { label: 'Timetable', to: '/teacher/timetable', icon: CalendarDays },
-  { label: 'Attendance', to: '/teacher/attendance', icon: ClipboardCheck },
-  { label: 'Profile', to: '/teacher/profile', icon: UserRound },
-  { label: 'Settings', to: '/teacher/settings', icon: Settings }
+  { label: 'Dashboard', to: '/teacher/dashboard', icon: LayoutDashboard, tone: 'tone-blue' },
+  { label: 'Timetable', to: '/teacher/timetable', icon: CalendarDays, tone: 'tone-violet' },
+  { label: 'Attendance', to: '/teacher/attendance', icon: ClipboardCheck, tone: 'tone-green' },
+  { label: 'Notifications', to: '/teacher/notifications', icon: Bell, tone: 'tone-amber' },
+  { label: 'Current Counter', to: '/teacher/current-counter', icon: Clock3, tone: 'tone-cyan' },
+  { label: 'Profile', to: '/teacher/profile', icon: UserRound, tone: 'tone-slate' },
+  { label: 'Settings', to: '/teacher/settings', icon: Settings, tone: 'tone-indigo' }
 ]
 
 const isActive = (path) => String(path).includes('#') ? route.fullPath === path : route.path === path
@@ -268,10 +289,25 @@ const markAllRead = () => {
   notifications.value = notifications.value.map(notification => ({ ...notification, read: true }))
 }
 
-const openNotification = (notification) => {
+const openNotificationsPanel = () => {
+  showNotifications.value = false
+  router.push('/teacher/notifications')
+}
+
+const openNotification = async (notification) => {
   notification.read = true
   showNotifications.value = false
-  if (notification.path) router.push(notification.path)
+  if (Number.isFinite(Number(notification.id))) {
+    try {
+      await api.put(`/notifications/${notification.id}/read`, null, { showGlobalLoader: false, showGlobalNotification: false })
+    } catch (error) {
+      // Local read state is enough for the dropdown if the server cannot mark it.
+    }
+  }
+  router.push({
+    path: '/teacher/notifications',
+    query: { selected: notification.id }
+  })
 }
 
 const formatTime = (timestamp) => {
@@ -304,7 +340,7 @@ const loadNotifications = async () => {
       message: notification.message,
       created_at: notification.created_at,
       path: notification.path || '/teacher/dashboard',
-      read: false
+      read: Boolean(notification.read_at)
     }))
   } catch (error) {
     notifications.value = []
@@ -497,7 +533,7 @@ onBeforeUnmount(() => {
 
 .nav-item:hover {
   background: transparent;
-  color: #475569;
+  color: #172033;
   border-color: transparent;
   transform: none;
 }
@@ -505,7 +541,8 @@ onBeforeUnmount(() => {
 .nav-item.active {
   background: transparent;
   color: #0f172a;
-  border-color: #cbd5e1;
+  border-color: #2563eb;
+  box-shadow: inset 0 -2px 0 #2563eb;
 }
 
 .nav-item.active::before {
@@ -542,10 +579,18 @@ onBeforeUnmount(() => {
   stroke-linejoin: round;
 }
 
+.nav-icon :deep(.tone-blue) { color: #2563eb; }
+.nav-icon :deep(.tone-violet) { color: #7c3aed; }
+.nav-icon :deep(.tone-green) { color: #16a34a; }
+.nav-icon :deep(.tone-amber) { color: #d97706; }
+.nav-icon :deep(.tone-cyan) { color: #0891b2; }
+.nav-icon :deep(.tone-slate) { color: #475569; }
+.nav-icon :deep(.tone-indigo) { color: #4f46e5; }
+
 .nav-item:hover .nav-icon,
 .nav-item.active .nav-icon {
-  background: #2563eb;
-  color: #ffffff;
+  background: #eef5ff;
+  color: inherit;
 }
 
 .nav-label {
@@ -1608,8 +1653,8 @@ body.teacher-dark-mode .teacher-sidebar .nav-icon {
 
 body.teacher-dark-mode .teacher-sidebar .nav-item:hover .nav-icon,
 body.teacher-dark-mode .teacher-sidebar .nav-item.active .nav-icon {
-  background: #3b82f6;
-  color: #ffffff;
+  background: #172554;
+  color: inherit;
 }
 
 body.teacher-dark-mode .studio-header,
@@ -1963,6 +2008,364 @@ body .teacher-shell.dark-mode .teacher-content .teacher-metrics span,
 body .teacher-shell.dark-mode .teacher-content .teacher-metrics small,
 body.teacher-dark-mode .teacher-shell.dark-mode .teacher-content .teacher-metrics span,
 body.teacher-dark-mode .teacher-shell.dark-mode .teacher-content .teacher-metrics small {
+  color: #cbd5e1 !important;
+}
+
+/* DOS-aligned teacher shell polish. Keep teacher pages visually close to the DOS/admin workspace. */
+body .teacher-shell {
+  background: #f5f8fc;
+  color: #0f172a;
+  font-size: 0.92rem;
+}
+
+body .teacher-shell .teacher-main,
+body .teacher-shell .teacher-content {
+  background: #f5f8fc;
+}
+
+body .teacher-shell .teacher-navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #dbe3ef;
+  box-shadow: none;
+}
+
+body .teacher-shell .teacher-sidebar {
+  background: #ffffff;
+  border-right: 1px solid #dbe3ef;
+  box-shadow: none;
+}
+
+body .teacher-shell .nav-item {
+  border-radius: 8px;
+  color: #334155;
+  font-size: 0.875rem !important;
+  font-weight: 800;
+}
+
+body .teacher-shell .nav-item:hover {
+  background: transparent;
+  color: #334155;
+  border-color: transparent;
+}
+
+body .teacher-shell .nav-item.active {
+  background: transparent;
+  color: #0f172a;
+  border-color: #2563eb;
+  box-shadow: inset 0 -2px 0 #2563eb;
+}
+
+body .teacher-shell .nav-item:hover .nav-icon,
+body .teacher-shell .nav-item.active .nav-icon {
+  background: #eef5ff;
+}
+
+body .teacher-shell .page-title {
+  font-size: 1.25rem !important;
+}
+
+body .teacher-shell .page-subtitle,
+body .teacher-shell .teacher-breadcrumbs {
+  color: #52627a;
+}
+
+body .teacher-shell .teacher-content :where(.card, .panel, .metric-card, .dashboard-card, .stat-card, .settings-card, .profile-card, .profile-section, .info-card, .timeline-card, .document-card, .attendance-table, .controls-panel, .filters-panel, .panel-card, .timetable-output-card, .day-view-section, .compact-view-section, .lesson-card, .day-lesson-card, .compact-lesson-item, .timeline-item, .lesson-row, .activity-item, .next-lesson, .settings-panel, .settings-nav, .settings-intro, .security-tips, .toggle-card, .preference-card) {
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+body.teacher-dark-mode .teacher-shell,
+body.teacher-dark-mode .teacher-shell .teacher-main,
+body.teacher-dark-mode .teacher-shell .teacher-content {
+  background: #0f172a !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-shell .teacher-navbar,
+body.teacher-dark-mode .teacher-shell .teacher-sidebar {
+  background: #111827 !important;
+  border-color: #243244 !important;
+}
+
+body.teacher-dark-mode .teacher-shell .nav-item:hover {
+  background: transparent !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-shell .nav-item.active {
+  background: transparent !important;
+  color: #f8fafc !important;
+  border-color: #60a5fa !important;
+  box-shadow: inset 0 -2px 0 #60a5fa !important;
+}
+
+body.teacher-dark-mode .teacher-shell .nav-item:hover .nav-icon,
+body.teacher-dark-mode .teacher-shell .nav-item.active .nav-icon {
+  background: #172554 !important;
+}
+
+/* Match teacher header notifications to the DOS/superadmin header design. */
+body .teacher-shell .navbar-right {
+  gap: 0.75rem;
+}
+
+body .teacher-shell .notifications-menu {
+  position: relative;
+}
+
+body .teacher-shell .notifications-btn {
+  position: relative;
+  width: 38px !important;
+  height: 38px !important;
+  flex: 0 0 38px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 50% !important;
+  background: #f8fafc !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+body .teacher-shell .notifications-btn:hover,
+body .teacher-shell .notifications-btn:focus-visible {
+  background: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #2563eb !important;
+  outline: none !important;
+}
+
+body .teacher-shell .notifications-btn .bell-icon {
+  width: 20px;
+  height: 20px;
+  color: inherit;
+}
+
+body .teacher-shell .notifications-btn .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff !important;
+  font-size: 0.7rem !important;
+  font-weight: 900;
+  line-height: 1;
+}
+
+body .teacher-shell .notifications-dropdown {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: min(340px, calc(100vw - 2rem));
+  padding: 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  z-index: 220;
+}
+
+body .teacher-shell .notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.5rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1f2937;
+  font-weight: 800;
+}
+
+body .teacher-shell .notifications-header strong {
+  color: #1f2937;
+  font-size: 0.92rem;
+  font-weight: 850;
+}
+
+body .teacher-shell .notification-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+body .teacher-shell .notifications-header button,
+body .teacher-shell .view-all-notifications {
+  border: none;
+  background: transparent;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+body .teacher-shell .notifications-header button:hover,
+body .teacher-shell .view-all-notifications:hover {
+  color: #2980b9;
+}
+
+body .teacher-shell .notification-item {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 10px 1fr 24px;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.75rem 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+body .teacher-shell .notification-item:hover,
+body .teacher-shell .notification-item:focus-visible {
+  background: #f8fafc;
+  outline: none;
+}
+
+body .teacher-shell .notification-item.unread {
+  background: #eff6ff;
+}
+
+body .teacher-shell .notification-dot {
+  width: 9px;
+  height: 9px;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+}
+
+body .teacher-shell .notification-dot.blue { background: #3b82f6; }
+body .teacher-shell .notification-dot.amber { background: #f59e0b; }
+body .teacher-shell .notification-dot.green { background: #22c55e; }
+body .teacher-shell .notification-dot.violet { background: #8b5cf6; }
+
+body .teacher-shell .notification-item strong {
+  display: block;
+  color: #1f2937;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+body .teacher-shell .notification-item em {
+  display: block;
+  margin-top: 0.15rem;
+  color: #475569;
+  font-size: 0.68rem;
+  font-style: normal;
+  line-height: 1.3;
+}
+
+body .teacher-shell .notification-item small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #6b7280;
+  font-size: 0.78rem !important;
+  font-weight: 600;
+}
+
+body .teacher-shell .notification-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  color: #94a3b8;
+}
+
+body .teacher-shell .view-all-notifications {
+  width: 100%;
+  padding: 0.75rem 0.5rem 0.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+body .teacher-shell .notification-empty {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  padding: 1.3rem 0.85rem;
+  color: #6b7280;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+body .teacher-shell .notification-empty span {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 950;
+}
+
+body .teacher-shell .notification-empty strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+body .teacher-shell .notification-empty small {
+  color: #6b7280;
+  font-size: 0.78rem !important;
+}
+
+body .teacher-shell .notification-empty button {
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 0.45rem 0.65rem;
+}
+
+body.teacher-dark-mode .teacher-shell .notifications-btn {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode .teacher-shell .notifications-btn:hover,
+body.teacher-dark-mode .teacher-shell .notifications-btn:focus-visible {
+  background: #172554 !important;
+  border-color: #60a5fa !important;
+  color: #93c5fd !important;
+}
+
+body.teacher-dark-mode .teacher-shell .notifications-dropdown,
+body.teacher-dark-mode .teacher-shell .notifications-header {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+body.teacher-dark-mode .teacher-shell .notifications-header strong,
+body.teacher-dark-mode .teacher-shell .notification-item strong,
+body.teacher-dark-mode .teacher-shell .notification-empty strong {
+  color: #f8fafc !important;
+}
+
+body.teacher-dark-mode .teacher-shell .notification-item,
+body.teacher-dark-mode .teacher-shell .notification-empty {
+  background: transparent !important;
+}
+
+body.teacher-dark-mode .teacher-shell .notification-item:hover,
+body.teacher-dark-mode .teacher-shell .notification-item:focus-visible,
+body.teacher-dark-mode .teacher-shell .notification-item.unread {
+  background: rgba(37, 99, 235, 0.18) !important;
+}
+
+body.teacher-dark-mode .teacher-shell .notification-item em,
+body.teacher-dark-mode .teacher-shell .notification-item small,
+body.teacher-dark-mode .teacher-shell .notification-empty small {
   color: #cbd5e1 !important;
 }
 </style>

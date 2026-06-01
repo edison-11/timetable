@@ -43,6 +43,17 @@
 
           <div class="timer-caption">{{ timerCaption }}</div>
 
+          <div class="timer-navigation" aria-label="Counter navigation">
+            <button type="button" @click="goToTimetable('current')">
+              <Navigation :size="11" :stroke-width="2.4" aria-hidden="true" />
+              Current
+            </button>
+            <button type="button" @click="goToTimetable('next')">
+              <CalendarDays :size="11" :stroke-width="2.4" aria-hidden="true" />
+              Next
+            </button>
+          </div>
+
           <div class="watch-metrics">
             <div>
               <span>{{ sessionInProgress ? 'Day left' : gmtOffsetLabel }}</span>
@@ -101,13 +112,15 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { buildTimetableRowsFromSettings } from '@/utils/fixedTimetableStructure'
 import { isAcademicWeekend } from '@/utils/dayHelpers'
-import { Bell, BellOff, X } from '@lucide/vue'
+import { Bell, BellOff, CalendarDays, Navigation, X } from '@lucide/vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const now = ref(new Date())
 const lessons = ref([])
@@ -554,6 +567,16 @@ const nextTimeMetric = computed(() => {
   const dayPrefix = nextLesson.value.day_of_week === todayName.value ? '' : `${nextLesson.value.day_of_week.slice(0, 3)} `
   return `${dayPrefix}${normalizeTime(nextLesson.value.start_time)}`
 })
+
+const goToTimetable = (focus = 'current') => {
+  const lesson = focus === 'next' ? nextLesson.value : currentLesson.value
+  router.push({
+    path: '/teacher/timetable',
+    query: lesson?.timetable_id
+      ? { focus, lesson: lesson.timetable_id }
+      : { focus }
+  })
+}
 
 const alarmStoragePrefix = computed(() => `teacherPeriodAlarm:${currentTeacherId.value || 'unknown'}:${todayKey.value}`)
 
@@ -1106,6 +1129,38 @@ onBeforeUnmount(() => {
   line-height: 1.15;
   text-align: center;
   text-transform: uppercase;
+}
+
+.timer-navigation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.28rem;
+  padding: 0.34rem 0 0.38rem;
+  border-bottom: 1px solid rgba(31, 42, 17, 0.42);
+}
+
+.timer-navigation button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 0;
+  min-height: 24px;
+  border: 2px solid rgba(17, 24, 39, 0.45);
+  border-radius: 7px;
+  color: #111827;
+  background: rgba(248, 250, 252, 0.58);
+  cursor: pointer;
+  font-size: 0.5rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.timer-navigation button:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
 }
 
 .watch-metrics {

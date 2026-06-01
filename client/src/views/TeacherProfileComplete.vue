@@ -3,7 +3,7 @@
     <div class="profile-container">
       <!-- Header -->
       <section class="profile-header">
-        <h1><i class="bi bi-person-circle"></i> My Profile</h1>
+        <h1><UserRoundCheck class="profile-title-icon" aria-hidden="true" /> My Profile</h1>
         <p>Manage your profile information and settings</p>
       </section>
 
@@ -31,7 +31,7 @@
             :class="{ active: activeTab === tab }"
             @click="activeTab = tab"
           >
-            <i :class="getTabIcon(tab)"></i>
+            <component :is="getTabIcon(tab)" class="tab-icon" :class="getTabTone(tab)" aria-hidden="true" />
             <span>{{ tab }}</span>
           </button>
         </section>
@@ -52,7 +52,7 @@
                 {{ getInitials(profileData.name) }}
               </div>
               <button class="photo-upload-btn" @click="triggerPhotoUpload">
-                <i class="bi bi-camera"></i>
+                <Camera :size="17" :stroke-width="2.4" aria-hidden="true" />
               </button>
               <input
                 type="file"
@@ -67,7 +67,7 @@
               <p class="department">{{ profileData.department }}</p>
               <p class="email">{{ profileData.email }}</p>
               <span class="status-badge online">
-                <i class="bi bi-circle-fill"></i> Active
+                <CircleCheck :size="14" :stroke-width="2.5" aria-hidden="true" /> Active
               </span>
             </div>
           </div>
@@ -75,31 +75,37 @@
           <!-- Quick Info Grid -->
           <div class="info-grid">
             <div class="info-card">
+              <span class="info-icon tone-blue"><BadgeCheck aria-hidden="true" /></span>
               <label>Employee ID</label>
               <p>{{ profileData.employeeId }}</p>
             </div>
 
             <div class="info-card">
+              <span class="info-icon tone-green"><Phone aria-hidden="true" /></span>
               <label>Phone</label>
               <p>{{ profileData.phone }}</p>
             </div>
 
             <div class="info-card">
+              <span class="info-icon tone-violet"><BookOpen aria-hidden="true" /></span>
               <label>Primary Subject</label>
               <p>{{ profileData.subject }}</p>
             </div>
 
             <div class="info-card">
+              <span class="info-icon tone-amber"><GraduationCap aria-hidden="true" /></span>
               <label>Qualification</label>
               <p>{{ profileData.qualification }}</p>
             </div>
 
             <div class="info-card">
+              <span class="info-icon tone-cyan"><BriefcaseBusiness aria-hidden="true" /></span>
               <label>Years of Experience</label>
               <p>{{ profileData.experience }} years</p>
             </div>
 
             <div class="info-card">
+              <span class="info-icon tone-indigo"><CalendarDays aria-hidden="true" /></span>
               <label>Joining Date</label>
               <p>{{ formatDate(profileData.joinDate) }}</p>
             </div>
@@ -107,24 +113,28 @@
 
           <!-- Statistics -->
           <div class="stats-section">
-            <h3>Statistics</h3>
+            <h3><BarChart3 class="section-heading-icon tone-blue" aria-hidden="true" /> Statistics</h3>
             <div class="stats-grid">
               <div class="stat">
+                <School class="stat-icon tone-blue" aria-hidden="true" />
                 <span class="stat-value">{{ stats.totalClasses }}</span>
                 <span class="stat-label">Total Classes</span>
               </div>
 
               <div class="stat">
+                <Users class="stat-icon tone-green" aria-hidden="true" />
                 <span class="stat-value">{{ stats.students }}</span>
                 <span class="stat-label">Students Taught</span>
               </div>
 
               <div class="stat">
+                <LibraryBig class="stat-icon tone-violet" aria-hidden="true" />
                 <span class="stat-value">{{ stats.subjects }}</span>
                 <span class="stat-label">Subjects</span>
               </div>
 
               <div class="stat">
+                <Clock3 class="stat-icon tone-amber" aria-hidden="true" />
                 <span class="stat-value">{{ stats.requestsPending }}</span>
                 <span class="stat-label">Pending Requests</span>
               </div>
@@ -134,13 +144,13 @@
           <!-- Action Buttons -->
           <div class="action-buttons">
             <button class="btn-secondary" @click="activeTab = 'Edit Profile'">
-              <i class="bi bi-pencil"></i> Edit Profile
+              <Pencil :size="17" :stroke-width="2.4" aria-hidden="true" /> Edit Profile
             </button>
             <button class="btn-secondary" @click="activeTab = 'Security'">
-              <i class="bi bi-lock"></i> Change Password
+              <LockKeyhole :size="17" :stroke-width="2.4" aria-hidden="true" /> Change Password
             </button>
             <button class="btn-secondary" @click="downloadProfilePDF">
-              <i class="bi bi-download"></i> Download Profile
+              <Download :size="17" :stroke-width="2.4" aria-hidden="true" /> Download Profile
             </button>
           </div>
         </div>
@@ -150,7 +160,7 @@
       <section v-else-if="activeTab === 'Edit Profile'" class="profile-section">
         <form @submit.prevent="saveProfile" class="profile-form">
           <div class="form-section">
-            <h3>Personal Information</h3>
+            <h3><UserRound class="section-heading-icon tone-blue" aria-hidden="true" /> Personal Information</h3>
 
             <div class="form-group">
               <label>Full Name *</label>
@@ -171,7 +181,7 @@
           </div>
 
           <div class="form-section">
-            <h3>Professional Information</h3>
+            <h3><BriefcaseBusiness class="section-heading-icon tone-violet" aria-hidden="true" /> Professional Information</h3>
 
             <div class="form-row">
               <div class="form-group">
@@ -205,7 +215,7 @@
           </div>
 
           <div class="form-section">
-            <h3>Availability</h3>
+            <h3><CalendarCheck class="section-heading-icon tone-green" aria-hidden="true" /> Availability</h3>
 
             <div class="form-group">
               <label>Available Days</label>
@@ -235,7 +245,7 @@
           </div>
 
           <div class="form-section">
-            <h3>Additional Notes</h3>
+            <h3><NotebookPen class="section-heading-icon tone-amber" aria-hidden="true" /> Additional Notes</h3>
 
             <div class="form-group">
               <label>Notes</label>
@@ -250,10 +260,10 @@
 
           <div class="form-actions">
             <button type="submit" class="btn-primary">
-              <i class="bi bi-check"></i> Save Changes
+              <Check :size="17" :stroke-width="2.4" aria-hidden="true" /> Save Changes
             </button>
             <button type="button" class="btn-secondary" @click="activeTab = 'Overview'">
-              <i class="bi bi-x"></i> Cancel
+              <X :size="17" :stroke-width="2.4" aria-hidden="true" /> Cancel
             </button>
           </div>
         </form>
@@ -263,7 +273,7 @@
       <section v-else-if="activeTab === 'Security'" class="profile-section">
         <div class="security-section">
           <div class="security-card">
-            <h3>Change Password</h3>
+            <h3><KeyRound class="section-heading-icon tone-blue" aria-hidden="true" /> Change Password</h3>
             <p>Update your password to keep your account secure</p>
 
             <form @submit.prevent="changePassword" class="security-form">
@@ -281,7 +291,8 @@
                     class="password-toggle"
                     @click="showPasswords.current = !showPasswords.current"
                   >
-                    <i :class="showPasswords.current ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                    <EyeOff v-if="showPasswords.current" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -300,7 +311,8 @@
                     class="password-toggle"
                     @click="showPasswords.new = !showPasswords.new"
                   >
-                    <i :class="showPasswords.new ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                    <EyeOff v-if="showPasswords.new" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
                   </button>
                 </div>
                 <small class="password-hint">At least 8 characters with uppercase, lowercase, and numbers</small>
@@ -320,39 +332,41 @@
                     class="password-toggle"
                     @click="showPasswords.confirm = !showPasswords.confirm"
                   >
-                    <i :class="showPasswords.confirm ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                    <EyeOff v-if="showPasswords.confirm" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
                   </button>
                 </div>
               </div>
 
               <div v-if="passwordError" class="error-message">
-                <i class="bi bi-exclamation-circle"></i>
+                <CircleAlert :size="17" :stroke-width="2.4" aria-hidden="true" />
                 {{ passwordError }}
               </div>
 
               <div class="form-actions">
                 <button type="submit" class="btn-primary">
-                  <i class="bi bi-shield-check"></i> Update Password
+                  <ShieldCheck :size="17" :stroke-width="2.4" aria-hidden="true" /> Update Password
                 </button>
                 <button type="button" class="btn-secondary" @click="activeTab = 'Overview'">
-                  <i class="bi bi-x"></i> Cancel
+                  <X :size="17" :stroke-width="2.4" aria-hidden="true" /> Cancel
                 </button>
               </div>
             </form>
           </div>
 
           <div class="security-card">
-            <h3>Two-Factor Authentication</h3>
+            <h3><ShieldPlus class="section-heading-icon tone-green" aria-hidden="true" /> Two-Factor Authentication</h3>
             <p>Add an extra layer of security to your account</p>
             <button class="btn-secondary">
-              <i class="bi bi-shield-lock"></i> Enable 2FA
+              <ShieldCheck :size="17" :stroke-width="2.4" aria-hidden="true" /> Enable 2FA
             </button>
           </div>
 
           <div class="security-card">
-            <h3>Login Activity</h3>
+            <h3><MonitorCheck class="section-heading-icon tone-cyan" aria-hidden="true" /> Login Activity</h3>
             <div class="activity-list">
               <div v-for="activity in loginActivity" :key="activity.id" class="activity-item">
+                <span class="activity-icon"><MonitorCheck aria-hidden="true" /></span>
                 <div class="activity-header">
                   <span class="activity-device">{{ activity.device }}</span>
                   <span class="activity-time">{{ formatDateTime(activity.time) }}</span>
@@ -367,13 +381,14 @@
       <!-- Notifications Tab -->
       <section v-else-if="activeTab === 'Notifications'" class="profile-section">
         <div class="notifications-section">
-          <h3>Notification Preferences</h3>
+          <h3><Bell class="section-heading-icon tone-amber" aria-hidden="true" /> Notification Preferences</h3>
 
           <div class="preference-group">
-            <h4>Email Notifications</h4>
+            <h4><Mail class="section-heading-icon tone-blue" aria-hidden="true" /> Email Notifications</h4>
 
             <label class="preference-item">
               <input type="checkbox" v-model="notificationPrefs.emailClasses" />
+              <span class="preference-icon tone-blue"><CalendarClock aria-hidden="true" /></span>
               <div class="preference-content">
                 <span class="preference-title">Class Schedule Changes</span>
                 <small>Notify me when my class schedule changes</small>
@@ -382,6 +397,7 @@
 
             <label class="preference-item">
               <input type="checkbox" v-model="notificationPrefs.emailRequests" />
+              <span class="preference-icon tone-violet"><Inbox aria-hidden="true" /></span>
               <div class="preference-content">
                 <span class="preference-title">Request Updates</span>
                 <small>Notify me when my requests are approved or rejected</small>
@@ -390,6 +406,7 @@
 
             <label class="preference-item">
               <input type="checkbox" v-model="notificationPrefs.emailAnnouncements" />
+              <span class="preference-icon tone-amber"><Megaphone aria-hidden="true" /></span>
               <div class="preference-content">
                 <span class="preference-title">Announcements</span>
                 <small>Notify me about school announcements</small>
@@ -398,10 +415,11 @@
           </div>
 
           <div class="preference-group">
-            <h4>In-App Notifications</h4>
+            <h4><BellRing class="section-heading-icon tone-green" aria-hidden="true" /> In-App Notifications</h4>
 
             <label class="preference-item">
               <input type="checkbox" v-model="notificationPrefs.inAppClasses" />
+              <span class="preference-icon tone-green"><AlarmClock aria-hidden="true" /></span>
               <div class="preference-content">
                 <span class="preference-title">Class Reminders</span>
                 <small>Show reminders for upcoming classes</small>
@@ -410,6 +428,7 @@
 
             <label class="preference-item">
               <input type="checkbox" v-model="notificationPrefs.inAppRequests" />
+              <span class="preference-icon tone-cyan"><MessageSquareText aria-hidden="true" /></span>
               <div class="preference-content">
                 <span class="preference-title">Request Notifications</span>
                 <small>Show notifications for request updates</small>
@@ -419,7 +438,7 @@
 
           <div class="form-actions">
             <button class="btn-primary" @click="saveNotificationPrefs">
-              <i class="bi bi-check"></i> Save Preferences
+              <Check :size="17" :stroke-width="2.4" aria-hidden="true" /> Save Preferences
             </button>
           </div>
         </div>
@@ -435,6 +454,45 @@ import TeacherLayout from '@/components/TeacherLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import { notifySuccess } from '@/utils/notify'
+import {
+  AlarmClock,
+  BadgeCheck,
+  BarChart3,
+  Bell,
+  BellRing,
+  BookOpen,
+  BriefcaseBusiness,
+  CalendarCheck,
+  CalendarClock,
+  CalendarDays,
+  Camera,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Clock3,
+  Download,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  Inbox,
+  KeyRound,
+  LibraryBig,
+  LockKeyhole,
+  Mail,
+  Megaphone,
+  MessageSquareText,
+  MonitorCheck,
+  NotebookPen,
+  Pencil,
+  Phone,
+  School,
+  ShieldCheck,
+  ShieldPlus,
+  UserRound,
+  UserRoundCheck,
+  Users,
+  X
+} from '@lucide/vue'
 
 const activeTab = ref('Overview')
 const fileInput = ref(null)
@@ -554,12 +612,22 @@ const hydrateProfileFromTeacher = (teacher = {}) => {
 
 const getTabIcon = (tab) => {
   const icons = {
-    'Overview': 'bi bi-person-check',
-    'Edit Profile': 'bi bi-pencil',
-    'Security': 'bi bi-lock',
-    'Notifications': 'bi bi-bell'
+    'Overview': UserRoundCheck,
+    'Edit Profile': Pencil,
+    'Security': LockKeyhole,
+    'Notifications': Bell
   }
-  return icons[tab] || 'bi bi-gear'
+  return icons[tab] || UserRound
+}
+
+const getTabTone = (tab) => {
+  const tones = {
+    'Overview': 'tone-blue',
+    'Edit Profile': 'tone-violet',
+    'Security': 'tone-green',
+    'Notifications': 'tone-amber'
+  }
+  return tones[tab] || 'tone-blue'
 }
 
 const getInitials = (name) => {
@@ -1423,6 +1491,144 @@ onMounted(async () => {
 .preference-item small {
   color: #9ca3af;
   font-size: 0.85rem;
+}
+
+.profile-title-icon,
+.tab-icon,
+.section-heading-icon,
+.info-icon svg,
+.stat-icon,
+.activity-icon svg,
+.preference-icon svg,
+.btn-primary svg,
+.btn-secondary svg,
+.password-toggle svg,
+.photo-upload-btn svg,
+.status-badge svg,
+.error-message svg {
+  flex: 0 0 auto;
+  stroke: currentColor;
+}
+
+.profile-title-icon {
+  width: 34px;
+  height: 34px;
+  color: #2563eb;
+}
+
+.tab-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.tab-btn.active .tab-icon {
+  color: currentColor;
+}
+
+.section-heading-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.45rem;
+  vertical-align: -0.18em;
+}
+
+.info-card {
+  position: relative;
+  padding-top: 3.2rem;
+}
+
+.info-icon,
+.preference-icon,
+.activity-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.info-icon {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 34px;
+  height: 34px;
+  background: #eef5ff;
+}
+
+.info-icon svg,
+.preference-icon svg,
+.activity-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.stat-icon {
+  width: 22px;
+  height: 22px;
+  margin-bottom: 0.75rem;
+}
+
+.activity-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.85rem;
+}
+
+.activity-icon {
+  grid-row: span 2;
+  width: 34px;
+  height: 34px;
+  color: #0891b2;
+  background: #cffafe;
+}
+
+.preference-icon {
+  width: 34px;
+  height: 34px;
+  margin-top: -0.15rem;
+  background: #eef5ff;
+}
+
+.tone-blue { color: #2563eb; }
+.tone-green { color: #16a34a; }
+.tone-violet { color: #7c3aed; }
+.tone-amber { color: #d97706; }
+.tone-cyan { color: #0891b2; }
+.tone-indigo { color: #4f46e5; }
+
+.info-icon.tone-blue,
+.preference-icon.tone-blue { background: #dbeafe; }
+.info-icon.tone-green,
+.preference-icon.tone-green { background: #dcfce7; }
+.info-icon.tone-violet,
+.preference-icon.tone-violet { background: #ede9fe; }
+.info-icon.tone-amber,
+.preference-icon.tone-amber { background: #fef3c7; }
+.info-icon.tone-cyan,
+.preference-icon.tone-cyan { background: #cffafe; }
+.info-icon.tone-indigo,
+.preference-icon.tone-indigo { background: #e0e7ff; }
+
+.notifications-section h3,
+.preference-group h4,
+.security-card h3,
+.form-section h3,
+.stats-section h3 {
+  display: flex;
+  align-items: center;
+}
+
+:global(body.teacher-dark-mode) .info-icon,
+:global(body.teacher-dark-mode) .preference-icon,
+:global(body.teacher-dark-mode) .activity-icon {
+  background: #172554 !important;
+}
+
+:global(body.teacher-dark-mode) .profile-title-icon,
+:global(body.teacher-dark-mode) .tab-icon,
+:global(body.teacher-dark-mode) .section-heading-icon,
+:global(body.teacher-dark-mode) .stat-icon {
+  opacity: 1;
 }
 
 @media (max-width: 768px) {
