@@ -93,12 +93,24 @@
                 <div class="form-grid two">
                   <label class="field">
                     <span>New Password</span>
-                    <input v-model="security.password" type="password" placeholder="Minimum 6 characters" />
+                    <div class="password-wrap">
+                      <input v-model="security.password" :type="showSecurityPassword ? 'text' : 'password'" placeholder="Minimum 6 characters" />
+                      <button type="button" :aria-label="showSecurityPassword ? 'Hide password' : 'Show password'" @click="showSecurityPassword = !showSecurityPassword">
+                        <EyeOff v-if="showSecurityPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                        <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                      </button>
+                    </div>
                     <em :class="passwordStrength.tone">{{ passwordStrength.label }}</em>
                   </label>
                   <label class="field">
                     <span>Confirm Password</span>
-                    <input v-model="security.confirmPassword" type="password" />
+                    <div class="password-wrap">
+                      <input v-model="security.confirmPassword" :type="showSecurityConfirmPassword ? 'text' : 'password'" />
+                      <button type="button" :aria-label="showSecurityConfirmPassword ? 'Hide password' : 'Show password'" @click="showSecurityConfirmPassword = !showSecurityConfirmPassword">
+                        <EyeOff v-if="showSecurityConfirmPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                        <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                      </button>
+                    </div>
                     <em v-if="security.confirmPassword" :class="passwordsMatch ? 'valid-hint' : 'invalid-hint'">{{ passwordsMatch ? 'Passwords match' : 'Passwords do not match' }}</em>
                   </label>
                 </div>
@@ -309,7 +321,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell, Monitor, Palette, ShieldCheck, SlidersHorizontal, UserCircle, UserCog } from 'lucide-vue-next'
+import { Bell, Eye, EyeOff, Monitor, Palette, ShieldCheck, SlidersHorizontal, UserCircle, UserCog } from 'lucide-vue-next'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
@@ -327,6 +339,8 @@ const baselineSnapshot = ref('')
 const suppressDirty = ref(false)
 const avatarUploading = ref(false)
 const savingSettings = ref(false)
+const showSecurityPassword = ref(false)
+const showSecurityConfirmPassword = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 const settingsStorageKeys = {
   notifications: 'adminNotifications',
@@ -999,7 +1013,7 @@ onBeforeUnmount(() => {
 
 .nav-list {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.65rem;
   flex-wrap: wrap;
 }
 
@@ -1012,50 +1026,61 @@ onBeforeUnmount(() => {
 }
 
 .nav-item {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   display: inline-grid;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dbeafe;
-  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
   padding: 0;
   background: #ffffff;
-  color: #475569;
+  color: #334155;
   font-weight: 900;
   text-align: left;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .nav-item:hover {
-  background: #f8fafc;
+  border-color: #94a3b8;
   color: #0f172a;
   transform: translateY(-1px);
 }
 
 .nav-item.active {
-  background: #0f172a;
-  color: #ffffff;
+  background: #ffffff;
+  color: #0f172a;
   border-color: #0f172a;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .settings-svg {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 10px;
-  background: #f8fafc;
-  color: #334155;
+  color: currentColor;
   font-size: 1rem;
 }
 
 .nav-item.active .settings-svg {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  color: currentColor;
+}
+
+:global(body.admin-dark-mode) .settings-control .nav-item,
+:global(body.admin-dark-mode) .settings-control .nav-item:hover,
+:global(body.admin-dark-mode) .settings-control .nav-item.active {
+  background: #111827 !important;
+  border-color: #334155 !important;
+  color: #e5e7eb !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18) !important;
+}
+
+:global(body.admin-dark-mode) .settings-control .nav-item.active {
+  border-color: #e5e7eb !important;
 }
 
 .settings-content,
@@ -1192,6 +1217,32 @@ onBeforeUnmount(() => {
   outline: none;
   background: #f8fafc;
   color: #0f172a;
+}
+
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  width: 100%;
+  padding-right: 2.45rem;
+}
+
+.password-wrap button {
+  position: absolute;
+  right: 0.35rem;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .field input:focus,
@@ -1392,9 +1443,9 @@ onBeforeUnmount(() => {
 }
 
 .theme-card.active {
-  border-color: var(--admin-accent, #2563eb);
-  background: #eff6ff;
-  color: var(--admin-accent, #1d4ed8);
+  border-color: #0f172a;
+  background: #f8fafc;
+  color: #0f172a;
 }
 
 .accent-row {
@@ -1416,7 +1467,7 @@ onBeforeUnmount(() => {
 }
 
 .accent-dot.active {
-  box-shadow: 0 0 0 3px #0f172a, 0 0 0 6px rgba(37, 99, 235, 0.24);
+  box-shadow: 0 0 0 3px #0f172a;
 }
 
 .activity-table {
@@ -1531,7 +1582,13 @@ onBeforeUnmount(() => {
 }
 
 :global(body.admin-dark-mode) .accent-dot.active {
-  box-shadow: 0 0 0 3px #f8fafc, 0 0 0 6px rgba(96, 165, 250, 0.28);
+  box-shadow: 0 0 0 3px #f8fafc;
+}
+
+:global(body.admin-dark-mode) .settings-control .theme-card.active {
+  background: #111827 !important;
+  border-color: #e5e7eb !important;
+  color: #e5e7eb !important;
 }
 
 .modal-backdrop {

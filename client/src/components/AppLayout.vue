@@ -117,10 +117,10 @@ const closeSidebar = () => {
 
 .main-content {
   flex: 1;
-  min-height: calc(100vh - 62px);
-  min-height: calc(100dvh - 62px);
+  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - 64px);
   padding: 1.45rem;
-  margin-top: 62px;
+  margin-top: 64px;
   background: linear-gradient(135deg, #f8f9fa 0%, #ecf0f3 100%);
   transition: background 0.2s ease;
 }

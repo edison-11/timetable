@@ -458,7 +458,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
@@ -1448,9 +1448,7 @@ const loadTimetable = async () => {
   } catch (e) { console.error(e) }
 }
 
-onMounted(async () => {
-  await loadSetupData()
-  await loadTimetable()
+const openCreateFromQuery = async () => {
   if (route.query.action === 'generate') {
     showGenerationRules.value = true
     await nextTick()
@@ -1458,6 +1456,14 @@ onMounted(async () => {
   } else if (route.query.action === 'assignment') {
     openAssignmentForm()
   }
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
+onMounted(async () => {
+  await loadSetupData()
+  await loadTimetable()
+  await openCreateFromQuery()
 })
 </script>
 

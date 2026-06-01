@@ -6,42 +6,44 @@
           <h1>Schools Management</h1>
           <p>Manage and monitor all schools.</p>
         </div>
-          <button type="button" class="primary-action" @click="addSchoolOpen = true">+ Add School</button>
+          <button type="button" class="primary-action" @click.stop="openAddSchoolModal">+ Add School</button>
       </header>
 
-      <form v-if="addSchoolOpen" class="add-school-panel" @submit.prevent="createSchool">
-        <div class="section-head">
-          <div>
-            <span class="eyebrow">School record</span>
-            <h2>Add school only</h2>
-            <p>Create the school workspace first. Add or transfer the DOS from the DOS section.</p>
+      <div v-if="addSchoolOpen" class="create-modal-backdrop" @click.self="addSchoolOpen = false">
+        <form class="add-school-panel create-modal" @submit.prevent="createSchool">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">School record</span>
+              <h2>Add school only</h2>
+              <p>Create the school workspace first. Add or transfer the DOS from the DOS section.</p>
+            </div>
+            <button type="button" class="ghost-button" @click="addSchoolOpen = false">Cancel</button>
           </div>
-          <button type="button" class="ghost-button" @click="addSchoolOpen = false">Cancel</button>
-        </div>
-        <div class="add-school-grid">
-          <label><span>School Name</span><input v-model.trim="newSchool.school_name" type="text" autocomplete="off" required></label>
-          <label><span>School Email</span><input v-model.trim="newSchool.school_email" type="email" autocomplete="off" required></label>
-          <label><span>School Code</span><input v-model.trim="newSchool.school_code" type="text" autocomplete="off"></label>
-          <label><span>Phone</span><input v-model.trim="newSchool.phone" type="tel" autocomplete="off"></label>
-          <label><span>Registration Number</span><input v-model.trim="newSchool.registration_number" type="text" autocomplete="off" required></label>
-          <label><span>School Type</span>
-            <select v-model="newSchool.school_type">
-              <option value="">Select type</option>
-              <option>Public</option>
-              <option>Private</option>
-              <option>Government Aided</option>
-              <option>International</option>
-            </select>
-          </label>
-          <label><span>Province</span><input v-model.trim="newSchool.province" type="text" autocomplete="off"></label>
-          <label><span>District</span><input v-model.trim="newSchool.district" type="text" autocomplete="off"></label>
-          <label class="span-2"><span>School Address</span><input v-model.trim="newSchool.school_address" type="text" autocomplete="off"></label>
-        </div>
-        <div class="form-actions">
-          <span v-if="addSchoolMessage" :class="addSchoolMessageType">{{ addSchoolMessage }}</span>
-          <button type="submit" class="primary-action" :disabled="creatingSchool">{{ creatingSchool ? 'Creating...' : 'Create School' }}</button>
-        </div>
-      </form>
+          <div class="add-school-grid">
+            <label><span>School Name</span><input v-model.trim="newSchool.school_name" type="text" autocomplete="off" required></label>
+            <label><span>School Email</span><input v-model.trim="newSchool.school_email" type="email" autocomplete="off" required></label>
+            <label><span>School Code</span><input v-model.trim="newSchool.school_code" type="text" autocomplete="off"></label>
+            <label><span>Phone</span><input v-model.trim="newSchool.phone" type="tel" autocomplete="off"></label>
+            <label><span>Registration Number</span><input v-model.trim="newSchool.registration_number" type="text" autocomplete="off" required></label>
+            <label><span>School Type</span>
+              <select v-model="newSchool.school_type">
+                <option value="">Select type</option>
+                <option>Public</option>
+                <option>Private</option>
+                <option>Government Aided</option>
+                <option>International</option>
+              </select>
+            </label>
+            <label><span>Province</span><input v-model.trim="newSchool.province" type="text" autocomplete="off"></label>
+            <label><span>District</span><input v-model.trim="newSchool.district" type="text" autocomplete="off"></label>
+            <label class="span-2"><span>School Address</span><input v-model.trim="newSchool.school_address" type="text" autocomplete="off"></label>
+          </div>
+          <div class="form-actions">
+            <span v-if="addSchoolMessage" :class="addSchoolMessageType">{{ addSchoolMessage }}</span>
+            <button type="submit" class="primary-action" :disabled="creatingSchool">{{ creatingSchool ? 'Creating...' : 'Create School' }}</button>
+          </div>
+        </form>
+      </div>
 
       <section class="metric-row" aria-label="School metrics">
         <article v-for="card in metricCards" :key="card.label" :class="card.tone" @click="status = card.status">
@@ -113,7 +115,7 @@
         <div v-else-if="!filteredSchools.length" class="empty-state">
           <strong>No schools found</strong>
           <span>Start by creating your first school or reset your filters.</span>
-          <button type="button" class="primary-action" @click="addSchoolOpen = true">Add School</button>
+          <button type="button" class="primary-action" @click.stop="openAddSchoolModal">Add School</button>
         </div>
 
         <div v-else class="table-card">
@@ -217,7 +219,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import api from '@/stores/api'
@@ -243,6 +245,16 @@ const sortDirection = ref('desc')
 const activeMenu = ref(null)
 const selectedSchool = ref(null)
 const queuedMessage = ref('')
+
+const openAddSchoolModal = () => {
+  addSchoolMessage.value = ''
+  addSchoolMessageType.value = 'success'
+  addSchoolOpen.value = true
+}
+
+const handleGlobalCreate = (event) => {
+  if (event.detail?.type === 'school') openAddSchoolModal()
+}
 
 const emptyNewSchool = () => ({
   school_name: '',
@@ -452,9 +464,19 @@ watch([search, status, region, subscription, dosFilter], () => {
   currentPage.value = 1
   selectedIds.value = []
 })
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openAddSchoolModal()
+}
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
 onMounted(() => {
   status.value = String(route.query.status || '')
+  openCreateFromQuery()
+  window.addEventListener('admin:create', handleGlobalCreate)
   loadSchools()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('admin:create', handleGlobalCreate)
 })
 </script>
 
@@ -519,6 +541,22 @@ small,
 .section-block,
 .add-school-panel {
   padding: 0.9rem;
+}
+
+.create-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.create-modal {
+  width: min(980px, 100%);
+  max-height: min(86vh, 760px);
+  overflow-y: auto;
 }
 
 .eyebrow {

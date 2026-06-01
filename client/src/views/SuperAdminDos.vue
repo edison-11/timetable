@@ -7,47 +7,58 @@
           <p>Manage DOS accounts across all schools.</p>
         </div>
         <div class="header-actions">
-          <button type="button" class="primary-action" @click="createDosOpen = true">+ Create DOS</button>
+          <button type="button" class="primary-action" @click.stop="openCreateDosModal">+ Create DOS</button>
           <button type="button" class="ghost-button" @click="exportRows">Export</button>
           <button type="button" class="ghost-button" @click="loadDosAccounts">Refresh</button>
         </div>
       </header>
 
-      <form v-if="createDosOpen" class="create-dos-panel" @submit.prevent="createDosAccount">
-        <div class="section-head">
-          <div>
-            <span class="eyebrow">DOS account</span>
-            <h2>Create DOS for an existing school</h2>
-            <p>Use this for Super Admin-created schools. Public school registrations stay separate.</p>
+      <div v-if="createDosOpen" class="create-modal-backdrop" @click.self="createDosOpen = false">
+        <form class="create-dos-panel create-modal" @submit.prevent="createDosAccount">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">DOS account</span>
+              <h2>Create DOS for an existing school</h2>
+              <p>Use this for Super Admin-created schools. Public school registrations stay separate.</p>
+            </div>
+            <button type="button" class="ghost-button" @click="createDosOpen = false">Cancel</button>
           </div>
-          <button type="button" class="ghost-button" @click="createDosOpen = false">Cancel</button>
-        </div>
-        <fieldset :disabled="creatingDos">
-          <div class="create-dos-grid">
-            <label>
-              <span>School</span>
-              <select v-model="newDos.school_id" required>
-                <option value="">Choose school</option>
-                <option v-for="school in schools" :key="school.school_id" :value="school.school_id">
-                  {{ school.school_name }}{{ school.dos_name ? ' - replacing current DOS' : '' }}
-                </option>
-              </select>
-            </label>
-            <label><span>Full Name</span><input v-model.trim="newDos.full_name" type="text" autocomplete="off" required></label>
-            <label><span>Email</span><input v-model.trim="newDos.email" type="email" autocomplete="off" required></label>
-            <label><span>Phone</span><input v-model.trim="newDos.phone" type="tel" autocomplete="off"></label>
-            <label><span>National ID</span><input v-model.trim="newDos.national_id" type="text" autocomplete="off"></label>
-            <label><span>Temporary Password</span><input v-model="newDos.password" type="password" autocomplete="new-password" required></label>
+          <fieldset :disabled="creatingDos">
+            <div class="create-dos-grid">
+              <label>
+                <span>School</span>
+                <select v-model="newDos.school_id" required>
+                  <option value="">Choose school</option>
+                  <option v-for="school in schools" :key="school.school_id" :value="school.school_id">
+                    {{ school.school_name }}{{ school.dos_name ? ' - replacing current DOS' : '' }}
+                  </option>
+                </select>
+              </label>
+              <label><span>Full Name</span><input v-model.trim="newDos.full_name" type="text" autocomplete="off" required></label>
+              <label><span>Email</span><input v-model.trim="newDos.email" type="email" autocomplete="off" required></label>
+              <label><span>Phone</span><input v-model.trim="newDos.phone" type="tel" autocomplete="off"></label>
+              <label><span>National ID</span><input v-model.trim="newDos.national_id" type="text" autocomplete="off"></label>
+              <label>
+                <span>Temporary Password</span>
+                <div class="password-wrap">
+                  <input v-model="newDos.password" :type="showDosPassword ? 'text' : 'password'" autocomplete="new-password" required>
+                  <button type="button" :aria-label="showDosPassword ? 'Hide password' : 'Show password'" @click="showDosPassword = !showDosPassword">
+                    <EyeOff v-if="showDosPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                    <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                  </button>
+                </div>
+              </label>
+            </div>
+          </fieldset>
+          <div class="form-actions">
+            <span v-if="createDosMessage" :class="createDosMessageType">{{ createDosMessage }}</span>
+            <button type="submit" class="primary-action inline-loading" :disabled="creatingDos">
+              <i v-if="creatingDos" aria-hidden="true"></i>
+              {{ creatingDos ? 'Assigning Director of Studies...' : 'Create DOS' }}
+            </button>
           </div>
-        </fieldset>
-        <div class="form-actions">
-          <span v-if="createDosMessage" :class="createDosMessageType">{{ createDosMessage }}</span>
-          <button type="submit" class="primary-action inline-loading" :disabled="creatingDos">
-            <i v-if="creatingDos" aria-hidden="true"></i>
-            {{ creatingDos ? 'Assigning Director of Studies...' : 'Create DOS' }}
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
 
       <section class="metric-row" aria-label="DOS account metrics">
         <article v-for="card in metricCards" :key="card.label" :class="card.tone" @click="applyStatus(card.status)">
@@ -101,7 +112,7 @@
         <div v-else-if="!filteredDos.length" class="empty-state">
           <strong>No Directors of Studies found</strong>
           <span>Create your first DOS account or reset your filters.</span>
-          <button type="button" class="primary-action" @click="createDosOpen = true">Create DOS</button>
+          <button type="button" class="primary-action" @click.stop="openCreateDosModal">Create DOS</button>
         </div>
 
         <div v-else class="table-card">
@@ -176,12 +187,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import AppLayout from '@/components/AppLayout.vue'
 import api from '@/stores/api'
 
 const router = useRouter()
+const route = useRoute()
 const schools = ref([])
 const search = ref('')
 const status = ref('')
@@ -197,6 +210,7 @@ const createDosOpen = ref(false)
 const creatingDos = ref(false)
 const createDosMessage = ref('')
 const createDosMessageType = ref('success')
+const showDosPassword = ref(false)
 const emptyNewDos = () => ({
   school_id: '',
   full_name: '',
@@ -206,6 +220,16 @@ const emptyNewDos = () => ({
   password: 'School123'
 })
 const newDos = ref(emptyNewDos())
+
+const openCreateDosModal = () => {
+  createDosMessage.value = ''
+  createDosMessageType.value = 'success'
+  createDosOpen.value = true
+}
+
+const handleGlobalCreate = (event) => {
+  if (event.detail?.type === 'dos') openCreateDosModal()
+}
 
 const dosAccounts = computed(() => schools.value.map((school) => {
   const missing = !school.dos_name && !school.dos_email
@@ -348,7 +372,21 @@ const formatRelative = (value) => {
   return `${months} month${months === 1 ? '' : 's'} ago`
 }
 
-onMounted(loadDosAccounts)
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openCreateDosModal()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
+onMounted(() => {
+  openCreateFromQuery()
+  window.addEventListener('admin:create', handleGlobalCreate)
+  loadDosAccounts()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('admin:create', handleGlobalCreate)
+})
 </script>
 
 <style scoped>
@@ -489,6 +527,22 @@ button {
   padding: 0.9rem;
 }
 
+.create-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.create-modal {
+  width: min(900px, 100%);
+  max-height: min(86vh, 720px);
+  overflow-y: auto;
+}
+
 .create-dos-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -529,6 +583,30 @@ select {
   border-radius: 9px;
   background: #fff;
   padding: 0 0.7rem;
+}
+
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  width: 100%;
+  padding-right: 2.45rem;
+}
+
+.password-wrap button {
+  position: absolute;
+  right: 0.3rem;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  color: #475569;
 }
 
 fieldset {

@@ -48,22 +48,32 @@
               class="btn btn-outline-secondary password-toggle"
               @click="showPassword = !showPassword"
             >
-              <span v-if="showPassword" aria-hidden="true">🙈</span>
-              <span v-else aria-hidden="true">👁</span>
+              <EyeOff v-if="showPassword" :size="18" :stroke-width="2.2" aria-hidden="true" />
+              <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
             </button>
           </div>
         </div>
 
         <div class="mb-3">
           <label for="confirmPassword" class="form-label fw-medium">Confirm Password</label>
-          <input
-            id="confirmPassword"
-            v-model="confirmPassword"
-            type="password"
-            placeholder="Repeat password"
-            required
-            class="form-control form-control-lg"
-          />
+          <div class="input-group">
+            <input
+              id="confirmPassword"
+              v-model="confirmPassword"
+              :type="showConfirmPassword ? 'text' : 'password'"
+              placeholder="Repeat password"
+              required
+              class="form-control form-control-lg"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary password-toggle"
+              @click="showConfirmPassword = !showConfirmPassword"
+            >
+              <EyeOff v-if="showConfirmPassword" :size="18" :stroke-width="2.2" aria-hidden="true" />
+              <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
+            </button>
+          </div>
         </div>
 
         <!-- Error Message -->
@@ -106,6 +116,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import api from '@/stores/api'
 
 const router = useRouter()
@@ -117,6 +128,7 @@ const loading = ref(false)
 const error = ref('')
 const success = ref('')
 const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const resetPassword = async () => {
   error.value = ''
@@ -230,3 +242,4 @@ input.form-control:focus-visible {
   }
 }
 </style>
+

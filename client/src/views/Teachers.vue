@@ -150,15 +150,21 @@
                   </div>
                   <div class="col-md-6">
                     <label for="teacherPassword" class="form-label">Password *</label>
-                    <input
-                      type="password"
-                      class="form-control"
-                      id="teacherPassword"
-                      v-model="newTeacher.password"
-                      required
-                      autocomplete="new-password"
-                      placeholder="Minimum 6 characters"
-                    >
+                    <div class="password-wrap">
+                      <input
+                        :type="showNewTeacherPassword ? 'text' : 'password'"
+                        class="form-control"
+                        id="teacherPassword"
+                        v-model="newTeacher.password"
+                        required
+                        autocomplete="new-password"
+                        placeholder="Minimum 6 characters"
+                      >
+                      <button type="button" :aria-label="showNewTeacherPassword ? 'Hide password' : 'Show password'" @click="showNewTeacherPassword = !showNewTeacherPassword">
+                        <EyeOff v-if="showNewTeacherPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                        <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                      </button>
+                    </div>
                     <div class="invalid-feedback" v-if="errors.password">
                       {{ errors.password }}
                     </div>
@@ -256,14 +262,20 @@
                   </div>
                   <div class="col-md-6">
                     <label for="editTeacherPassword" class="form-label">Reset Password (leave blank to keep current)</label>
-                    <input
-                      type="password"
-                      class="form-control"
-                      id="editTeacherPassword"
-                      v-model="editingTeacher.password"
-                      autocomplete="new-password"
-                      placeholder="Enter new password or leave blank"
-                    >
+                    <div class="password-wrap">
+                      <input
+                        :type="showEditTeacherPassword ? 'text' : 'password'"
+                        class="form-control"
+                        id="editTeacherPassword"
+                        v-model="editingTeacher.password"
+                        autocomplete="new-password"
+                        placeholder="Enter new password or leave blank"
+                      >
+                      <button type="button" :aria-label="showEditTeacherPassword ? 'Hide password' : 'Show password'" @click="showEditTeacherPassword = !showEditTeacherPassword">
+                        <EyeOff v-if="showEditTeacherPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                        <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                      </button>
+                    </div>
                     <div class="invalid-feedback" v-if="editErrors.password">
                       {{ editErrors.password }}
                     </div>
@@ -349,8 +361,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import api from '@/stores/api'
 import { Modal, Toast } from 'bootstrap'
 import AppLayout from '@/components/AppLayout.vue'
@@ -391,6 +404,8 @@ const approvalLoadingId = ref(null)
 const teacherDialog = ref({ open: false, teacher: null, mode: 'delete', loading: false })
 const selectedTeacher = ref(null)
 const errors = ref({})
+const showNewTeacherPassword = ref(false)
+const showEditTeacherPassword = ref(false)
 
 const filteredTeachers = computed(() => {
   return teachers.value.filter(teacher => {
@@ -707,16 +722,47 @@ const loadTeachers = async () => {
   }
 }
 
-onMounted(async () => {
-  await loadTeachers()
+const openCreateFromQuery = async () => {
   if (route.query.action === 'add') {
     await nextTick()
     openAddModal()
   }
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
+onMounted(async () => {
+  await loadTeachers()
+  await openCreateFromQuery()
 })
 </script>
 
 <style scoped>
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  padding-right: 2.45rem;
+}
+
+.password-wrap button {
+  position: absolute;
+  right: 0.35rem;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
 .teachers-container {
   max-width: 1400px;
   margin: 0 auto;

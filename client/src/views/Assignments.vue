@@ -160,11 +160,13 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
+const route = useRoute()
 const teachers = ref([])
 const modules = ref([])
 const classes = ref([])
@@ -329,8 +331,15 @@ const loadData = async () => {
   assignments.value = assignmentsResponse.data.assignments || []
 }
 
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openAddModal()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
 onMounted(() => {
   loadData()
+  openCreateFromQuery()
 })
 </script>
 

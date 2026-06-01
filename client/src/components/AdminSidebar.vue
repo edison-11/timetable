@@ -113,6 +113,7 @@ const superAdminSidebarGroups = [
     items: [
       { name: 'Databases', path: '/super-admin/databases', icon: Database, color: '#475569' },
       { name: 'Administration', path: '/super-admin/administration', icon: ListChecks, color: '#b45309' },
+      { name: 'Notifications', path: '/notifications', icon: Bell, color: '#d97706' },
       { name: 'Settings', path: '/settings', icon: Settings, color: '#64748b' }
     ]
   }
@@ -131,7 +132,7 @@ const dosSidebarItems = [
   { name: 'Timetable', path: '/timetable', icon: CalendarDays, color: '#e11d48' },
   { name: 'Attendance', path: '/dashboard#attendance', icon: Users, color: '#16a34a' },
   { name: 'Reports', path: '/dashboard#reports', icon: FileText, color: '#f97316' },
-  { name: 'Notifications', path: '/dashboard#notifications', icon: Bell, color: '#d97706' },
+  { name: 'Notifications', path: '/notifications', icon: Bell, color: '#d97706' },
   { name: 'Settings', path: '/settings', icon: Settings, color: '#64748b' }
 ]
 
@@ -151,12 +152,12 @@ const academicYear = computed(() => {
 <style scoped>
 .admin-sidebar {
   position: fixed;
-  top: 0;
+  top: 64px;
   left: 0;
   width: 184px;
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
+  max-height: calc(100dvh - 64px);
   background: #ffffff;
   border-right: 1px solid #dbe5f3;
   box-shadow: 16px 0 34px rgba(15, 23, 42, 0.08);
@@ -169,8 +170,8 @@ const academicYear = computed(() => {
 }
 
 .sidebar-brand {
+  display: none;
   flex: 0 0 auto;
-  display: flex;
   align-items: center;
   justify-content: center;
   gap: 0;
@@ -359,6 +360,8 @@ const academicYear = computed(() => {
 
 @media (max-width: 768px) {
   .admin-sidebar {
+    top: 64px;
+    height: calc(100dvh - 64px);
     width: min(78vw, 240px);
     transform: translateX(-100%);
     z-index: 300;

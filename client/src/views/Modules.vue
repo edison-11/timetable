@@ -296,7 +296,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
@@ -614,12 +614,18 @@ const loadModules = async () => {
   }
 }
 
-onMounted(async () => {
-  await loadModules()
+const openCreateFromQuery = async () => {
   if (route.query.action === 'add') {
     await nextTick()
     openAddModal()
   }
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
+onMounted(async () => {
+  await loadModules()
+  await openCreateFromQuery()
 })
 </script>
 

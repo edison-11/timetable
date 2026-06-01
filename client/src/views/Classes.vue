@@ -179,7 +179,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
@@ -401,9 +401,15 @@ const loadOptions = async () => {
 
 const formatTime = (value) => String(value || '').slice(0, 5)
 
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openAddForm()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
 onMounted(async () => {
   await Promise.all([loadClasses(), loadOptions()])
-  if (route.query.action === 'add') openAddForm()
+  openCreateFromQuery()
 })
 </script>
 

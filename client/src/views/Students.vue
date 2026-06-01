@@ -192,7 +192,13 @@
             </label>
             <label v-if="!editingStudentId">
               <span>Parent Password *</span>
-              <input v-model="form.parent_password" type="password" required minlength="6">
+              <div class="password-wrap">
+                <input v-model="form.parent_password" :type="showParentPassword ? 'text' : 'password'" required minlength="6">
+                <button type="button" :aria-label="showParentPassword ? 'Hide password' : 'Show password'" @click="showParentPassword = !showParentPassword">
+                  <EyeOff v-if="showParentPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                  <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                </button>
+              </div>
             </label>
             <label v-if="editingStudentId">
               <span>Status</span>
@@ -287,7 +293,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
@@ -304,6 +312,8 @@ const deleteDialog = ref({ open: false, student: null, loading: false })
 const message = ref('')
 const messageType = ref('success')
 const showAbsenceModal = ref(false)
+const route = useRoute()
+const showParentPassword = ref(false)
 const selectedStudent = ref(null)
 const absentRecords = ref([])
 const loadingAbsences = ref(false)
@@ -592,9 +602,16 @@ const formatTimeRange = (record) => {
   return record.period_label || ''
 }
 
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openCreate()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
 onMounted(async () => {
   await Promise.all([loadClasses(), loadStudents()])
   await loadAttendanceRecords()
+  openCreateFromQuery()
 })
 </script>
 
@@ -739,6 +756,31 @@ select {
   border: 1px solid #cbd5e1;
   border-radius: 7px;
   padding: 0.55rem 0.7rem;
+}
+
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  padding-right: 2.45rem;
+}
+
+.password-wrap button {
+  position: absolute;
+  right: 0.3rem;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 .primary-btn,

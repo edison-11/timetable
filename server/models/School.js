@@ -686,16 +686,17 @@ class School {
         (school_id, user_id, actor_role, action, entity_type, entity_id, message, device, browser, ip_address, location)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        data.school_id ||  null,
-        data.actor_role || null,
-        data.action,
-        data.entity_type || null,
-        data.entity_id || null,
-        data.message || null,
-        data.device || null,
-        data.browser || null,
-        data.ip_address || null,
-        data.location || null
+        data.school_id ?? null,
+        data.user_id ?? null,
+        data.actor_role ?? null,
+        data.action ?? null,
+        data.entity_type ?? null,
+        data.entity_id ?? null,
+        data.message ?? null,
+        data.device ?? null,
+        data.browser ?? null,
+        data.ip_address ?? null,
+        data.location ?? null
       ]
     );
   }

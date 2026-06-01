@@ -166,12 +166,14 @@
 </template>
 
 <script setup>
-import { computed, onActivated, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Modal, Toast } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
+const route = useRoute()
 const sections = ref([])
 const classes = ref([])
 const rooms = ref([])
@@ -410,8 +412,15 @@ const refreshSections = () => {
   loadData()
 }
 
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openAddModal()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
 onMounted(() => {
   loadData()
+  openCreateFromQuery()
   window.addEventListener('classes-updated', refreshSections)
 })
 

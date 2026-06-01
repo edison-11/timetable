@@ -107,12 +107,14 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
+const route = useRoute()
 const shifts = ref([])
 const shiftForm = ref({
   shift_name: '',
@@ -224,8 +226,15 @@ const confirmDeleteShift = async () => {
   }
 }
 
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openAddModal()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
 onMounted(() => {
   loadShifts()
+  openCreateFromQuery()
 })
 </script>
 

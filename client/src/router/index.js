@@ -35,7 +35,7 @@ const router = createRouter({
     {
       path: '/dos/register',
       name: 'DosRegister',
-      redirect: '/register',
+      component: () => import('@/views/DosRegister.vue'),
       meta: { requiresGuest: true }
     },
     {
@@ -173,6 +173,12 @@ const router = createRouter({
       path: '/settings',
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin', 'super_admin'] }
+    },
+    {
+      path: '/notifications',
+      name: 'Notifications',
+      component: () => import('@/views/Notifications.vue'),
       meta: { requiresAdminAuth: true, roles: ['dos', 'admin', 'super_admin'] }
     },
     {

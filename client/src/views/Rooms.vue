@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
@@ -219,9 +219,15 @@ const confirmDeleteRoom = async () => {
   }
 }
 
+const openCreateFromQuery = () => {
+  if (route.query.action === 'add') openAddForm()
+}
+
+watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+
 onMounted(async () => {
   await loadRooms()
-  if (route.query.action === 'add') openAddForm()
+  openCreateFromQuery()
 })
 </script>
 

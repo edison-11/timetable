@@ -16,86 +16,129 @@
         </div>
       </div>
 
-      <form v-if="!submitted" class="dos-form" @submit.prevent="submitRegistration">
-        <div class="form-section-title">
-          <ShieldCheck :size="18" :stroke-width="2.2" aria-hidden="true" />
-          <span>School verification request</span>
+      <form v-if="!submitted" class="dos-form" @submit.prevent="registrationStep === 'school' ? goToDosStep() : submitRegistration()">
+        <div class="step-tracker" aria-label="Registration steps">
+          <span :class="{ active: registrationStep === 'school' }">1. School</span>
+          <span :class="{ active: registrationStep === 'dos' }">2. DOS</span>
+          <span>3. Registration</span>
         </div>
-        <div class="form-grid">
-          <label>
-            <span>Full Name</span>
-            <input v-model.trim="form.full_name" required type="text">
-          </label>
-          <label>
-            <span>School Name</span>
-            <input v-model.trim="form.school_name" required type="text">
-          </label>
-          <label>
-            <span>School Code</span>
-            <input v-model.trim="form.school_code" type="text">
-          </label>
-          <label>
-            <span>School Email</span>
-            <input v-model.trim="form.school_email" required type="email">
-          </label>
-          <label>
-            <span>Phone Number</span>
-            <input v-model.trim="form.phone" required type="tel">
-          </label>
-          <label>
-            <span>National ID</span>
-            <input v-model.trim="form.national_id" required type="text">
-          </label>
-          <label>
-            <span>School Registration Number</span>
-            <input v-model.trim="form.registration_number" required type="text">
-          </label>
-          <label>
-            <span>School Type</span>
-            <select v-model="form.school_type">
-              <option value="">Select type</option>
-              <option>Public</option>
-              <option>Private</option>
-              <option>Government Aided</option>
-              <option>International</option>
-            </select>
-          </label>
-          <label>
-            <span>Province</span>
-            <input v-model.trim="form.province" type="text">
-          </label>
-          <label>
-            <span>District</span>
-            <input v-model.trim="form.district" type="text">
-          </label>
-          <label>
-            <span>Sector</span>
-            <input v-model.trim="form.sector" type="text">
-          </label>
-          <label class="wide">
-            <span>School Address</span>
-            <textarea v-model.trim="form.school_address" required rows="3"></textarea>
-          </label>
-          <label>
-            <span>Password</span>
-            <input v-model="form.password" required type="password">
-          </label>
-          <label>
-            <span>Confirm Password</span>
-            <input v-model="form.confirmPassword" required type="password">
-          </label>
-          <label class="wide">
-            <span>Profile Photo</span>
-            <input required type="file" accept="image/*" @change="handlePhotoChange">
-          </label>
+
+        <div v-if="registrationStep === 'school'">
+          <div class="form-section-title">
+            <ShieldCheck :size="18" :stroke-width="2.2" aria-hidden="true" />
+            <span>First add school</span>
+          </div>
+          <div class="form-grid">
+            <label>
+              <span>School Name</span>
+              <input v-model.trim="form.school_name" required type="text">
+            </label>
+            <label>
+              <span>School Code</span>
+              <input v-model.trim="form.school_code" type="text">
+            </label>
+            <label>
+              <span>School Email</span>
+              <input v-model.trim="form.school_email" required type="email">
+            </label>
+            <label>
+              <span>School Phone</span>
+              <input v-model.trim="form.school_phone" required type="tel">
+            </label>
+            <label>
+              <span>School Registration Number</span>
+              <input v-model.trim="form.registration_number" required type="text">
+            </label>
+            <label>
+              <span>School Type</span>
+              <select v-model="form.school_type">
+                <option value="">Select type</option>
+                <option>Public</option>
+                <option>Private</option>
+                <option>Government Aided</option>
+                <option>International</option>
+              </select>
+            </label>
+            <label>
+              <span>Province</span>
+              <input v-model.trim="form.province" type="text">
+            </label>
+            <label>
+              <span>District</span>
+              <input v-model.trim="form.district" type="text">
+            </label>
+            <label>
+              <span>Sector</span>
+              <input v-model.trim="form.sector" type="text">
+            </label>
+            <label class="wide">
+              <span>School Address</span>
+              <textarea v-model.trim="form.school_address" required rows="3"></textarea>
+            </label>
+          </div>
+        </div>
+
+        <div v-else>
+          <div class="form-section-title">
+            <ShieldCheck :size="18" :stroke-width="2.2" aria-hidden="true" />
+            <span>Then add Director of Studies</span>
+          </div>
+          <div class="form-grid">
+            <label>
+              <span>DOS Full Name</span>
+              <input v-model.trim="form.full_name" required type="text">
+            </label>
+            <label>
+              <span>DOS Email</span>
+              <input v-model.trim="form.dos_email" required type="email">
+            </label>
+            <label>
+              <span>DOS Phone</span>
+              <input v-model.trim="form.dos_phone" required type="tel">
+            </label>
+            <label>
+              <span>DOS National ID</span>
+              <input v-model.trim="form.national_id" required type="text">
+            </label>
+            <label>
+              <span>Password</span>
+              <div class="password-wrap">
+                <input v-model="form.password" required :type="showPassword ? 'text' : 'password'">
+                <button type="button" :aria-label="showPassword ? 'Hide password' : 'Show password'" @click="showPassword = !showPassword">
+                  <EyeOff v-if="showPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                  <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                </button>
+              </div>
+            </label>
+            <label>
+              <span>Confirm Password</span>
+              <div class="password-wrap">
+                <input v-model="form.confirmPassword" required :type="showConfirmPassword ? 'text' : 'password'">
+                <button type="button" :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'" @click="showConfirmPassword = !showConfirmPassword">
+                  <EyeOff v-if="showConfirmPassword" :size="17" :stroke-width="2.2" aria-hidden="true" />
+                  <Eye v-else :size="17" :stroke-width="2.2" aria-hidden="true" />
+                </button>
+              </div>
+            </label>
+            <label class="wide">
+              <span>Profile Photo</span>
+              <input required type="file" accept="image/*" @change="handlePhotoChange">
+            </label>
+          </div>
         </div>
 
         <p v-if="message" class="form-message" :class="{ error: hasError }">{{ message }}</p>
 
-        <button type="submit" :disabled="loading">
-          <Send :size="17" :stroke-width="2.2" aria-hidden="true" />
-          {{ loading ? 'Submitting...' : 'Submit Registration' }}
-        </button>
+        <div class="form-actions">
+          <button v-if="registrationStep === 'dos'" class="secondary-button" type="button" :disabled="loading" @click="registrationStep = 'school'">
+            Back to School
+          </button>
+          <button type="submit" :disabled="loading">
+            <Send :size="17" :stroke-width="2.2" aria-hidden="true" />
+            <span v-if="registrationStep === 'school'">Add DOS</span>
+            <span v-else>{{ loading ? 'Submitting registration...' : 'Submit Registration' }}</span>
+          </button>
+        </div>
       </form>
 
       <div v-else class="success-panel">
@@ -109,7 +152,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { ArrowLeft, Building2, Send, ShieldCheck } from 'lucide-vue-next'
+import { ArrowLeft, Building2, Eye, EyeOff, Send, ShieldCheck } from 'lucide-vue-next'
 import api from '@/stores/api'
 
 const logoUrl = `${import.meta.env.BASE_URL}timetable-logo.png`
@@ -118,13 +161,18 @@ const submitted = ref(false)
 const message = ref('')
 const hasError = ref(false)
 const selectedPhoto = ref(null)
+const registrationStep = ref('school')
+const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 
 const form = ref({
   full_name: '',
   school_name: '',
   school_code: '',
   school_email: '',
-  phone: '',
+  school_phone: '',
+  dos_email: '',
+  dos_phone: '',
   national_id: '',
   registration_number: '',
   school_type: '',
@@ -142,7 +190,30 @@ const handlePhotoChange = (event) => {
   form.value.profile_photo = ''
 }
 
+const validateSchool = () => {
+  if (!form.value.school_name) return 'School name is required.'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.school_email)) return 'Valid school email is required.'
+  if (!form.value.school_phone) return 'School phone is required.'
+  if (!form.value.registration_number) return 'School registration number is required.'
+  if (!form.value.school_address) return 'School address is required.'
+  return ''
+}
+
+const goToDosStep = () => {
+  message.value = validateSchool()
+  hasError.value = Boolean(message.value)
+  if (hasError.value) return
+  message.value = ''
+  registrationStep.value = 'dos'
+}
+
 const validate = () => {
+  const schoolError = validateSchool()
+  if (schoolError) return schoolError
+  if (!form.value.full_name) return 'DOS full name is required.'
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.dos_email)) return 'Valid DOS email is required.'
+  if (!form.value.dos_phone) return 'DOS phone is required.'
+  if (!form.value.national_id) return 'DOS national ID is required.'
   if (form.value.password !== form.value.confirmPassword) return 'Passwords do not match.'
   if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(form.value.password)) {
     return 'Password must be at least 8 characters and include uppercase, lowercase, and a number.'
@@ -169,7 +240,10 @@ const submitRegistration = async () => {
   loading.value = true
   try {
     form.value.profile_photo = await uploadPhoto()
-    const response = await api.post('/schools/dos-register', form.value)
+    const response = await api.post('/schools/dos-register', {
+      ...form.value,
+      phone: form.value.school_phone
+    })
     message.value = response.data.message
     hasError.value = false
     submitted.value = true
@@ -287,6 +361,31 @@ const submitRegistration = async () => {
   text-transform: uppercase;
 }
 
+.step-tracker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+}
+
+.step-tracker span {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.step-tracker span.active {
+  border-color: #0f172a;
+  color: #0f172a;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -322,6 +421,31 @@ textarea {
   min-height: 58px;
 }
 
+.password-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrap input {
+  padding-right: 2.4rem;
+}
+
+.password-wrap button {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+}
+
 button,
 .success-panel a {
   display: inline-flex;
@@ -337,6 +461,34 @@ button,
   font-size: 0.78rem;
   font-weight: 850;
   text-decoration: none;
+}
+
+.password-wrap button {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.secondary-button {
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
 }
 
 button:disabled {
