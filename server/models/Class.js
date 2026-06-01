@@ -47,6 +47,9 @@ class Class {
     return `
       SELECT c.*,
              s.shift_name,
+             s.start_time as shift_start_time,
+             s.end_time as shift_end_time,
+             s.teacher_changeover_minutes as shift_changeover_minutes,
              d.name as dos_name,
              sec.section_name,
              r.room_name,
@@ -68,7 +71,7 @@ class Class {
     const where = [];
     const values = [];
     if (filters.school_id) {
-      where.push('c.school_id = ?');
+      where.push(filters.include_unassigned ? '(c.school_id = ? OR c.school_id IS NULL)' : 'c.school_id = ?');
       values.push(filters.school_id);
     }
     const [rows] = await pool.execute(`

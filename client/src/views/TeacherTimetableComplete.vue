@@ -51,8 +51,7 @@
               <span>Print</span>
             </button>
             <select v-model="exportFormat" class="export-select" aria-label="Download format">
-              <option value="csv">CSV</option>
-              <option value="xls">Excel</option>
+              <option value="doc">Word</option>
               <option value="pdf">PDF</option>
             </select>
             <button class="btn-primary download-btn" @click="downloadTimetable(exportFormat)" title="Download">
@@ -162,7 +161,7 @@
             <tbody>
               <template v-for="row in processedTimetable" :key="row.key">
                 <!-- Break/Special Slots -->
-                <tr v-if="row.type === 'break'" class="break-row" :class="row.breakType">
+                <tr v-if="row.type !== 'period'" class="break-row" :class="row.breakType">
                   <td class="period-col" :class="row.breakType">
                     <span class="break-label">{{ row.label }}</span>
                   </td>
@@ -454,7 +453,7 @@ const selectedLesson = ref(null)
 const showAssignedModulesModal = ref(false)
 const showModuleDetailsModal = ref(false)
 const selectedModule = ref(null)
-const exportFormat = ref('csv')
+const exportFormat = ref('pdf')
 const timetableEntries = ref([])
 const teacherAssignments = ref([])
 const timetableSettings = ref(null)
@@ -594,7 +593,7 @@ const processedTimetable = computed(() => {
   const rows = buildFixedTimetableRows(visibleEntries, days, timetableSettings.value)
 
   return rows.filter((row) => {
-    if (row.type === 'break') return showBreaks.value
+    if (row.type !== 'period') return showBreaks.value
     return showFreeSlots.value || Object.keys(row.entriesByDay).length > 0
   })
 })
@@ -710,7 +709,7 @@ const areSameLessonBlock = (first, second) => {
 const buildMergedTimetableRows = (sourceRows = processedTimetable.value) => {
   const rows = sourceRows
   return rows.map((row, rowIndex) => {
-    if (row.type === 'break') return row
+    if (row.type !== 'period') return row
 
     const cellsByDay = {}
     days.forEach((day) => {
@@ -742,7 +741,7 @@ const buildMergedTimetableRows = (sourceRows = processedTimetable.value) => {
 }
 
 const exportMergedRows = () => exportTimetableRows.value.map((row) => {
-  if (row.type === 'break') return row
+  if (row.type !== 'period') return row
 
   const cellsByDay = {}
   days.forEach((day) => {
@@ -888,7 +887,7 @@ const buildExportRows = () => {
   ]
 
   for (const row of exportMergedRows()) {
-    if (row.type === 'break') {
+    if (row.type !== 'period') {
       rows.push([row.label, formatTimeRange(row.start_time, row.end_time), ...days.map(() => row.label)])
     } else {
       const rowData = [row.period, formatTimeRange(row.start_time, row.end_time)]
@@ -909,11 +908,6 @@ const buildExportRows = () => {
   return rows
 }
 
-const convertToCSV = () => {
-  const rows = buildExportRows()
-  return rows.map(row => row.map(escapeCsvValue).join(',')).join('\n')
-}
-
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -924,7 +918,7 @@ const escapeHtml = (value) => String(value ?? '')
 const buildTimetableHtml = () => {
   const header = ['Slot', 'Time', ...days].map(cell => `<th>${escapeHtml(cell)}</th>`).join('')
   const body = exportMergedRows().map((row) => {
-    if (row.type === 'break') {
+    if (row.type !== 'period') {
       return `<tr class="break-row ${row.breakType}"><td>${escapeHtml(row.label)}</td><td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td><td colspan="${days.length}"></td></tr>`
     }
 
@@ -961,13 +955,17 @@ const buildTimetableHtml = () => {
     th { background: #2563eb; color: white; text-align: left; }
     .time-cell { background: #f8fafc; font-weight: 700; }
     .empty-cell { background: #ffffff; }
-    .lesson-card { min-height: 28px; padding: 4px; border-left: 5px solid #3b82f6; background: #eff6ff; border-radius: 6px; }
+    .lesson-card { min-height: 14px; padding: 1px 2px; border-left: 3px solid #3b82f6; background: #eff6ff; border-radius: 3px; }
     .lesson-card.activity { background: #f0fdf4; }
     .lesson-card strong, .lesson-card span, .lesson-card small, .lesson-card em { display: block; }
     .lesson-card em { margin-top: 3px; color: #1d4ed8; font-style: normal; font-weight: 700; }
     .break-row td { background: #e8f7e9; font-weight: 700; text-align: center; }
     .break-row.lunch td { background: #fff4c7; }
     .break-row.assembly td { background: #e9f2ff; }
+    @page { size: A4 landscape; margin: 3mm; mso-page-orientation: landscape; }
+    @media print {
+      html, body { width: 291mm; min-height: 204mm; }
+    }
   </style>
 </head>
 <body>
@@ -985,7 +983,7 @@ const buildTimetableHtml = () => {
 }
 
 const buildPdfRows = () => exportMergedRows().map((row) => {
-  if (row.type === 'break') {
+  if (row.type !== 'period') {
     const fill = row.breakType === 'lunch' ? '#fff4c7' : row.breakType === 'assembly' ? '#e9f2ff' : '#e8f7e9'
     return {
       type: 'break',
@@ -1047,7 +1045,6 @@ const downloadTimetable = (format = 'csv') => {
   const selectedFormat = String(format || 'csv').toLowerCase()
   const baseName = getExportFileBaseName()
   const html = buildTimetableHtml()
-  const rows = buildExportRows()
 
   if (selectedFormat === 'pdf') {
     downloadTimetablePdf({
@@ -1058,18 +1055,8 @@ const downloadTimetable = (format = 'csv') => {
       filename: `${baseName}.pdf`,
       fitToOnePage: true
     })
-  } else if (selectedFormat === 'xls') {
-    downloadFile(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
-  } else if (selectedFormat === 'doc') {
-    downloadFile(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
-  } else if (selectedFormat === 'json') {
-    downloadFile(JSON.stringify(processedTimetable.value, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
-  } else if (selectedFormat === 'txt') {
-    downloadFile(rows.map(row => row.join(' | ')).join('\n'), `${baseName}.txt`, 'text/plain;charset=utf-8')
-  } else if (selectedFormat === 'html') {
-    downloadFile(html, `${baseName}.html`, 'text/html;charset=utf-8')
   } else {
-    downloadFile(convertToCSV(), `${baseName}.csv`, 'text/csv;charset=utf-8')
+    downloadFile(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
   }
 }
 
@@ -2412,6 +2399,7 @@ onMounted(async () => {
   border: 1px solid #cbd5e1;
   text-align: center;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .period-col,
@@ -2513,6 +2501,91 @@ onMounted(async () => {
 .time-col.assembly,
 .break-fill.assembly {
   background: #e9f2ff;
+}
+
+.period-col.shift-slot,
+.time-col.shift-slot,
+.break-fill.shift-slot {
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
+/* DOS-aligned teacher timetable polish. */
+.teacher-timetable-page {
+  background: #f5f8fc;
+}
+
+.teacher-timetable-page .studio-header,
+.teacher-timetable-page .teacher-metrics article,
+.teacher-timetable-page .panel-card,
+.teacher-timetable-page .timetable-output-card,
+.teacher-timetable-page .filters-panel,
+.teacher-timetable-page .day-view-section,
+.teacher-timetable-page .compact-view-section {
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.teacher-timetable-page .studio-header {
+  padding: 1.15rem 1.25rem;
+}
+
+.teacher-timetable-page .studio-header h1 {
+  font-size: 1.45rem;
+}
+
+.teacher-timetable-page .studio-subtitle,
+.teacher-timetable-page .teacher-metrics span,
+.teacher-timetable-page .teacher-metrics small {
+  color: #52627a;
+}
+
+.teacher-timetable-page .header-controls,
+.teacher-timetable-page .output-toolbar {
+  gap: 0.7rem;
+}
+
+.teacher-timetable-page .btn-primary,
+.teacher-timetable-page .btn-secondary,
+.teacher-timetable-page .export-select {
+  min-height: 42px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.teacher-timetable-page .timetable-grid {
+  min-width: 980px;
+}
+
+.teacher-timetable-page .timetable-grid th {
+  background: #0f2f5f;
+  color: #ffffff;
+}
+
+.teacher-timetable-page .module-cell {
+  min-height: 50px;
+  border-left-color: #2563eb;
+  background: #eff6ff;
+}
+
+.teacher-timetable-page .module-cell strong {
+  color: #172554;
+  font-size: 0.76rem;
+}
+
+.teacher-timetable-page .module-cell small {
+  color: #475569;
+  font-size: 0.67rem;
+}
+
+.teacher-timetable-page .period-col,
+.teacher-timetable-page .time-col {
+  background: #f8fafc;
+  color: #0f172a;
+  font-weight: 900;
 }
 
 .module-progress-section {

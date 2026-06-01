@@ -17,6 +17,10 @@ const migrations = [
   {
     name: '006_lifecycle_statuses',
     modulePath: './006_lifecycle_statuses'
+  },
+  {
+    name: '007_assign_legacy_data_to_default_school',
+    modulePath: './007_assign_legacy_data_to_default_school'
   }
 ];
 

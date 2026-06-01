@@ -30,18 +30,29 @@
           </div>
 
           <div class="period-summary">
-            <span>{{ nextLesson?.day_of_week || todayName }}</span>
+            <span>{{ displayDayMetric }}</span>
             <span>{{ currentSubjectMetric }}</span>
-            <span>{{ currentLesson ? 'Period' : 'Next period' }}</span>
-            <strong>{{ nextSubjectMetric }}</strong>
+            <span>{{ displayModeLabel }}</span>
+            <strong>{{ displaySubjectMetric }}</strong>
           </div>
 
           <div class="timer-display" :aria-label="timerAriaLabel">
-            <span class="timer-zone">{{ sessionStarted ? 'Elapsed time' : 'Starts in' }}</span>
+            <span class="timer-zone">{{ activeTimerLabel }}</span>
             <span class="timer-local-time">{{ activeTimerValue }}</span>
           </div>
 
           <div class="timer-caption">{{ timerCaption }}</div>
+
+          <div class="timer-navigation" aria-label="Counter navigation">
+            <button type="button" @click="goToTimetable('current')">
+              <Navigation :size="11" :stroke-width="2.4" aria-hidden="true" />
+              Current
+            </button>
+            <button type="button" @click="goToTimetable('next')">
+              <CalendarDays :size="11" :stroke-width="2.4" aria-hidden="true" />
+              Next
+            </button>
+          </div>
 
           <div class="watch-metrics">
             <div>
@@ -50,23 +61,23 @@
             </div>
             <div>
               <span>Class</span>
-              <strong>{{ currentLesson ? currentClassMetric : nextClassMetric }}</strong>
+              <strong>{{ displayClassMetric }}</strong>
             </div>
             <div>
               <span>Room</span>
-              <strong>{{ currentLesson ? currentRoomMetric : nextRoomMetric }}</strong>
+              <strong>{{ displayRoomMetric }}</strong>
             </div>
             <div>
               <span>Start</span>
-              <strong>{{ daySessionStartTime || normalizeTime(nextLesson?.start_time) || '--:--' }}</strong>
+              <strong>{{ displayStartMetric }}</strong>
             </div>
             <div>
               <span>End</span>
-              <strong>{{ daySessionEndTime || normalizeTime(nextLesson?.end_time) || '--:--' }}</strong>
+              <strong>{{ displayEndMetric }}</strong>
             </div>
             <div>
               <span>Status</span>
-              <strong>{{ sessionInProgress ? currentLesson ? 'ON' : 'BREAK' : daySessionEnded ? 'DONE' : 'NEXT' }}</strong>
+              <strong>{{ displayStatusMetric }}</strong>
             </div>
           </div>
 
@@ -101,13 +112,15 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 import { buildTimetableRowsFromSettings } from '@/utils/fixedTimetableStructure'
 import { isAcademicWeekend } from '@/utils/dayHelpers'
-import { Bell, BellOff, X } from '@lucide/vue'
+import { Bell, BellOff, CalendarDays, Navigation, X } from '@lucide/vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
 
 const now = ref(new Date())
 const lessons = ref([])
@@ -323,6 +336,15 @@ const daySessionEnded = computed(() => {
   return now.value.getTime() >= daySessionEndDate.value.getTime()
 })
 
+const currentSlotRow = computed(() => {
+  const currentMinutes = minutesSinceMidnight(now.value)
+  return timetableDayRows.value.find((row) => {
+    const start = parseTimeToMinutes(row.start_time)
+    const end = parseTimeToMinutes(row.end_time)
+    return start !== null && end !== null && currentMinutes >= start && currentMinutes < end
+  }) || null
+})
+
 const currentLesson = computed(() => {
   const currentMinutes = minutesSinceMidnight(now.value)
   return sortedLessons.value.find((lesson) => {
@@ -331,6 +353,16 @@ const currentLesson = computed(() => {
     const end = parseTimeToMinutes(lesson.end_time)
     return start !== null && end !== null && currentMinutes >= start && currentMinutes < end
   }) || null
+})
+
+const currentSlotEndDate = computed(() => {
+  if (!currentSlotRow.value?.end_time) return null
+  return todayDateForTime(currentSlotRow.value.end_time)
+})
+
+const currentSlotStartDate = computed(() => {
+  if (!currentSlotRow.value?.start_time) return null
+  return todayDateForTime(currentSlotRow.value.start_time)
 })
 
 const nextLesson = computed(() => {
@@ -347,6 +379,11 @@ const countdownSeconds = computed(() => {
 
   if (!target) return 0
   return Math.max(0, Math.floor((target.getTime() - now.value.getTime()) / 1000))
+})
+
+const activeSlotRemainingSeconds = computed(() => {
+  if (!currentSlotEndDate.value) return 0
+  return Math.max(0, Math.floor((currentSlotEndDate.value.getTime() - now.value.getTime()) / 1000))
 })
 
 const sessionStartCountdownSeconds = computed(() => {
@@ -381,20 +418,102 @@ const sessionRemainingSeconds = computed(() => {
   return Math.max(0, Math.floor((daySessionEndDate.value.getTime() - now.value.getTime()) / 1000))
 })
 
-const activeTimerValue = computed(() => sessionStarted.value
-  ? formatDuration(sessionElapsedSeconds.value)
-  : formatDuration(sessionStartCountdownSeconds.value))
-
 const sessionRemainingTimerValue = computed(() => formatDuration(sessionRemainingSeconds.value))
 
 const timerStatus = computed(() => currentLesson.value ? 'PERIOD TIMER' : 'NEXT PERIOD')
 
+const activeTimerLabel = computed(() => {
+  if (currentSlotRow.value) return 'Time left'
+  if (nextLesson.value) return 'Starts in'
+  if (sessionStarted.value) return 'Elapsed time'
+  return 'Starts in'
+})
+
+const activeTimerValue = computed(() => {
+  if (currentSlotRow.value) return formatDuration(activeSlotRemainingSeconds.value)
+  if (nextLesson.value) return formatDuration(countdownSeconds.value)
+  return sessionStarted.value
+    ? formatDuration(sessionElapsedSeconds.value)
+    : formatDuration(sessionStartCountdownSeconds.value)
+})
+
+const currentBreakLabel = computed(() => {
+  if (currentSlotRow.value?.type !== 'break') return ''
+  return currentSlotRow.value.label || currentSlotRow.value.break_name || 'Break'
+})
+
+const displayLesson = computed(() => currentLesson.value || nextLesson.value || null)
+
+const displayDayMetric = computed(() => {
+  if (currentLesson.value || currentSlotRow.value) return todayName.value
+  return nextLesson.value?.day_of_week || todayName.value
+})
+
+const displayModeLabel = computed(() => {
+  if (currentLesson.value) return 'Current period'
+  if (currentBreakLabel.value) return 'Current break'
+  if (sessionInProgress.value && currentSlotRow.value?.type === 'period') return 'Free period'
+  if (nextLesson.value) return 'Next period'
+  return daySessionEnded.value ? 'Finished' : 'No period'
+})
+
+const displaySubjectMetric = computed(() => {
+  if (currentLesson.value) return currentLesson.value.module_name || 'Lesson'
+  if (currentBreakLabel.value) return currentBreakLabel.value
+  if (sessionInProgress.value && currentSlotRow.value?.type === 'period') return 'Free'
+  return nextLesson.value?.module_name || 'None'
+})
+
+const displayClassMetric = computed(() => {
+  if (currentLesson.value) return currentLesson.value.class_name || 'Class'
+  if (currentBreakLabel.value) return 'Break'
+  if (sessionInProgress.value && currentSlotRow.value?.type === 'period') return 'Free'
+  return nextLesson.value?.class_name || 'None'
+})
+
+const displayRoomMetric = computed(() => {
+  const lesson = displayLesson.value
+  if (currentBreakLabel.value) return '--'
+  if (sessionInProgress.value && currentSlotRow.value?.type === 'period' && !currentLesson.value) return '--'
+  return lesson?.room_name || lesson?.room || 'TBA'
+})
+
+const displayStartMetric = computed(() => {
+  if (currentSlotRow.value) return normalizeTime(currentSlotRow.value.start_time)
+  return normalizeTime(nextLesson.value?.start_time) || daySessionStartTime.value || '--:--'
+})
+
+const displayEndMetric = computed(() => {
+  if (currentSlotRow.value) return normalizeTime(currentSlotRow.value.end_time)
+  return normalizeTime(nextLesson.value?.end_time) || daySessionEndTime.value || '--:--'
+})
+
+const displayStatusMetric = computed(() => {
+  if (currentLesson.value) return 'ON'
+  if (currentBreakLabel.value) return 'BREAK'
+  if (sessionInProgress.value && currentSlotRow.value?.type === 'period') return 'FREE'
+  if (daySessionEnded.value) return 'DONE'
+  if (nextLesson.value) return 'NEXT'
+  return 'NONE'
+})
+
 const timerCaption = computed(() => {
   if (weekendMode.value) return 'Weekend break - next school week resumes Monday'
+  if (currentLesson.value) {
+    return `${activeTimerValue.value} left - ends at ${normalizeTime(currentLesson.value.end_time)}`
+  }
+  if (currentBreakLabel.value) {
+    return `${activeTimerValue.value} left - ${currentBreakLabel.value} ends at ${displayEndMetric.value}`
+  }
+  if (sessionInProgress.value && currentSlotRow.value?.type === 'period') {
+    return `${activeTimerValue.value} left - free period ends at ${displayEndMetric.value}`
+  }
+  if (nextLesson.value) {
+    return `${nextLesson.value.class_name || 'Class'} starts at ${normalizeTime(nextLesson.value.start_time)}`
+  }
   if (sessionInProgress.value) return `${sessionRemainingTimerValue.value} remaining - day ends at ${daySessionEndTime.value}`
   if (daySessionEnded.value) return `Day session ended at ${daySessionEndTime.value}`
   if (daySessionStartTime.value) return `First period starts at ${daySessionStartTime.value}`
-  if (nextLesson.value) return `${nextLesson.value.class_name || 'Class'} starts at ${normalizeTime(nextLesson.value.start_time)}`
   return 'No scheduled periods'
 })
 
@@ -437,7 +556,7 @@ const nextRouteLabel = computed(() => {
   return `${nextLesson.value.class_name || 'Next class'} - ${nextLesson.value.room_name || nextLesson.value.room || 'Room TBA'}`
 })
 
-const currentSubjectMetric = computed(() => currentLesson.value?.module_name || 'Free')
+const currentSubjectMetric = computed(() => displayStatusMetric.value)
 const currentClassMetric = computed(() => currentLesson.value?.class_name || 'Free')
 const currentRoomMetric = computed(() => currentLesson.value?.room_name || currentLesson.value?.room || 'TBA')
 const nextSubjectMetric = computed(() => nextLesson.value?.module_name || 'None')
@@ -448,6 +567,16 @@ const nextTimeMetric = computed(() => {
   const dayPrefix = nextLesson.value.day_of_week === todayName.value ? '' : `${nextLesson.value.day_of_week.slice(0, 3)} `
   return `${dayPrefix}${normalizeTime(nextLesson.value.start_time)}`
 })
+
+const goToTimetable = (focus = 'current') => {
+  const lesson = focus === 'next' ? nextLesson.value : currentLesson.value
+  router.push({
+    path: '/teacher/timetable',
+    query: lesson?.timetable_id
+      ? { focus, lesson: lesson.timetable_id }
+      : { focus }
+  })
+}
 
 const alarmStoragePrefix = computed(() => `teacherPeriodAlarm:${currentTeacherId.value || 'unknown'}:${todayKey.value}`)
 
@@ -1000,6 +1129,38 @@ onBeforeUnmount(() => {
   line-height: 1.15;
   text-align: center;
   text-transform: uppercase;
+}
+
+.timer-navigation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.28rem;
+  padding: 0.34rem 0 0.38rem;
+  border-bottom: 1px solid rgba(31, 42, 17, 0.42);
+}
+
+.timer-navigation button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 0;
+  min-height: 24px;
+  border: 2px solid rgba(17, 24, 39, 0.45);
+  border-radius: 7px;
+  color: #111827;
+  background: rgba(248, 250, 252, 0.58);
+  cursor: pointer;
+  font-size: 0.5rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.timer-navigation button:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
 }
 
 .watch-metrics {

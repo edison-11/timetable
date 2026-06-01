@@ -3,48 +3,38 @@
     <div class="settings-control" :class="{ 'is-compact': preferences.uiDensity === 'compact' }">
       <header class="settings-hero">
         <div>
-          <span class="eyebrow">Admin Control Center</span>
           <h1>Settings</h1>
-          <p>Manage profile, security, account preferences, notifications, appearance, and activity from one dashboard-grade workspace.</p>
-        </div>
-        <div class="hero-actions">
-          <button class="tool-btn secondary" type="button" @click="loadProfile">
-            <RefreshCw :size="18" :stroke-width="2.2" aria-hidden="true" />
-            Refresh
-          </button>
-          <button class="tool-btn primary" type="button" @click="saveActiveSection">
-            <CircleCheck :size="18" :stroke-width="2.2" aria-hidden="true" />
-            Save Section
-          </button>
+          <p>Manage your account and platform preferences.</p>
         </div>
       </header>
 
       <div v-if="toast.message" class="toast-banner" :class="toast.type">
-        <CircleCheck v-if="toast.type === 'success'" :size="18" :stroke-width="2.2" aria-hidden="true" />
-        <TriangleAlert v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
+        <i :class="toast.type === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
         {{ toast.message }}
       </div>
 
       <section class="settings-shell">
         <aside class="settings-nav" :class="{ open: navOpen }">
           <button class="mobile-nav-toggle" type="button" @click="navOpen = !navOpen">
-            <SlidersHorizontal :size="18" :stroke-width="2.2" aria-hidden="true" />
+            <i class="bi bi-sliders"></i>
             Settings Menu
           </button>
           <div class="nav-list">
-            <button
-              v-for="item in navItems"
-              :key="item.id"
-              type="button"
-              class="nav-item"
-              :class="{ active: activeSection === item.id, danger: item.id === 'logout' }"
-              @click="selectSection(item.id)"
-            >
-              <span class="nav-icon-wrap" :class="item.tone">
-                <component :is="item.icon" :size="18" :stroke-width="2.2" aria-hidden="true" />
-              </span>
-              <span>{{ item.label }}</span>
-            </button>
+            <div v-for="group in navGroups" :key="group.label" class="nav-group">
+              <strong>{{ group.label }}</strong>
+              <button
+                v-for="item in group.items"
+                :key="item.id"
+                type="button"
+                class="nav-item"
+                :class="{ active: activeSection === item.id }"
+                :aria-label="item.label"
+                :title="item.label"
+                @click="selectSection(item.id)"
+              >
+                <component :is="item.icon" class="settings-svg" :size="18" :stroke-width="2.2" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </aside>
 
@@ -53,6 +43,7 @@
             <section v-if="activeSection === 'profile'" key="profile" class="section-grid">
               <div class="settings-card profile-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><UserCircle :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">Profile Settings</span>
                     <h2>Personal Details</h2>
@@ -63,11 +54,14 @@
                     <img v-if="profilePhotoPreview" :src="profilePhotoPreview" alt="Profile avatar" />
                     <span v-else>{{ initials }}</span>
                   </div>
-                  <label class="upload-btn">
-                    <CloudUpload :size="18" :stroke-width="2.2" aria-hidden="true" />
-                    {{ avatarUploading ? 'Uploading...' : 'Upload Avatar' }}
-                    <input type="file" accept="image/*" :disabled="avatarUploading" @change="handleAvatarUpload" />
-                  </label>
+                  <div class="avatar-actions">
+                    <label class="upload-btn">
+                      <i class="bi bi-cloud-arrow-up"></i>
+                      {{ avatarUploading ? 'Uploading...' : 'Upload' }}
+                      <input type="file" accept="image/*" :disabled="avatarUploading" @change="handleAvatarUpload" />
+                    </label>
+                    <button class="tool-btn secondary" type="button" @click="removeAvatar">Remove</button>
+                  </div>
                 </div>
                 <div class="form-grid two">
                   <label class="field">
@@ -77,6 +71,7 @@
                   <label class="field">
                     <span>Email</span>
                     <input v-model.trim="profile.email" type="email" />
+                    <em :class="emailValidation.valid ? 'valid-hint' : 'invalid-hint'">{{ emailValidation.message }}</em>
                   </label>
                   <label class="field">
                     <span>Phone Number</span>
@@ -89,6 +84,7 @@
             <section v-else-if="activeSection === 'security'" key="security" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><ShieldCheck :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">Security Settings</span>
                     <h2>Password & Access</h2>
@@ -98,10 +94,12 @@
                   <label class="field">
                     <span>New Password</span>
                     <input v-model="security.password" type="password" placeholder="Minimum 6 characters" />
+                    <em :class="passwordStrength.tone">{{ passwordStrength.label }}</em>
                   </label>
                   <label class="field">
                     <span>Confirm Password</span>
                     <input v-model="security.confirmPassword" type="password" />
+                    <em v-if="security.confirmPassword" :class="passwordsMatch ? 'valid-hint' : 'invalid-hint'">{{ passwordsMatch ? 'Passwords match' : 'Passwords do not match' }}</em>
                   </label>
                 </div>
                 <div class="security-actions">
@@ -110,17 +108,14 @@
                     <span></span>
                     <div>
                       <strong>Two-factor authentication</strong>
-                      <small>Future-ready protection placeholder.</small>
+                      <small>Save this preference for the current admin account.</small>
                     </div>
                   </label>
-                  <button class="tool-btn ghost" type="button" @click="notify('Session revocation is ready for backend token tracking.', 'success')">
-                    <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
-                    Logout from all devices
-                  </button>
                 </div>
               </div>
               <div class="settings-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><Monitor :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">Login Sessions</span>
                     <h2>Recent Sessions</h2>
@@ -128,7 +123,7 @@
                 </div>
                 <div class="session-list">
                   <div v-for="session in sessions" :key="session.id" class="session-item">
-                    <component :is="session.icon" :size="20" :stroke-width="2.2" aria-hidden="true" />
+                    <i :class="session.icon"></i>
                     <div>
                       <strong>{{ session.device }}</strong>
                       <span>{{ session.location }} · {{ session.time }}</span>
@@ -142,6 +137,7 @@
             <section v-else-if="activeSection === 'account'" key="account" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><UserCog :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">Account Settings</span>
                     <h2>Role & Workspace</h2>
@@ -154,95 +150,12 @@
                 </div>
                 <div class="quick-tools">
                   <button class="tool-btn secondary" type="button" @click="goToDefaultDashboard">
-                    <Gauge :size="18" :stroke-width="2.2" aria-hidden="true" />
+                    <i class="bi bi-speedometer2"></i>
                     Open Default Dashboard
                   </button>
                   <button class="tool-btn secondary" type="button" @click="router.push('/super-admin/schools')">
-                    <Building2 :size="18" :stroke-width="2.2" aria-hidden="true" />
+                    <i class="bi bi-building-check"></i>
                     Manage Schools
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section v-else-if="activeSection === 'adminTools'" key="adminTools" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Admin Tools</span>
-                    <h2>Super Admin Bootstrap</h2>
-                  </div>
-                </div>
-                <div class="form-grid two">
-                  <label class="field">
-                    <span>Email</span>
-                    <input v-model.trim="superAdminForm.email" type="email" placeholder="admin@example.com" />
-                  </label>
-                  <label class="field">
-                    <span>Display Name</span>
-                    <input v-model.trim="superAdminForm.full_name" type="text" placeholder="Super Admin" />
-                  </label>
-                  <label class="field">
-                    <span>Username</span>
-                    <input v-model.trim="superAdminForm.username" type="text" placeholder="superadmin" />
-                  </label>
-                  <label class="field">
-                    <span>Phone (optional)</span>
-                    <input v-model.trim="superAdminForm.phone" type="tel" placeholder="+1234567890" />
-                  </label>
-                  <label class="field full-width">
-                    <span>Password</span>
-                    <div class="password-inline">
-                      <input v-model.trim="superAdminForm.password" type="text" placeholder="Generate or enter a secure password" />
-                      <button type="button" class="tool-btn secondary" @click="generateSuperAdminPassword">Generate</button>
-                    </div>
-                  </label>
-                </div>
-
-                <div class="d-flex gap-2 mt-3">
-                  <button class="tool-btn primary" type="button" @click="createSuperAdmin" :disabled="creatingSuperAdmin">
-                    <span v-if="creatingSuperAdmin">Creating...</span>
-                    <span v-else>Create Super Admin</span>
-                  </button>
-                  <button class="tool-btn secondary" type="button" @click="resetSuperAdminForm">Reset</button>
-                </div>
-
-                <div v-if="createdSuperAdmin" class="credentials-card mt-4">
-                  <h3>Credentials Created</h3>
-                  <p>Use these details to sign in as Super Admin.</p>
-                  <ul>
-                    <li><strong>Email:</strong> {{ createdSuperAdmin.email }}</li>
-                    <li><strong>Password:</strong> {{ createdSuperAdmin.password }}</li>
-                  </ul>
-                </div>
-
-                <div v-if="adminToolMessage" class="toast-banner warning" :class="adminToolMessageType">
-                  {{ adminToolMessage }}
-                </div>
-              </div>
-
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">System Tools</span>
-                    <h2>Maintenance Actions</h2>
-                  </div>
-                </div>
-                <div class="admin-tool-grid">
-                  <button class="tool-action" type="button" @click="runSystemHealthCheck">
-                    <HeartPulse :size="24" :stroke-width="2.2" aria-hidden="true" />
-                    <strong>Health Check</strong>
-                    <small>Verify API access and current admin session.</small>
-                  </button>
-                  <button class="tool-action" type="button" @click="downloadSettingsBackup">
-                    <Download :size="24" :stroke-width="2.2" aria-hidden="true" />
-                    <strong>Export Settings</strong>
-                    <small>Download local superadmin preferences as JSON.</small>
-                  </button>
-                  <button class="tool-action" type="button" @click="resetLocalSettings">
-                    <RotateCcw :size="24" :stroke-width="2.2" aria-hidden="true" />
-                    <strong>Reset Local Settings</strong>
-                    <small>Restore theme, notifications, and preferences.</small>
                   </button>
                 </div>
               </div>
@@ -251,6 +164,7 @@
             <section v-else-if="activeSection === 'notifications'" key="notifications" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><Bell :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">Notification Settings</span>
                     <h2>Alert Channels</h2>
@@ -272,6 +186,7 @@
             <section v-else-if="activeSection === 'preferences'" key="preferences" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><SlidersHorizontal :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">System Preferences</span>
                     <h2>Default Behavior</h2>
@@ -284,7 +199,6 @@
                       <option value="en">English</option>
                       <option value="fr">French</option>
                       <option value="pt">Portuguese</option>
-                      <option value="rw">Kinyarwanda</option>
                     </select>
                   </label>
                   <label class="field">
@@ -298,8 +212,8 @@
                     <span>Default Dashboard View</span>
                     <select v-model="preferences.defaultView">
                       <option value="Overview">Overview</option>
-                      <option value="Timetable">Timetable</option>
-                      <option value="Teachers">Teachers</option>
+                      <option value="Schools">Schools</option>
+                      <option value="DOS">DOS</option>
                       <option value="Reports">Reports</option>
                     </select>
                   </label>
@@ -310,6 +224,7 @@
             <section v-else-if="activeSection === 'appearance'" key="appearance" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
+                  <span class="heading-icon"><Palette :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
                   <div>
                     <span class="eyebrow">Appearance Settings</span>
                     <h2>Theme & Density</h2>
@@ -317,11 +232,11 @@
                 </div>
                 <div class="appearance-grid">
                   <button type="button" class="theme-card" :class="{ active: appearance.mode === 'light' }" @click="setThemeMode('light')">
-                    <Sun :size="22" :stroke-width="2.2" aria-hidden="true" />
+                    <i class="bi bi-brightness-high"></i>
                     Light Mode
                   </button>
                   <button type="button" class="theme-card" :class="{ active: appearance.mode === 'dark' }" @click="setThemeMode('dark')">
-                    <Moon :size="22" :stroke-width="2.2" aria-hidden="true" />
+                    <i class="bi bi-moon"></i>
                     Dark Mode
                   </button>
                 </div>
@@ -348,58 +263,37 @@
               </div>
             </section>
 
-            <section v-else-if="activeSection === 'activity'" key="activity" class="section-grid">
-              <div class="settings-card">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Activity & Logs</span>
-                    <h2>Recent Activity</h2>
-                  </div>
-                </div>
-                <div class="activity-table">
-                  <div class="activity-row head"><span>Event</span><span>User</span><span>Time</span><span>Status</span></div>
-                  <div v-for="log in activityLogs" :key="log.id" class="activity-row">
-                    <span>{{ log.event }}</span>
-                    <span>{{ log.user }}</span>
-                    <span>{{ log.time }}</span>
-                    <strong>{{ log.status }}</strong>
-                  </div>
-                </div>
-                <div class="quick-tools">
-                  <button class="tool-btn secondary" type="button" @click="exportActivityLogs">
-                    <FileDown :size="18" :stroke-width="2.2" aria-hidden="true" />
-                    Export Logs
-                  </button>
-                  <button class="tool-btn ghost" type="button" @click="clearLocalActivity">
-                    <Trash2 :size="18" :stroke-width="2.2" aria-hidden="true" />
-                    Clear Local Logs
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section v-else key="logout" class="section-grid">
-              <div class="settings-card danger-zone">
-                <div class="card-heading">
-                  <div>
-                    <span class="eyebrow">Logout Option</span>
-                    <h2>End Current Session</h2>
-                    <p>Sign out safely from this device.</p>
-                  </div>
-                </div>
-                <button class="tool-btn danger" type="button" @click="showLogoutModal = true">
-                  <LogOut :size="18" :stroke-width="2.2" aria-hidden="true" />
-                  Logout
-                </button>
-              </div>
-            </section>
           </transition>
         </main>
       </section>
 
+      <div v-if="hasUnsavedChanges" class="sticky-save-bar">
+        <strong>{{ savingSettings ? 'Saving settings...' : 'You have unsaved changes' }}</strong>
+        <div>
+          <button class="tool-btn secondary" type="button" :disabled="savingSettings" @click="discardChanges">Discard Changes</button>
+          <button class="tool-btn primary inline-loading" type="button" :disabled="savingSettings" @click="saveActiveSection">
+            <i v-if="savingSettings" aria-hidden="true"></i>
+            {{ savingSettings ? 'Saving settings...' : 'Save Changes' }}
+          </button>
+        </div>
+      </div>
+
+      <div v-if="unsavedModalOpen" class="modal-backdrop" @click.self="unsavedModalOpen = false">
+        <section class="confirm-modal">
+          <i class="bi bi-exclamation-triangle"></i>
+          <h2>You have unsaved changes</h2>
+          <p>Do you want to save before leaving this section?</p>
+          <div class="modal-actions">
+            <button class="tool-btn primary" type="button" :disabled="savingSettings" @click="saveAndContinue">{{ savingSettings ? 'Saving settings...' : 'Save' }}</button>
+            <button class="tool-btn secondary" type="button" :disabled="savingSettings" @click="discardAndContinue">Discard</button>
+            <button class="tool-btn ghost" type="button" :disabled="savingSettings" @click="unsavedModalOpen = false">Cancel</button>
+          </div>
+        </section>
+      </div>
+
       <div v-if="showLogoutModal" class="modal-backdrop" @click.self="showLogoutModal = false">
         <section class="confirm-modal">
-          <TriangleAlert :size="34" :stroke-width="2.2" aria-hidden="true" />
+          <i class="bi bi-exclamation-triangle"></i>
           <h2>Confirm logout</h2>
           <p>You will be returned to the unified login page.</p>
           <div class="modal-actions">
@@ -413,39 +307,12 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Bell, Monitor, Palette, ShieldCheck, SlidersHorizontal, UserCircle, UserCog } from 'lucide-vue-next'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
-import { getAppLanguage, setAppLanguage } from '@/utils/language'
-import {
-  Activity,
-  Bell,
-  Building2,
-  CircleCheck,
-  CloudUpload,
-  Download,
-  FileDown,
-  Gauge,
-  Globe2,
-  HeartPulse,
-  Laptop,
-  LogOut,
-  Moon,
-  Palette,
-  RefreshCw,
-  RotateCcw,
-  Shield,
-  SlidersHorizontal,
-  Smartphone,
-  Sun,
-  ToolCase,
-  Trash2,
-  TriangleAlert,
-  UserCircle,
-  UserRoundCog
-} from '@lucide/vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -453,7 +320,13 @@ const authStore = useAuthStore()
 const activeSection = ref('profile')
 const navOpen = ref(false)
 const showLogoutModal = ref(false)
+const unsavedModalOpen = ref(false)
+const pendingSection = ref('')
+const hasUnsavedChanges = ref(false)
+const baselineSnapshot = ref('')
+const suppressDirty = ref(false)
 const avatarUploading = ref(false)
+const savingSettings = ref(false)
 const toast = reactive({ message: '', type: 'success' })
 const settingsStorageKeys = {
   notifications: 'adminNotifications',
@@ -465,16 +338,23 @@ const settingsStorageKeys = {
   activity: 'adminActivityLogs'
 }
 
-const navItems = [
-  { id: 'profile', label: 'Profile Settings', icon: UserCircle, tone: 'violet' },
-  { id: 'security', label: 'Security Settings', icon: Shield, tone: 'teal' },
-  { id: 'account', label: 'Account Settings', icon: UserRoundCog, tone: 'blue' },
-  { id: 'adminTools', label: 'Admin Tools', icon: ToolCase, tone: 'amber' },
-  { id: 'notifications', label: 'Notification Settings', icon: Bell, tone: 'green' },
-  { id: 'preferences', label: 'System Preferences', icon: Globe2, tone: 'blue' },
-  { id: 'appearance', label: 'Appearance Settings', icon: Palette, tone: 'violet' },
-  { id: 'activity', label: 'Activity & Logs', icon: Activity, tone: 'teal' },
-  { id: 'logout', label: 'Logout Option', icon: LogOut, tone: 'danger' }
+const navGroups = [
+  {
+    label: 'Account',
+    items: [
+      { id: 'profile', label: 'Profile', icon: UserCircle },
+      { id: 'security', label: 'Security', icon: ShieldCheck },
+      { id: 'account', label: 'Account', icon: UserCog }
+    ]
+  },
+  {
+    label: 'Preferences',
+    items: [
+      { id: 'notifications', label: 'Notifications', icon: Bell },
+      { id: 'appearance', label: 'Appearance', icon: Palette },
+      { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal }
+    ]
+  }
 ]
 
 const profile = reactive({
@@ -498,17 +378,17 @@ const account = reactive({
 const notifications = reactive({
   email: true,
   system: true,
-  timetable: true
+  security: true
 })
 
 const notificationOptions = [
-  { key: 'email', title: 'Email notifications', description: 'Receive important account and schedule messages by email.' },
+  { key: 'email', title: 'Email notifications', description: 'Receive important account and platform messages by email.' },
   { key: 'system', title: 'System alerts', description: 'Show operational alerts inside the dashboard.' },
-  { key: 'timetable', title: 'Timetable update alerts', description: 'Notify when schedule data changes.' }
+  { key: 'security', title: 'Security alerts', description: 'Notify when account access or sensitive settings change.' }
 ]
 
 const preferences = reactive({
-  language: getAppLanguage(),
+  language: 'en',
   timeFormat: '24h',
   defaultView: 'Overview',
   uiDensity: 'comfortable'
@@ -522,13 +402,13 @@ const appearance = reactive({
 const accents = ['#2563eb', '#0891b2', '#16a34a', '#7c3aed', '#e11d48']
 
 const sessions = [
-  { id: 1, icon: Laptop, device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
-  { id: 2, icon: Smartphone, device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
+  { id: 1, icon: 'bi bi-laptop', device: 'Current browser', location: 'Local session', time: 'Now', status: 'Active' },
+  { id: 2, icon: 'bi bi-phone', device: 'Mobile web', location: 'Recent login', time: 'Yesterday', status: 'Known' }
 ]
 
 const activityLogs = ref([
   { id: 1, event: 'Profile settings opened', user: 'Admin', time: 'Now', status: 'Viewed' },
-  { id: 2, event: 'Timetable module updated', user: 'System', time: 'Today', status: 'Complete' },
+  { id: 2, event: 'Settings preferences updated', user: 'System', time: 'Today', status: 'Complete' },
   { id: 3, event: 'Login session created', user: 'Admin', time: 'Recent', status: 'Success' }
 ])
 
@@ -558,6 +438,31 @@ const resolveAssetUrl = (path) => {
 }
 
 const profilePhotoPreview = computed(() => resolveAssetUrl(profile.profile_photo))
+const emailValidation = computed(() => {
+  if (!profile.email) return { valid: false, message: 'Email is required' }
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)
+  return { valid, message: valid ? 'Valid email' : 'Invalid email format' }
+})
+const passwordsMatch = computed(() => security.password === security.confirmPassword)
+const passwordStrength = computed(() => {
+  if (!security.password) return { label: 'Password strength appears here', tone: 'muted-hint' }
+  let score = 0
+  if (security.password.length >= 8) score += 1
+  if (/[A-Z]/.test(security.password)) score += 1
+  if (/[0-9]/.test(security.password)) score += 1
+  if (/[^A-Za-z0-9]/.test(security.password)) score += 1
+  if (score <= 1) return { label: 'Weak password', tone: 'invalid-hint' }
+  if (score === 2) return { label: 'Medium password', tone: 'warning-hint' }
+  if (score === 3) return { label: 'Strong password', tone: 'valid-hint' }
+  return { label: 'Very strong password', tone: 'valid-hint' }
+})
+const settingsSnapshot = computed(() => JSON.stringify({
+  profile: { ...profile },
+  security: { twoFactorEnabled: security.twoFactorEnabled, password: security.password, confirmPassword: security.confirmPassword },
+  notifications: { ...notifications },
+  preferences: { ...preferences },
+  appearance: { ...appearance }
+}))
 
 const addActivity = (event, status = 'Complete', user = profile.full_name || account.role || 'Admin') => {
   activityLogs.value = [
@@ -660,7 +565,17 @@ const notify = (message, type = 'success') => {
   }, 2800)
 }
 
+const captureBaseline = () => {
+  baselineSnapshot.value = settingsSnapshot.value
+  hasUnsavedChanges.value = false
+}
+
 const selectSection = (id) => {
+  if (hasUnsavedChanges.value) {
+    pendingSection.value = id
+    unsavedModalOpen.value = true
+    return
+  }
   activeSection.value = id
   navOpen.value = false
 }
@@ -675,6 +590,7 @@ const loadProfile = async () => {
   account.role = user.role || authStore.currentUserType || 'admin'
   account.status = user.is_verified === false ? 'Unverified' : 'Active'
   addActivity('Profile refreshed', 'Viewed')
+  captureBaseline()
 }
 
 const handleAvatarUpload = async (event) => {
@@ -700,7 +616,16 @@ const handleAvatarUpload = async (event) => {
   }
 }
 
+const removeAvatar = () => {
+  profile.profile_photo = ''
+  notify('Avatar removed. Save changes to apply.')
+}
+
 const saveProfile = async () => {
+  if (!emailValidation.value.valid) {
+    notify(emailValidation.value.message, 'danger')
+    return
+  }
   const result = await authStore.updateProfile({
     username: profile.full_name,
     full_name: profile.full_name,
@@ -716,6 +641,7 @@ const saveProfile = async () => {
   profile.profile_photo = authStore.currentUser?.profile_photo || profile.profile_photo
   addActivity('Profile settings saved', 'Success')
   notify('Profile settings saved.')
+  captureBaseline()
 }
 
 const saveSecurity = async () => {
@@ -747,22 +673,61 @@ const saveSecurity = async () => {
   localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
   addActivity('Security settings saved', 'Success')
   notify('Security settings saved.')
+  captureBaseline()
 }
 
 const saveLocalPreferences = () => {
   localStorage.setItem(settingsStorageKeys.notifications, JSON.stringify(notifications))
   localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
   localStorage.setItem(settingsStorageKeys.twoFactor, JSON.stringify(security.twoFactorEnabled))
-  setAppLanguage(preferences.language)
   applyAppearance()
   addActivity(`${activeSection.value} settings saved`, 'Success')
   notify('Settings saved.')
+  captureBaseline()
 }
 
-const saveActiveSection = () => {
-  if (activeSection.value === 'profile') return saveProfile()
-  if (activeSection.value === 'security') return saveSecurity()
-  saveLocalPreferences()
+const saveActiveSection = async () => {
+  savingSettings.value = true
+  try {
+    if (activeSection.value === 'profile') await saveProfile()
+    else if (activeSection.value === 'security') await saveSecurity()
+    else saveLocalPreferences()
+    notify('Settings updated successfully.')
+  } finally {
+    savingSettings.value = false
+  }
+}
+
+const saveAndContinue = async () => {
+  await saveActiveSection()
+  if (pendingSection.value) {
+    activeSection.value = pendingSection.value
+    pendingSection.value = ''
+  }
+  unsavedModalOpen.value = false
+}
+
+const discardChanges = () => {
+  suppressDirty.value = true
+  const snapshot = baselineSnapshot.value ? JSON.parse(baselineSnapshot.value) : null
+  if (snapshot) {
+    Object.assign(profile, snapshot.profile)
+    Object.assign(security, snapshot.security)
+    Object.assign(notifications, snapshot.notifications)
+    Object.assign(preferences, snapshot.preferences)
+    Object.assign(appearance, snapshot.appearance)
+  }
+  hasUnsavedChanges.value = false
+  setTimeout(() => { suppressDirty.value = false }, 0)
+}
+
+const discardAndContinue = () => {
+  discardChanges()
+  if (pendingSection.value) {
+    activeSection.value = pendingSection.value
+    pendingSection.value = ''
+  }
+  unsavedModalOpen.value = false
 }
 
 const logout = () => {
@@ -773,9 +738,9 @@ const logout = () => {
 const goToDefaultDashboard = () => {
   const paths = {
     Overview: '/super-admin/dashboard',
-    Timetable: '/timetable',
-    Teachers: '/teachers',
-    Reports: '/super-admin/dashboard'
+    Schools: '/super-admin/schools',
+    DOS: '/super-admin/dos',
+    Reports: '/super-admin/reports'
   }
   router.push(paths[preferences.defaultView] || '/super-admin/dashboard')
 }
@@ -825,7 +790,7 @@ const downloadSettingsBackup = () => {
 }
 
 const resetLocalSettings = () => {
-  Object.assign(notifications, { email: true, system: true, timetable: true })
+  Object.assign(notifications, { email: true, system: true, security: true })
   Object.assign(preferences, {
     language: 'en',
     timeFormat: '24h',
@@ -859,22 +824,22 @@ watch(
   applyAppearance
 )
 
-watch(
-  () => preferences.language,
-  (language) => {
-    setAppLanguage(language)
-    localStorage.setItem(settingsStorageKeys.preferences, JSON.stringify(preferences))
-    addActivity(`Language changed to ${language.toUpperCase()}`, 'Success')
-    notify('Language applied.')
-  }
-)
+watch(settingsSnapshot, () => {
+  if (suppressDirty.value || !baselineSnapshot.value) return
+  hasUnsavedChanges.value = settingsSnapshot.value !== baselineSnapshot.value
+})
+
+const handleBeforeUnload = (event) => {
+  if (!hasUnsavedChanges.value) return
+  event.preventDefault()
+  event.returnValue = ''
+}
 
 onMounted(() => {
   const savedNotifications = JSON.parse(localStorage.getItem(settingsStorageKeys.notifications) || '{}')
   Object.assign(notifications, savedNotifications)
   const savedPreferences = JSON.parse(localStorage.getItem(settingsStorageKeys.preferences) || '{}')
   Object.assign(preferences, savedPreferences)
-  preferences.language = savedPreferences.language || getAppLanguage()
   const savedDarkMode = JSON.parse(localStorage.getItem(settingsStorageKeys.darkMode) || 'false')
   appearance.mode = localStorage.getItem(settingsStorageKeys.appearanceMode) || (savedDarkMode ? 'dark' : appearance.mode)
   appearance.accent = localStorage.getItem(settingsStorageKeys.accent) || appearance.accent
@@ -886,7 +851,12 @@ onMounted(() => {
     localStorage.removeItem(settingsStorageKeys.activity)
   }
   applyAppearance()
+  window.addEventListener('beforeunload', handleBeforeUnload)
   loadProfile()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
@@ -906,12 +876,12 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.35rem;
-  margin-bottom: 1rem;
+  padding: 0 0 0.85rem;
+  margin-bottom: 0.9rem;
   border-radius: 16px;
-  border: 1px solid #dbeafe;
-  background: linear-gradient(135deg, #ffffff, #eff6ff);
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .eyebrow {
@@ -926,14 +896,18 @@ onMounted(() => {
 .settings-hero h1,
 .card-heading h2,
 .confirm-modal h2 {
-  margin: 0.2rem 0 0;
+  margin: 0;
   font-weight: 900;
+}
+
+.settings-hero h1 {
+  font-size: 1.55rem;
 }
 
 .settings-hero p,
 .card-heading p {
   max-width: 48rem;
-  margin: 0.35rem 0 0;
+  margin: 0.2rem 0 0;
   color: #64748b;
 }
 
@@ -983,10 +957,25 @@ onMounted(() => {
   box-shadow: 0 12px 24px rgba(220, 38, 38, 0.22);
 }
 
+.tool-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.inline-loading i {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: settings-spin 0.65s linear infinite;
+}
+
 .settings-shell {
   display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
 }
 
 .settings-nav,
@@ -998,10 +987,10 @@ onMounted(() => {
 }
 
 .settings-nav {
-  padding: 0.75rem;
-  align-self: start;
-  position: sticky;
-  top: 92px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .mobile-nav-toggle {
@@ -1009,19 +998,29 @@ onMounted(() => {
 }
 
 .nav-list {
-  display: grid;
-  gap: 0.35rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.nav-group {
+  display: contents;
+}
+
+.nav-group > strong {
+  display: none;
 }
 
 .nav-item {
-  width: 100%;
-  display: flex;
+  width: 42px;
+  height: 42px;
+  display: inline-grid;
   align-items: center;
-  gap: 0.75rem;
-  border: 0;
+  justify-content: center;
+  border: 1px solid #dbeafe;
   border-radius: 12px;
-  padding: 0.82rem 0.9rem;
-  background: transparent;
+  padding: 0;
+  background: #ffffff;
   color: #475569;
   font-weight: 900;
   text-align: left;
@@ -1030,42 +1029,33 @@ onMounted(() => {
 }
 
 .nav-item:hover {
-  background: #eff6ff;
-  color: var(--admin-accent, #1d4ed8);
-  transform: translateX(2px);
+  background: #f8fafc;
+  color: #0f172a;
+  transform: translateY(-1px);
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, var(--admin-accent, #2563eb), #1d4ed8);
+  background: #0f172a;
   color: #ffffff;
-  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+  border-color: #0f172a;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.16);
 }
 
-.nav-icon-wrap {
-  display: inline-grid;
-  place-items: center;
+.settings-svg {
   width: 32px;
   height: 32px;
-  flex: 0 0 32px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
   border-radius: 10px;
-  color: #1d4ed8;
-  background: #dbeafe;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 1rem;
 }
 
-.nav-icon-wrap.violet { color: #6d28d9; background: #ede9fe; }
-.nav-icon-wrap.teal { color: #0f766e; background: #ccfbf1; }
-.nav-icon-wrap.blue { color: #1d4ed8; background: #dbeafe; }
-.nav-icon-wrap.amber { color: #b45309; background: #fef3c7; }
-.nav-icon-wrap.green { color: #15803d; background: #dcfce7; }
-.nav-icon-wrap.danger { color: #dc2626; background: #fee2e2; }
-
-.nav-item.active .nav-icon-wrap {
-  color: #ffffff;
+.nav-item.active .settings-svg {
   background: rgba(255, 255, 255, 0.18);
-}
-
-.nav-item.danger:not(.active) {
-  color: #dc2626;
+  color: #ffffff;
 }
 
 .settings-content,
@@ -1079,7 +1069,7 @@ onMounted(() => {
 }
 
 .settings-card {
-  padding: 1.15rem;
+  padding: 0.95rem;
 }
 
 .quick-tools,
@@ -1108,8 +1098,9 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.tool-action svg {
+.tool-action i {
   color: var(--admin-accent, #2563eb);
+  font-size: 1.35rem;
 }
 
 .tool-action strong {
@@ -1155,9 +1146,21 @@ onMounted(() => {
 
 .card-heading {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.heading-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: var(--admin-accent, #2563eb);
+  font-size: 1.05rem;
 }
 
 .form-grid {
@@ -1197,6 +1200,28 @@ onMounted(() => {
   box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
 }
 
+.field em {
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.valid-hint {
+  color: #15803d;
+}
+
+.invalid-hint {
+  color: #dc2626;
+}
+
+.warning-hint {
+  color: #d97706;
+}
+
+.muted-hint {
+  color: #64748b;
+}
+
 .profile-row {
   display: flex;
   align-items: center;
@@ -1205,8 +1230,8 @@ onMounted(() => {
 }
 
 .avatar-preview {
-  width: 86px;
-  height: 86px;
+  width: 112px;
+  height: 112px;
   border-radius: 16px;
   display: grid;
   place-items: center;
@@ -1215,6 +1240,13 @@ onMounted(() => {
   color: #ffffff;
   font-size: 1.5rem;
   font-weight: 900;
+}
+
+.avatar-actions {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .avatar-preview img {
@@ -1311,8 +1343,9 @@ onMounted(() => {
   color: #64748b;
 }
 
-.session-item svg {
+.session-item i {
   color: var(--admin-accent, #2563eb);
+  font-size: 1.3rem;
 }
 
 .session-item em {
@@ -1455,6 +1488,32 @@ onMounted(() => {
   color: #991b1b;
 }
 
+.sticky-save-bar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 50;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.sticky-save-bar > div {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+@keyframes settings-spin {
+  to { transform: rotate(360deg); }
+}
+
 :global(body.admin-dark-mode) .tool-action {
   border-color: #243244 !important;
   background: #111827 !important;
@@ -1462,13 +1521,8 @@ onMounted(() => {
 }
 
 :global(body.admin-dark-mode) .tool-action strong,
-:global(body.admin-dark-mode) .tool-action svg {
+:global(body.admin-dark-mode) .tool-action i {
   color: #f8fafc !important;
-}
-
-:global(body.admin-dark-mode) .settings-control .nav-icon-wrap {
-  color: #bfdbfe !important;
-  background: rgba(96, 165, 250, 0.16) !important;
 }
 
 :global(body.admin-dark-mode) .tool-action small,
@@ -1478,30 +1532,6 @@ onMounted(() => {
 
 :global(body.admin-dark-mode) .accent-dot.active {
   box-shadow: 0 0 0 3px #f8fafc, 0 0 0 6px rgba(96, 165, 250, 0.28);
-}
-
-:global(body.admin-dark-mode) .settings-control .account-summary div,
-:global(body.admin-dark-mode) .settings-control .theme-card {
-  border-color: #243244 !important;
-  background: #111827 !important;
-  color: #e5edf7 !important;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28) !important;
-}
-
-:global(body.admin-dark-mode) .settings-control .account-summary span,
-:global(body.admin-dark-mode) .settings-control .accent-row {
-  color: #cbd5e1 !important;
-}
-
-:global(body.admin-dark-mode) .settings-control .account-summary strong,
-:global(body.admin-dark-mode) .settings-control .theme-card {
-  color: #f8fafc !important;
-}
-
-:global(body.admin-dark-mode) .settings-control .theme-card.active {
-  border-color: #60a5fa !important;
-  background: #172554 !important;
-  color: #dbeafe !important;
 }
 
 .modal-backdrop {
@@ -1599,36 +1629,5 @@ onMounted(() => {
   .password-inline {
     grid-template-columns: 1fr;
   }
-}
-</style>
-
-<style>
-body.admin-dark-mode .settings-control .account-summary > div {
-  border-color: #243244 !important;
-  background: #111827 !important;
-  color: #e5edf7 !important;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28) !important;
-}
-
-body.admin-dark-mode .settings-control .account-summary > div span {
-  color: #cbd5e1 !important;
-}
-
-body.admin-dark-mode .settings-control .account-summary > div strong {
-  color: #f8fafc !important;
-}
-
-body:not(.admin-dark-mode) .settings-control .account-summary > div {
-  border-color: #e2e8f0 !important;
-  background: #f8fafc !important;
-  color: #0f172a !important;
-}
-
-body:not(.admin-dark-mode) .settings-control .account-summary > div span {
-  color: #64748b !important;
-}
-
-body:not(.admin-dark-mode) .settings-control .account-summary > div strong {
-  color: #0f172a !important;
 }
 </style>

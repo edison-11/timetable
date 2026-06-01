@@ -524,7 +524,7 @@ onMounted(() => {
 <style scoped>
 .dashboard-frame {
   --admin-header-height: 76px;
-  --admin-sidebar-width: 236px;
+  --admin-sidebar-width: 184px;
   min-height: 100vh;
   background: #f8fbff;
   color: #101a33;

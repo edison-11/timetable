@@ -56,13 +56,18 @@ class SystemSetting {
     const teacherChangeoverMinutes = Number(
       await this.get('teacher_changeover_minutes', '5')
     );
-    const periodMinutes = Number(await this.get('period_minutes', '45'));
+    const periodMinutes = 40;
     const timetableStartTime = await this.get('timetable_start_time', '08:00');
     const timetableEndTime = await this.get('timetable_end_time', '17:15');
     const breakStartTime = await this.get('break_start_time', '11:00');
     const breakEndTime = await this.get('break_end_time', '11:30');
     const timetableBreaksValue = await this.get('timetable_breaks', null);
     const breakPeriodRulesValue = await this.get('break_period_rules', null);
+    const schoolLogoUrl = await this.get('school_logo_url', '');
+    const preparedBy = await this.get('timetable_prepared_by', '');
+    const approvedBy = await this.get('timetable_approved_by', '');
+    const headerPosition = await this.get('timetable_header_position', 'left');
+    const customHeaderContent = await this.get('timetable_custom_header_content', '');
     let timetableBreaks = [];
     let breakPeriodRules = {
       enabled: true,
@@ -120,13 +125,20 @@ class SystemSetting {
         : 5,
       period_minutes: Number.isFinite(periodMinutes) && periodMinutes > 0
         ? periodMinutes
-        : 45,
+        : 40,
       start_time: timetableStartTime,
       end_time: timetableEndTime,
       break_start_time: breakStartTime,
       break_end_time: breakEndTime,
       timetable_breaks: timetableBreaks,
-      break_period_rules: breakPeriodRules
+      break_period_rules: breakPeriodRules,
+      school_logo_url: schoolLogoUrl,
+      prepared_by: preparedBy,
+      approved_by: approvedBy,
+      header_position: ['left', 'center', 'right'].includes(headerPosition)
+        ? headerPosition
+        : 'left',
+      custom_header_content: customHeaderContent
     };
   }
 
@@ -164,6 +176,26 @@ class SystemSetting {
 
     if (settings.break_period_rules !== undefined) {
       await this.set('break_period_rules', JSON.stringify(settings.break_period_rules));
+    }
+
+    if (settings.school_logo_url !== undefined) {
+      await this.set('school_logo_url', settings.school_logo_url);
+    }
+
+    if (settings.prepared_by !== undefined) {
+      await this.set('timetable_prepared_by', settings.prepared_by);
+    }
+
+    if (settings.approved_by !== undefined) {
+      await this.set('timetable_approved_by', settings.approved_by);
+    }
+
+    if (settings.header_position !== undefined) {
+      await this.set('timetable_header_position', settings.header_position);
+    }
+
+    if (settings.custom_header_content !== undefined) {
+      await this.set('timetable_custom_header_content', settings.custom_header_content);
     }
 
     return this.getTimetableSettings();

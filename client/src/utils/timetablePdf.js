@@ -82,7 +82,7 @@ export const downloadTimetablePdf = ({
   const headerHeight = fitToOnePage ? 24 : 30
   const availableRowHeight = (pageHeight - margin * 2 - titleHeight - headerHeight) / Math.max(rows.length, 1)
   const rowHeight = fitToOnePage
-    ? Math.max(24, Math.min(46, availableRowHeight))
+    ? Math.max(10, Math.min(46, availableRowHeight))
     : 58
   const maxLinesPerCell = fitToOnePage ? Math.max(3, Math.floor((rowHeight - 6) / 6.5)) : 4
   const bodyFontSize = fitToOnePage ? 5.8 : 8
@@ -109,9 +109,9 @@ export const downloadTimetablePdf = ({
   }
 
   const drawHeader = () => {
-    text(title, margin, y, 18, '#0f172a')
+    text(title, margin, y, fitToOnePage ? 12 : 18, '#0f172a')
     if (subtitle) {
-      text(subtitle, margin, y - 18, 10, '#475569')
+      text(subtitle, margin, y - (fitToOnePage ? 13 : 18), fitToOnePage ? 7 : 10, '#475569')
     }
     y -= subtitle ? 36 : 24
 
@@ -136,7 +136,7 @@ export const downloadTimetablePdf = ({
     let x = margin
     headers.forEach((header, index) => {
       rect(x, y - headerHeight, colWidths[index], headerHeight, '#0f2f5f', '#0f2f5f')
-      text(header, x + 6, y - (fitToOnePage ? 16 : 19), fitToOnePage ? 8 : 9, '#ffffff')
+      text(header, x + 5, y - (fitToOnePage ? 12 : 19), fitToOnePage ? 6.5 : 9, '#ffffff')
       x += colWidths[index]
     })
     y -= headerHeight
@@ -157,7 +157,7 @@ export const downloadTimetablePdf = ({
       const fill = cell.fill || (row.type === 'break' ? '#e8f7e9' : '#ffffff')
       rect(x, y - rowHeight, width, rowHeight, fill, '#cbd5e1')
 
-      const maxChars = Math.max(Math.floor(width / 5.2), 8)
+      const maxChars = Math.max(Math.floor(width / (fitToOnePage ? 4.6 : 5.2)), 8)
       const lines = wrapText(cell.text, maxChars).slice(0, maxLinesPerCell)
       lines.forEach((line, lineIndex) => {
         text(

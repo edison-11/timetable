@@ -1,6 +1,7 @@
 <template>
   <TopLoadingBar />
   <Preloader :loading="isBootLoading" />
+  <TopFeedback :loading="isRequestLoading" />
   <router-view />
 </template>
 
@@ -9,12 +10,14 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLoadingStore } from '@/stores/loading'
 import Preloader from '@/components/Preloader.vue'
+import TopFeedback from '@/components/TopFeedback.vue'
 import TopLoadingBar from '@/components/TopLoadingBar.vue'
 import { watchAppLanguage } from '@/utils/language'
 
 const authStore = useAuthStore()
 const loadingStore = useLoadingStore()
 const isBootLoading = computed(() => loadingStore.bootLoading)
+const isRequestLoading = computed(() => loadingStore.pendingRequests > 0 || loadingStore.routeLoading)
 let languageObserver = null
 
 onMounted(async () => {

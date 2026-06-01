@@ -18,6 +18,7 @@ const isBreakModule = (moduleName) => {
 router.get('/stats', async (req, res) => {
   try {
     const school_id = getRequestSchoolId(req);
+
     const [timetables, rooms] = await Promise.all([
       TimetableEntry.getAll({ school_id }),
       Room.getAll({ school_id })

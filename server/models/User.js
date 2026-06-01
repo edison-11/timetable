@@ -360,11 +360,57 @@ class User {
     );
   }
 
+  static async saveResetCode(id, resetCodeHash, expiresAt, resendCount = 0) {
+    await this.ensureAuthColumns();
+
+    await pool.query(
+      `UPDATE users
+       SET reset_code_hash = ?,
+           reset_code_expires_at = ?,
+           reset_code_used = FALSE,
+           reset_resend_count = ?,
+           reset_verify_attempts = 0,
+           reset_last_sent_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [resetCodeHash, expiresAt, resendCount, id]
+    );
+  }
+
+  static async incrementResetAttempts(id) {
+    await this.ensureAuthColumns();
+
+    await pool.query(
+      `UPDATE users
+       SET reset_verify_attempts = COALESCE(reset_verify_attempts, 0) + 1
+       WHERE id = ?`,
+      [id]
+    );
+  }
+
+  static async markResetCodeUsed(id) {
+    await this.ensureAuthColumns();
+
+    await pool.query(
+      `UPDATE users
+       SET reset_code_used = TRUE
+       WHERE id = ?`,
+      [id]
+    );
+  }
+
   static async updateStatus(id, status) {
     await this.ensureAuthColumns();
     await pool.query(
       'UPDATE users SET status = ? WHERE id = ?',
       [status, id]
+    );
+  }
+
+  static async updateRoleAndSchool(id, role, schoolId) {
+    await this.ensureAuthColumns();
+    await pool.query(
+      'UPDATE users SET role = ?, school_id = ? WHERE id = ?',
+      [role, schoolId || null, id]
     );
   }
 }

@@ -38,7 +38,6 @@
               <button @click="handleExportPDF">PDF</button>
               <button @click="handleExportWord">Word</button>
               <button @click="handlePrint">Print</button>
-              <button @click="handleExportICal">iCal</button>
             </div>
           </div>
         </div>
@@ -96,7 +95,7 @@
 import { computed, onMounted, ref } from 'vue'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
-import { exportToPDF, exportToWord, exportToICal, printTimetable } from '@/utils/exportTimetable'
+import { exportToPDF, exportToWord, printTimetable } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
 
 const authStore = useAuthStore()
@@ -173,11 +172,6 @@ const handleExportWord = () => {
 
 const handlePrint = () => {
   printTimetable(timetable.value, student.value?.class_name || 'My_Timetable')
-  showExportDropdown.value = false
-}
-
-const handleExportICal = () => {
-  exportToICal(timetable.value, student.value?.class_name || 'My_Timetable')
   showExportDropdown.value = false
 }
 

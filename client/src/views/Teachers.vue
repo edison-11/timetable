@@ -103,6 +103,8 @@
               <tr>
                 <th>Teacher</th>
                 <th>Department</th>
+                <th>Classes</th>
+                <th>Modules</th>
                 <th>Status</th>
                 <th>Classes</th>
                 <th>Modules</th>
@@ -120,6 +122,12 @@
                 </td>
                 <td>
                   <span class="badge">{{ teacher.department || 'SSOD' }}</span>
+                </td>
+                <td>
+                  <span class="muted-list">{{ teacher.teaching_classes || teacher.head_teacher_classes || 'Not assigned' }}</span>
+                </td>
+                <td>
+                  <span class="muted-list">{{ teacher.assigned_modules || teacher.module_name || 'Not assigned' }}</span>
                 </td>
                 <td>
                   <span :class="getStatusClass(teacher.status)" class="status-badge">
@@ -213,19 +221,15 @@
                   </div>
                   <div class="col-md-6">
                     <label for="teacherPassword" class="form-label">Password *</label>
-                    <div class="input-group">
-                      <input 
-                        :type="showNewTeacherPassword ? 'text' : 'password'" 
-                        class="form-control" 
-                        id="teacherPassword" 
-                        v-model="newTeacher.password"
-                        required
-                        placeholder="Minimum 6 characters"
-                      >
-                      <button type="button" class="btn-outline" @click="showNewTeacherPassword = !showNewTeacherPassword">
-                        {{ showNewTeacherPassword ? 'Hide' : 'Show' }}
-                      </button>
-                    </div>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="teacherPassword"
+                      v-model="newTeacher.password"
+                      required
+                      autocomplete="new-password"
+                      placeholder="Minimum 6 characters"
+                    >
                     <div class="invalid-feedback" v-if="errors.password">
                       {{ errors.password }}
                     </div>
@@ -322,19 +326,15 @@
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <label for="editTeacherPassword" class="form-label">Password (leave blank to keep current)</label>
-                    <div class="input-group">
-                      <input 
-                        :type="showEditTeacherPassword ? 'text' : 'password'" 
-                        class="form-control" 
-                        id="editTeacherPassword" 
-                        v-model="editingTeacher.password"
-                        placeholder="Enter new password or leave blank"
-                      >
-                      <button type="button" class="btn-outline" @click="showEditTeacherPassword = !showEditTeacherPassword">
-                        {{ showEditTeacherPassword ? 'Hide' : 'Show' }}
-                      </button>
-                    </div>
+                    <label for="editTeacherPassword" class="form-label">Reset Password (leave blank to keep current)</label>
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="editTeacherPassword"
+                      v-model="editingTeacher.password"
+                      autocomplete="new-password"
+                      placeholder="Enter new password or leave blank"
+                    >
                     <div class="invalid-feedback" v-if="editErrors.password">
                       {{ editErrors.password }}
                     </div>
@@ -391,6 +391,8 @@
                 <div><span>Email</span><strong>{{ selectedTeacher.email }}</strong></div>
                 <div><span>Phone</span><strong>{{ selectedTeacher.phone || 'Not set' }}</strong></div>
                 <div><span>Department</span><strong>{{ selectedTeacher.department || 'SSOD' }}</strong></div>
+                <div><span>Classes</span><strong>{{ selectedTeacher.teaching_classes || selectedTeacher.head_teacher_classes || 'Not assigned' }}</strong></div>
+                <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || selectedTeacher.module_name || 'Not assigned' }}</strong></div>
                 <div><span>Qualification</span><strong>{{ selectedTeacher.qualification || 'Not set' }}</strong></div>
                 <div><span>National/Staff ID</span><strong>{{ selectedTeacher.national_id || selectedTeacher.employee_id || 'Not set' }}</strong></div>
                 <div><span>Status</span><strong>{{ getStatusLabel(selectedTeacher.status) }}</strong></div>
@@ -435,8 +437,6 @@ const departmentFilter = ref('')
 const quickFilter = ref('all')
 const sortMode = ref('newest')
 const commonDepartments = ['Business', 'Software Development', 'Electrical', 'Electronics', 'Computer Science', 'Information Technology', 'Networking', 'Accounting', 'Finance', 'Marketing', 'Management', 'Hospitality', 'Tourism', 'Construction', 'Mechanical', 'Automotive', 'Agriculture', 'General Studies']
-const showNewTeacherPassword = ref(false)
-const showEditTeacherPassword = ref(false)
 
 // Edit functionality
 const editingTeacher = ref({
@@ -510,7 +510,8 @@ const filteredTeachers = computed(() => {
       department,
       teacher.teaching_classes,
       teacher.head_teacher_classes,
-      teacher.assigned_modules
+      teacher.assigned_modules,
+      teacher.module_name
     ].filter(Boolean).join(' ').toLowerCase()
     const matchesSearch = searchable.includes(query)
     const matchesStatus = !statusFilter.value || teacher.status === statusFilter.value
@@ -672,7 +673,6 @@ const handleAddTeacher = async () => {
 
 const openAddModal = () => {
   errors.value = {}
-  showNewTeacherPassword.value = false
   const modal = document.getElementById('addTeacherModal')
   Modal.getOrCreateInstance(modal).show()
 }
@@ -1175,6 +1175,14 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.muted-list {
+  display: inline-block;
+  max-width: 220px;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
 }
 
 .status-active {

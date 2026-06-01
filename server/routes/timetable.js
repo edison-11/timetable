@@ -131,8 +131,6 @@ const buildSlots = ({ days, startTime, endTime, periodMinutes, changeoverMinutes
 
   days.forEach((day) => {
     let cursor = dayStart;
-    let teachingSinceLastChangeover = 0;
-
     while (cursor + periodMinutes <= dayEnd) {
       const slotStart = cursor;
       const slotEnd = cursor + periodMinutes;
@@ -151,12 +149,19 @@ const buildSlots = ({ days, startTime, endTime, periodMinutes, changeoverMinutes
           start_time: minutesToTime(slotStart),
           end_time: minutesToTime(slotEnd)
         });
-        teachingSinceLastChangeover += periodMinutes;
         cursor = slotEnd;
 
-        if (changeoverMinutes > 0 && teachingSinceLastChangeover >= 60) {
-          cursor += changeoverMinutes;
-          teachingSinceLastChangeover = 0;
+        if (changeoverMinutes > 0) {
+          const shiftedCursor = cursor + changeoverMinutes;
+          const nextHitsBreak = breaks.some((breakTime) => overlaps(
+            shiftedCursor,
+            shiftedCursor + periodMinutes,
+            timeToMinutes(breakTime.start_time),
+            timeToMinutes(breakTime.end_time)
+          ));
+          if (shiftedCursor + periodMinutes <= dayEnd && !nextHitsBreak) {
+            cursor = shiftedCursor;
+          }
         }
       } else {
         const nextBreakEnd = Math.max(
@@ -170,7 +175,6 @@ const buildSlots = ({ days, startTime, endTime, periodMinutes, changeoverMinutes
             .map((breakTime) => timeToMinutes(breakTime.end_time))
         );
         cursor = nextBreakEnd;
-        teachingSinceLastChangeover = 0;
       }
     }
   });
@@ -252,19 +256,19 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
       periods: toPositiveInteger(rules.periods_before_morning_break, 3),
       break_name: 'Morning Break',
       break_label: 'MORNING BREAK',
-      break_duration: toPositiveInteger(rules.morning_break_minutes, 15)
+      break_duration: toPositiveInteger(rules.morning_break_minutes, 30)
     },
     {
       periods: toPositiveInteger(rules.periods_before_lunch, 2),
       break_name: 'Lunch Break',
       break_label: 'LUNCH BREAK',
-      break_duration: toPositiveInteger(rules.lunch_break_minutes, 85)
+      break_duration: toPositiveInteger(rules.lunch_break_minutes, 45)
     },
     {
       periods: toPositiveInteger(rules.periods_before_afternoon_break, 3),
       break_name: 'Evening Break',
       break_label: 'EVENING BREAK',
-      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 5)
+      break_duration: toPositiveInteger(rules.afternoon_break_minutes, 30)
     },
     {
       periods: toNonNegativeInteger(rules.periods_after_afternoon_break, 2)
@@ -277,6 +281,19 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
     let cursor = timeToMinutes(startTime);
     let slotNumber = 1;
 
+    const addShiftIfDue = (hasNextPeriodBeforeBreak = true) => {
+      if (!hasNextPeriodBeforeBreak || changeoverMinutes <= 0 || slotNumber > 10) return;
+      const shiftEnd = cursor + changeoverMinutes;
+      breaks.push({
+        day_of_week: day,
+        start_time: minutesToTime(cursor),
+        end_time: minutesToTime(shiftEnd),
+        break_name: 'Shift Change',
+        break_label: 'SHIFT'
+      });
+      cursor = shiftEnd;
+    };
+
     periodBlocks.forEach((block) => {
       for (let index = 0; index < block.periods && slotNumber <= 10; index += 1) {
         const periodEnd = cursor + periodMinutes;
@@ -288,8 +305,9 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
           end_time: minutesToTime(periodEnd),
           slot_number: slotNumber
         });
-        cursor = periodEnd + (index < block.periods - 1 ? changeoverMinutes : 0);
+        cursor = periodEnd;
         slotNumber += 1;
+        addShiftIfDue(index < block.periods - 1);
       }
 
       if (block.break_name && slotNumber <= 10) {
@@ -314,8 +332,9 @@ const buildScheduleFromPeriodRules = ({ days, startTime, periodMinutes, changeov
         end_time: minutesToTime(periodEnd),
         slot_number: slotNumber
       });
-      cursor = periodEnd + changeoverMinutes;
+      cursor = periodEnd;
       slotNumber += 1;
+      addShiftIfDue();
     }
 
     scheduleByDay.set(day, { periods, breaks });
@@ -391,8 +410,9 @@ const rankAssignmentsByWeeklyTarget = (
         && Number(assignment.teacher_id) === Number(preferredTeacherId)
         ? 0.85
         : 0;
-      const blockSizeBonus = getDesiredBlockSize(assignment, weeklyTargets) * 0.6;
-      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 60, 1.0);
+      const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
+      const blockSizeBonus = desiredBlockSize > 1 ? desiredBlockSize * 4 : 0;
+      const hoursBonus = Math.min(Math.max(Number(assignment.hours_per_year) || 0, 0) / 40, 3.0);
 
       return {
         assignment,
@@ -418,6 +438,16 @@ const getDesiredBlockSize = (assignment, weeklyTargets = null) => {
   if (periodsPerYear > 100) return 3;
   if (periodsPerYear >= 50) return 2;
   return 1;
+};
+
+const getPreferredBlockSize = (assignment, scheduled, remainingTarget, weeklyTargets = null) => {
+  const desiredBlockSize = getDesiredBlockSize(assignment, weeklyTargets);
+  if (desiredBlockSize === 1) return 1;
+
+  // Large modules should open as a full block so they stay close together.
+  if (scheduled === 0) return desiredBlockSize;
+
+  return Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
 };
 
 const areAdjacentLessonSlots = (previous, next) => {
@@ -571,6 +601,7 @@ router.post('/', adminAuth, [
 router.post('/generate', adminAuth, [
   body('class_id').optional({ nullable: true, checkFalsy: true }).isInt(),
   body('level').optional({ nullable: true, checkFalsy: true }).trim().notEmpty(),
+  body('shift_id').optional({ nullable: true, checkFalsy: true }).isInt(),
   body('days').optional().isArray(),
   body('start_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
   body('end_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
@@ -642,7 +673,7 @@ router.post('/generate', adminAuth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { class_id, level } = req.body;
+    const { class_id, level, shift_id } = req.body;
     const timetableStatus = req.body.status || 'draft';
     const shouldReplaceExisting = req.body.replace_existing !== false;
 
@@ -654,8 +685,8 @@ router.post('/generate', adminAuth, [
       return res.status(400).json({ message: 'At least one valid day is required' });
     }
 
-    const periodMinutes = toPositiveInteger(req.body.period_minutes, 45);
-    const changeoverMinutes = toNonNegativeInteger(req.body.teacher_changeover_minutes, 0);
+    const periodMinutes = 40;
+    const changeoverMinutes = toNonNegativeInteger(req.body.teacher_changeover_minutes, 5);
     const breakRules = req.body.break_period_rules || {};
     const shouldUsePeriodRules = breakRules.enabled !== false;
     const ruleSchedule = shouldUsePeriodRules
@@ -710,9 +741,11 @@ router.post('/generate', adminAuth, [
     const school_id = getRequestSchoolId(req);
     const allClasses = class_id ? [await Class.findById(class_id)] : await Class.getAll({ school_id });
     const selectedLevel = level ? String(level).trim().toLowerCase() : '';
+    const selectedShiftId = shift_id ? String(shift_id) : '';
     const selectedClasses = allClasses
       .filter(Boolean)
-      .filter((classItem) => !selectedLevel || String(classItem.level || '').trim().toLowerCase() === selectedLevel);
+      .filter((classItem) => !selectedLevel || String(classItem.level || '').trim().toLowerCase() === selectedLevel)
+      .filter((classItem) => !selectedShiftId || String(classItem.shift_id || '') === selectedShiftId);
     const generated = [];
     const skipped = [];
     const classEntryCounts = [];
@@ -724,6 +757,50 @@ router.post('/generate', adminAuth, [
     }
 
     for (const classItem of shuffleItems(selectedClasses)) {
+      const classStartTime = normalizeTime(classItem.shift_start_time || req.body.start_time || '08:00');
+      const classEndTime = normalizeTime(classItem.shift_end_time || req.body.end_time || '17:15');
+      const classChangeoverMinutes = toNonNegativeInteger(classItem.shift_changeover_minutes, changeoverMinutes);
+      const classRuleSchedule = shouldUsePeriodRules
+        ? buildScheduleFromPeriodRules({
+          days,
+          startTime: classStartTime,
+          periodMinutes,
+          changeoverMinutes: classChangeoverMinutes,
+          rules: breakRules
+        })
+        : null;
+      const classSlotCountsByDay = new Map();
+      const classDefaultGenerationItems = buildSlots({
+        days,
+        startTime: classStartTime,
+        endTime: classEndTime,
+        periodMinutes,
+        changeoverMinutes: classChangeoverMinutes,
+        breaks: fixedBreaks
+      }).map((item) => {
+        const slotNumber = (classSlotCountsByDay.get(item.day_of_week) || 0) + 1;
+        classSlotCountsByDay.set(item.day_of_week, slotNumber);
+        return {
+          ...item,
+          type: 'lesson',
+          slot_number: slotNumber
+        };
+      });
+      const classGenerationTemplate = classRuleSchedule?.periods?.length
+        ? classRuleSchedule.periods
+        : classDefaultGenerationItems;
+      const classBreakTemplate = classRuleSchedule?.breaks?.length
+        ? classRuleSchedule.breaks
+        : days.flatMap((day) => FIXED_BREAKS.map((item) => ({
+          day_of_week: day,
+          start_time: item.start_time,
+          end_time: item.end_time,
+          break_name: item.break_name
+        })));
+      const classTotalRulePeriods = Math.max(
+        ...days.map((day) => classGenerationTemplate.filter((item) => item.day_of_week === day).length),
+        0
+      );
       const assignments = shuffleItems(await Assignment.getByClass(classItem.class_id, { school_id }));
 
       if (!assignments.length) {
@@ -736,7 +813,7 @@ router.post('/generate', adminAuth, [
       }
 
       const scheduledCounts = new Map();
-      const weeklyTargets = buildWeeklyPeriodTargets(assignments, generationTemplate.length);
+      const weeklyTargets = buildWeeklyPeriodTargets(assignments, classGenerationTemplate.length);
       const dayBlockState = new Map();
       const dayTeacherCounts = new Map();
       const assignmentTieBreakers = new Map(
@@ -744,7 +821,7 @@ router.post('/generate', adminAuth, [
       );
       let classCount = 0;
 
-      for (const item of breakTemplate) {
+      for (const item of classBreakTemplate) {
           const timetableId = await TimetableEntry.create({
             class_id: classItem.class_id,
             assignment_id: null,
@@ -763,7 +840,7 @@ router.post('/generate', adminAuth, [
           classCount += 1;
       }
 
-      const generationItems = generationTemplate;
+      const generationItems = classGenerationTemplate;
 
 
       for (let itemIndex = 0; itemIndex < generationItems.length;) {
@@ -783,17 +860,13 @@ router.post('/generate', adminAuth, [
 
         if (currentBlock?.assignment) {
           const desiredBlockSize = getDesiredBlockSize(currentBlock.assignment, weeklyTargets);
-          const currentTarget = weeklyTargets.get(currentBlock.assignment.assignment_id) || 0;
-          const currentScheduled = scheduledCounts.get(currentBlock.assignment.assignment_id) || 0;
-          const remainingTarget = currentTarget - currentScheduled;
           const continuationSlots = getConsecutiveSlots(
             generationItems,
             itemIndex,
-            Math.min(desiredBlockSize - currentBlock.count, Math.max(remainingTarget, 0))
+            desiredBlockSize - currentBlock.count
           );
 
           if (currentBlock.count < desiredBlockSize
-            && remainingTarget > 0
             && isAdjacentToCurrentBlock
             && continuationSlots.length
             && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))) {
@@ -826,7 +899,12 @@ router.post('/generate', adminAuth, [
             const target = weeklyTargets.get(assignment.assignment_id) || 0;
             const scheduled = scheduledCounts.get(assignment.assignment_id) || 0;
             const remainingTarget = Math.max(target - scheduled, 0);
-            const maxBlockSize = Math.max(Math.min(desiredBlockSize, remainingTarget), 1);
+            const maxBlockSize = getPreferredBlockSize(
+              assignment,
+              scheduled,
+              remainingTarget,
+              weeklyTargets
+            );
             let blockSlots = [];
 
             for (let blockSize = maxBlockSize; blockSize >= 1; blockSize -= 1) {
@@ -919,8 +997,11 @@ router.post('/generate', adminAuth, [
         class_id: classItem.class_id,
         class_name: classItem.class_name,
         entries: classCount,
-        periods_per_day: totalRulePeriods,
-        expected_entries: generationItems.length + breakTemplate.length
+        shift_name: classItem.shift_name || null,
+        shift_start_time: classStartTime,
+        shift_end_time: classEndTime,
+        periods_per_day: classTotalRulePeriods,
+        expected_entries: generationItems.length + classBreakTemplate.length
       });
 
       if (!classCount) {
@@ -992,7 +1073,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
       return res.status(403).json({ message: 'You can only view your own timetable' });
     }
 
-    const school_id = req.user?.school_id || null;
+    const school_id = getRequestSchoolId(req);
     const timetables = await TimetableEntry.getByTeacher(requestedTeacherId, { school_id });
     res.json({ timetables });
   } catch (error) {
@@ -1004,7 +1085,7 @@ router.get('/teacher/:teacher_id', auth, async (req, res) => {
 // Get timetable by class
 router.get('/class/:class_id', auth, async (req, res) => {
   try {
-    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: req.user?.school_id || getRequestSchoolId(req) });
+    const timetables = await TimetableEntry.getByClass(req.params.class_id, { school_id: getRequestSchoolId(req) });
     res.json({ timetables });
   } catch (error) {
     console.error(error);
@@ -1015,7 +1096,7 @@ router.get('/class/:class_id', auth, async (req, res) => {
 // Get weekly schedule for class
 router.get('/class/:class_id/weekly', auth, async (req, res) => {
   try {
-    const schedule = await TimetableEntry.getWeeklySchedule(req.params.class_id);
+    const schedule = await TimetableEntry.getWeeklySchedule(req.params.class_id, { school_id: getRequestSchoolId(req) });
     res.json({ schedule });
   } catch (error) {
     console.error(error);

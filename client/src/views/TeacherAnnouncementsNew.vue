@@ -204,6 +204,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import TeacherLayout from '@/components/TeacherLayout.vue'
+import { notifyInfo } from '@/utils/notify'
 
 const searchQuery = ref('')
 const filterType = ref('')
@@ -412,7 +413,7 @@ const closeDetail = () => {
 }
 
 const shareAnnouncement = () => {
-  alert('Share functionality would open a dialog to share this announcement via email or social media.')
+  notifyInfo('Share functionality would open a dialog to share this announcement via email or social media.')
 }
 </script>
 

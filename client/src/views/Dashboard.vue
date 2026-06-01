@@ -8,18 +8,26 @@
         <div>
           <h1>Timetable Dashboard</h1>
           <p>Overview of timetable statistics and management</p>
+          <small class="school-context">{{ schoolContextLabel }}</small>
         </div>
         <div class="week-picker">
           <span class="calendar-mark"></span>
           <span>{{ weekRange }}</span>
           <span class="chevron">v</span>
         </div>
+        <button class="refresh-dashboard" type="button" :disabled="dashboardLoading" @click="reloadDashboard">
+          {{ dashboardLoading ? 'Refreshing...' : 'Refresh Data' }}
+        </button>
+      </div>
+
+      <div v-if="dashboardLoadError" class="dashboard-error">
+        {{ dashboardLoadError }}
       </div>
 
       <!-- 4 Metric Cards -->
       <div class="metric-grid">
         <router-link to="/timetable" class="metric-card">
-          <div class="metric-icon blue" v-html="icons.calendar"></div>
+          <div class="metric-icon blue"><CalendarDays /></div>
           <div class="metric-copy">
             <span>Total Timetables</span>
             <strong>{{ dashboardStats.timetables }}</strong>
@@ -27,7 +35,7 @@
           </div>
         </router-link>
         <router-link to="/modules" class="metric-card">
-          <div class="metric-icon green" v-html="icons.book"></div>
+          <div class="metric-icon green"><BookOpen /></div>
           <div class="metric-copy">
             <span>Total Subjects</span>
             <strong>{{ dashboardStats.modules }}</strong>
@@ -35,7 +43,7 @@
           </div>
         </router-link>
         <router-link to="/teachers" class="metric-card">
-          <div class="metric-icon violet" v-html="icons.teacher"></div>
+          <div class="metric-icon violet"><Users /></div>
           <div class="metric-copy">
             <span>Total Teachers</span>
             <strong>{{ dashboardStats.teachers }}</strong>
@@ -43,7 +51,7 @@
           </div>
         </router-link>
         <router-link to="/rooms" class="metric-card">
-          <div class="metric-icon amber" v-html="icons.room"></div>
+          <div class="metric-icon amber"><Building2 /></div>
           <div class="metric-copy">
             <span>Total Rooms</span>
             <strong>{{ dashboardStats.rooms }}</strong>
@@ -150,7 +158,7 @@
       <!-- 3 Bottom Cards -->
       <div class="three-cards">
         <div class="panel">
-          <div class="panel-title"><span v-html="icons.chart"></span><h3>Timetable Distribution</h3></div>
+          <div class="panel-title"><span><ChartColumn /></span><h3>Timetable Distribution</h3></div>
           <div class="distribution-content">
             <div class="donut" :style="{ background: distributionGradient }">
               <strong>{{ distributionTotal }}</strong>
@@ -168,7 +176,7 @@
         </div>
 
         <div class="panel">
-          <div class="panel-title"><span v-html="icons.room"></span><h3>Room Utilization</h3></div>
+          <div class="panel-title"><span><Building2 /></span><h3>Room Utilization</h3></div>
           <div class="room-utilization-head">
             <strong>{{ dashboardStatsCards.roomUtilization }}%</strong>
             <span>{{ dashboardStatsCards.usedRooms }} of {{ dashboardStatsCards.usedRooms + dashboardStatsCards.availableRooms }} rooms used</span>
@@ -181,7 +189,7 @@
         </div>
 
         <div class="panel">
-          <div class="panel-title"><span v-html="icons.teacher"></span><h3>Teacher Workload</h3></div>
+          <div class="panel-title"><span><Users /></span><h3>Teacher Workload</h3></div>
           <div class="workload-bars">
             <div v-for="bucket in workloadBuckets" :key="bucket.label">
               <strong>{{ bucket.count }}</strong>
@@ -203,35 +211,35 @@
           </div>
           <div class="actions-list">
             <router-link :to="{ path: '/timetable', query: { action: 'generate' } }" class="action-item">
-              <span class="action-icon blue" v-html="icons.plus"></span>
+              <span class="action-icon blue"><Plus /></span>
               <div>
                 <strong>Create Timetable</strong>
                 <small>Generate new timetable</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/classes', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon green" v-html="icons.book"></span>
+              <span class="action-icon green"><BookOpen /></span>
               <div>
                 <strong>Add Class</strong>
                 <small>Create new class</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/modules', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon violet" v-html="icons.bookOpen"></span>
+              <span class="action-icon violet"><BookOpenCheck /></span>
               <div>
                 <strong>Add Subject</strong>
                 <small>Create new subject</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/teachers', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon amber" v-html="icons.teacher"></span>
+              <span class="action-icon amber"><UserPlus /></span>
               <div>
                 <strong>Add Teacher</strong>
                 <small>Register new teacher</small>
               </div>
             </router-link>
             <router-link :to="{ path: '/rooms', query: { action: 'add' } }" class="action-item">
-              <span class="action-icon rose" v-html="icons.room"></span>
+              <span class="action-icon rose"><Building2 /></span>
               <div>
                 <strong>Add Room</strong>
                 <small>Add new classroom</small>
@@ -276,9 +284,7 @@
                 </div>
               </div>
               <span class="notification-remove" @click.stop="deleteNotification(notification)">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 6l12 12M18 6 6 18"/>
-                </svg>
+                <X />
               </span>
             </div>
           </div>
@@ -310,10 +316,13 @@ import { computed, onMounted, ref } from 'vue'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 import api from '@/stores/api'
+import { useAuthStore } from '@/stores/auth'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
+import { BookOpen, BookOpenCheck, Building2, CalendarDays, ChartColumn, Plus, UserPlus, Users, X } from '@lucide/vue'
 
 const days = FIXED_DAYS
 const today = new Date()
+const authStore = useAuthStore()
 
 const weekRange = computed(() => {
   const start = new Date(today)
@@ -333,22 +342,34 @@ const currentAcademicYear = computed(() => {
 })
 const selectedTimetableClassId = ref('')
 const timetableEntries = ref([])
+const timetableSettings = ref(null)
 const notifications = ref([])
 const rejectDialog = ref({ open: false, notification: null, loading: false })
 const classes = ref([])
 const teachers = ref([])
 const modules = ref([])
 const rooms = ref([])
+const dashboardLoadError = ref('')
+const dashboardLoading = ref(false)
 
-const icons = {
-  calendar: '<svg viewBox="0 0 24 24"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/></svg>',
-  book: '<svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>',
-  bookOpen: '<svg viewBox="0 0 24 24"><path d="M2 5.5A3.5 3.5 0 0 1 5.5 2H12v18H5.5A3.5 3.5 0 0 0 2 23V5.5ZM12 2h6.5A3.5 3.5 0 0 1 22 5.5V23a3.5 3.5 0 0 0-3.5-3H12"/></svg>',
-  teacher: '<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>',
-  room: '<svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>',
-  chart: '<svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16V9M12 16V6M16 16v-4"/></svg>',
-  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>'
-}
+const schoolContextLabel = computed(() => {
+  const user = authStore.currentUser || {}
+  const cachedUser = localStorage.getItem('user')
+  let cachedSchoolId = ''
+
+  if (cachedUser) {
+    try {
+      cachedSchoolId = JSON.parse(cachedUser)?.school_id || ''
+    } catch (error) {
+      cachedSchoolId = ''
+    }
+  }
+
+  const schoolId = user.school_id || cachedSchoolId || localStorage.getItem('selectedSchoolId') || ''
+  const role = authStore.currentUserType || localStorage.getItem('userType') || user.role || ''
+  return schoolId ? `School ID: ${schoolId} • Role: ${role || 'admin'}` : 'No school selected for this account'
+})
+
 const normalizeTime = (value) => String(value || '').slice(0, 5)
 
 const classOptions = computed(() => {
@@ -395,7 +416,7 @@ const selectedTimetableGroup = computed(() => {
 const timetableRows = computed(() => buildTimetableGridWithBreaks(visibleEntries.value))
 
 const dashboardStats = computed(() => ({
-  timetables: groupedTimetables.value.length,
+  timetables: timetableEntries.value.length,
   modules: modules.value.length,
   teachers: teachers.value.length,
   rooms: rooms.value.length
@@ -537,6 +558,11 @@ const loadDashboardStatsCards = async () => {
       workloadBuckets: response.data.workload?.buckets || []
     }
   } catch (error) {
+    dashboardLoadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      dashboardLoadError.value ||
+      'Dashboard statistics could not load for this school account.'
     dashboardStatsCards.value = {
       distribution: [],
       roomUtilization: 0,
@@ -561,7 +587,7 @@ const formatTimeRange = (start, end) => {
 }
 
 const buildTimetableGridWithBreaks = (entries) => {
-  return buildFixedTimetableRows(entries, days)
+  return buildFixedTimetableRows(entries, days, timetableSettings.value)
 }
 
 const loadTimetable = async () => {
@@ -570,7 +596,21 @@ const loadTimetable = async () => {
     timetableEntries.value = response.data.timetables || []
     selectedTimetableClassId.value = classOptions.value[0]?.class_id || ''
   } catch (error) {
+    dashboardLoadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      dashboardLoadError.value ||
+      'Timetable data could not load for this school account.'
     timetableEntries.value = []
+  }
+}
+
+const loadTimetableSettings = async () => {
+  try {
+    const response = await api.get('/settings/timetable')
+    timetableSettings.value = response.data.settings || null
+  } catch (error) {
+    timetableSettings.value = null
   }
 }
 
@@ -626,23 +666,61 @@ const clearNotifications = async () => {
 }
 
 const loadDashboardData = async () => {
+  dashboardLoadError.value = ''
+  const [classesResponse, teachersResponse, modulesResponse, roomsResponse] = await Promise.allSettled([
+    api.get('/classes'),
+    api.get('/teachers'),
+    api.get('/modules'),
+    api.get('/rooms')
+  ])
+
+  classes.value = classesResponse.status === 'fulfilled' ? classesResponse.value.data.classes || [] : []
+  teachers.value = teachersResponse.status === 'fulfilled' ? teachersResponse.value.data.teachers || [] : []
+  modules.value = modulesResponse.status === 'fulfilled' ? modulesResponse.value.data.modules || [] : []
+  rooms.value = roomsResponse.status === 'fulfilled' ? roomsResponse.value.data.rooms || [] : []
+
+  const failedResponse = [classesResponse, teachersResponse, modulesResponse, roomsResponse]
+    .find((response) => response.status === 'rejected')
+
+  if (failedResponse) {
+    const error = failedResponse.reason
+    dashboardLoadError.value =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      'Some dashboard data could not load for this school account.'
+  }
+}
+
+const reloadDashboard = async () => {
+  dashboardLoading.value = true
+  dashboardLoadError.value = ''
+
   try {
-    const [classesResponse, teachersResponse, modulesResponse, roomsResponse] = await Promise.all([
-      api.get('/classes'),
-      api.get('/teachers'),
-      api.get('/modules'),
-      api.get('/rooms')
+    await authStore.checkAuth()
+    await Promise.all([
+      loadDashboardData(),
+      loadTimetableSettings(),
+      loadTimetable(),
+      loadNotifications(),
+      loadDashboardStatsCards()
     ])
 
-    classes.value = classesResponse.data.classes || []
-    teachers.value = teachersResponse.data.teachers || []
-    modules.value = modulesResponse.data.modules || []
-    rooms.value = roomsResponse.data.rooms || []
-  } catch (error) {
-    classes.value = []
-    teachers.value = []
-    modules.value = []
-    rooms.value = []
+    const noDataLoaded =
+      !classes.value.length &&
+      !teachers.value.length &&
+      !modules.value.length &&
+      !rooms.value.length &&
+      !timetableEntries.value.length
+
+    if (noDataLoaded && !dashboardLoadError.value) {
+      if (authStore.currentUser?.role === 'super_admin') {
+        dashboardLoadError.value = 'Super Admin view: No data found. Please ensure you have selected a school from the management panel.'
+      } else {
+        dashboardLoadError.value = 'No records found for your school. Please ensure your account is linked to an active school ID.'
+      }
+    }
+  } finally {
+    dashboardLoading.value = false
   }
 }
 
@@ -698,12 +776,7 @@ const confirmRejectPendingItem = async () => {
   }
 }
 
-onMounted(() => {
-  loadDashboardData()
-  loadTimetable()
-  loadNotifications()
-  loadDashboardStatsCards()
-})
+onMounted(reloadDashboard)
 </script>
 
 <style scoped>
@@ -957,6 +1030,25 @@ onMounted(() => {
   font-size: 0.72rem;
 }
 
+.school-context {
+  display: block;
+  margin-top: 0.25rem;
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.dashboard-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
 .week-picker {
   display: flex;
   align-items: center;
@@ -965,6 +1057,20 @@ onMounted(() => {
   padding: 0.5rem 1rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+}
+
+.refresh-dashboard {
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  padding: 0.5rem 0.85rem;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 800;
+}
+
+.refresh-dashboard:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .metric-grid {

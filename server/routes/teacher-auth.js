@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const Teacher = require('../models/Teacher');
 const Class = require('../models/Class');
+const Module = require('../models/Module');
 const Assignment = require('../models/Assignment');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
@@ -350,8 +351,10 @@ router.get('/me/classes', auth, async (req, res) => {
     }
     const school_id = req.user?.school_id || null;
 
-    const [teachingClasses, allClasses] = await Promise.all([
+    const [teachingClasses, teachingModules, assignments, allClasses] = await Promise.all([
       Class.getClassesByTeacher(teacherId, { school_id }),
+      Module.getModulesByTeacher(teacherId, { school_id }),
+      Assignment.getByTeacher(teacherId, { school_id }),
       Class.getAll({ school_id })
     ]);
     const headTeacherClasses = allClasses.filter((classItem) => {
@@ -360,8 +363,25 @@ router.get('/me/classes', auth, async (req, res) => {
 
     res.json({
       teaching_classes: teachingClasses,
+      teaching_modules: teachingModules,
+      assignments,
       head_teacher_classes: headTeacherClasses
     });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/me/assignments', auth, async (req, res) => {
+  try {
+    const teacherId = req.user.teacherId;
+    if (!teacherId) {
+      return res.status(401).json({ message: 'Not a teacher account' });
+    }
+
+    const assignments = await Assignment.getByTeacher(teacherId, { school_id: req.user?.school_id || null });
+    res.json({ assignments });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -25,7 +25,7 @@
           <div class="register-field">
             <label for="fullName" class="form-label">Full Name</label>
             <div class="register-input-wrap">
-              <span class="register-input-icon user-icon" aria-hidden="true"></span>
+              <UserRound class="register-input-icon" :size="20" :stroke-width="2.25" aria-hidden="true" />
               <input
                 id="fullName"
                 v-model.trim="form.full_name"
@@ -40,7 +40,7 @@
           <div class="register-field">
             <label for="email" class="form-label">Email</label>
             <div class="register-input-wrap">
-              <span class="register-input-icon mail-icon" aria-hidden="true"></span>
+              <Mail class="register-input-icon" :size="20" :stroke-width="2.25" aria-hidden="true" />
               <input
                 id="email"
                 v-model.trim="form.email"
@@ -188,7 +188,7 @@
           <div class="register-field">
             <label for="password" class="form-label">Password</label>
             <div class="register-input-wrap">
-              <span class="register-input-icon lock-icon" aria-hidden="true"></span>
+              <LockKeyhole class="register-input-icon" :size="20" :stroke-width="2.25" aria-hidden="true" />
               <input
                 id="password"
                 v-model="form.password"
@@ -204,7 +204,8 @@
                 :aria-label="showPassword ? 'Hide password' : 'Show password'"
                 :title="showPassword ? 'Hide password' : 'Show password'"
               >
-                <span class="eye-icon" :class="{ open: !showPassword }" aria-hidden="true"></span>
+                <EyeOff v-if="showPassword" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -212,7 +213,7 @@
           <div class="register-field">
             <label for="confirmPassword" class="form-label">Confirm Password</label>
             <div class="register-input-wrap">
-              <span class="register-input-icon lock-icon" aria-hidden="true"></span>
+              <LockKeyhole class="register-input-icon" :size="20" :stroke-width="2.25" aria-hidden="true" />
               <input
                 id="confirmPassword"
                 v-model="form.confirmPassword"
@@ -228,7 +229,8 @@
                 :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
                 :title="showConfirmPassword ? 'Hide password' : 'Show password'"
               >
-                <span class="eye-icon" :class="{ open: !showConfirmPassword }" aria-hidden="true"></span>
+                <EyeOff v-if="showConfirmPassword" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -320,6 +322,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, EyeOff, LockKeyhole, Mail, UserRound } from 'lucide-vue-next'
 import api from '@/stores/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -559,7 +562,7 @@ onMounted(loadActiveSchools)
 .register-card {
   position: relative;
   z-index: 1;
-  max-width: 580px;
+  max-width: 460px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.28);
   border-radius: 8px;
@@ -570,17 +573,17 @@ onMounted(loadActiveSchools)
 .register-card-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 30px 46px;
+  gap: 12px;
+  padding: 14px 24px;
   background: linear-gradient(180deg, #47617e 0%, #33475f 100%);
   border-bottom: 1px solid rgba(15, 23, 42, 0.4);
   color: #fff;
 }
 
 .brand-login-mark {
-  flex: 0 0 58px;
-  width: 58px;
-  height: 58px;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
   border-radius: 8px;
   background: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -600,21 +603,21 @@ onMounted(loadActiveSchools)
 
 .brand-title {
   color: #fff;
-  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-size: clamp(1rem, 2.6vw, 1.22rem);
   font-weight: 850;
   line-height: 1.12;
   letter-spacing: 0;
 }
 
 .register-form {
-  padding: 24px 46px 32px;
+  padding: 14px 24px 18px;
 }
 
 .form-title {
   margin: 0;
   color: #3a4050;
   text-align: center;
-  font-size: 1.85rem;
+  font-size: 1.18rem;
   font-weight: 800;
 }
 
@@ -623,8 +626,8 @@ onMounted(loadActiveSchools)
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  margin-top: 1rem;
-  padding: 0.85rem;
+  margin-top: 0.75rem;
+  padding: 0.55rem;
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   background: #eff6ff;
@@ -637,48 +640,48 @@ onMounted(loadActiveSchools)
 
 .register-context strong {
   color: #1e3a8a;
-  font-size: 0.92rem;
+  font-size: 0.82rem;
 }
 
 .register-context span {
   color: #475569;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 650;
 }
 
 .register-context a {
   flex: 0 0 auto;
-  padding: 0.48rem 0.65rem;
+  padding: 0.38rem 0.55rem;
   border-radius: 7px;
   background: #2563eb;
   color: #fff;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 850;
   text-decoration: none;
 }
 
 .title-rule {
   height: 1px;
-  margin: 16px 0 18px;
+  margin: 10px 0 11px;
   background: #d3dae2;
 }
 
 .register-field {
-  margin-bottom: 18px;
+  margin-bottom: 9px;
 }
 
 .register-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 8px;
 }
 
 .register-field .form-label,
 .register-form > .form-label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   color: #253246;
-  font-size: 1.05rem;
+  font-size: 0.76rem;
   font-weight: 800;
 }
 
@@ -690,89 +693,19 @@ onMounted(loadActiveSchools)
 
 .register-input-icon {
   position: absolute;
-  left: 18px;
+  left: 12px;
   z-index: 2;
-  width: 28px;
-  height: 30px;
   color: #505a66;
 }
 
-.user-icon::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 2px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.user-icon::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 1px;
-  width: 23px;
-  height: 14px;
-  border-radius: 14px 14px 3px 3px;
-  background: currentColor;
-}
-
-.mail-icon::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 7px;
-  width: 25px;
-  height: 17px;
-  border-radius: 3px;
-  background: currentColor;
-}
-
-.mail-icon::after {
-  content: '';
-  position: absolute;
-  left: 5px;
-  top: 8px;
-  width: 19px;
-  height: 14px;
-  border-left: 3px solid #fff;
-  border-bottom: 3px solid #fff;
-  transform: rotate(-45deg);
-}
-
-.lock-icon::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 1px;
-  width: 14px;
-  height: 15px;
-  border: 4px solid currentColor;
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
-}
-
-.lock-icon::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 1px;
-  width: 23px;
-  height: 18px;
-  border-radius: 4px;
-  background: currentColor;
-}
-
 .register-input-wrap .form-control {
-  min-height: 50px;
-  padding: 0.78rem 4.1rem 0.78rem 4.35rem;
+  min-height: 38px;
+  padding: 0.5rem 2.9rem 0.5rem 2.85rem;
   border: 1px solid #b9c2cd !important;
   border-radius: 5px !important;
   background: rgba(255, 255, 255, 0.88) !important;
   color: #263244;
-  font-size: 1rem;
+  font-size: 0.82rem;
   box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.08);
 }
 
@@ -782,8 +715,8 @@ onMounted(loadActiveSchools)
 }
 
 .file-control {
-  min-height: 48px;
-  padding: 0.65rem 0.8rem;
+  min-height: 38px;
+  padding: 0.45rem 0.6rem;
   border: 1px solid #b9c2cd;
   border-radius: 5px;
   background: rgba(255, 255, 255, 0.88);
@@ -802,62 +735,31 @@ onMounted(loadActiveSchools)
   position: absolute;
   right: 10px;
   z-index: 3;
-  width: 42px;
-  height: 42px;
+  width: 30px;
+  height: 30px;
   border: 0;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-}
-
-.eye-icon {
-  position: relative;
-  width: 28px;
-  height: 18px;
-  border: 4px solid #505a66;
-  border-radius: 50%;
-  transform: rotate(-6deg);
-}
-
-.eye-icon::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #505a66;
-  transform: translate(-50%, -50%);
-}
-
-.eye-icon:not(.open)::after {
-  content: '';
-  position: absolute;
-  left: -3px;
-  right: -3px;
-  top: 5px;
-  height: 4px;
-  background: #505a66;
-  transform: rotate(32deg);
+  color: #505a66;
 }
 
 .terms-row {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  margin: 4px 0 24px;
+  gap: 8px;
+  margin: 2px 0 12px;
   color: #4a5361;
-  font-size: 1rem;
+  font-size: 0.82rem;
   font-weight: 650;
 }
 
 .terms-check {
   flex: 0 0 auto;
-  width: 22px;
-  height: 22px;
+  width: 17px;
+  height: 17px;
   margin-top: 1px;
   border-radius: 4px !important;
 }
@@ -871,13 +773,13 @@ onMounted(loadActiveSchools)
 }
 
 .register-submit {
-  min-height: 58px;
+  min-height: 40px;
   margin: 0;
   border: 1px solid #208742;
   border-radius: 5px;
   background: linear-gradient(180deg, #63c980 0%, #21924a 100%);
   color: #fff;
-  font-size: 1.45rem;
+  font-size: 0.95rem;
   font-weight: 850;
   text-shadow: 0 2px 2px rgba(15, 23, 42, 0.3);
   box-shadow: 0 8px 14px rgba(22, 101, 52, 0.24);
@@ -894,11 +796,11 @@ onMounted(loadActiveSchools)
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 28px;
-  padding-top: 18px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid #d3dae2;
   color: #6c7582;
-  font-size: 1.06rem;
+  font-size: 0.86rem;
   font-weight: 700;
 }
 
@@ -906,8 +808,8 @@ onMounted(loadActiveSchools)
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: 18px;
-  padding: 14px 16px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
   border: 1px solid #bfdbfe;
   border-radius: 6px;
   background: #eff6ff;
@@ -933,7 +835,7 @@ onMounted(loadActiveSchools)
   border-radius: 6px;
   background: #fff;
   color: #253246;
-  font-size: 1.3rem;
+  font-size: 1rem;
   font-weight: 800;
   text-align: center;
 }
@@ -946,7 +848,7 @@ onMounted(loadActiveSchools)
 
 .resend-btn {
   width: 100%;
-  margin: 0 0 18px;
+  margin: 0 0 14px;
   border: 0;
   background: transparent;
   color: #1f72c9;

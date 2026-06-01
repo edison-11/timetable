@@ -65,6 +65,9 @@ const resetAcademicTables = async () => {
   await pool.execute('TRUNCATE TABLE section');
   await pool.execute('TRUNCATE TABLE shift');
   await pool.execute('TRUNCATE TABLE teacher');
+  await pool.execute('TRUNCATE TABLE student');
+  await pool.execute('TRUNCATE TABLE student_attendance');
+  await pool.execute('TRUNCATE TABLE users');
   await pool.execute('SET FOREIGN_KEY_CHECKS = 1');
 };
 

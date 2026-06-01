@@ -12,7 +12,7 @@
         <div class="login-field">
           <label for="email" class="form-label">Username or Email</label>
           <div class="login-input-wrap">
-            <span class="login-input-icon user-icon" aria-hidden="true"></span>
+            <UserRound class="login-input-icon" :size="22" :stroke-width="2.25" aria-hidden="true" />
             <input
               id="email"
               v-model.trim="form.email"
@@ -33,7 +33,7 @@
           <label for="password" class="form-label">Password</label>
 
           <div class="login-input-wrap">
-            <span class="login-input-icon lock-icon" aria-hidden="true"></span>
+            <LockKeyhole class="login-input-icon" :size="22" :stroke-width="2.25" aria-hidden="true" />
             <input
               id="password"
               v-model="form.password"
@@ -52,7 +52,8 @@
               :aria-label="showPassword ? 'Hide password' : 'Show password'"
               :title="showPassword ? 'Hide password' : 'Show password'"
             >
-              <span class="eye-icon" :class="{ open: !showPassword }" aria-hidden="true"></span>
+              <EyeOff v-if="showPassword" :size="20" :stroke-width="2.2" aria-hidden="true" />
+              <Eye v-else :size="20" :stroke-width="2.2" aria-hidden="true" />
             </button>
           </div>
 
@@ -96,10 +97,12 @@
 
         <div class="register-choice-row">
           <router-link to="/teacher/register" class="register-choice">
+            <GraduationCap :size="20" :stroke-width="2.2" aria-hidden="true" />
             <strong>Teacher</strong>
             <span>Create teacher account</span>
           </router-link>
           <router-link to="/dos/register" class="register-choice">
+            <School :size="20" :stroke-width="2.2" aria-hidden="true" />
             <strong>DOS</strong>
             <span>Register school</span>
           </router-link>
@@ -112,6 +115,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { Eye, EyeOff, GraduationCap, LockKeyhole, School, UserRound } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -225,7 +229,7 @@ const handleLogin = async () => {
 .login-card {
   position: relative;
   z-index: 1;
-  max-width: 580px;
+  max-width: 440px;
   overflow: hidden;
   border: 1px solid rgba(15, 23, 42, 0.28);
   border-radius: 8px;
@@ -236,17 +240,17 @@ const handleLogin = async () => {
 .login-card-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 30px 46px;
+  gap: 11px;
+  padding: 16px 26px;
   background: linear-gradient(180deg, #47617e 0%, #33475f 100%);
   border-bottom: 1px solid rgba(15, 23, 42, 0.4);
   color: #fff;
 }
 
 .brand-login-mark {
-  flex: 0 0 58px;
-  width: 58px;
-  height: 58px;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
   border-radius: 8px;
   background: #f8fafc;
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -266,25 +270,25 @@ const handleLogin = async () => {
 
 .auth-title {
   color: #fff;
-  font-size: clamp(1.65rem, 4vw, 2.15rem);
+  font-size: clamp(1.08rem, 3vw, 1.35rem);
   font-weight: 850;
   line-height: 1.12;
   letter-spacing: 0;
 }
 
 .login-form {
-  padding: 36px 46px 32px;
+  padding: 20px 28px 22px;
 }
 
 .login-field {
-  margin-bottom: 22px;
+  margin-bottom: 13px;
 }
 
 .login-field .form-label {
   display: block;
-  margin-bottom: 9px;
+  margin-bottom: 5px;
   color: #253246;
-  font-size: 1.1rem;
+  font-size: 0.84rem;
   font-weight: 800;
 }
 
@@ -296,66 +300,19 @@ const handleLogin = async () => {
 
 .login-input-icon {
   position: absolute;
-  left: 18px;
+  left: 13px;
   z-index: 2;
-  width: 28px;
-  height: 30px;
   color: #5e6875;
 }
 
-.user-icon::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 2px;
-  width: 13px;
-  height: 13px;
-  border-radius: 50%;
-  background: currentColor;
-}
-
-.user-icon::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 1px;
-  width: 23px;
-  height: 14px;
-  border-radius: 14px 14px 3px 3px;
-  background: currentColor;
-}
-
-.lock-icon::before {
-  content: '';
-  position: absolute;
-  left: 7px;
-  top: 1px;
-  width: 14px;
-  height: 15px;
-  border: 4px solid currentColor;
-  border-bottom: 0;
-  border-radius: 10px 10px 0 0;
-}
-
-.lock-icon::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  bottom: 1px;
-  width: 23px;
-  height: 18px;
-  border-radius: 4px;
-  background: currentColor;
-}
-
 .login-input-wrap .form-control {
-  min-height: 52px;
-  padding: 0.85rem 4.1rem 0.85rem 4.35rem;
+  min-height: 42px;
+  padding: 0.58rem 3.1rem 0.58rem 3rem;
   border: 1px solid #b9c2cd !important;
   border-radius: 5px !important;
   background: rgba(255, 255, 255, 0.88) !important;
   color: #263244;
-  font-size: 1.05rem;
+  font-size: 0.88rem;
   box-shadow: inset 0 1px 1px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.08);
 }
 
@@ -372,56 +329,25 @@ const handleLogin = async () => {
   position: absolute;
   right: 10px;
   z-index: 3;
-  width: 42px;
-  height: 42px;
+  width: 34px;
+  height: 34px;
   border: 0;
   background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-}
-
-.eye-icon {
-  position: relative;
-  width: 28px;
-  height: 18px;
-  border: 4px solid #3d4550;
-  border-radius: 50%;
-  transform: rotate(-6deg);
-}
-
-.eye-icon::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #3d4550;
-  transform: translate(-50%, -50%);
-}
-
-.eye-icon:not(.open)::after {
-  content: '';
-  position: absolute;
-  left: -3px;
-  right: -3px;
-  top: 5px;
-  height: 4px;
-  background: #3d4550;
-  transform: rotate(32deg);
+  color: #3d4550;
 }
 
 .login-options {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  margin: 8px 0 22px;
+  gap: 12px;
+  margin: 6px 0 16px;
   color: #2f3a49;
-  font-size: 1rem;
+  font-size: 0.82rem;
   font-weight: 750;
 }
 
@@ -430,8 +356,8 @@ const handleLogin = async () => {
 }
 
 .remember-check {
-  width: 22px;
-  height: 22px;
+  width: 17px;
+  height: 17px;
   margin: 0;
   border-radius: 4px !important;
 }
@@ -445,13 +371,13 @@ const handleLogin = async () => {
 }
 
 .btn-primary-custom.login-submit {
-  min-height: 58px;
+  min-height: 44px;
   margin: 0;
   border: 1px solid #0866c7;
   border-radius: 5px;
   background: linear-gradient(180deg, #42a8ff 0%, #0768cd 100%);
   color: #fff;
-  font-size: 1.45rem;
+  font-size: 1.02rem;
   font-weight: 850;
   text-shadow: 0 2px 2px rgba(15, 23, 42, 0.32);
   box-shadow: 0 8px 14px rgba(3, 105, 214, 0.24);
@@ -466,10 +392,10 @@ const handleLogin = async () => {
 .login-divider {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin: 24px 0 20px;
+  gap: 12px;
+  margin: 16px 0 12px;
   color: #323b49;
-  font-size: 1.2rem;
+  font-size: 0.92rem;
   font-weight: 850;
 }
 
@@ -484,12 +410,12 @@ const handleLogin = async () => {
 .register-choice-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 24px;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .register-choice {
-  min-height: 54px;
+  min-height: 48px;
   margin: 0;
   border: 1px solid #bdc6d1;
   border-radius: 5px;
@@ -498,8 +424,9 @@ const handleLogin = async () => {
   font-weight: 800;
   display: grid;
   align-content: center;
+  justify-items: center;
   gap: 2px;
-  padding: 0.7rem 0.9rem;
+  padding: 0.55rem 0.7rem;
   text-align: center;
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.09);
@@ -518,7 +445,7 @@ const handleLogin = async () => {
 
 .register-choice span {
   color: #64748b;
-  font-size: 0.84rem;
+  font-size: 0.72rem;
 }
 
 .login-card.is-loading {

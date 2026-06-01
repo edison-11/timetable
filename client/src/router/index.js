@@ -35,7 +35,7 @@ const router = createRouter({
     {
       path: '/dos/register',
       name: 'DosRegister',
-      component: () => import('@/views/DosRegister.vue'),
+      redirect: '/register',
       meta: { requiresGuest: true }
     },
     {
@@ -59,7 +59,7 @@ const router = createRouter({
       path: '/dashboard',
       name: 'Dashboard',
       component: () => import('@/views/Dashboard.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/super-admin/dashboard',
@@ -74,64 +74,106 @@ const router = createRouter({
       meta: { requiresAdminAuth: true, roles: ['super_admin'] }
     },
     {
+      path: '/super-admin/schools/:id',
+      name: 'SuperAdminSchoolWorkspace',
+      component: () => import('@/views/SuperAdminSchoolWorkspace.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/dos',
+      name: 'SuperAdminDos',
+      component: () => import('@/views/SuperAdminDos.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/databases',
+      name: 'SuperAdminDatabases',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/billing',
+      name: 'SuperAdminBilling',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/activity',
+      name: 'SuperAdminActivity',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/reports',
+      name: 'SuperAdminReports',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
+      path: '/super-admin/administration',
+      name: 'SuperAdminAdministration',
+      component: () => import('@/views/SuperAdminSectionPage.vue'),
+      meta: { requiresAdminAuth: true, roles: ['super_admin'] }
+    },
+    {
       path: '/teachers',
       name: 'Teachers',
       component: () => import('@/views/Teachers.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/modules',
       name: 'Modules',
       component: () => import('@/views/Modules.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/classes',
       name: 'Classes',
       component: () => import('@/views/Classes.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/students',
       name: 'Students',
       component: () => import('@/views/Students.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/sections',
       name: 'Sections',
       component: () => import('@/views/Sections.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/shifts',
       name: 'Shifts',
       component: () => import('@/views/Shifts.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/rooms',
       name: 'Rooms',
       component: () => import('@/views/Rooms.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/assignments',
       name: 'Assignments',
       component: () => import('@/views/Assignments.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/timetable',
       name: 'Timetable',
       component: () => import('@/views/Timetable.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin'] }
     },
     {
       path: '/settings',
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
-      meta: { requiresAdminAuth: true, roles: ['dos', 'super_admin'] }
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin', 'super_admin'] }
     },
     {
       path: '/teacher/register',
@@ -165,6 +207,18 @@ const router = createRouter({
       path: '/teacher/attendance',
       name: 'TeacherAttendance',
       component: () => import('@/views/TeacherAttendance.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/notifications',
+      name: 'TeacherNotifications',
+      component: () => import('@/views/TeacherNotifications.vue'),
+      meta: { requiresTeacherAuth: true }
+    },
+    {
+      path: '/teacher/current-counter',
+      name: 'TeacherCurrentCounter',
+      component: () => import('@/views/TeacherCurrentCounter.vue'),
       meta: { requiresTeacherAuth: true }
     },
     {
@@ -222,11 +276,11 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = !!token
   const isTeacher = userType === 'teacher'
   const isStudent = userType === 'student'
-  const isAdmin = ['dos', 'super_admin'].includes(userType)
+  const isAdmin = ['dos', 'admin', 'super_admin'].includes(userType)
 
   const roleHome = () => {
     if (userType === 'super_admin') return '/super-admin/dashboard'
-    if (userType === 'dos') return '/dashboard'
+    if (['dos', 'admin'].includes(userType)) return '/dashboard'
     if (userType === 'teacher') return '/teacher/dashboard'
     if (userType === 'student') return '/student/dashboard'
     return '/login'
@@ -244,7 +298,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     const isStillAdmin = await authStore.checkAuth()
-    if (!isStillAdmin || !['dos', 'super_admin'].includes(authStore.currentUserType)) {
+    if (!isStillAdmin || !['dos', 'admin', 'super_admin'].includes(authStore.currentUserType)) {
       next(roleHome())
       return
     }

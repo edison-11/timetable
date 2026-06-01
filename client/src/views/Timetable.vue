@@ -1,49 +1,29 @@
 <template>
   <AppLayout>
     <div class="timetable-container">
-      <header class="studio-header">
-        <div>
-          <p class="eyebrow">Scheduling workspace</p>
-          <h1>Timetable Studio</h1>
-          <p class="studio-subtitle">Assign teaching loads, set generation rules, and review class timetables from one control panel.</p>
-        </div>
-        <div class="studio-actions">
-          <button class="icon-button" type="button" title="Refresh timetable" @click="loadTimetable">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 0 1-13.66 5.66M4 12A8 8 0 0 1 17.66 6.34M17 3v4h4M7 21v-4H3"/></svg>
-          </button>
-          <button class="btn-primary" type="button" @click="openAssignmentForm">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Add Assignment
-          </button>
-          <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
-            {{ loading ? 'Working...' : 'Generate' }}
-          </button>
-        </div>
-      </header>
-
+      <section class="studio-card">
       <section class="metrics-grid" aria-label="Timetable summary">
         <div class="metric-card">
           <span class="metric-icon class-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5a2 2 0 0 1 2-2h12v18H6a2 2 0 0 1-2-2Zm4-12h6M8 11h6"/></svg>
+            <BookOpen />
           </span>
           <div><strong>{{ classes.length }}</strong><span>Classes</span></div>
         </div>
         <div class="metric-card">
           <span class="metric-icon teacher-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-8 0v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm6-1 2 2 3-4"/></svg>
+            <Users />
           </span>
           <div><strong>{{ teachers.length }}</strong><span>Teachers</span></div>
         </div>
         <div class="metric-card">
           <span class="metric-icon module-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>
+            <LibraryBig />
           </span>
           <div><strong>{{ modules.length }}</strong><span>Modules</span></div>
         </div>
         <div class="metric-card">
           <span class="metric-icon schedule-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 8h3v3H9z"/></svg>
+            <CalendarDays />
           </span>
           <div><strong>{{ timetableEntries.length }}</strong><span>Entries</span></div>
         </div>
@@ -85,7 +65,7 @@
               <h2 id="assignmentModalTitle">Add Assignment</h2>
             </div>
             <button class="icon-button" type="button" title="Close form" @click="closeAssignmentForm">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <X />
             </button>
           </div>
 
@@ -134,8 +114,8 @@
 
           <div class="modal-footer">
             <button class="btn-secondary" type="button" @click="closeAssignmentForm">Cancel</button>
-            <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <button class="btn-primary" type="button" @click="addAssignment" :disabled="loading || !isAssignmentFormValid">
+              <Plus />
               {{ loading ? 'Adding...' : 'Add Assignment' }}
             </button>
           </div>
@@ -143,17 +123,17 @@
       </div>
 
       <section class="control-grid">
-        <article ref="generationPanel" class="panel-card">
+        <article ref="generationPanel" class="panel-card" :class="{ 'floating-form-card': showGenerationRules }">
           <div class="panel-heading">
             <span class="panel-icon generate-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13a8 8 0 0 1 14-5M20 11a8 8 0 0 1-14 5M18 3v5h-5M6 21v-5h5"/></svg>
+              <RefreshCw />
             </span>
             <div>
               <h2>Generation Rules</h2>
               <p>Choose scope and period length.</p>
             </div>
-            <button class="btn-secondary panel-toggle-button" type="button" @click="showGenerationRules = !showGenerationRules">
-              {{ showGenerationRules ? 'Hide Fields' : 'Use Fields' }}
+            <button class="icon-button panel-icon-button" type="button" title="Use generation fields" aria-label="Use generation fields" @click="showGenerationRules = !showGenerationRules">
+              <Pencil />
             </button>
           </div>
 
@@ -174,6 +154,15 @@
                 </select>
               </div>
               <div>
+                <label class="form-label">Shift</label>
+                <select v-model="generateSettings.shift_id" class="form-select">
+                  <option value="">All Shifts</option>
+                  <option v-for="shift in availableShifts" :key="shift.shift_id" :value="shift.shift_id">
+                    {{ shift.shift_name }} · {{ formatTimeRange(shift.start_time, shift.end_time) }}
+                  </option>
+                </select>
+              </div>
+              <div>
                 <label class="form-label">Start Time</label>
                 <input v-model="generateSettings.start_time" type="time" class="form-control">
               </div>
@@ -183,7 +172,7 @@
               </div>
               <div>
                 <label class="form-label">Period Minutes</label>
-                <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="1" max="180">
+                <input v-model.number="generateSettings.period_minutes" type="number" class="form-control" min="40" max="40" readonly>
               </div>
               <div>
                 <label class="form-label">Slots</label>
@@ -211,6 +200,54 @@
               </select>
               <small class="form-hint">Draft timetables allow you to work on next semester's schedule without affecting current student views.</small>
             </div>
+
+            <div class="document-settings">
+              <div class="logo-upload-row">
+                <div class="school-logo-preview">
+                  <img v-if="resolvedSchoolLogoUrl" :src="resolvedSchoolLogoUrl" alt="School logo">
+                  <span v-else>Logo</span>
+                </div>
+                <label class="btn-secondary upload-logo-button">
+                  <Upload />
+                  {{ logoUploading ? 'Uploading...' : 'Upload School Logo' }}
+                  <input type="file" accept="image/png,image/jpeg" :disabled="logoUploading" @change="handleSchoolLogoUpload">
+                </label>
+              </div>
+              <div class="form-grid">
+                <div>
+                  <label class="form-label">Prepared By</label>
+                  <input v-model.trim="generateSettings.prepared_by" type="text" class="form-control" placeholder="Name or title">
+                </div>
+                <div>
+                  <label class="form-label">Approved By</label>
+                  <input v-model.trim="generateSettings.approved_by" type="text" class="form-control" placeholder="Name or title">
+                </div>
+                <div>
+                  <label class="form-label">Header Position</label>
+                  <select v-model="generateSettings.header_position" class="form-select">
+                    <option value="left">Logo and class on left</option>
+                    <option value="center">Logo and class centered</option>
+                    <option value="right">Logo and class on right</option>
+                  </select>
+                </div>
+                <div class="form-grid-full">
+                  <label class="form-label">Extra Header Content</label>
+                  <textarea
+                    v-model.trim="generateSettings.custom_header_content"
+                    class="form-control custom-content-input"
+                    rows="3"
+                    maxlength="1000"
+                    placeholder="Add any extra text to show in the downloaded timetable"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="modal-footer inline-form-footer">
+              <button class="btn-primary" type="button" @click="showGenerationRules = false">
+                Done
+              </button>
+            </div>
           </template>
           <div v-else class="collapsed-panel-summary">
             <div>
@@ -223,15 +260,15 @@
       </section>
 
       <section class="break-rules-section">
-        <article class="panel-card break-rules-card">
+        <article class="panel-card break-rules-card" :class="{ 'floating-form-card': showBreakRuleFields }">
           <div class="rules-card-header">
             <div>
               <h2>Period-Based Break Rules</h2>
               <p>Break placement by teaching period count.</p>
             </div>
             <div class="rules-header-actions">
-              <button class="btn-secondary panel-toggle-button" type="button" @click="showBreakRuleFields = !showBreakRuleFields">
-                {{ showBreakRuleFields ? 'Hide Fields' : 'Use Fields' }}
+              <button class="icon-button panel-icon-button" type="button" title="Use break rule fields" aria-label="Use break rule fields" @click="showBreakRuleFields = !showBreakRuleFields">
+                <Pencil />
               </button>
               <div class="form-switch">
                 <input id="periodRulesEnabled" v-model="generateSettings.break_period_rules.enabled" type="checkbox">
@@ -270,7 +307,12 @@
               <input v-model.number="generateSettings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
             </div>
           </fieldset>
-          <div v-else class="collapsed-panel-summary">
+          <div v-if="showBreakRuleFields" class="inline-form-footer period-rules-footer">
+            <button class="btn-primary" type="button" @click="showBreakRuleFields = false">
+              Done
+            </button>
+          </div>
+          <div v-if="!showBreakRuleFields" class="collapsed-panel-summary">
             <div>
               <strong>{{ generateSettings.break_period_rules.enabled ? 'Period rules active' : 'Period rules disabled' }}</strong>
               <span>
@@ -286,13 +328,15 @@
         <article class="panel-card">
           <div class="panel-heading compact">
             <span class="panel-icon activity-icon">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M7 6v14M17 6v14M5 20h14M9 10h6M9 14h6"/></svg>
+              <PanelTop />
             </span>
             <div>
               <h2>Shared Activities</h2>
               <p>Assembly, exams, or events placed across selected classes.</p>
             </div>
-            <button class="btn-secondary" type="button" @click="addSharedActivity">Add Activity</button>
+            <button class="icon-button panel-icon-button" type="button" title="Add shared activity" aria-label="Add shared activity" @click="addSharedActivity">
+              <Plus />
+            </button>
           </div>
 
           <div v-if="!sharedActivities.length" class="shared-empty">No shared activities added</div>
@@ -318,7 +362,7 @@
               <input v-model="activity.end_time" type="time" class="form-control">
             </div>
             <button class="btn-danger" type="button" @click="removeSharedActivity(index)" title="Remove activity">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <X />
             </button>
           </div>
         </article>
@@ -329,10 +373,10 @@
           <strong>{{ generationSummary }}</strong>
           <span>{{ generateSettings.start_time }} - {{ generateSettings.end_time }} with {{ generateSettings.period_minutes }} minute periods</span>
         </div>
-        <button class="btn-success" type="button" @click="generateTimetable" :disabled="loading">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-7 14-2-7-5 0Z"/></svg>
-          {{ loading ? 'Generating...' : 'Generate Timetable' }}
+        <button class="icon-button success-icon" type="button" title="Generate timetable" aria-label="Generate timetable" @click="generateTimetable" :disabled="loading">
+          <Send />
         </button>
+      </section>
       </section>
 
       <section v-if="displayedTimetables.length > 0" class="timetable-output-card">
@@ -343,24 +387,19 @@
           </div>
           <div class="output-actions">
             <button class="btn-secondary" type="button" @click="copyTimetableSummary">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h11v13H8zM5 16H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v1"/></svg>
+              <Copy />
               Copy
             </button>
             <button class="btn-secondary" type="button" @click="printTimetable">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6z"/></svg>
+              <Printer />
               Print
             </button>
             <select v-model="exportFormat" class="form-select export-select" aria-label="Download format">
               <option value="pdf">PDF</option>
-              <option value="csv">CSV</option>
-              <option value="xls">Excel (.xls)</option>
-              <option value="doc">Word (.doc)</option>
-              <option value="json">JSON</option>
-              <option value="txt">Text</option>
-              <option value="html">HTML</option>
+              <option value="docx">Word</option>
             </select>
             <button class="btn-secondary" type="button" @click="downloadTimetable(exportFormat)">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"/></svg>
+              <Download />
               Download
             </button>
             <div class="timetable-class-filter">
@@ -386,14 +425,13 @@
               <span class="badge">{{ group.entries.length }} entries</span>
               <div class="export-dropdown">
                 <button class="btn-secondary" @click="toggleExportDropdown(group.class_id)">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3m0 12l-4-4m4 4 4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"/></svg>
+                  <Download />
                   Export
                 </button>
                 <div v-if="activeExportDropdown === group.class_id" class="export-menu">
                   <button @click="handleExportPDF(group)">PDF</button>
                   <button @click="handleExportWord(group)">Word</button>
                   <button @click="handlePrint(group)">Print</button>
-                  <button @click="handleExportICal(group)">iCal</button>
                 </div>
               </div>
             </div>
@@ -412,13 +450,13 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="row in buildDisplayTimetableGrid(group)" :key="row.key" :class="row.type === 'break' ? `break-row ${row.breakType}` : ''">
+                <tr v-for="row in buildDisplayTimetableGrid(group)" :key="row.key" :class="row.type !== 'period' ? `break-row ${row.breakType}` : ''">
                   <td class="period-col" :class="row.breakType">
-                    <span v-if="row.type === 'break'" class="break-label">{{ row.label }}</span>
+                    <span v-if="row.type !== 'period'" class="break-label">{{ row.label }}</span>
                     <span v-else>{{ row.period }}</span>
                   </td>
                   <td class="time-col" :class="row.breakType">{{ formatTimeRange(row.start_time, row.end_time) }}</td>
-                  <td v-if="row.type === 'break'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
+                  <td v-if="row.type !== 'period'" :colspan="days.length" class="break-fill" :class="row.breakType"></td>
                   <template v-else>
                     <template v-for="day in days" :key="day">
                       <td v-if="!row.cellsByDay?.[day]?.skip" :rowspan="row.cellsByDay?.[day]?.rowspan || 1">
@@ -444,7 +482,7 @@
       </section>
 
       <section v-else class="empty-state">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v4M17 3v4M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Zm3 8h3v3H9z"/></svg>
+        <CalendarDays />
         <h2>No timetable generated yet</h2>
         <p>Add assignments, confirm your generation rules, then create a timetable.</p>
       </section>
@@ -457,8 +495,25 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
-import { exportToPDF, exportMultipleTimetablesToPDF, exportToICal } from '@/utils/exportTimetable'
+import { exportToPDF, exportMultipleTimetablesToPDF } from '@/utils/exportTimetable'
 import { FIXED_DAYS, buildFixedTimetableRows } from '@/utils/fixedTimetableStructure'
+import { resolveAssetUrl } from '@/utils/assetUrl'
+import {
+  BookOpen,
+  CalendarDays,
+  Copy,
+  Download,
+  LibraryBig,
+  PanelTop,
+  Pencil,
+  Plus,
+  Printer,
+  RefreshCw,
+  Send,
+  Upload,
+  Users,
+  X
+} from '@lucide/vue'
 
 const route = useRoute()
 const loading = ref(false)
@@ -477,6 +532,7 @@ const activeExportDropdown = ref(null)
 const exportFormat = ref('pdf')
 const timetableSettings = ref(null)
 const sharedActivities = ref([])
+const logoUploading = ref(false)
 let sharedActivityId = 0
 
 const emptyAssignment = () => ({
@@ -492,22 +548,28 @@ const assignment = ref(emptyAssignment())
 const generateSettings = ref({
   class_id: '',
   level: '',
+  shift_id: '',
   start_time: '08:00',
   end_time: '17:15',
-  period_minutes: 45,
-  teacher_changeover_minutes: 0,
+  period_minutes: 40,
+  teacher_changeover_minutes: 5,
   replace_existing: true,
   selected_days: [...FIXED_DAYS],
   status: 'draft',
+  school_logo_url: '',
+  prepared_by: '',
+  approved_by: '',
+  header_position: 'left',
+  custom_header_content: '',
   break_period_rules: {
     enabled: true,
     periods_before_morning_break: 3,
     periods_before_lunch: 2,
     periods_before_afternoon_break: 3,
     periods_after_afternoon_break: 2,
-    morning_break_minutes: 15,
-    lunch_break_minutes: 85,
-    afternoon_break_minutes: 5
+    morning_break_minutes: 30,
+    lunch_break_minutes: 45,
+    afternoon_break_minutes: 30
   }
 })
 
@@ -524,10 +586,22 @@ const messageTone = computed(() => {
   return text.includes('error') ? 'error' : 'success'
 })
 
+const isAssignmentFormValid = computed(() => {
+  return !!(
+    assignment.value.class_id &&
+    assignment.value.teacher_id &&
+    assignment.value.module_id &&
+    assignment.value.academic_year &&
+    assignment.value.term
+  )
+})
+
 const generationSummary = computed(() => {
   const scope = generateSettings.value.class_id
     ? classes.value.find(cls => String(cls.class_id) === String(generateSettings.value.class_id))?.class_name || 'Selected class'
-    : 'All classes'
+    : generateSettings.value.shift_id
+      ? `${availableShifts.value.find(shift => String(shift.shift_id) === String(generateSettings.value.shift_id))?.shift_name || 'Selected shift'} classes`
+      : 'All classes'
   const daysCount = generateSettings.value.selected_days.length
   return `${scope} across ${daysCount} day${daysCount === 1 ? '' : 's'}`
 })
@@ -543,6 +617,8 @@ const slotCountLabel = computed(() => {
 
   return `${totalSlots || 0} slot${totalSlots === 1 ? '' : 's'}`
 })
+
+const resolvedSchoolLogoUrl = computed(() => resolveAssetUrl(generateSettings.value.school_logo_url))
 
 const timeToMinutes = (time) => {
   const [hours, minutes] = String(time || '').split(':').map(Number)
@@ -581,7 +657,7 @@ const addSharedActivity = () => {
     activity_name: '',
     day_of_week: 'all',
     start_time: '08:00',
-    end_time: '08:45'
+    end_time: '08:40'
   })
 }
 
@@ -613,6 +689,20 @@ const availableLevels = computed(() => {
     if (cls.level) levels.add(cls.level)
   })
   return Array.from(levels).sort()
+})
+
+const availableShifts = computed(() => {
+  const shifts = new Map()
+  classes.value.forEach((cls) => {
+    if (!cls.shift_id) return
+    shifts.set(String(cls.shift_id), {
+      shift_id: String(cls.shift_id),
+      shift_name: cls.shift_name || 'Shift',
+      start_time: cls.shift_start_time || generateSettings.value.start_time,
+      end_time: cls.shift_end_time || generateSettings.value.end_time
+    })
+  })
+  return Array.from(shifts.values()).sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
 })
 
 const groupedTimetables = computed(() => {
@@ -709,7 +799,7 @@ const toggleExportDropdown = (classId) => {
 
 const withGroupRoomFallback = (rows, group) => {
   return rows.map((row) => {
-    if (row.type === 'break') return row
+    if (row.type !== 'period') return row
     const entriesByDay = {}
     days.forEach((day) => {
       const entry = row.entriesByDay?.[day]
@@ -724,7 +814,12 @@ const withGroupRoomFallback = (rows, group) => {
 const getExportOptions = (group) => ({
   rows: withGroupRoomFallback(buildTimetableGridWithBreaks(group), group),
   level: group.level,
-  roomName: group.room_name
+  roomName: group.room_name,
+  logoUrl: resolvedSchoolLogoUrl.value,
+  preparedBy: generateSettings.value.prepared_by,
+  approvedBy: generateSettings.value.approved_by,
+  headerPosition: generateSettings.value.header_position,
+  customContent: generateSettings.value.custom_header_content
 })
 
 const handleExportPDF = (group) => {
@@ -733,7 +828,7 @@ const handleExportPDF = (group) => {
 }
 
 const handleExportWord = (group) => {
-  downloadTimetable('doc', [group])
+  downloadTimetable('docx', [group])
   activeExportDropdown.value = null
 }
 
@@ -742,9 +837,49 @@ const handlePrint = (group) => {
   activeExportDropdown.value = null
 }
 
-const handleExportICal = (group) => {
-  exportToICal(group.entries, group.class_name)
-  activeExportDropdown.value = null
+const getTimetableSettingsPayload = () => ({
+  start_time: generateSettings.value.start_time,
+  end_time: generateSettings.value.end_time,
+  period_minutes: generateSettings.value.period_minutes,
+  teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
+  break_period_rules: { ...generateSettings.value.break_period_rules },
+  school_logo_url: generateSettings.value.school_logo_url,
+  prepared_by: generateSettings.value.prepared_by,
+  approved_by: generateSettings.value.approved_by,
+  header_position: generateSettings.value.header_position,
+  custom_header_content: generateSettings.value.custom_header_content
+})
+
+const saveTimetableSettings = async () => {
+  const response = await api.put('/settings/timetable', getTimetableSettingsPayload())
+  timetableSettings.value = response.data.settings || timetableSettings.value
+}
+
+const handleSchoolLogoUpload = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  if (!['image/png', 'image/jpeg'].includes(file.type)) {
+    assignmentMessage.value = 'Error: Upload a PNG or JPG school logo.'
+    event.target.value = ''
+    return
+  }
+
+  logoUploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/upload/single', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    generateSettings.value.school_logo_url = response.data.file?.path || response.data.file?.url || ''
+    await saveTimetableSettings()
+    assignmentMessage.value = 'School logo uploaded and saved.'
+  } catch (error) {
+    assignmentMessage.value = 'Error: ' + getApiErrorMessage(error, 'Failed to upload school logo.')
+  } finally {
+    logoUploading.value = false
+    event.target.value = ''
+  }
 }
 
 const getBreakType = (label) => {
@@ -755,10 +890,14 @@ const getBreakType = (label) => {
 }
 
 const getBreakLabel = (label) => {
-  const normalized = String(label || '').toLowerCase()
-  if (normalized.includes('morning')) return 'MORNING BREAK'
-  if (normalized.includes('lunch')) return 'LUNCH BREAK'
-  return 'EVENING BREAK'
+  const rawLabel = String(label || 'Break').trim()
+  const readableName = rawLabel.replace(/\s*break\s*/ig, ' ').trim() || rawLabel
+  return readableName
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .split('')
+    .filter((char) => char !== ' ')
+    .join(' ')
 }
 
 const buildTimetableGridRows = (group) => {
@@ -839,32 +978,13 @@ const areSameDisplayBlock = (first, second) => {
 
 const buildDisplayTimetableGrid = (group) => {
   const rows = buildTimetableGridWithBreaks(group)
-  return rows.map((row, rowIndex) => {
-    if (row.type === 'break') return row
+  return rows.map((row) => {
+    if (row.type !== 'period') return row
 
     const cellsByDay = {}
     days.forEach((day) => {
       const entry = row.entriesByDay?.[day]
-      if (!entry) {
-        cellsByDay[day] = { entry: null, rowspan: 1, skip: false }
-        return
-      }
-
-      const previousRow = rows[rowIndex - 1]
-      const previousEntry = previousRow?.type === 'period' ? previousRow.entriesByDay?.[day] : null
-      if (areSameDisplayBlock(previousEntry, entry)) {
-        cellsByDay[day] = { entry, rowspan: 1, skip: true }
-        return
-      }
-
-      let rowspan = 1
-      for (let nextIndex = rowIndex + 1; nextIndex < rows.length; nextIndex += 1) {
-        const nextRow = rows[nextIndex]
-        if (nextRow.type !== 'period' || !areSameDisplayBlock(entry, nextRow.entriesByDay?.[day])) break
-        rowspan += 1
-      }
-
-      cellsByDay[day] = { entry, rowspan, skip: false }
+      cellsByDay[day] = { entry: entry || null, rowspan: 1, skip: false }
     })
 
     return { ...row, cellsByDay }
@@ -885,7 +1005,7 @@ const buildTimetableExportRows = (groups = displayedTimetables.value) => {
 
   groups.forEach((group) => {
     buildTimetableGridWithBreaks(group).forEach((row) => {
-      if (row.type === 'break') {
+      if (row.type !== 'period') {
         rows.push([
           group.class_name || `Class ${group.class_id}`,
           row.label,
@@ -903,7 +1023,11 @@ const buildTimetableExportRows = (groups = displayedTimetables.value) => {
           const entry = row.entriesByDay[day]
           if (!entry) return 'Free'
           const room = entry.entry_type === 'activity' ? 'Shared activity' : (entry.room_name || entry.room || 'TBA')
-          return `${entry.module_name || 'Untitled'} - ${entry.teacher_name || 'No teacher'} - ${room}`
+          return [
+            entry.module_name || 'Untitled',
+            entry.teacher_name || 'No teacher',
+            room
+          ].join('\n')
         })
       ])
     })
@@ -924,14 +1048,62 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;')
 
-const buildTimetableHtml = (groups = displayedTimetables.value) => {
+const timetableCellHtml = (entry, group) => {
+  if (!entry) return '<td class="empty-cell"></td>'
+
+  const room = entry.entry_type === 'activity'
+    ? 'Shared activity'
+    : (entry.room_name || entry.room || group?.room_name || 'TBA')
+  const lines = [
+    entry.module_name || 'Untitled',
+    entry.teacher_name || 'No teacher',
+    room
+  ]
+
+  return `<td class="${entry.entry_type === 'activity' ? 'activity-cell' : ''}">${lines.map(escapeHtml).join('<br>')}</td>`
+}
+
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result || ''))
+  reader.onerror = () => reject(reader.error || new Error('Unable to read logo file'))
+  reader.readAsDataURL(blob)
+})
+
+const logoDataUrlPromises = new Map()
+
+const getLogoDataUrl = async (logoUrl = '') => {
+  const source = String(logoUrl || '').trim()
+  if (!source) return ''
+  if (source.startsWith('data:image/')) return source
+
+  if (!logoDataUrlPromises.has(source)) {
+    logoDataUrlPromises.set(source, fetch(source)
+      .then((response) => (response.ok ? response.blob() : null))
+      .then((blob) => (blob ? blobToDataUrl(blob) : ''))
+      .catch(() => ''))
+  }
+
+  return logoDataUrlPromises.get(source)
+}
+
+const buildTimetableHtml = async (groups = displayedTimetables.value, options = {}) => {
   const today = new Date().toLocaleDateString()
+  const logoUrl = options.logoSrc !== undefined
+    ? options.logoSrc
+    : await getLogoDataUrl(resolvedSchoolLogoUrl.value)
+  const preparedBy = generateSettings.value.prepared_by || '________________'
+  const approvedBy = generateSettings.value.approved_by || '________________'
+  const headerPosition = ['left', 'center', 'right'].includes(generateSettings.value.header_position)
+    ? generateSettings.value.header_position
+    : 'left'
+  const customHeaderContent = String(generateSettings.value.custom_header_content || '').trim()
   const body = groups.map((group) => {
     const className = group.class_name || `Class ${group.class_id}`
     const level = group.level || 'No level set'
     const room = group.room_name || 'No room set'
     const rows = buildTimetableGridWithBreaks(group).map((row) => {
-      if (row.type === 'break') {
+      if (row.type !== 'period') {
         return `<tr class="break-row ${row.breakType}">
           <td class="period-cell">${escapeHtml(row.label)}</td>
           <td class="time-cell">${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>
@@ -941,13 +1113,7 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
 
       const cells = days.map((day) => {
         const entry = row.entriesByDay[day]
-        if (!entry) return '<td class="empty-cell"></td>'
-        const room = entry.entry_type === 'activity' ? 'Shared activity' : (entry.room_name || entry.room || 'TBA')
-        return `<td class="${entry.entry_type === 'activity' ? 'activity-cell' : ''}">
-          <strong>${escapeHtml(entry.module_name || 'Untitled')}</strong>
-          <span>${escapeHtml(entry.teacher_name || 'No teacher')}</span>
-          <small>${escapeHtml(room)}</small>
-        </td>`
+        return timetableCellHtml(entry, group)
       }).join('')
       return `<tr>
         <td class="period-cell">${escapeHtml(row.period || '')}</td>
@@ -957,9 +1123,15 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
     }).join('')
 
     return `<section class="timetable-page">
-      <h1>${escapeHtml(className)} - Timetable</h1>
-      <p class="meta">Level: ${escapeHtml(level)} &nbsp;&nbsp; Room: ${escapeHtml(room)}</p>
-      <p class="generated">Generated on ${escapeHtml(today)}</p>
+      <header class="document-header header-${escapeHtml(headerPosition)}">
+        ${logoUrl ? `<img class="document-logo" src="${escapeHtml(logoUrl)}" width="42" height="42" style="width:42px;height:42px;max-width:42px;max-height:42px;object-fit:contain;" alt="School logo">` : '<div class="document-logo-placeholder"></div>'}
+        <div>
+          <h1>${escapeHtml(className)} - Timetable</h1>
+          <p class="meta">Level: ${escapeHtml(level)} &nbsp;&nbsp; Room: ${escapeHtml(room)}</p>
+          <p class="generated">Generated on ${escapeHtml(today)}</p>
+          ${customHeaderContent ? `<p class="custom-header-content">${escapeHtml(customHeaderContent).replace(/\n/g, '<br>')}</p>` : ''}
+        </div>
+      </header>
       <table>
         <colgroup>
           <col class="period-col">
@@ -974,6 +1146,18 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
           </tr>
         </thead>
         <tbody>${rows}</tbody>
+        <tfoot>
+          <tr class="signature-footer-row">
+            <td colspan="3">
+              <span>Prepared by</span>
+              <strong>${escapeHtml(preparedBy)}</strong>
+            </td>
+            <td colspan="4">
+              <span>Approved by</span>
+              <strong>${escapeHtml(approvedBy)}</strong>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </section>`
   }).join('')
@@ -986,39 +1170,109 @@ const buildTimetableHtml = (groups = displayedTimetables.value) => {
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #ffffff; font-family: Arial, sans-serif; color: #111827; }
-    .timetable-page { width: 100%; padding: 26px 30px 30px; page-break-after: always; }
+    .timetable-page { width: 100%; padding: 0; page-break-after: always; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     .timetable-page:last-child { page-break-after: auto; }
-    h1 { font-size: 18px; line-height: 1.2; margin: 0 0 8px; font-weight: 500; }
+    .document-header { display: flex; align-items: center; gap: 9px; margin-bottom: 5px; page-break-after: avoid; break-after: avoid; }
+    .document-header.header-left { justify-content: flex-start; text-align: left; }
+    .document-header.header-center { justify-content: center; text-align: center; }
+    .document-header.header-right { justify-content: flex-end; text-align: right; }
+    .document-logo,
+    .document-logo-placeholder { display: block; width: 42px !important; height: 42px !important; max-width: 42px !important; max-height: 42px !important; min-width: 42px; min-height: 42px; border: 1px solid #d8e4f5; border-radius: 5px; object-fit: contain; background: #ffffff; }
+    h1 { font-size: 16px; line-height: 1.1; margin: 0 0 3px; font-weight: 700; }
     .meta,
-    .generated { margin: 0 0 6px; font-size: 9px; color: #111827; }
-    .generated { margin-bottom: 14px; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .generated { margin: 0 0 2px; font-size: 8px; color: #111827; line-height: 1.15; }
+    .generated { margin-bottom: 3px; }
+    .custom-header-content { margin: 0; font-size: 8px; line-height: 1.2; color: #1f2937; white-space: pre-line; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid; break-inside: avoid; mso-page-break-inside: avoid; }
     .period-col { width: 6%; }
     .time-col { width: 10%; }
     .day-col { width: 16.8%; }
-    th, td { border: 1px solid #d8e4f5; padding: 6px 7px; font-size: 9px; line-height: 1.12; vertical-align: top; height: 42px; }
-    th { background: #2563eb; color: white; text-align: center; font-size: 8px; font-weight: 700; padding: 6px 4px; }
+    thead { display: table-header-group; }
+    tfoot { display: table-footer-group; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    th, td { border: 1px solid #d8e4f5; padding: 2px 3px; font-size: 6px; line-height: 1; vertical-align: top; height: 18px; }
+    th { background: #2563eb; color: white; text-align: center; font-size: 6px; font-weight: 700; padding: 2px 2px; height: 14px; }
     td strong,
     td span,
     td small { display: block; font-weight: 400; color: #374151; }
     td strong { color: #374151; }
-    td small { font-size: 8px; text-transform: uppercase; }
+    td small { font-size: 5px; text-transform: uppercase; }
     .period-cell,
     .time-cell { text-align: center; vertical-align: middle; color: #374151; }
     .period-cell { font-weight: 500; }
     .time-cell { white-space: nowrap; }
     .empty-cell { background: #ffffff; }
     .activity-cell { background: #f0fdf4; }
-    .break-row td { background: #eef4ff; font-weight: 700; text-align: center; vertical-align: middle; height: 38px; }
-    .break-row .period-cell { word-break: break-word; font-size: 8px; }
+    .break-row td { background: #eef4ff; font-weight: 700; text-align: center; vertical-align: middle; height: 14px; }
+    .break-row .period-cell { word-break: break-word; font-size: 5px; }
     .break-label { letter-spacing: 0; }
-    @page { size: A4 landscape; margin: 0; }
+    .signature-footer-row td { height: auto; padding: 4px 18px 0; border: 0; background: #ffffff; vertical-align: top; }
+    .signature-footer-row span { display: block; margin-bottom: 3px; color: #334155; font-size: 5px; font-weight: 700; text-transform: uppercase; }
+    .signature-footer-row strong { display: block; min-height: 8px; padding-top: 2px; border-top: 1px solid #94a3b8; font-size: 6px; font-weight: 500; }
+    @page { size: A4 landscape; margin: 3mm; mso-page-orientation: landscape; }
+    @media print {
+      html, body { width: 291mm; min-height: 204mm; }
+      .document-logo,
+      .document-logo-placeholder { width: 13mm !important; height: 13mm !important; max-width: 13mm !important; max-height: 13mm !important; min-width: 13mm; min-height: 13mm; }
+      .document-header { margin-bottom: 2.5mm; }
+      .timetable-page { page-break-after: always; }
+      .timetable-page:last-child { page-break-after: auto; }
+    }
   </style>
 </head>
 <body>
   ${body}
 </body>
 </html>`
+}
+
+const getDataUrlParts = (dataUrl = '') => {
+  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/)
+  if (!match) return null
+  return {
+    mimeType: match[1],
+    base64: match[2].replace(/\s/g, '')
+  }
+}
+
+const wrapBase64 = (value = '') => String(value).match(/.{1,76}/g)?.join('\r\n') || ''
+
+const getLogoExtension = (mimeType = 'image/png') => {
+  if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return 'jpg'
+  if (mimeType.includes('gif')) return 'gif'
+  if (mimeType.includes('webp')) return 'webp'
+  return 'png'
+}
+
+const buildWordTimetableDocument = async (groups = displayedTimetables.value) => {
+  const logoDataUrl = await getLogoDataUrl(resolvedSchoolLogoUrl.value)
+  const logoParts = getDataUrlParts(logoDataUrl)
+  const logoFileName = logoParts ? `school-logo.${getLogoExtension(logoParts.mimeType)}` : ''
+  const html = await buildTimetableHtml(groups, { logoSrc: logoFileName })
+
+  if (!logoParts) return html
+
+  const boundary = `----=_TimetableWord_${Date.now()}`
+  return [
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/related; boundary="${boundary}"; type="text/html"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset="utf-8"',
+    'Content-Transfer-Encoding: 8bit',
+    'Content-Location: timetable.html',
+    '',
+    html,
+    '',
+    `--${boundary}`,
+    `Content-Type: ${logoParts.mimeType}`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Location: ${logoFileName}`,
+    '',
+    wrapBase64(logoParts.base64),
+    '',
+    `--${boundary}--`
+  ].join('\r\n')
 }
 
 const getExportBaseName = (groups = displayedTimetables.value) => {
@@ -1042,29 +1296,27 @@ const downloadBlob = (content, filename, type) => {
   URL.revokeObjectURL(url)
 }
 
-const openPdfPrintWindow = (groups = displayedTimetables.value) => {
+const openPdfPrintWindow = async (groups = displayedTimetables.value) => {
   const printWindow = window.open('', '_blank', 'width=1200,height=800')
   if (!printWindow) {
     assignmentMessage.value = 'Allow pop-ups to export PDF, then choose Save as PDF.'
     return
   }
 
-  printWindow.document.write(buildTimetableHtml(groups))
+  printWindow.document.write(await buildTimetableHtml(groups))
   printWindow.document.close()
   printWindow.focus()
   printWindow.print()
 }
 
-const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) => {
+const downloadTimetable = async (format = 'pdf', groups = displayedTimetables.value) => {
   if (!groups.length) {
     assignmentMessage.value = 'Generate or load a timetable before downloading.'
     return
   }
 
   const baseName = getExportBaseName(groups)
-  const rows = buildTimetableExportRows(groups)
-  const html = buildTimetableHtml(groups)
-  const selectedFormat = String(format || 'csv').toLowerCase()
+  const selectedFormat = String(format || 'pdf').toLowerCase()
 
   if (selectedFormat === 'pdf') {
     if (groups.length === 1) {
@@ -1082,24 +1334,12 @@ const downloadTimetable = (format = 'csv', groups = displayedTimetables.value) =
       )
     }
     assignmentMessage.value = groups.length > 1 ? 'PDF timetables downloaded.' : 'PDF timetable downloaded.'
-  } else if (selectedFormat === 'xls') {
-    downloadBlob(html, `${baseName}.xls`, 'application/vnd.ms-excel;charset=utf-8')
-    assignmentMessage.value = 'Excel timetable downloaded.'
   } else if (selectedFormat === 'doc') {
-    downloadBlob(html, `${baseName}.doc`, 'application/msword;charset=utf-8')
+    const wordDocument = await buildWordTimetableDocument(groups)
+    downloadBlob(wordDocument, `${baseName}.doc`, 'application/msword;charset=utf-8')
     assignmentMessage.value = 'Word timetable downloaded.'
-  } else if (selectedFormat === 'json') {
-    downloadBlob(JSON.stringify(groups, null, 2), `${baseName}.json`, 'application/json;charset=utf-8')
-    assignmentMessage.value = 'JSON timetable downloaded.'
-  } else if (selectedFormat === 'txt') {
-    downloadBlob(rows.map(row => row.join(' | ')).join('\n'), `${baseName}.txt`, 'text/plain;charset=utf-8')
-    assignmentMessage.value = 'Text timetable downloaded.'
-  } else if (selectedFormat === 'html') {
-    downloadBlob(html, `${baseName}.html`, 'text/html;charset=utf-8')
-    assignmentMessage.value = 'HTML timetable downloaded.'
   } else {
-    downloadBlob(rows.map(row => row.map(escapeCsvValue).join(',')).join('\n'), `${baseName}.csv`, 'text/csv;charset=utf-8')
-    assignmentMessage.value = 'CSV timetable downloaded.'
+    assignmentMessage.value = 'Only PDF and Word downloads are available.'
   }
 
   setTimeout(() => { assignmentMessage.value = '' }, 3000)
@@ -1123,7 +1363,7 @@ const copyTimetableSummary = async () => {
   const summary = displayedTimetables.value.map((group) => {
     const lines = [`${group.class_name || `Class ${group.class_id}`} (${group.entries.length} entries)`]
     buildTimetableGridWithBreaks(group).forEach((row) => {
-      if (row.type === 'break') {
+      if (row.type !== 'period') {
         lines.push(`${formatTimeRange(row.start_time, row.end_time)}: ${row.label}`)
         return
       }
@@ -1150,6 +1390,28 @@ const copyTimetableSummary = async () => {
 }
 
 const addAssignment = async () => {
+  // Validation: Check all required fields are selected
+  if (!assignment.value.class_id) {
+    assignmentMessage.value = 'Error: Please select a class.'
+    return
+  }
+  if (!assignment.value.teacher_id) {
+    assignmentMessage.value = 'Error: Please select a teacher.'
+    return
+  }
+  if (!assignment.value.module_id) {
+    assignmentMessage.value = 'Error: Please select a module.'
+    return
+  }
+  if (!assignment.value.academic_year) {
+    assignmentMessage.value = 'Error: Please enter academic year.'
+    return
+  }
+  if (!assignment.value.term) {
+    assignmentMessage.value = 'Error: Please select a term.'
+    return
+  }
+
   loading.value = true
   try {
     await api.post('/assignments', assignment.value)
@@ -1178,9 +1440,10 @@ const generateTimetable = async () => {
     const payload = {
       class_id: generateSettings.value.class_id,
       level: generateSettings.value.level,
+      shift_id: generateSettings.value.shift_id,
       replace_existing: generateSettings.value.replace_existing,
       start_time: generateSettings.value.start_time,
-      period_minutes: generateSettings.value.period_minutes,
+      period_minutes: 40,
       days: [...FIXED_DAYS],
       end_time: generateSettings.value.end_time,
       status: generateSettings.value.status,
@@ -1189,13 +1452,7 @@ const generateTimetable = async () => {
       shared_activities: getSharedActivityPayload()
     }
 
-    await api.put('/settings/timetable', {
-      start_time: generateSettings.value.start_time,
-      end_time: generateSettings.value.end_time,
-      period_minutes: generateSettings.value.period_minutes,
-      teacher_changeover_minutes: generateSettings.value.teacher_changeover_minutes,
-      break_period_rules: { ...generateSettings.value.break_period_rules }
-    })
+    await saveTimetableSettings()
 
     const response = await api.post('/timetable/generate', payload)
     assignmentMessage.value = 'Timetable generated. ' + (response.data.generated_count || 0) + ' entries created.'
@@ -1249,8 +1506,13 @@ const loadTimetableSettings = async () => {
     if (timetableSettings.value) {
       generateSettings.value.start_time = timetableSettings.value.start_time || generateSettings.value.start_time
       generateSettings.value.end_time = timetableSettings.value.end_time || generateSettings.value.end_time
-      generateSettings.value.period_minutes = Number(timetableSettings.value.period_minutes || generateSettings.value.period_minutes)
-      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 0)
+      generateSettings.value.period_minutes = 40
+      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 5)
+      generateSettings.value.school_logo_url = timetableSettings.value.school_logo_url || ''
+      generateSettings.value.prepared_by = timetableSettings.value.prepared_by || ''
+      generateSettings.value.approved_by = timetableSettings.value.approved_by || ''
+      generateSettings.value.header_position = timetableSettings.value.header_position || 'left'
+      generateSettings.value.custom_header_content = timetableSettings.value.custom_header_content || ''
       generateSettings.value.break_period_rules = {
         ...generateSettings.value.break_period_rules,
         ...(timetableSettings.value.break_period_rules || {})
@@ -1315,13 +1577,60 @@ svg {
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
+.studio-card {
+  display: grid;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.studio-card .studio-header,
+.studio-card .panel-card,
+.studio-card .generation-bar {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.studio-card .studio-header {
+  padding: 0 0 0.8rem;
+  border-bottom: 1px solid #dbe3ef;
+}
+
+.studio-card .metric-card,
+.studio-card .collapsed-panel-summary {
+  background: #f8fbff;
+}
+
+.studio-card .control-grid,
+.studio-card .break-rules-section,
+.studio-card .metrics-grid {
+  margin-bottom: 0;
+}
+
+.studio-card .generation-bar {
+  padding: 0.8rem 0 0;
+  border-top: 1px solid #dbe3ef;
+}
+
+.studio-card .floating-form-card {
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
 .studio-header {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
-  padding: 1.35rem;
-  margin-bottom: 1rem;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.8rem;
   background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1);
 }
 
@@ -1337,7 +1646,7 @@ svg {
 .studio-header h1,
 .output-toolbar h2 {
   margin: 0;
-  font-size: 1.8rem;
+  font-size: 1.45rem;
   line-height: 1.1;
   font-weight: 850;
   letter-spacing: 0;
@@ -1345,9 +1654,9 @@ svg {
 
 .studio-subtitle {
   max-width: 740px;
-  margin: 0.45rem 0 0;
+  margin: 0.35rem 0 0;
   color: #52627a;
-  font-size: 0.98rem;
+  font-size: 0.9rem;
 }
 
 .studio-actions,
@@ -1379,6 +1688,21 @@ svg {
   width: 42px;
   color: #0f172a;
   background: #eef2f7;
+}
+
+.primary-icon {
+  color: #fff;
+  background: #2563eb;
+}
+
+.success-icon {
+  color: #fff;
+  background: #15803d;
+}
+
+.panel-icon-button {
+  width: 38px;
+  min-height: 38px;
 }
 
 .btn-primary,
@@ -1423,16 +1747,16 @@ button:disabled {
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.85rem;
-  margin-bottom: 1rem;
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
 }
 
 .metric-card {
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  min-height: 86px;
-  padding: 1rem;
+  min-height: 70px;
+  padding: 0.8rem;
   border: 1px solid #dbe3ef;
   border-radius: 8px;
   background: #fff;
@@ -1444,8 +1768,8 @@ button:disabled {
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   color: #1d4ed8;
   background: #dbeafe;
@@ -1458,7 +1782,7 @@ button:disabled {
 
 .metric-card strong {
   display: block;
-  font-size: 1.6rem;
+  font-size: 1.25rem;
   line-height: 1;
   font-weight: 900;
 }
@@ -1499,7 +1823,7 @@ button:disabled {
 }
 
 .assignment-modal {
-  width: min(760px, 100%);
+  width: min(680px, 100%);
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
   padding: 1rem;
@@ -1507,6 +1831,40 @@ button:disabled {
   border-radius: 8px;
   background: #ffffff;
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+}
+
+.settings-modal,
+.floating-form-card {
+  width: min(760px, calc(100vw - 2rem));
+}
+
+.floating-form-card {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 60;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.floating-form-card::before {
+  content: '';
+  position: fixed;
+  inset: -100vh -100vw;
+  z-index: -1;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.inline-form-footer {
+  margin-top: 1rem;
+}
+
+.period-rules-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .modal-header {
@@ -1547,7 +1905,7 @@ button:disabled {
 }
 
 .panel-card {
-  padding: 1rem 1.1rem;
+  padding: 0.85rem 1rem;
 }
 
 .panel-heading {
@@ -1555,7 +1913,7 @@ button:disabled {
   grid-template-columns: auto 1fr auto;
   gap: 0.8rem;
   align-items: center;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.65rem;
 }
 
 .panel-heading.compact {
@@ -1565,7 +1923,7 @@ button:disabled {
 
 .panel-heading h2 {
   margin: 0;
-  font-size: 1.08rem;
+  font-size: 0.98rem;
   font-weight: 850;
 }
 
@@ -1589,12 +1947,12 @@ button:disabled {
   justify-content: space-between;
   gap: 1rem;
   margin: 0;
-  padding: 0.85rem 0.95rem;
+  padding: 0.7rem 0.8rem;
   border: 1px solid #dbe7f5;
   border-radius: 8px;
   background: linear-gradient(180deg, #f8fbff, #ffffff);
   color: #475569;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   line-height: 1.45;
 }
 
@@ -1628,6 +1986,10 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.85rem;
+}
+
+.form-grid-full {
+  grid-column: 1 / -1;
 }
 
 .field-label-row {
@@ -1676,6 +2038,12 @@ button:disabled {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
 }
 
+.custom-content-input {
+  min-height: 86px;
+  resize: vertical;
+  line-height: 1.35;
+}
+
 .panel-footer {
   margin-top: 1rem;
 }
@@ -1720,8 +2088,55 @@ button:disabled {
   align-items: center;
   margin: 0.9rem 0 0;
   color: #475569;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
   font-weight: 700;
+}
+
+.document-settings {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dbe7f5;
+}
+
+.logo-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.school-logo-preview {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.school-logo-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.upload-logo-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-logo-button input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .form-switch {
@@ -1969,6 +2384,7 @@ fieldset:disabled {
   border: 1px solid #cbd5e1;
   text-align: center;
   vertical-align: middle;
+  overflow: hidden;
 }
 
 .period-col,
@@ -2008,30 +2424,49 @@ fieldset:disabled {
   background: #e9f2ff;
 }
 
+.period-col.shift-slot,
+.time-col.shift-slot,
+.break-fill.shift-slot {
+  background: #eef2ff;
+  color: #1e3a8a;
+}
+
 .module-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   min-height: 50px;
+  height: 100%;
+  width: 100%;
+  max-width: 100%;
   padding: 0.45rem;
   border-left: 4px solid #2563eb;
   border-radius: 8px;
   background: #eff6ff;
   text-align: left;
+  overflow: hidden;
 }
 
 .module-cell strong,
 .module-cell small {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .module-cell strong {
   color: #172554;
   font-size: 0.76rem;
   line-height: 1.2;
+  white-space: nowrap;
 }
 
 .module-cell small {
   margin-top: 0.2rem;
   color: #475569;
   font-size: 0.67rem;
+  white-space: nowrap;
 }
 
 .module-cell.activity-cell {
@@ -2041,6 +2476,7 @@ fieldset:disabled {
 
 .room-badge {
   display: inline-flex;
+  max-width: 100%;
   margin-top: 0.28rem;
   padding: 0.08rem 0.38rem;
   border-radius: 999px;
@@ -2048,6 +2484,9 @@ fieldset:disabled {
   background: rgba(15, 23, 42, 0.08);
   font-size: 0.62rem;
   font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .empty-slot {

@@ -26,6 +26,7 @@ class Notification {
     if (!names.has('school_id')) await pool.execute('ALTER TABLE notification ADD COLUMN school_id INT NULL');
     if (!names.has('recipient_role')) await pool.execute('ALTER TABLE notification ADD COLUMN recipient_role VARCHAR(80) NULL');
     if (!names.has('read_at')) await pool.execute('ALTER TABLE notification ADD COLUMN read_at TIMESTAMP NULL');
+    if (!names.has('archived_at')) await pool.execute('ALTER TABLE notification ADD COLUMN archived_at TIMESTAMP NULL');
 
     this.tableReady = true;
   }
@@ -70,8 +71,11 @@ class Notification {
       where.push('(recipient_role = ? OR recipient_role IS NULL)');
       values.push(filters.recipient_role);
     }
+    if (!filters.include_archived) {
+      where.push('archived_at IS NULL');
+    }
     const [rows] = await pool.execute(
-      `SELECT notification_id, type, title, message, path, tone, school_id, recipient_role, read_at, created_at
+      `SELECT notification_id, type, title, message, path, tone, school_id, recipient_role, read_at, archived_at, created_at
        FROM notification
        ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
        ORDER BY created_at DESC
@@ -92,6 +96,42 @@ class Notification {
     }
     const [rows] = await pool.execute(`SELECT COUNT(*) as total FROM notification ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`, values);
     return rows[0]?.total || 0;
+  }
+
+  static async markRead(id = null, filters = {}) {
+    await this.ensureTable();
+    const where = [];
+    const values = [];
+    if (id) {
+      where.push('notification_id = ?');
+      values.push(id);
+    }
+    if (filters.recipient_role) {
+      where.push('(recipient_role = ? OR recipient_role IS NULL)');
+      values.push(filters.recipient_role);
+    }
+    await pool.execute(
+      `UPDATE notification SET read_at = CURRENT_TIMESTAMP ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`,
+      values
+    );
+  }
+
+  static async archive(id = null, filters = {}) {
+    await this.ensureTable();
+    const where = [];
+    const values = [];
+    if (id) {
+      where.push('notification_id = ?');
+      values.push(id);
+    }
+    if (filters.recipient_role) {
+      where.push('(recipient_role = ? OR recipient_role IS NULL)');
+      values.push(filters.recipient_role);
+    }
+    await pool.execute(
+      `UPDATE notification SET archived_at = CURRENT_TIMESTAMP ${where.length ? `WHERE ${where.join(' AND ')}` : ''}`,
+      values
+    );
   }
 
   static async delete(id) {

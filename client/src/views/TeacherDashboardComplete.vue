@@ -196,6 +196,8 @@ const freePeriodsDetail = ref([])
 const upcomingClasses = ref([])
 const timetableEntries = ref([])
 const teachingClasses = ref([])
+const teachingModules = ref([])
+const teachingAssignments = ref([])
 const headTeacherClasses = ref([])
 const loadingDashboard = ref(true)
 const notifications = ref([])
@@ -217,9 +219,21 @@ const currentTeacherId = computed(() => teacher.value?.teacher_id || teacher.val
 const teacherName = computed(() => teacher.value?.name || teacher.value?.email || 'Teacher')
 const schoolDays = SCHOOL_DAYS
 
-const teachingClassNames = computed(() => teachingClasses.value.map((classItem) => classItem.class_name).filter(Boolean))
+const teachingClassNames = computed(() => {
+  const names = [
+    ...teachingClasses.value.map((classItem) => classItem.class_name),
+    ...teachingAssignments.value.map((assignment) => assignment.class_name)
+  ].filter(Boolean)
+
+  return [...new Set(names)].sort((a, b) => a.localeCompare(b))
+})
 const moduleNames = computed(() => {
-  const modules = timetableEntries.value.filter(isTeacherLesson).map((entry) => entry.module_name).filter(Boolean)
+  const modules = [
+    ...teachingModules.value.map((module) => module.module_name),
+    ...teachingAssignments.value.map((assignment) => assignment.module_name),
+    ...timetableEntries.value.filter(isTeacherLesson).map((entry) => entry.module_name)
+  ].filter(Boolean)
+
   return [...new Set(modules)].sort((a, b) => a.localeCompare(b))
 })
 
@@ -388,6 +402,8 @@ const resetDashboard = () => {
   freePeriodsDetail.value = []
   upcomingClasses.value = []
   teachingClasses.value = []
+  teachingModules.value = []
+  teachingAssignments.value = []
   headTeacherClasses.value = []
 }
 
@@ -404,6 +420,8 @@ const loadTeacherDashboardResources = async () => {
   ])
   timetableEntries.value = timetableResponse.data.timetables || []
   teachingClasses.value = classesResponse.data.teaching_classes || []
+  teachingModules.value = classesResponse.data.teaching_modules || []
+  teachingAssignments.value = classesResponse.data.assignments || []
   headTeacherClasses.value = classesResponse.data.head_teacher_classes || []
   hydrateDashboardFromTimetable()
   await loadNotifications()
