@@ -23,7 +23,7 @@
         </div>
         <div class="step-connector" :class="{ active: step === 'reset' }"></div>
         <div class="step-item" :class="{ active: step === 'reset' }">
-          <span class="step-number">✓</span>
+          <span class="step-number"><Check :size="16" :stroke-width="2.5" aria-hidden="true" /></span>
           <span class="step-label">New Password</span>
         </div>
       </div>
@@ -36,7 +36,7 @@
             <div class="forgot-field">
               <label for="email" class="form-label">Email Address</label>
               <div class="forgot-input-wrap">
-                <span class="forgot-input-icon mail-icon" aria-hidden="true"></span>
+                <Mail class="forgot-input-icon" :size="18" :stroke-width="2.2" aria-hidden="true" />
                 <input
                   id="email"
                   v-model.trim="email"
@@ -59,7 +59,7 @@
           <!-- Step 2: OTP -->
           <div v-else-if="step === 'otp'" key="otp" class="form-step">
             <div class="alert alert-info-custom mb-4" role="alert">
-              <span class="alert-icon">🔐</span>
+              <ShieldCheck class="alert-icon" :size="24" :stroke-width="2.2" aria-hidden="true" />
               <div>
                 <strong>Verification code sent</strong>
                 <p>Enter the 6-digit code we sent to <strong>{{ maskEmail(email) }}</strong></p>
@@ -104,7 +104,7 @@
           <!-- Step 3: New Password -->
           <div v-else-if="step === 'reset'" key="reset" class="form-step">
             <div class="alert alert-success-custom mb-4" role="alert">
-              <span class="alert-icon">✓</span>
+              <CheckCircle class="alert-icon" :size="24" :stroke-width="2.2" aria-hidden="true" />
               <div>
                 <strong>Code verified!</strong>
                 <p>Now set your new password</p>
@@ -114,7 +114,7 @@
             <div class="forgot-field">
               <label for="newPassword" class="form-label">New Password</label>
               <div class="forgot-input-wrap">
-                <span class="forgot-input-icon lock-icon" aria-hidden="true"></span>
+                <LockKeyhole class="forgot-input-icon" :size="18" :stroke-width="2.2" aria-hidden="true" />
                 <input
                   id="newPassword"
                   v-model="newPassword"
@@ -131,7 +131,8 @@
                   :aria-label="showPassword ? 'Hide password' : 'Show password'"
                   :title="showPassword ? 'Hide password' : 'Show password'"
                 >
-                  <span class="eye-icon" :class="{ open: !showPassword }" aria-hidden="true"></span>
+                  <EyeOff v-if="showPassword" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                  <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
                 </button>
               </div>
               <div v-if="passwordError" class="invalid-feedback d-block mt-1">
@@ -145,7 +146,7 @@
             <div class="forgot-field">
               <label for="confirmPassword" class="form-label">Confirm Password</label>
               <div class="forgot-input-wrap">
-                <span class="forgot-input-icon lock-icon" aria-hidden="true"></span>
+                <LockKeyhole class="forgot-input-icon" :size="18" :stroke-width="2.2" aria-hidden="true" />
                 <input
                   id="confirmPassword"
                   v-model="confirmPassword"
@@ -162,7 +163,8 @@
                   :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
                   :title="showConfirmPassword ? 'Hide password' : 'Show password'"
                 >
-                  <span class="eye-icon" :class="{ open: !showConfirmPassword }" aria-hidden="true"></span>
+                  <EyeOff v-if="showConfirmPassword" :size="18" :stroke-width="2.2" aria-hidden="true" />
+                  <Eye v-else :size="18" :stroke-width="2.2" aria-hidden="true" />
                 </button>
               </div>
               <div v-if="confirmPasswordError" class="invalid-feedback d-block mt-1">
@@ -220,6 +222,7 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Check, CheckCircle, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from 'lucide-vue-next'
 import api from '@/stores/api'
 
 const router = useRouter()
@@ -596,12 +599,6 @@ onBeforeUnmount(() => {
 
 .password-toggle:hover {
   color: #667eea;
-}
-
-.eye-icon {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
 }
 
 .invalid-feedback {

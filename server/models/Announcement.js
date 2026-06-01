@@ -77,7 +77,7 @@ class Announcement {
       type: 'announcement',
       title,
       message,
-      path: '/dashboard#notifications',
+      path: '/announcements',
       tone: this.toneForPriority(priority),
       school_id: school.school_id,
       recipient_role: null

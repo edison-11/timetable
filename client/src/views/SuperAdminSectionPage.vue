@@ -84,6 +84,10 @@
           <h2>Administration workbench</h2>
           <small>Announcements and operational shortcuts</small>
         </div>
+        <div class="action-grid">
+          <button type="button" @click="router.push('/announcements')">Open announcement center</button>
+          <button type="button" @click="router.push('/notifications')">Open message inbox</button>
+        </div>
         <form class="announcement-composer" @submit.prevent="sendAdministrationAnnouncement">
           <div>
             <label>

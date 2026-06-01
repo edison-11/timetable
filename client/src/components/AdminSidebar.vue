@@ -46,6 +46,7 @@ import { useRoute } from 'vue-router'
 import {
   Activity,
   Bell,
+  Megaphone,
   BookOpen,
   Building2,
   CalendarDays,
@@ -113,6 +114,7 @@ const superAdminSidebarGroups = [
     items: [
       { name: 'Databases', path: '/super-admin/databases', icon: Database, color: '#475569' },
       { name: 'Administration', path: '/super-admin/administration', icon: ListChecks, color: '#b45309' },
+      { name: 'Announcements', path: '/announcements', icon: Megaphone, color: '#2563eb' },
       { name: 'Notifications', path: '/notifications', icon: Bell, color: '#d97706' },
       { name: 'Settings', path: '/settings', icon: Settings, color: '#64748b' }
     ]
@@ -132,6 +134,7 @@ const dosSidebarItems = [
   { name: 'Timetable', path: '/timetable', icon: CalendarDays, color: '#e11d48' },
   { name: 'Attendance', path: '/dashboard#attendance', icon: Users, color: '#16a34a' },
   { name: 'Reports', path: '/dashboard#reports', icon: FileText, color: '#f97316' },
+  { name: 'Announcements', path: '/announcements', icon: Megaphone, color: '#2563eb' },
   { name: 'Notifications', path: '/notifications', icon: Bell, color: '#d97706' },
   { name: 'Settings', path: '/settings', icon: Settings, color: '#64748b' }
 ]

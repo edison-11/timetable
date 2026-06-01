@@ -182,6 +182,12 @@ const router = createRouter({
       meta: { requiresAdminAuth: true, roles: ['dos', 'admin', 'super_admin'] }
     },
     {
+      path: '/announcements',
+      name: 'Announcements',
+      component: () => import('@/views/Announcements.vue'),
+      meta: { requiresAdminAuth: true, roles: ['dos', 'admin', 'super_admin'] }
+    },
+    {
       path: '/teacher/register',
       name: 'TeacherRegister',
       redirect: '/register'

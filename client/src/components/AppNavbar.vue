@@ -341,6 +341,7 @@ const commandItems = computed(() => {
     { type: 'Activity', label: 'Activity and Audit Logs', path: '/super-admin/activity', terms: ['audit', 'logs', 'security', 'activity', 'timeline'] },
     { type: 'Reports', label: 'Reports', path: '/super-admin/reports', terms: ['reports', 'exports', 'csv', 'pdf'] },
     { type: 'Administration', label: 'Administration Tools', path: '/super-admin/administration', terms: ['administration', 'announcement', 'maintenance', 'backup', 'roles', 'permissions'] },
+    { type: 'Announcements', label: 'Announcements', path: '/announcements', terms: ['announcements', 'broadcasts', 'messages'] },
     { type: 'Notifications', label: 'Notifications', path: '/notifications', terms: ['notifications', 'alerts', 'requests', 'approvals'] },
     { type: 'Settings', label: 'Settings', path: '/settings', terms: ['settings', 'profile', 'security', 'preferences'] }
   ]
@@ -349,6 +350,7 @@ const commandItems = computed(() => {
     { type: 'Timetable', label: 'Timetable', path: '/timetable', terms: ['timetable', 'schedule'] },
     { type: 'Teachers', label: 'Teachers', path: '/teachers', terms: ['teacher', 'teachers'] },
     { type: 'Classes', label: 'Classes', path: '/classes', terms: ['class', 'classes'] },
+    { type: 'Announcements', label: 'Announcements', path: '/announcements', terms: ['announcements', 'broadcasts', 'messages'] },
     { type: 'Notifications', label: 'Notifications', path: '/notifications', terms: ['notifications', 'alerts', 'requests', 'approvals'] },
     { type: 'Settings', label: 'Settings', path: '/settings', terms: ['settings'] }
   ]
