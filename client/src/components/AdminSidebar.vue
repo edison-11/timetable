@@ -538,6 +538,10 @@ body.admin-dark-mode .admin-sidebar .nav-item {
   color: #cbd5e1;
 }
 
+body.admin-dark-mode .admin-sidebar .nav-icon {
+  color: #bfdbfe !important;
+}
+
 body.admin-dark-mode .admin-sidebar .nav-item:hover {
   background: #1f2937;
   border-color: #334155;
@@ -548,6 +552,11 @@ body.admin-dark-mode .admin-sidebar .nav-item.active {
   background: transparent;
   border-color: transparent;
   color: #f8fafc;
+}
+
+body.admin-dark-mode .admin-sidebar .nav-item:hover .nav-icon,
+body.admin-dark-mode .admin-sidebar .nav-item.active .nav-icon {
+  color: #ffffff !important;
 }
 
 body.admin-dark-mode .admin-sidebar .academic-card strong {

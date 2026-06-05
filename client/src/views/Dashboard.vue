@@ -115,46 +115,6 @@
         </div>
       </div>
 
-      <section class="panel health-panel">
-        <div class="panel-header">
-          <div>
-            <h2>Timetable Health</h2>
-            <p>Missing loads, conflicts, and empty planning spots.</p>
-          </div>
-          <router-link to="/timetable" class="primary-link">Fix Timetable</router-link>
-        </div>
-
-        <div class="health-grid">
-          <article :class="{ warning: healthStats.conflicts > 0 }">
-            <span>Conflicts</span>
-            <strong>{{ healthStats.conflicts }}</strong>
-            <small>{{ healthStats.conflicts ? 'same teacher, same time' : 'no teacher clash found' }}</small>
-          </article>
-          <article :class="{ warning: healthStats.emptySlots > 0 }">
-            <span>Empty Slots</span>
-            <strong>{{ healthStats.emptySlots }}</strong>
-            <small>{{ healthStats.classCount }} classes checked</small>
-          </article>
-          <article :class="{ warning: healthStats.unassignedTeachers > 0 }">
-            <span>No Modules</span>
-            <strong>{{ healthStats.unassignedTeachers }}</strong>
-            <small>teachers without assigned modules</small>
-          </article>
-          <article :class="{ warning: healthStats.pendingTeachers > 0 }">
-            <span>Pending</span>
-            <strong>{{ healthStats.pendingTeachers }}</strong>
-            <small>teachers awaiting approval</small>
-          </article>
-        </div>
-
-        <div class="health-alerts">
-          <div v-for="alert in healthAlerts" :key="alert.label" class="health-alert" :class="alert.tone">
-            <strong>{{ alert.label }}</strong>
-            <span>{{ alert.text }}</span>
-          </div>
-        </div>
-      </section>
-
       <!-- 3 Bottom Cards -->
       <div class="three-cards">
         <div class="panel">
@@ -1196,7 +1156,7 @@ onMounted(reloadDashboard)
 }
 
 .health-grid span {
-  color: #64748b;
+  color: #334155 !important;
   font-size: 0.68rem;
   font-weight: 850;
   text-transform: uppercase;
@@ -1204,16 +1164,24 @@ onMounted(reloadDashboard)
 
 .health-grid strong {
   margin-top: 0.18rem;
-  color: #0f172a;
+  color: #0f172a !important;
   font-size: 1.45rem;
   line-height: 1;
 }
 
 .health-grid small {
   margin-top: 0.28rem;
-  color: #475569;
+  color: #334155 !important;
   font-size: 0.7rem;
   font-weight: 700;
+}
+
+.health-grid article.warning span {
+  color: #92400e !important;
+}
+
+.health-grid article.warning small {
+  color: #78350f !important;
 }
 
 .health-alerts {
@@ -1235,13 +1203,13 @@ onMounted(reloadDashboard)
 }
 
 .health-alert strong {
-  color: #0f172a;
+  color: #0f172a !important;
   font-size: 0.78rem;
 }
 
 .health-alert span {
   margin-top: 0.2rem;
-  color: #475569;
+  color: #334155 !important;
   font-size: 0.72rem;
 }
 
@@ -1258,6 +1226,21 @@ onMounted(reloadDashboard)
 .health-alert.success {
   background: #f0fdf4;
   border-color: #bbf7d0;
+}
+
+.health-alert.warning strong,
+.health-alert.warning span {
+  color: #78350f !important;
+}
+
+.health-alert.danger strong,
+.health-alert.danger span {
+  color: #7f1d1d !important;
+}
+
+.health-alert.success strong,
+.health-alert.success span {
+  color: #14532d !important;
 }
 
 .timetable-wrap {

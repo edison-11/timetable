@@ -158,9 +158,9 @@ const buildTimetableHtml = async (rows, className, options = {}) => {
   const footerHtml = buildFooterHtml(options)
 
   const bodyRows = rows.map((row) => {
-    if (row.type === 'break') {
+    if (row.type !== 'period') {
       return `
-        <tr class="break-row">
+        <tr class="break-row ${escapeHtml(row.breakType || '')}">
           <td>${escapeHtml(row.label || 'BREAK')}</td>
           <td>${escapeHtml(formatTimeRange(row.start_time, row.end_time))}</td>
           <td colspan="${DAYS.length}">${escapeHtml(row.label || 'BREAK')}</td>
@@ -210,6 +210,7 @@ const buildTimetableHtml = async (rows, className, options = {}) => {
     th, td { border: 1px solid #bfdbfe; padding: ${cellPadding}pt; vertical-align: top; font-size: ${fontSize}pt; line-height: 1; }
     td:first-child, td:nth-child(2) { text-align: center; white-space: nowrap; }
     .break-row td { background: #eff6ff; font-weight: 700; text-align: center; }
+    .break-row.shift-slot td { background: #eef2ff; color: #1e3a8a; }
     .signature-footer td { padding: 3pt 8pt 0; border: 0; background: #ffffff; vertical-align: top; }
     .signature-label { display: block; margin-bottom: 2pt; color: #334155; font-size: 4.6pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
     .signature-name { display: block; padding-top: 1.5pt; border-top: 1px solid #94a3b8; color: #0f172a; font-size: 5pt; font-weight: 700; }

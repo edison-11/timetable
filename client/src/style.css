@@ -3572,3 +3572,326 @@ body:is(.admin-dark-mode, .teacher-dark-mode, .dark)
   border-color: #334155 !important;
   color: #94a3b8 !important;
 }
+
+/* Comprehensive Dark Mode Visibility Fixes */
+
+/* Secondary Text Colors - Fix invisible light grays */
+body.admin-dark-mode .text-secondary-100,
+body.admin-dark-mode .text-secondary-200,
+body.admin-dark-mode .text-secondary-300,
+body.admin-dark-mode .text-secondary-400 {
+  color: #94a3b8 !important;
+}
+
+body.admin-dark-mode .text-secondary-500 {
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .text-secondary-600,
+body.admin-dark-mode .text-secondary-700,
+body.admin-dark-mode .text-secondary-800,
+body.admin-dark-mode .text-secondary-900 {
+  color: #e2e8f0 !important;
+}
+
+/* Background fixes for white elements */
+body.admin-dark-mode .bg-white {
+  background: #111827 !important;
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode .bg-secondary-100,
+body.admin-dark-mode .bg-secondary-50 {
+  background: #0f172a !important;
+}
+
+body.admin-dark-mode .bg-secondary-200,
+body.admin-dark-mode .bg-secondary-300 {
+  background: #111827 !important;
+}
+
+body.admin-dark-mode .bg-slate-50,
+body.admin-dark-mode .bg-slate-100,
+body.admin-dark-mode .bg-slate-200 {
+  background: #1f2937 !important;
+}
+
+/* Border color fixes */
+body.admin-dark-mode .border-secondary-50,
+body.admin-dark-mode .border-secondary-100,
+body.admin-dark-mode .border-secondary-200,
+body.admin-dark-mode .border-secondary-300 {
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode .border-slate-100,
+body.admin-dark-mode .border-slate-200,
+body.admin-dark-mode .border-slate-300 {
+  border-color: #334155 !important;
+}
+
+/* Toast notifications dark mode fix */
+body.admin-dark-mode .toast {
+  background: #111827 !important;
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode .toast.align-items-center {
+  color: #e5e7eb !important;
+}
+
+body.admin-dark-mode .toast.text-white {
+  color: #ffffff !important;
+}
+
+/* Card borders and shadows */
+body.admin-dark-mode .border-secondary-200 {
+  border-color: #263247 !important;
+}
+
+/* Table headers text */
+body.admin-dark-mode .text-xs.font-semibold,
+body.admin-dark-mode th {
+  color: #cbd5e1 !important;
+}
+
+/* Headings in tables */
+body.admin-dark-mode th.text-secondary-700,
+body.admin-dark-mode th.text-secondary-800,
+body.admin-dark-mode th.text-secondary-900 {
+  color: #e2e8f0 !important;
+}
+
+/* Form controls text */
+body.admin-dark-mode input::placeholder,
+body.admin-dark-mode textarea::placeholder,
+body.admin-dark-mode select option {
+  color: #64748b !important;
+}
+
+/* Links and text that should be readable */
+body.admin-dark-mode a {
+  color: #60a5fa !important;
+}
+
+body.admin-dark-mode a:hover {
+  color: #93c5fd !important;
+}
+
+/* Badge and badge colors */
+body.admin-dark-mode .badge {
+  background: #172554 !important;
+  color: #dbeafe !important;
+  border-color: #2563eb !important;
+}
+
+body.admin-dark-mode .badge-success {
+  background: #064e3b !important;
+  color: #bbf7d0 !important;
+}
+
+body.admin-dark-mode .badge-danger {
+  background: #7f1d1d !important;
+  color: #fecaca !important;
+}
+
+/* Placeholder text */
+body.admin-dark-mode [class*="empty"]:not(.empty-state) {
+  color: #94a3b8 !important;
+}
+
+/* Modal and overlay backgrounds */
+body.admin-dark-mode .modal-backdrop {
+  background: rgba(0, 0, 0, 0.65) !important;
+}
+
+/* Dropdown menus */
+body.admin-dark-mode .dropdown-menu {
+  background: #111827 !important;
+  border-color: #263247 !important;
+}
+
+body.admin-dark-mode .dropdown-item {
+  color: #e5e7eb !important;
+}
+
+body.admin-dark-mode .dropdown-item:hover,
+body.admin-dark-mode .dropdown-item:active {
+  background: #172554 !important;
+  color: #ffffff !important;
+}
+
+/* Pagination */
+body.admin-dark-mode .pagination .page-link {
+  background: #111827 !important;
+  border-color: #263247 !important;
+  color: #cbd5e1 !important;
+}
+
+body.admin-dark-mode .pagination .page-item.active .page-link {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+body.admin-dark-mode .pagination .page-link:hover {
+  background: #172554 !important;
+  color: #dbeafe !important;
+}
+
+/* Scrollbar styling for dark mode */
+body.admin-dark-mode ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body.admin-dark-mode ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+body.admin-dark-mode ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+body.admin-dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Final admin dark-surface guard.
+   Route-scoped Vue styles are injected after this file, so these selectors keep
+   enough specificity to beat hard-coded light cards when dark mode is active. */
+body:is(.admin-dark-mode, .dark) .main-content :is(
+  .page-header,
+  .toolbar,
+  .attendance-panel,
+  .table-panel,
+  .student-form,
+  .absence-card,
+  .announcements-panel,
+  .composer-panel,
+  .announcement-card,
+  .notifications-panel,
+  .messages-panel,
+  .notification-card,
+  .thread-list button,
+  .thread-detail,
+  .message-bubble,
+  .summary-grid article,
+  .teacher-summary-grid article,
+  .quick-filter-row button,
+  .details-grid div,
+  .studio-card,
+  .panel-card,
+  .generation-bar,
+  .collapsed-panel-summary,
+  .shared-empty,
+  .assignment-modal,
+  .settings-card,
+  .settings-health-grid article,
+  .settings-health-alert,
+  .account-summary div,
+  .theme-card,
+  .credentials-card,
+  .switch-card,
+  .toggle-row,
+  .session-item,
+  .tool-action,
+  .activity-row,
+  .confirm-modal
+) {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  text-shadow: none !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+body:is(.admin-dark-mode, .dark) .main-content :is(
+  .collapsed-panel-summary,
+  .shared-empty,
+  .settings-health-grid article,
+  .settings-health-alert,
+  .account-summary div,
+  .theme-card,
+  .quick-filter-row button,
+  .details-grid div
+) {
+  background: #0b1220 !important;
+}
+
+body:is(.admin-dark-mode, .dark) .main-content :is(
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  strong,
+  b,
+  th,
+  label,
+  .form-label,
+  .card-title,
+  .panel-title,
+  .section-title,
+  .metric-value
+) {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:is(.admin-dark-mode, .dark) .main-content :is(
+  p,
+  small,
+  em,
+  td,
+  li,
+  .page-subtitle,
+  .teacher-page-subtitle,
+  .muted-list,
+  .empty-row,
+  .empty-state,
+  .field span,
+  .card-heading p,
+  .settings-health-grid span,
+  .settings-health-grid small,
+  .settings-health-alert span,
+  .announcement-card p,
+  .announcement-card small,
+  .notification-copy p,
+  .notification-copy small,
+  .thread-list span,
+  .thread-list small,
+  .message-bubble p,
+  .message-bubble small,
+  .collapsed-panel-summary > div > span,
+  .generation-bar span,
+  .rules-card-header p
+) {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:is(.admin-dark-mode, .dark) .main-content :is(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea,
+  .form-control,
+  .form-select,
+  .filter-select,
+  .search-input,
+  .export-select,
+  .class-select
+) {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
+  text-shadow: none !important;
+}
+
+body:is(.admin-dark-mode, .dark) .main-content :is(input, textarea)::placeholder {
+  color: #94a3b8 !important;
+}

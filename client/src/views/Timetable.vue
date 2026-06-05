@@ -33,30 +33,6 @@
         {{ cleanMessage(assignmentMessage) }}
       </div>
 
-      <section class="assigned-loads-panel panel-card">
-        <div class="panel-heading compact">
-          <span class="panel-icon module-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5v-16ZM8 7h8M8 11h6"/></svg>
-          </span>
-          <div>
-            <h2>Assigned Teaching Loads</h2>
-            <p>Modules assigned to teachers before and after timetable generation.</p>
-          </div>
-          <span class="summary-pill">{{ assignmentCards.length }} modules</span>
-        </div>
-
-        <div v-if="assignmentCards.length" class="assigned-loads-grid">
-          <article v-for="item in assignmentCards" :key="item.key" class="assigned-load-card">
-            <div>
-              <strong>{{ item.module_name }}</strong>
-              <span>{{ item.teacher_name }} - {{ item.class_name }}</span>
-            </div>
-            <small>{{ item.level || 'Level' }} - {{ item.hours_per_year || 0 }} hrs/year</small>
-          </article>
-        </div>
-        <div v-else class="shared-empty">No assignments found. Add assignments to make modules appear here.</div>
-      </section>
-
       <div v-if="showAssignmentForm" class="modal-overlay" @click.self="closeAssignmentForm">
         <div class="assignment-modal" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
           <div class="modal-header">
@@ -306,6 +282,10 @@
               <label class="form-label">Evening Break Minutes</label>
               <input v-model.number="generateSettings.break_period_rules.afternoon_break_minutes" type="number" min="1" class="form-control">
             </div>
+            <div>
+              <label class="form-label">Shift Row Minutes</label>
+              <input v-model.number="generateSettings.teacher_changeover_minutes" type="number" min="0" class="form-control">
+            </div>
           </fieldset>
           <div v-if="showBreakRuleFields" class="inline-form-footer period-rules-footer">
             <button class="btn-primary" type="button" @click="showBreakRuleFields = false">
@@ -316,9 +296,10 @@
             <div>
               <strong>{{ generateSettings.break_period_rules.enabled ? 'Period rules active' : 'Period rules disabled' }}</strong>
               <span>
-                {{ generateSettings.break_period_rules.periods_before_morning_break }} before morning ·
-                {{ generateSettings.break_period_rules.periods_before_lunch }} before lunch ·
-                {{ generateSettings.break_period_rules.periods_after_afternoon_break }} after evening
+                {{ generateSettings.break_period_rules.periods_before_morning_break }} before morning /
+                {{ generateSettings.break_period_rules.periods_before_lunch }} before lunch /
+                {{ generateSettings.break_period_rules.periods_after_afternoon_break }} after evening /
+                {{ Number(generateSettings.teacher_changeover_minutes || 0) }} min shift row
               </span>
             </div>
             <span class="summary-pill">{{ slotCountLabel }}</span>
@@ -729,19 +710,6 @@ const groupedTimetables = computed(() => {
   return Array.from(groups.values())
 })
 
-const assignmentCards = computed(() => {
-  return assignments.value
-    .map((assignment) => ({
-      key: `${assignment.assignment_id || ''}-${assignment.teacher_id}-${assignment.module_id}-${assignment.class_id}`,
-      module_name: assignment.module_name || 'Assigned module',
-      teacher_name: assignment.teacher_name || 'Teacher',
-      class_name: assignment.class_name || 'Class',
-      level: assignment.level || '',
-      hours_per_year: Number(assignment.hours_per_year || 0)
-    }))
-    .sort((a, b) => `${a.class_name} ${a.module_name}`.localeCompare(`${b.class_name} ${b.module_name}`))
-})
-
 const classesWithTimetables = computed(() => {
   const classMap = new Map()
   groupedTimetables.value.forEach(group => {
@@ -790,7 +758,11 @@ const formatTimeRange = (start, end) => {
 }
 
 const isBreakEntry = (entry) => {
-  return entry.entry_type === 'break' || String(entry.module_name || '').toLowerCase().includes('break')
+  const name = String(entry.module_name || '').toLowerCase()
+  return entry.entry_type === 'break'
+    || name.includes('break')
+    || name.includes('shift')
+    || name.includes('changeover')
 }
 
 const toggleExportDropdown = (classId) => {
@@ -884,6 +856,7 @@ const handleSchoolLogoUpload = async (event) => {
 
 const getBreakType = (label) => {
   const normalized = String(label || '').toLowerCase()
+  if (normalized.includes('shift') || normalized.includes('changeover')) return 'shift-slot'
   if (normalized.includes('morning')) return 'morning-break'
   if (normalized.includes('lunch')) return 'lunch-break'
   return 'evening-break'
@@ -1204,6 +1177,7 @@ const buildTimetableHtml = async (groups = displayedTimetables.value, options = 
     .empty-cell { background: #ffffff; }
     .activity-cell { background: #f0fdf4; }
     .break-row td { background: #eef4ff; font-weight: 700; text-align: center; vertical-align: middle; height: 14px; }
+    .break-row.shift-slot td { background: #eef2ff; color: #1e3a8a; }
     .break-row .period-cell { word-break: break-word; font-size: 5px; }
     .break-label { letter-spacing: 0; }
     .signature-footer-row td { height: auto; padding: 4px 18px 0; border: 0; background: #ffffff; vertical-align: top; }
@@ -1507,7 +1481,7 @@ const loadTimetableSettings = async () => {
       generateSettings.value.start_time = timetableSettings.value.start_time || generateSettings.value.start_time
       generateSettings.value.end_time = timetableSettings.value.end_time || generateSettings.value.end_time
       generateSettings.value.period_minutes = 40
-      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes || 5)
+      generateSettings.value.teacher_changeover_minutes = Number(timetableSettings.value.teacher_changeover_minutes ?? 5)
       generateSettings.value.school_logo_url = timetableSettings.value.school_logo_url || ''
       generateSettings.value.prepared_by = timetableSettings.value.prepared_by || ''
       generateSettings.value.approved_by = timetableSettings.value.approved_by || ''
@@ -2524,55 +2498,6 @@ fieldset:disabled {
   color: #64748b;
 }
 
-.assigned-loads-panel {
-  margin-bottom: 1rem;
-}
-
-.assigned-loads-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 0.75rem;
-}
-
-.assigned-load-card {
-  display: grid;
-  gap: 0.55rem;
-  min-height: 104px;
-  padding: 0.85rem;
-  border: 1px solid #dbeafe;
-  border-radius: 8px;
-  background: #f8fbff;
-}
-
-.assigned-load-card strong,
-.assigned-load-card span,
-.assigned-load-card small {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.assigned-load-card strong {
-  color: #0f172a;
-  font-size: 0.9rem;
-  font-weight: 900;
-  line-height: 1.25;
-}
-
-.assigned-load-card span {
-  margin-top: 0.2rem;
-  color: #475569;
-  font-size: 0.78rem;
-  font-weight: 750;
-}
-
-.assigned-load-card small {
-  align-self: end;
-  color: #2563eb;
-  font-size: 0.75rem;
-  font-weight: 900;
-}
-
 .shared-empty {
   display: grid;
   place-items: center;
@@ -2583,6 +2508,56 @@ fieldset:disabled {
   background: #f8fafc;
   font-weight: 800;
   text-align: center;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .studio-card,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .panel-card,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .generation-bar,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .timetable-output-card,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .assignment-modal {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .metric-card,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .collapsed-panel-summary,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .shared-empty,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .timetable-header,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .table-responsive {
+  background: #0b1220 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container h1,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container h2,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container strong,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container label,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .metric-card strong,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .collapsed-panel-summary strong,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .rules-card-header h2 {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container p,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container small,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .metric-card span:not(.metric-icon),
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .collapsed-panel-summary > div > span,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .generation-bar span,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .rules-card-header p,
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .shared-empty {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .timetable-container .summary-pill {
+  background: #172554 !important;
+  color: #bfdbfe !important;
 }
 
 @media (max-width: 1100px) {

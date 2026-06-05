@@ -812,40 +812,71 @@ button:disabled {
   to { background-position: -200% 0; }
 }
 
-:global(body.admin-dark-mode) .page-header,
-:global(body.admin-dark-mode) .notifications-panel,
-:global(body.admin-dark-mode) .messages-panel,
-:global(body.admin-dark-mode) .summary-grid article,
-:global(body.admin-dark-mode) .notification-card,
-:global(body.admin-dark-mode) .thread-list button,
-:global(body.admin-dark-mode) .thread-detail,
-:global(body.admin-dark-mode) .message-bubble,
-:global(body.admin-dark-mode) .ghost-btn,
-:global(body.admin-dark-mode) .message-form input,
-:global(body.admin-dark-mode) .message-form textarea,
-:global(body.admin-dark-mode) .reply-form textarea,
-:global(body.admin-dark-mode) .icon-btn,
-:global(body.admin-dark-mode) .search-box input,
-:global(body.admin-dark-mode) .panel-toolbar select {
-  background: #111827;
-  border-color: #263247;
-  color: #e2e8f0;
+:global(body:is(.admin-dark-mode, .dark)) .notifications-page,
+:global(body:is(.admin-dark-mode, .dark)) .page-header,
+:global(body:is(.admin-dark-mode, .dark)) .notifications-panel,
+:global(body:is(.admin-dark-mode, .dark)) .messages-panel,
+:global(body:is(.admin-dark-mode, .dark)) .summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .notification-card,
+:global(body:is(.admin-dark-mode, .dark)) .thread-list button,
+:global(body:is(.admin-dark-mode, .dark)) .thread-detail,
+:global(body:is(.admin-dark-mode, .dark)) .message-bubble,
+:global(body:is(.admin-dark-mode, .dark)) .ghost-btn,
+:global(body:is(.admin-dark-mode, .dark)) .message-form input,
+:global(body:is(.admin-dark-mode, .dark)) .message-form textarea,
+:global(body:is(.admin-dark-mode, .dark)) .reply-form textarea,
+:global(body:is(.admin-dark-mode, .dark)) .icon-btn,
+:global(body:is(.admin-dark-mode, .dark)) .search-box input,
+:global(body:is(.admin-dark-mode, .dark)) .panel-toolbar select {
+  background: #111827 !important;
+  border-color: #263247 !important;
+  color: #e5edf7 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
 }
 
-:global(body.admin-dark-mode) .thread-list button.active,
-:global(body.admin-dark-mode) .message-bubble.mine {
-  background: #172554;
-  border-color: #1d4ed8;
+:global(body:is(.admin-dark-mode, .dark)) .thread-list button.active,
+:global(body:is(.admin-dark-mode, .dark)) .message-bubble.mine {
+  background: #172554 !important;
+  border-color: #1d4ed8 !important;
 }
 
-:global(body.admin-dark-mode) .page-header h1,
-:global(body.admin-dark-mode) .panel-head h2,
-:global(body.admin-dark-mode) .thread-detail h3,
-:global(body.admin-dark-mode) .message-form label,
-:global(body.admin-dark-mode) .summary-grid strong,
-:global(body.admin-dark-mode) .notification-copy strong,
-:global(body.admin-dark-mode) .empty-state strong {
-  color: #f8fafc;
+:global(body:is(.admin-dark-mode, .dark)) .page-header h1,
+:global(body:is(.admin-dark-mode, .dark)) .panel-head h2,
+:global(body:is(.admin-dark-mode, .dark)) .thread-detail h3,
+:global(body:is(.admin-dark-mode, .dark)) .message-form label,
+:global(body:is(.admin-dark-mode, .dark)) .summary-grid strong,
+:global(body:is(.admin-dark-mode, .dark)) .thread-list strong,
+:global(body:is(.admin-dark-mode, .dark)) .message-bubble strong,
+:global(body:is(.admin-dark-mode, .dark)) .notification-copy strong,
+:global(body:is(.admin-dark-mode, .dark)) .empty-state strong {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .page-header p,
+:global(body:is(.admin-dark-mode, .dark)) .panel-head small,
+:global(body:is(.admin-dark-mode, .dark)) .summary-grid span,
+:global(body:is(.admin-dark-mode, .dark)) .thread-detail small,
+:global(body:is(.admin-dark-mode, .dark)) .thread-list span,
+:global(body:is(.admin-dark-mode, .dark)) .thread-list small,
+:global(body:is(.admin-dark-mode, .dark)) .message-bubble p,
+:global(body:is(.admin-dark-mode, .dark)) .message-bubble small,
+:global(body:is(.admin-dark-mode, .dark)) .notification-copy p,
+:global(body:is(.admin-dark-mode, .dark)) .notification-copy small,
+:global(body:is(.admin-dark-mode, .dark)) .empty-state,
+:global(body:is(.admin-dark-mode, .dark)) .empty-state small {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .search-box input::placeholder,
+:global(body:is(.admin-dark-mode, .dark)) .message-form input::placeholder,
+:global(body:is(.admin-dark-mode, .dark)) .message-form textarea::placeholder,
+:global(body:is(.admin-dark-mode, .dark)) .reply-form textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 @media (max-width: 760px) {

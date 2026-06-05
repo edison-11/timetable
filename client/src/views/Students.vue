@@ -964,6 +964,65 @@ label span {
   text-align: right;
 }
 
+:global(body:is(.admin-dark-mode, .dark)) .students-page {
+  color: #e5edf7;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page .page-header,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .toolbar,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .table-panel,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-panel,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .student-form,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .absence-card {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page h1,
+:global(body:is(.admin-dark-mode, .dark)) .students-page h2,
+:global(body:is(.admin-dark-mode, .dark)) .students-page strong,
+:global(body:is(.admin-dark-mode, .dark)) .students-page th,
+:global(body:is(.admin-dark-mode, .dark)) .students-page label span {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page p,
+:global(body:is(.admin-dark-mode, .dark)) .students-page small,
+:global(body:is(.admin-dark-mode, .dark)) .students-page td,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .empty-row,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-summary-row span {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page input,
+:global(body:is(.admin-dark-mode, .dark)) .students-page select {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page input::placeholder {
+  color: #94a3b8 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page th,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-summary-row span,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .absence-toolbar {
+  background: #0b1220 !important;
+  border-color: #243244 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page td,
+:global(body:is(.admin-dark-mode, .dark)) .students-page th {
+  border-color: #243244 !important;
+}
+
 @media (max-width: 720px) {
   .page-header,
   .toolbar,

@@ -233,6 +233,54 @@
               </div>
             </section>
 
+            <section v-else-if="activeSection === 'timetable-health'" key="timetable-health" class="section-grid">
+              <div class="settings-card timetable-health-card">
+                <div class="card-heading split-heading">
+                  <span class="heading-icon"><CalendarCheck :size="19" :stroke-width="2.2" aria-hidden="true" /></span>
+                  <div>
+                    <span class="eyebrow">Timetable Health</span>
+                    <h2>Planning Checks</h2>
+                  </div>
+                  <button class="tool-btn secondary" type="button" :disabled="timetableHealthLoading" @click="loadTimetableHealthData">
+                    {{ timetableHealthLoading ? 'Refreshing...' : 'Refresh' }}
+                  </button>
+                  <button class="tool-btn primary" type="button" @click="router.push('/timetable')">Fix Timetable</button>
+                </div>
+
+                <div v-if="timetableHealthError" class="health-error">{{ timetableHealthError }}</div>
+
+                <div class="settings-health-grid">
+                  <article :class="{ warning: timetableHealthStats.conflicts > 0 }">
+                    <span>Conflicts</span>
+                    <strong>{{ timetableHealthStats.conflicts }}</strong>
+                    <small>{{ timetableHealthStats.conflicts ? 'same teacher, same time' : 'no teacher clash found' }}</small>
+                  </article>
+                  <article :class="{ warning: timetableHealthStats.emptySlots > 0 }">
+                    <span>Empty Slots</span>
+                    <strong>{{ timetableHealthStats.emptySlots }}</strong>
+                    <small>{{ timetableHealthStats.classCount }} classes checked</small>
+                  </article>
+                  <article :class="{ warning: timetableHealthStats.unassignedTeachers > 0 }">
+                    <span>No Modules</span>
+                    <strong>{{ timetableHealthStats.unassignedTeachers }}</strong>
+                    <small>teachers without assigned modules</small>
+                  </article>
+                  <article :class="{ warning: timetableHealthStats.pendingTeachers > 0 }">
+                    <span>Pending</span>
+                    <strong>{{ timetableHealthStats.pendingTeachers }}</strong>
+                    <small>teachers awaiting approval</small>
+                  </article>
+                </div>
+
+                <div class="settings-health-alerts">
+                  <div v-for="alert in timetableHealthAlerts" :key="alert.label" class="settings-health-alert" :class="alert.tone">
+                    <strong>{{ alert.label }}</strong>
+                    <span>{{ alert.text }}</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <section v-else-if="activeSection === 'appearance'" key="appearance" class="section-grid">
               <div class="settings-card">
                 <div class="card-heading">
@@ -321,7 +369,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Bell, Eye, EyeOff, Monitor, Palette, ShieldCheck, SlidersHorizontal, UserCircle, UserCog } from 'lucide-vue-next'
+import { Bell, CalendarCheck, Eye, EyeOff, Monitor, Palette, ShieldCheck, SlidersHorizontal, UserCircle, UserCog } from 'lucide-vue-next'
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
@@ -366,7 +414,8 @@ const navGroups = [
     items: [
       { id: 'notifications', label: 'Notifications', icon: Bell },
       { id: 'appearance', label: 'Appearance', icon: Palette },
-      { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal }
+      { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
+      { id: 'timetable-health', label: 'Timetable Health', icon: CalendarCheck }
     ]
   }
 ]
@@ -438,6 +487,13 @@ const createdSuperAdmin = ref(null)
 const creatingSuperAdmin = ref(false)
 const adminToolMessage = ref('')
 const adminToolMessageType = ref('success')
+const timetableHealthLoading = ref(false)
+const timetableHealthError = ref('')
+const timetableHealthData = reactive({
+  classes: [],
+  teachers: [],
+  timetables: []
+})
 
 const initials = computed(() => {
   const name = profile.full_name || profile.email || 'A'
@@ -477,6 +533,78 @@ const settingsSnapshot = computed(() => JSON.stringify({
   preferences: { ...preferences },
   appearance: { ...appearance }
 }))
+
+const normalizeTime = (time) => String(time || '').slice(0, 5)
+
+const timetableLessonEntries = computed(() => {
+  return timetableHealthData.timetables.filter((entry) => {
+    return entry.entry_type !== 'break' && entry.module_name !== 'continue'
+  })
+})
+
+const timetableHealthStats = computed(() => {
+  const conflictKeys = new Map()
+  timetableLessonEntries.value.forEach((entry) => {
+    if (!entry.teacher_id || !entry.day_of_week || !entry.start_time) return
+    const key = [entry.teacher_id, entry.day_of_week, normalizeTime(entry.start_time)].join('|')
+    const existing = conflictKeys.get(key) || new Set()
+    existing.add(entry.class_id || entry.class_name || 'unknown')
+    conflictKeys.set(key, existing)
+  })
+
+  const classIdsWithTimetable = new Set(
+    timetableLessonEntries.value.map((entry) => entry.class_id || entry.class_name).filter(Boolean)
+  )
+  const classCount = Math.max(classIdsWithTimetable.size, timetableHealthData.classes.length)
+  const expectedSlotsPerClass = 50
+  const emptySlots = Math.max((classCount * expectedSlotsPerClass) - timetableLessonEntries.value.length, 0)
+
+  return {
+    conflicts: Array.from(conflictKeys.values()).filter((classSet) => classSet.size > 1).length,
+    emptySlots,
+    unassignedTeachers: timetableHealthData.teachers.filter((teacher) => !String(teacher.assigned_modules || '').trim()).length,
+    pendingTeachers: timetableHealthData.teachers.filter((teacher) => teacher.status === 'pending').length,
+    classCount
+  }
+})
+
+const timetableHealthAlerts = computed(() => {
+  const alerts = []
+  if (timetableHealthStats.value.conflicts > 0) {
+    alerts.push({
+      label: 'Teacher conflict',
+      text: `${timetableHealthStats.value.conflicts} time slot${timetableHealthStats.value.conflicts === 1 ? '' : 's'} need review.`,
+      tone: 'danger'
+    })
+  }
+  if (timetableHealthStats.value.emptySlots > 0) {
+    alerts.push({
+      label: 'Planning gap',
+      text: `${timetableHealthStats.value.emptySlots} expected weekly slot${timetableHealthStats.value.emptySlots === 1 ? '' : 's'} are empty.`,
+      tone: 'warning'
+    })
+  }
+  if (timetableHealthStats.value.unassignedTeachers > 0) {
+    alerts.push({
+      label: 'Teacher load',
+      text: `${timetableHealthStats.value.unassignedTeachers} teacher${timetableHealthStats.value.unassignedTeachers === 1 ? '' : 's'} have no assigned module.`,
+      tone: 'warning'
+    })
+  }
+  if (timetableHealthStats.value.pendingTeachers > 0) {
+    alerts.push({
+      label: 'Approval',
+      text: `${timetableHealthStats.value.pendingTeachers} teacher${timetableHealthStats.value.pendingTeachers === 1 ? '' : 's'} awaiting DOS approval.`,
+      tone: 'info'
+    })
+  }
+
+  return alerts.length ? alerts : [{
+    label: 'Healthy timetable',
+    text: 'No urgent timetable issues detected.',
+    tone: 'success'
+  }]
+})
 
 const addActivity = (event, status = 'Complete', user = profile.full_name || account.role || 'Admin') => {
   activityLogs.value = [
@@ -776,6 +904,31 @@ const runSystemHealthCheck = async () => {
   }
 }
 
+const loadTimetableHealthData = async () => {
+  timetableHealthLoading.value = true
+  timetableHealthError.value = ''
+  try {
+    const [classesResponse, teachersResponse, timetableResponse] = await Promise.allSettled([
+      api.get('/classes'),
+      api.get('/teachers'),
+      api.get('/timetable')
+    ])
+
+    timetableHealthData.classes = classesResponse.status === 'fulfilled' ? classesResponse.value.data.classes || [] : []
+    timetableHealthData.teachers = teachersResponse.status === 'fulfilled' ? teachersResponse.value.data.teachers || [] : []
+    timetableHealthData.timetables = timetableResponse.status === 'fulfilled' ? timetableResponse.value.data.timetables || [] : []
+
+    const failed = [classesResponse, teachersResponse, timetableResponse].find((result) => result.status === 'rejected')
+    if (failed) {
+      timetableHealthError.value = failed.reason?.response?.data?.message
+        || failed.reason?.response?.data?.error
+        || 'Some timetable health data could not load.'
+    }
+  } finally {
+    timetableHealthLoading.value = false
+  }
+}
+
 const downloadJson = (filename, data) => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -867,6 +1020,7 @@ onMounted(() => {
   applyAppearance()
   window.addEventListener('beforeunload', handleBeforeUnload)
   loadProfile()
+  loadTimetableHealthData()
 })
 
 onBeforeUnmount(() => {
@@ -1095,6 +1249,138 @@ onBeforeUnmount(() => {
 
 .settings-card {
   padding: 0.95rem;
+}
+
+.split-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+}
+
+.timetable-health-card {
+  display: grid;
+  gap: 1rem;
+}
+
+.health-error {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 850;
+}
+
+.settings-health-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.settings-health-grid article {
+  padding: 0.95rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.settings-health-grid article.warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.settings-health-grid span,
+.settings-health-grid strong,
+.settings-health-grid small {
+  display: block;
+}
+
+.settings-health-grid span {
+  color: #334155;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.settings-health-grid strong {
+  margin-top: 0.18rem;
+  color: #0f172a;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.settings-health-grid small {
+  margin-top: 0.3rem;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.settings-health-grid article.warning span {
+  color: #92400e;
+}
+
+.settings-health-grid article.warning small {
+  color: #78350f;
+}
+
+.settings-health-alerts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.settings-health-alert {
+  padding: 0.8rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.settings-health-alert strong,
+.settings-health-alert span {
+  display: block;
+}
+
+.settings-health-alert strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+}
+
+.settings-health-alert span {
+  margin-top: 0.22rem;
+  color: #334155;
+  font-size: 0.75rem;
+}
+
+.settings-health-alert.warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.settings-health-alert.danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.settings-health-alert.success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.settings-health-alert.warning strong,
+.settings-health-alert.warning span {
+  color: #78350f;
+}
+
+.settings-health-alert.danger strong,
+.settings-health-alert.danger span {
+  color: #7f1d1d;
+}
+
+.settings-health-alert.success strong,
+.settings-health-alert.success span {
+  color: #14532d;
 }
 
 .quick-tools,

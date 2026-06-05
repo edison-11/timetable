@@ -1369,6 +1369,30 @@ body:not(.teacher-dark-mode) .notifications-dropdown {
   color: #172033 !important;
 }
 
+body:not(.teacher-dark-mode) .teacher-sidebar .brand-text strong,
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-label {
+  color: #172033 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .brand-text span {
+  color: #64748b !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-item {
+  color: #475569 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-item:hover,
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-item.active {
+  color: #0f172a !important;
+}
+
 body:not(.teacher-dark-mode) .teacher-content :where(.dashboard-hero, .studio-header, .settings-intro, .profile-header, .attendance-header) {
   border-color: #dbe3ef !important;
   background: linear-gradient(135deg, #f8fbff, #ffffff 55%, #eef7f1) !important;

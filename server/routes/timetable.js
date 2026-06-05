@@ -506,6 +506,69 @@ const hasBlockingTeacherConflict = async (assignment, classItem, slot, changeove
   });
 };
 
+const hasTeacherConflictInPlan = (teacherSchedule, assignment, classItem, slot, changeoverMinutes) => {
+  const teacherId = assignment?.teacher_id;
+  if (!teacherId) return false;
+
+  const scheduledSlots = teacherSchedule.get(String(teacherId)) || [];
+  const buffer = Math.max(Number(changeoverMinutes || 0), 0);
+  const slotStart = timeToMinutes(slot.start_time) - buffer;
+  const slotEnd = timeToMinutes(slot.end_time) + buffer;
+  const actualSlotStart = timeToMinutes(slot.start_time);
+  const actualSlotEnd = timeToMinutes(slot.end_time);
+
+  return scheduledSlots.some((scheduledSlot) => {
+    const isSameAssignmentBlock = Number(scheduledSlot.class_id) === Number(classItem.class_id)
+      && Number(scheduledSlot.assignment_id) === Number(assignment.assignment_id);
+
+    if (isSameAssignmentBlock && !overlaps(
+      actualSlotStart,
+      actualSlotEnd,
+      timeToMinutes(scheduledSlot.start_time),
+      timeToMinutes(scheduledSlot.end_time)
+    )) {
+      return false;
+    }
+
+    return scheduledSlot.day_of_week === slot.day_of_week
+      && overlaps(
+        slotStart,
+        slotEnd,
+        timeToMinutes(scheduledSlot.start_time) - buffer,
+        timeToMinutes(scheduledSlot.end_time) + buffer
+      );
+  });
+};
+
+const addTeacherSlotToPlan = (teacherSchedule, assignment, classItem, slot) => {
+  const teacherId = assignment?.teacher_id;
+  if (!teacherId) return;
+
+  const key = String(teacherId);
+  const scheduledSlots = teacherSchedule.get(key) || [];
+  scheduledSlots.push({
+    class_id: classItem.class_id,
+    assignment_id: assignment.assignment_id,
+    day_of_week: slot.day_of_week,
+    start_time: slot.start_time,
+    end_time: slot.end_time
+  });
+  teacherSchedule.set(key, scheduledSlots);
+};
+
+const findConflictFreeAssignmentForSlot = async (assignments, teacherSchedule, classItem, slot, changeoverMinutes) => {
+  for (const assignment of assignments) {
+    if (
+      !hasTeacherConflictInPlan(teacherSchedule, assignment, classItem, slot, changeoverMinutes)
+      && !(await hasBlockingTeacherConflict(assignment, classItem, slot, changeoverMinutes))
+    ) {
+      return assignment;
+    }
+  }
+
+  return null;
+};
+
 const findAvailableRoomId = async (dayOfWeek, startTime, endTime, schoolId = null) => {
   const rooms = await Room.getAvailableRooms(startTime, endTime, dayOfWeek, { school_id: schoolId });
   return rooms[0]?.room_id || null;
@@ -606,6 +669,7 @@ router.post('/generate', adminAuth, [
   body('start_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid start time format (HH:MM)'),
   body('end_time').optional({ nullable: true, checkFalsy: true }).matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).withMessage('Invalid end time format (HH:MM)'),
   body('period_minutes').optional({ nullable: true, checkFalsy: true }).isInt({ min: 1 }).withMessage('Period minutes must be at least 1'),
+  body('teacher_changeover_minutes').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 }).withMessage('Shift row minutes must be a whole number of at least 0'),
   body('replace_existing').optional().isBoolean(),
   body('break_period_rules')
     .optional()
@@ -749,6 +813,7 @@ router.post('/generate', adminAuth, [
     const generated = [];
     const skipped = [];
     const classEntryCounts = [];
+    const generationTeacherSchedule = new Map();
 
     if (shouldReplaceExisting) {
       for (const classItem of selectedClasses) {
@@ -848,6 +913,7 @@ router.post('/generate', adminAuth, [
         let scheduledAssignment = null;
         let selectedSlots = [];
         let hasConflict = false;
+        let fillWithoutTeacher = false;
         const currentBlock = dayBlockState.get(item.day_of_week);
         const rankedAssignments = rankAssignmentsByWeeklyTarget(
           assignments,
@@ -869,7 +935,14 @@ router.post('/generate', adminAuth, [
           if (currentBlock.count < desiredBlockSize
             && isAdjacentToCurrentBlock
             && continuationSlots.length
-            && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, changeoverMinutes))) {
+            && !hasTeacherConflictInPlan(
+              generationTeacherSchedule,
+              currentBlock.assignment,
+              classItem,
+              item,
+              classChangeoverMinutes
+            )
+            && !(await hasBlockingTeacherConflict(currentBlock.assignment, classItem, item, classChangeoverMinutes))) {
             scheduledAssignment = currentBlock.assignment;
             selectedSlots = [item];
             hasConflict = false;
@@ -916,7 +989,16 @@ router.post('/generate', adminAuth, [
 
               let hasBlockConflict = false;
               for (const blockSlot of candidateSlots) {
-                if (await hasBlockingTeacherConflict(assignment, classItem, blockSlot, changeoverMinutes)) {
+                if (
+                  hasTeacherConflictInPlan(
+                    generationTeacherSchedule,
+                    assignment,
+                    classItem,
+                    blockSlot,
+                    classChangeoverMinutes
+                  )
+                  || await hasBlockingTeacherConflict(assignment, classItem, blockSlot, classChangeoverMinutes)
+                ) {
                   hasBlockConflict = true;
                   break;
                 }
@@ -938,13 +1020,25 @@ router.post('/generate', adminAuth, [
         }
 
         if (!scheduledAssignment) {
-          scheduledAssignment = rankedAssignments[0];
-          selectedSlots = scheduledAssignment ? [item] : [];
-          hasConflict = Boolean(scheduledAssignment);
+          selectedSlots = [item];
+          scheduledAssignment = await findConflictFreeAssignmentForSlot(
+            rankedAssignments.length ? rankedAssignments : assignments,
+            generationTeacherSchedule,
+            classItem,
+            item,
+            classChangeoverMinutes
+          );
 
           if (!scheduledAssignment) {
-            itemIndex += 1;
-            continue;
+            fillWithoutTeacher = true;
+            skipped.push({
+              class_id: classItem.class_id,
+              class_name: classItem.class_name,
+              day_of_week: item.day_of_week,
+              start_time: item.start_time,
+              end_time: item.end_time,
+              reason: 'No teacher free for this time; filled as Study Period to avoid double-booking'
+            });
           }
         }
 
@@ -953,40 +1047,45 @@ router.post('/generate', adminAuth, [
           const roomId = await findAvailableRoomId(slot.day_of_week, slot.start_time, slot.end_time, school_id);
           const timetableId = await TimetableEntry.create({
             class_id: classItem.class_id,
-            assignment_id: scheduledAssignment.assignment_id,
+            assignment_id: scheduledAssignment?.assignment_id || null,
             day_of_week: slot.day_of_week,
             start_time: slot.start_time,
             end_time: slot.end_time,
             room_id: roomId || classItem.room_id || null,
-            module_name: scheduledAssignment.module_name,
+            module_name: scheduledAssignment?.module_name || 'Study Period',
             entry_type: 'lesson',
             slot_number: slot.slot_number,
             status: timetableStatus,
-            academic_year: scheduledAssignment.academic_year || null,
-            term: scheduledAssignment.term || null,
+            academic_year: scheduledAssignment?.academic_year || null,
+            term: scheduledAssignment?.term || null,
             school_id
           });
           const timetable = await TimetableEntry.findById(timetableId);
           timetable.has_conflict = hasConflict;
           generated.push(timetable);
-          scheduledCounts.set(
-            scheduledAssignment.assignment_id,
-            (scheduledCounts.get(scheduledAssignment.assignment_id) || 0) + 1
-          );
-          const teacherCountsForDay = dayTeacherCounts.get(slot.day_of_week) || new Map();
-          teacherCountsForDay.set(
-            scheduledAssignment.teacher_id,
-            (teacherCountsForDay.get(scheduledAssignment.teacher_id) || 0) + 1
-          );
-          dayTeacherCounts.set(slot.day_of_week, teacherCountsForDay);
-          dayBlockState.set(slot.day_of_week, {
-            assignment: scheduledAssignment,
-            end_time: slot.end_time,
-            slot_number: slot.slot_number,
-            count: slotCurrentBlock?.assignment?.assignment_id === scheduledAssignment.assignment_id
-              ? slotCurrentBlock.count + 1
-              : 1
-          });
+          if (scheduledAssignment) {
+            addTeacherSlotToPlan(generationTeacherSchedule, scheduledAssignment, classItem, slot);
+            scheduledCounts.set(
+              scheduledAssignment.assignment_id,
+              (scheduledCounts.get(scheduledAssignment.assignment_id) || 0) + 1
+            );
+            const teacherCountsForDay = dayTeacherCounts.get(slot.day_of_week) || new Map();
+            teacherCountsForDay.set(
+              scheduledAssignment.teacher_id,
+              (teacherCountsForDay.get(scheduledAssignment.teacher_id) || 0) + 1
+            );
+            dayTeacherCounts.set(slot.day_of_week, teacherCountsForDay);
+            dayBlockState.set(slot.day_of_week, {
+              assignment: scheduledAssignment,
+              end_time: slot.end_time,
+              slot_number: slot.slot_number,
+              count: slotCurrentBlock?.assignment?.assignment_id === scheduledAssignment.assignment_id
+                ? slotCurrentBlock.count + 1
+                : 1
+            });
+          } else if (fillWithoutTeacher) {
+            dayBlockState.delete(slot.day_of_week);
+          }
           classCount += 1;
         }
 

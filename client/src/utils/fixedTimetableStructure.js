@@ -44,6 +44,7 @@ const toNonNegativeInteger = (value, fallback) => {
 
 const formatBreakType = (name = '') => {
   const normalized = String(name).toLowerCase()
+  if (normalized.includes('shift') || normalized.includes('changeover')) return 'shift-slot'
   if (normalized.includes('lunch')) return 'lunch-break'
   if (normalized.includes('evening') || normalized.includes('afternoon')) return 'evening-break'
   return 'morning-break'
@@ -200,7 +201,11 @@ export const buildTimetableRowsFromSettings = (settings = null) => {
 }
 
 export const isBreakEntry = (entry) => {
-  return entry?.entry_type === 'break' || String(entry?.module_name || '').toLowerCase().includes('break')
+  const name = String(entry?.module_name || '').toLowerCase()
+  return entry?.entry_type === 'break'
+    || name.includes('break')
+    || name.includes('shift')
+    || name.includes('changeover')
 }
 
 export const findFixedPeriod = (startTime, endTime, settings = null) => {

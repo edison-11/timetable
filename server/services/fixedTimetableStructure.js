@@ -42,6 +42,7 @@ const toNonNegativeInteger = (value, fallback) => {
 
 const getBreakType = (name = '') => {
   const normalized = String(name).toLowerCase();
+  if (normalized.includes('shift') || normalized.includes('changeover')) return 'shift-slot';
   if (normalized.includes('lunch')) return 'lunch-break';
   if (normalized.includes('evening') || normalized.includes('afternoon')) return 'evening-break';
   return 'morning-break';

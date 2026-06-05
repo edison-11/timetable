@@ -5,7 +5,7 @@ class Shift {
     const { shift_name, start_time, end_time, teacher_changeover_minutes } = shiftData;
     const [result] = await pool.execute(
       'INSERT INTO shift (shift_name, start_time, end_time, teacher_changeover_minutes) VALUES (?, ?, ?, ?)',
-      [shift_name, start_time, end_time, teacher_changeover_minutes || 5]
+      [shift_name, start_time, end_time, teacher_changeover_minutes ?? 5]
     );
     return result.insertId;
   }
