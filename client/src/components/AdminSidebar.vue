@@ -84,6 +84,7 @@ const isNavActive = (item) => {
   if (item.path === '/super-admin/dos') return route.path.startsWith('/super-admin/dos')
   if (item.path.startsWith('/super-admin/') && item.path !== '/super-admin/dashboard') return route.path === item.path
   if (item.path.includes('#')) return route.fullPath === item.path
+  if (item.path.includes('?')) return route.fullPath === item.path
   return route.path === item.path
 }
 
@@ -132,8 +133,8 @@ const dosSidebarItems = [
   { name: 'Shifts', path: '/shifts', icon: Clock3, color: '#b45309' },
   { name: 'Assignments', path: '/assignments', icon: ClipboardList, color: '#475569' },
   { name: 'Timetable', path: '/timetable', icon: CalendarDays, color: '#e11d48' },
-  { name: 'Attendance', path: '/dashboard#attendance', icon: Users, color: '#16a34a' },
-  { name: 'Reports', path: '/dashboard#reports', icon: FileText, color: '#f97316' },
+  { name: 'Attendance', path: '/students?view=attendance', icon: Users, color: '#16a34a' },
+  { name: 'Reports', path: '/students?view=report', icon: FileText, color: '#f97316' },
   { name: 'Announcements', path: '/announcements', icon: Megaphone, color: '#2563eb' },
   { name: 'Notifications', path: '/notifications', icon: Bell, color: '#d97706' },
   { name: 'Settings', path: '/settings', icon: Settings, color: '#64748b' }

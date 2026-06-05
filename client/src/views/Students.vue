@@ -3,10 +3,10 @@
     <div class="students-page">
       <header class="page-header">
         <div>
-          <h1>Students</h1>
-          <p>Add learners, assign them to classes, and keep parent login details on record.</p>
+          <h1>{{ pageTitle }}</h1>
+          <p>{{ pageDescription }}</p>
         </div>
-        <div class="header-actions">
+        <div v-if="pageMode === 'students'" class="header-actions">
           <button class="secondary-btn" type="button" :disabled="!filteredStudents.length" @click="downloadStudentList">
             Download List
           </button>
@@ -27,42 +27,35 @@
         <button type="button" class="secondary-btn" @click="loadStudents">Refresh</button>
       </section>
 
-      <section class="attendance-panel">
-        <div class="attendance-header-row">
-          <div>
-            <h2>Attendance by Date</h2>
-            <p>Select a date to review recorded attendance for all classes or one class.</p>
-          </div>
-          <button type="button" class="secondary-btn" :disabled="loadingAttendanceRecords" @click="loadAttendanceRecords">
-            {{ loadingAttendanceRecords ? 'Loading...' : 'View Attendance' }}
-          </button>
-        </div>
-
-        <div class="attendance-filters">
+      <section v-if="pageMode !== 'students'" class="mode-panel">
+        <div class="mode-filters">
           <label>
             <span>Date</span>
             <input v-model="attendanceFilters.date" type="date">
           </label>
           <label>
             <span>Class</span>
-            <select v-model="attendanceFilters.class_id">
+            <select v-model="classFilter">
               <option value="">All classes</option>
               <option v-for="cls in classes" :key="cls.class_id" :value="String(cls.class_id)">
                 {{ cls.class_name }}
               </option>
             </select>
           </label>
+          <button type="button" class="secondary-btn" :disabled="loadingAttendanceRecords" @click="loadAttendanceRecords">
+            {{ loadingAttendanceRecords ? 'Loading...' : pageMode === 'reports' ? 'View Report' : 'View Attendance' }}
+          </button>
         </div>
 
         <div class="attendance-summary-row">
           <span><strong>{{ attendanceRecords.length }}</strong> records</span>
-          <span><strong>{{ attendanceCounts.present }}</strong> present</span>
-          <span><strong>{{ attendanceCounts.absent }}</strong> absent</span>
-          <span><strong>{{ attendanceCounts.late }}</strong> late</span>
-          <span><strong>{{ attendanceCounts.excused }}</strong> excused</span>
+          <span><strong>{{ attendanceRecordCounts.present }}</strong> present</span>
+          <span><strong>{{ attendanceRecordCounts.absent }}</strong> absent</span>
+          <span><strong>{{ attendanceRecordCounts.late }}</strong> late</span>
+          <span><strong>{{ attendanceRecordCounts.excused }}</strong> excused</span>
         </div>
 
-        <div class="attendance-record-table">
+        <div v-if="pageMode === 'attendance'" class="attendance-record-table">
           <table>
             <thead>
               <tr>
@@ -97,9 +90,227 @@
             </tbody>
           </table>
         </div>
+
+        <div v-else class="report-section">
+          <div class="report-summary-grid">
+            <article>
+              <span>Present Rate</span>
+              <strong>{{ attendanceReportSummary.presentRate }}%</strong>
+            </article>
+            <article>
+              <span>Students Present</span>
+              <strong>{{ attendanceReportSummary.present }}</strong>
+            </article>
+            <article>
+              <span>Students Absent</span>
+              <strong>{{ attendanceReportSummary.absent }}</strong>
+            </article>
+            <article>
+              <span>Late / Excused</span>
+              <strong>{{ attendanceReportSummary.late + attendanceReportSummary.excused }}</strong>
+            </article>
+          </div>
+
+          <div class="module-chart">
+            <div v-for="module in attendanceReportRows" :key="module.name" class="module-bar-row">
+              <div class="module-bar-label">
+                <strong>{{ module.name }}</strong>
+                <span>{{ module.present }}/{{ module.total }} attended</span>
+              </div>
+              <div class="module-bar-track">
+                <span :style="{ width: `${module.rate}%` }"></span>
+              </div>
+              <strong>{{ module.rate }}%</strong>
+            </div>
+            <p v-if="!attendanceReportRows.length" class="empty-row">
+              {{ loadingAttendanceRecords ? 'Loading report...' : 'No report data for this date.' }}
+            </p>
+          </div>
+        </div>
       </section>
 
-      <section class="table-panel">
+      <section v-if="pageMode === 'students' && selectedStudent" class="student-detail-panel">
+        <div class="detail-header-row">
+          <div>
+            <h2>{{ selectedStudent.name }}</h2>
+            <p>{{ selectedStudent.student_number }} - {{ selectedStudent.class_name || 'Unassigned' }}</p>
+          </div>
+          <button type="button" class="secondary-btn" @click="clearSelectedStudent">
+            Close
+          </button>
+        </div>
+
+        <div class="detail-tabs" role="tablist" aria-label="Student detail sections">
+          <button type="button" :class="{ active: studentDetailTab === 'info' }" @click="selectStudentTab('info')">
+            Information
+          </button>
+          <button type="button" :class="{ active: studentDetailTab === 'attendance' }" @click="selectStudentTab('attendance')">
+            Attendance
+          </button>
+          <button type="button" :class="{ active: studentDetailTab === 'report' }" @click="selectStudentTab('report')">
+            Report
+          </button>
+        </div>
+
+        <div v-if="studentDetailTab === 'info'" class="student-info-grid">
+          <article>
+            <span>Student ID</span>
+            <strong>{{ selectedStudent.student_number || '-' }}</strong>
+          </article>
+          <article>
+            <span>Name</span>
+            <strong>{{ selectedStudent.name || '-' }}</strong>
+          </article>
+          <article>
+            <span>Sex</span>
+            <strong>{{ selectedStudent.sex || '-' }}</strong>
+          </article>
+          <article>
+            <span>Class</span>
+            <strong>{{ selectedStudent.class_name || 'Unassigned' }}</strong>
+          </article>
+          <article>
+            <span>Section</span>
+            <strong>{{ selectedStudent.section_name || '-' }}</strong>
+          </article>
+          <article>
+            <span>Academic Year</span>
+            <strong>{{ selectedStudent.academic_year || '-' }}</strong>
+          </article>
+          <article>
+            <span>Student Email</span>
+            <strong>{{ selectedStudent.email || '-' }}</strong>
+          </article>
+          <article>
+            <span>Status</span>
+            <strong class="status-text">{{ selectedStudent.status || '-' }}</strong>
+          </article>
+          <article>
+            <span>Parent Name</span>
+            <strong>{{ selectedStudent.parent_name || '-' }}</strong>
+          </article>
+          <article>
+            <span>Parent Email</span>
+            <strong>{{ selectedStudent.parent_email || '-' }}</strong>
+          </article>
+          <article>
+            <span>Parent Phone</span>
+            <strong>{{ selectedStudent.parent_phone || '-' }}</strong>
+          </article>
+        </div>
+
+        <div v-if="studentDetailTab === 'attendance'" class="attendance-history-section">
+          <div class="attendance-summary-row">
+            <span><strong>{{ selectedAttendance.length }}</strong> records</span>
+            <span><strong>{{ selectedAttendanceCounts.present }}</strong> present</span>
+            <span><strong>{{ selectedAttendanceCounts.absent }}</strong> absent</span>
+            <span><strong>{{ selectedAttendanceCounts.late }}</strong> late</span>
+            <span><strong>{{ selectedAttendanceCounts.excused }}</strong> excused</span>
+          </div>
+
+          <div class="attendance-record-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Period / Module</th>
+                  <th>Status</th>
+                  <th>Teacher</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template v-for="group in attendanceByDay" :key="group.date">
+                  <tr class="day-row">
+                    <td colspan="5">{{ formatDate(group.date) }}</td>
+                  </tr>
+                  <tr v-for="record in group.records" :key="record.attendance_id">
+                    <td>{{ formatDate(record.attendance_date) }}</td>
+                    <td>
+                      <strong>{{ record.module_name || record.period_label || 'Study period' }}</strong>
+                      <small>{{ formatTimeRange(record) }}</small>
+                    </td>
+                    <td><span class="attendance-status" :class="record.status">{{ record.status }}</span></td>
+                    <td>{{ record.teacher_name || '-' }}</td>
+                    <td>{{ record.notes || '-' }}</td>
+                  </tr>
+                </template>
+                <tr v-if="!selectedAttendance.length">
+                  <td colspan="5" class="empty-row">
+                    {{ loadingSelectedAttendance ? 'Loading attendance...' : 'No attendance recorded for this student.' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="studentDetailTab === 'report'" class="report-section">
+          <div class="report-toolbar">
+            <label>
+              <span>Period</span>
+              <select v-model="reportPeriod">
+                <option value="week">This week</option>
+                <option value="month">This month</option>
+                <option value="term">This term</option>
+              </select>
+            </label>
+            <div>
+              <span>Showing</span>
+              <strong>{{ reportRangeLabel }}</strong>
+            </div>
+          </div>
+
+          <div class="report-summary-grid">
+            <article>
+              <span>Present Rate</span>
+              <strong>{{ selectedReportSummary.presentRate }}%</strong>
+            </article>
+            <article>
+              <span>Present</span>
+              <strong>{{ selectedReportSummary.present }}</strong>
+            </article>
+            <article>
+              <span>Absent</span>
+              <strong>{{ selectedReportSummary.absent }}</strong>
+            </article>
+            <article>
+              <span>Late / Excused</span>
+              <strong>{{ selectedReportSummary.late + selectedReportSummary.excused }}</strong>
+            </article>
+          </div>
+
+          <div class="chart-row">
+            <div class="pie-chart" :style="reportPieStyle">
+              <span>{{ selectedReportSummary.presentRate }}%</span>
+            </div>
+            <div class="chart-legend">
+              <span><i class="present-dot"></i> Present</span>
+              <span><i class="absent-dot"></i> Absent</span>
+              <span><i class="late-dot"></i> Late</span>
+              <span><i class="excused-dot"></i> Excused</span>
+            </div>
+          </div>
+
+          <div class="module-chart">
+            <div v-for="module in moduleReportRows" :key="module.name" class="module-bar-row">
+              <div class="module-bar-label">
+                <strong>{{ module.name }}</strong>
+                <span>{{ module.present }}/{{ module.total }} attended</span>
+              </div>
+              <div class="module-bar-track">
+                <span :style="{ width: `${module.rate}%` }"></span>
+              </div>
+              <strong>{{ module.rate }}%</strong>
+            </div>
+            <p v-if="!moduleReportRows.length" class="empty-row">
+              {{ loadingSelectedAttendance ? 'Loading report...' : 'No module attendance for this period.' }}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section v-if="pageMode === 'students'" class="table-panel">
         <table>
           <thead>
             <tr>
@@ -112,7 +323,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="student in filteredStudents" :key="student.student_id">
+            <tr v-for="student in filteredStudents" :key="student.student_id" :class="{ selected: selectedStudent?.student_id === student.student_id }">
               <td>
                 <strong>{{ student.name }}</strong>
                 <small>{{ student.student_number }}</small>
@@ -125,7 +336,9 @@
               </td>
               <td><span class="status-pill">{{ student.status }}</span></td>
               <td class="actions">
-                <button type="button" @click="openAbsences(student)">Absences</button>
+                <button type="button" @click="openStudentDetail(student, 'info')">Information</button>
+                <button type="button" @click="openStudentDetail(student, 'attendance')">Attendance</button>
+                <button type="button" @click="openStudentDetail(student, 'report')">Report</button>
                 <button type="button" @click="openEdit(student)">Edit</button>
                 <button type="button" class="danger" @click="deleteStudent(student)">Delete</button>
               </td>
@@ -218,65 +431,6 @@
         </form>
       </div>
 
-      <div v-if="showAbsenceModal" class="modal-overlay" @click.self="closeAbsences">
-        <section class="absence-card" role="dialog" aria-modal="true">
-          <div class="form-header">
-            <div>
-              <h2>{{ selectedStudent?.name }} Absences</h2>
-              <p>{{ selectedStudent?.student_number }} - {{ selectedStudent?.class_name || 'Unassigned' }}</p>
-            </div>
-            <button type="button" class="secondary-btn" @click="closeAbsences">Close</button>
-          </div>
-
-          <div class="absence-toolbar">
-            <label>
-              <span>From</span>
-              <input v-model="absenceFilters.from_date" type="date">
-            </label>
-            <label>
-              <span>To</span>
-              <input v-model="absenceFilters.to_date" type="date">
-            </label>
-            <button type="button" class="secondary-btn" @click="loadAbsences">Apply</button>
-          </div>
-
-          <div class="absence-summary">
-            <strong>{{ absentRecords.length }}</strong>
-            <span>absent study periods</span>
-          </div>
-
-          <div class="absence-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Study Period / Module</th>
-                  <th>Class</th>
-                  <th>Teacher</th>
-                  <th>Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="record in absentRecords" :key="record.attendance_id">
-                  <td>{{ formatDate(record.attendance_date) }}</td>
-                  <td>
-                    <strong>{{ record.module_name || record.period_label || 'Study period' }}</strong>
-                    <small>{{ formatTimeRange(record) }}</small>
-                  </td>
-                  <td>{{ record.class_name || '-' }}</td>
-                  <td>{{ record.teacher_name || '-' }}</td>
-                  <td>{{ record.notes || '-' }}</td>
-                </tr>
-                <tr v-if="!absentRecords.length">
-                  <td colspan="5" class="empty-row">
-                    {{ loadingAbsences ? 'Loading absences...' : 'No absences recorded for this student.' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </div>
       <ConfirmModal
         v-model="deleteDialog.open"
         title="Delete Student"
@@ -311,21 +465,36 @@ const saving = ref(false)
 const deleteDialog = ref({ open: false, student: null, loading: false })
 const message = ref('')
 const messageType = ref('success')
-const showAbsenceModal = ref(false)
 const route = useRoute()
 const showParentPassword = ref(false)
 const selectedStudent = ref(null)
-const absentRecords = ref([])
-const loadingAbsences = ref(false)
+const studentDetailTab = ref('info')
+const selectedAttendance = ref([])
+const loadingSelectedAttendance = ref(false)
+const reportPeriod = ref('week')
 const attendanceRecords = ref([])
 const loadingAttendanceRecords = ref(false)
 const attendanceFilters = ref({
-  date: new Date().toISOString().slice(0, 10),
-  class_id: ''
+  date: new Date().toISOString().slice(0, 10)
 })
-const absenceFilters = ref({
-  from_date: '',
-  to_date: ''
+
+const pageMode = computed(() => {
+  const view = String(route.query.view || '')
+  if (view === 'attendance') return 'attendance'
+  if (view === 'report') return 'reports'
+  return 'students'
+})
+
+const pageTitle = computed(() => {
+  if (pageMode.value === 'attendance') return 'Attendance'
+  if (pageMode.value === 'reports') return 'Reports'
+  return 'Students'
+})
+
+const pageDescription = computed(() => {
+  if (pageMode.value === 'attendance') return 'Review recorded attendance by date and class.'
+  if (pageMode.value === 'reports') return 'View attendance summaries and module-level report data.'
+  return 'Add learners, assign them to classes, and keep parent login details on record.'
 })
 
 const currentAcademicYear = () => {
@@ -366,8 +535,8 @@ const filteredStudents = computed(() => {
   })
 })
 
-const attendanceCounts = computed(() => {
-  return attendanceRecords.value.reduce((counts, record) => {
+const buildAttendanceCounts = (records) => {
+  return records.reduce((counts, record) => {
     const status = record.status || 'present'
     counts[status] = (counts[status] || 0) + 1
     return counts
@@ -377,6 +546,131 @@ const attendanceCounts = computed(() => {
     late: 0,
     excused: 0
   })
+}
+
+const selectedAttendanceCounts = computed(() => buildAttendanceCounts(selectedAttendance.value))
+const attendanceRecordCounts = computed(() => buildAttendanceCounts(attendanceRecords.value))
+
+const attendanceByDay = computed(() => {
+  const groups = new Map()
+  selectedAttendance.value.forEach((record) => {
+    const date = normalizeDate(record.attendance_date)
+    if (!groups.has(date)) groups.set(date, [])
+    groups.get(date).push(record)
+  })
+  return Array.from(groups.entries()).map(([date, records]) => ({ date, records }))
+})
+
+const getWeekRange = (date = new Date()) => {
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  const day = start.getDay() || 7
+  start.setDate(start.getDate() - day + 1)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
+}
+
+const getMonthRange = (date = new Date()) => {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1)
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999)
+  return { start, end }
+}
+
+const getTermRange = (date = new Date()) => {
+  const month = date.getMonth()
+  const termStartMonth = Math.floor(month / 3) * 3
+  const start = new Date(date.getFullYear(), termStartMonth, 1)
+  const end = new Date(date.getFullYear(), termStartMonth + 3, 0, 23, 59, 59, 999)
+  return { start, end }
+}
+
+const reportDateRange = computed(() => {
+  if (reportPeriod.value === 'month') return getMonthRange()
+  if (reportPeriod.value === 'term') return getTermRange()
+  return getWeekRange()
+})
+
+const reportRangeLabel = computed(() => {
+  const { start, end } = reportDateRange.value
+  return `${formatDate(start)} - ${formatDate(end)}`
+})
+
+const reportRecords = computed(() => {
+  const { start, end } = reportDateRange.value
+  return selectedAttendance.value.filter((record) => {
+    const date = new Date(record.attendance_date)
+    return date >= start && date <= end
+  })
+})
+
+const selectedReportSummary = computed(() => {
+  const counts = buildAttendanceCounts(reportRecords.value)
+  const total = reportRecords.value.length
+  const attended = counts.present + counts.late + counts.excused
+  return {
+    ...counts,
+    total,
+    presentRate: total ? Math.round((attended / total) * 100) : 0
+  }
+})
+
+const reportPieStyle = computed(() => {
+  const total = selectedReportSummary.value.total || 1
+  const present = Math.round((selectedReportSummary.value.present / total) * 100)
+  const absent = Math.round((selectedReportSummary.value.absent / total) * 100)
+  const late = Math.round((selectedReportSummary.value.late / total) * 100)
+  return {
+    '--present': `${present}%`,
+    '--absent': `${present + absent}%`,
+    '--late': `${present + absent + late}%`
+  }
+})
+
+const moduleReportRows = computed(() => {
+  const modules = new Map()
+  reportRecords.value.forEach((record) => {
+    const name = record.module_name || record.period_label || 'Study period'
+    if (!modules.has(name)) modules.set(name, { name, total: 0, present: 0 })
+    const row = modules.get(name)
+    row.total += 1
+    if (['present', 'late', 'excused'].includes(record.status || 'present')) row.present += 1
+  })
+  return Array.from(modules.values())
+    .map((row) => ({
+      ...row,
+      rate: row.total ? Math.round((row.present / row.total) * 100) : 0
+    }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+})
+
+const attendanceReportSummary = computed(() => {
+  const counts = buildAttendanceCounts(attendanceRecords.value)
+  const total = attendanceRecords.value.length
+  const attended = counts.present + counts.late + counts.excused
+  return {
+    ...counts,
+    total,
+    presentRate: total ? Math.round((attended / total) * 100) : 0
+  }
+})
+
+const attendanceReportRows = computed(() => {
+  const modules = new Map()
+  attendanceRecords.value.forEach((record) => {
+    const name = record.module_name || record.period_label || 'Study period'
+    if (!modules.has(name)) modules.set(name, { name, total: 0, present: 0 })
+    const row = modules.get(name)
+    row.total += 1
+    if (['present', 'late', 'excused'].includes(record.status || 'present')) row.present += 1
+  })
+  return Array.from(modules.values())
+    .map((row) => ({
+      ...row,
+      rate: row.total ? Math.round((row.present / row.total) * 100) : 0
+    }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
 })
 
 const csvEscape = (value) => {
@@ -470,7 +764,7 @@ const loadAttendanceRecords = async () => {
     const response = await api.get('/students/attendance/records', {
       params: {
         attendance_date: attendanceFilters.value.date,
-        class_id: attendanceFilters.value.class_id || undefined
+        class_id: classFilter.value || undefined
       }
     })
     attendanceRecords.value = response.data.attendance || []
@@ -559,35 +853,46 @@ const confirmDeleteStudent = async () => {
   }
 }
 
-const openAbsences = async (student) => {
+const openStudentDetail = async (student, tab = 'info') => {
   selectedStudent.value = student
-  absentRecords.value = []
-  showAbsenceModal.value = true
-  await loadAbsences()
+  studentDetailTab.value = tab
+  if (!selectedAttendance.value.length || String(selectedAttendance.value[0]?.student_id) !== String(student.student_id)) {
+    selectedAttendance.value = []
+    await loadSelectedAttendance()
+  }
 }
 
-const closeAbsences = () => {
-  showAbsenceModal.value = false
+const clearSelectedStudent = () => {
   selectedStudent.value = null
+  selectedAttendance.value = []
+  studentDetailTab.value = 'info'
 }
 
-const loadAbsences = async () => {
+const selectStudentTab = async (tab) => {
+  studentDetailTab.value = tab
+  if ((tab === 'attendance' || tab === 'report') && selectedStudent.value && !selectedAttendance.value.length) {
+    await loadSelectedAttendance()
+  }
+}
+
+const loadSelectedAttendance = async () => {
   if (!selectedStudent.value) return
-  loadingAbsences.value = true
+  loadingSelectedAttendance.value = true
   try {
     const response = await api.get(`/students/${selectedStudent.value.student_id}/attendance-history`, {
-      params: {
-        status: 'absent',
-        from_date: absenceFilters.value.from_date || undefined,
-        to_date: absenceFilters.value.to_date || undefined
-      }
+      params: {}
     })
-    absentRecords.value = response.data.attendance || []
+    selectedAttendance.value = response.data.attendance || []
   } catch (error) {
-    showMessage(error.response?.data?.message || 'Could not load student absences', 'error')
+    showMessage(error.response?.data?.message || 'Could not load student attendance', 'error')
   } finally {
-    loadingAbsences.value = false
+    loadingSelectedAttendance.value = false
   }
+}
+
+const normalizeDate = (value) => {
+  if (!value) return ''
+  return new Date(value).toISOString().slice(0, 10)
 }
 
 const formatDate = (value) => {
@@ -606,12 +911,36 @@ const openCreateFromQuery = () => {
   if (route.query.action === 'add') openCreate()
 }
 
-watch(() => [route.query.action, route.query.create], openCreateFromQuery)
+const openViewFromQuery = async () => {
+  const view = String(route.query.view || '')
+  if (view === 'attendance' || view === 'report') {
+    clearSelectedStudent()
+    await loadAttendanceRecords()
+    return
+  }
+
+  if (view !== 'info') return
+  if (selectedStudent.value && studentDetailTab.value === view) return
+
+  const firstStudent = filteredStudents.value[0] || students.value[0]
+  if (!firstStudent) return
+
+  await openStudentDetail(firstStudent, view)
+}
+
+const handleRouteQuery = async () => {
+  openCreateFromQuery()
+  await openViewFromQuery()
+}
+
+watch(
+  () => [route.query.action, route.query.create, route.query.view, filteredStudents.value.length],
+  handleRouteQuery
+)
 
 onMounted(async () => {
   await Promise.all([loadClasses(), loadStudents()])
-  await loadAttendanceRecords()
-  openCreateFromQuery()
+  await handleRouteQuery()
 })
 </script>
 
@@ -624,7 +953,7 @@ onMounted(async () => {
 .page-header,
 .toolbar,
 .table-panel,
-.attendance-panel,
+.student-detail-panel,
 .student-form {
   background: #ffffff;
   border: 1px solid #dbe5f3;
@@ -665,13 +994,13 @@ onMounted(async () => {
   padding: 1rem;
 }
 
-.attendance-panel {
+.student-detail-panel {
   display: grid;
   gap: 0.9rem;
   padding: 1rem;
 }
 
-.attendance-header-row,
+.detail-header-row,
 .attendance-summary-row {
   display: flex;
   align-items: flex-start;
@@ -680,22 +1009,216 @@ onMounted(async () => {
   flex-wrap: wrap;
 }
 
-.attendance-header-row h2 {
+.detail-header-row h2 {
   margin: 0;
   color: #172033;
   font-size: 1.1rem;
 }
 
-.attendance-header-row p {
+.detail-header-row p {
   margin: 0.25rem 0 0;
   color: #64748b;
 }
 
-.attendance-filters {
+.detail-tabs {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.25rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+
+.detail-tabs button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.42rem 0.75rem;
+  color: #475569;
+  background: transparent;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.detail-tabs button.active {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.student-info-grid,
+.report-summary-grid {
   display: grid;
-  grid-template-columns: 220px 260px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.student-info-grid article,
+.report-summary-grid article {
+  min-width: 0;
+  padding: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.student-info-grid span,
+.report-summary-grid span,
+.report-toolbar span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.student-info-grid strong,
+.report-summary-grid strong,
+.report-toolbar strong {
+  display: block;
+  min-width: 0;
+  color: #172033;
+  overflow-wrap: anywhere;
+}
+
+.status-text {
+  text-transform: capitalize;
+}
+
+.day-row td {
+  color: #1e40af;
+  background: #eff6ff;
+  font-weight: 900;
+}
+
+.report-section,
+.attendance-history-section,
+.module-chart {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.report-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
   gap: 0.75rem;
   align-items: end;
+}
+
+.chart-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.pie-chart {
+  width: 132px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    #16a34a 0 var(--present),
+    #dc2626 var(--present) var(--absent),
+    #d97706 var(--absent) var(--late),
+    #0284c7 var(--late) 100%
+  );
+}
+
+.pie-chart span {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: #172033;
+  background: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.chart-legend {
+  display: grid;
+  gap: 0.4rem;
+  color: #334155;
+  font-weight: 800;
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.chart-legend i {
+  width: 10px;
+  aspect-ratio: 1;
+  border-radius: 999px;
+}
+
+.present-dot {
+  background: #16a34a;
+}
+
+.absent-dot {
+  background: #dc2626;
+}
+
+.late-dot {
+  background: #d97706;
+}
+
+.excused-dot {
+  background: #0284c7;
+}
+
+.module-bar-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr) 52px;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.module-bar-label {
+  min-width: 0;
+}
+
+.module-bar-label strong,
+.module-bar-label span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.module-bar-label span {
+  margin-top: 0.2rem;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.module-bar-track {
+  height: 12px;
+  overflow: hidden;
+  background: #e2e8f0;
+  border-radius: 999px;
+}
+
+.module-bar-track span {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  background: #2563eb;
+  border-radius: inherit;
 }
 
 .attendance-summary-row {
@@ -829,6 +1352,10 @@ select {
   overflow-x: auto;
 }
 
+tbody tr.selected {
+  background: #eff6ff;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -868,6 +1395,7 @@ td small {
 .actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .empty-row {
@@ -892,50 +1420,10 @@ td small {
   padding: 1.25rem;
 }
 
-.absence-card {
-  width: min(920px, 100%);
-  max-height: 92vh;
-  overflow-y: auto;
-  padding: 1.25rem;
-  background: #ffffff;
-  border: 1px solid #dbe5f3;
-  border-radius: 8px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
-}
-
 .form-header p {
   margin: 0.25rem 0 0;
   color: #64748b;
   font-weight: 700;
-}
-
-.absence-toolbar {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 180px)) auto;
-  gap: 0.75rem;
-  align-items: end;
-  margin-bottom: 1rem;
-  padding: 0.85rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.absence-summary {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.45rem;
-  margin-bottom: 0.85rem;
-  color: #991b1b;
-  font-weight: 800;
-}
-
-.absence-summary strong {
-  font-size: 1.45rem;
-}
-
-.absence-table {
-  overflow-x: auto;
 }
 
 .form-header {
@@ -971,9 +1459,8 @@ label span {
 :global(body:is(.admin-dark-mode, .dark)) .students-page .page-header,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .toolbar,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .table-panel,
-:global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-panel,
-:global(body:is(.admin-dark-mode, .dark)) .students-page .student-form,
-:global(body:is(.admin-dark-mode, .dark)) .students-page .absence-card {
+:global(body:is(.admin-dark-mode, .dark)) .students-page .student-detail-panel,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .student-form {
   background: #111827 !important;
   border-color: #243244 !important;
   color: #e5edf7 !important;
@@ -994,7 +1481,9 @@ label span {
 :global(body:is(.admin-dark-mode, .dark)) .students-page small,
 :global(body:is(.admin-dark-mode, .dark)) .students-page td,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .empty-row,
-:global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-summary-row span {
+:global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-summary-row span,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .chart-legend,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .module-bar-label span {
   color: #cbd5e1 !important;
   opacity: 1 !important;
   text-shadow: none !important;
@@ -1013,9 +1502,27 @@ label span {
 
 :global(body:is(.admin-dark-mode, .dark)) .students-page th,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .attendance-summary-row span,
-:global(body:is(.admin-dark-mode, .dark)) .students-page .absence-toolbar {
+:global(body:is(.admin-dark-mode, .dark)) .students-page .detail-tabs,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .student-info-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .report-summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .chart-row {
   background: #0b1220 !important;
   border-color: #243244 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page .module-bar-row {
+  background: #111827 !important;
+  border-color: #243244 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page .pie-chart span {
+  background: #111827 !important;
+  color: #f8fafc !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .students-page tbody tr.selected,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .day-row td {
+  background: #172554 !important;
 }
 
 :global(body:is(.admin-dark-mode, .dark)) .students-page td,
@@ -1026,13 +1533,21 @@ label span {
 @media (max-width: 720px) {
   .page-header,
   .toolbar,
-  .attendance-filters,
+  .student-info-grid,
+  .report-summary-grid,
+  .report-toolbar,
+  .module-bar-row,
   .form-grid {
     grid-template-columns: 1fr;
   }
 
   .page-header {
     display: grid;
+  }
+
+  .chart-row {
+    display: grid;
+    justify-items: start;
   }
 }
 </style>

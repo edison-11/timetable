@@ -11,6 +11,139 @@
       </div>
     </header>
 
+    <section class="student-info-section">
+      <div class="portal-actions" role="tablist" aria-label="Student information sections">
+        <button
+          v-for="tab in infoTabs"
+          :key="tab.value"
+          type="button"
+          class="portal-action-button"
+          :class="{ active: activeInfoTab === tab.value }"
+          @click="selectInfoTab(tab.value)"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <div v-if="activeInfoTab === 'information'" class="student-info-grid">
+        <article>
+          <span>Student ID</span>
+          <strong>{{ student?.student_number || '-' }}</strong>
+        </article>
+        <article>
+          <span>Name</span>
+          <strong>{{ student?.name || '-' }}</strong>
+        </article>
+        <article>
+          <span>Sex</span>
+          <strong>{{ student?.sex || '-' }}</strong>
+        </article>
+        <article>
+          <span>Class</span>
+          <strong>{{ student?.class_name || 'Unassigned' }}</strong>
+        </article>
+        <article>
+          <span>Section</span>
+          <strong>{{ student?.section_name || '-' }}</strong>
+        </article>
+        <article>
+          <span>Academic Year</span>
+          <strong>{{ student?.academic_year || '-' }}</strong>
+        </article>
+      </div>
+
+      <div v-if="activeInfoTab === 'attendance'" class="attendance-panel">
+        <div class="attendance-summary-row">
+          <span><strong>{{ attendanceHistory.length }}</strong> records</span>
+          <span><strong>{{ attendanceCounts.present }}</strong> present</span>
+          <span><strong>{{ attendanceCounts.absent }}</strong> absent</span>
+          <span><strong>{{ attendanceCounts.late }}</strong> late</span>
+          <span><strong>{{ attendanceCounts.excused }}</strong> excused</span>
+        </div>
+
+        <div class="attendance-table-wrap">
+          <table class="attendance-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Period / Module</th>
+                <th>Status</th>
+                <th>Teacher</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="record in attendanceHistory" :key="record.attendance_id">
+                <td>{{ formatDate(record.attendance_date) }}</td>
+                <td>
+                  <strong>{{ record.module_name || record.period_label || 'Study period' }}</strong>
+                  <small>{{ formatRecordTimeRange(record) }}</small>
+                </td>
+                <td><span class="attendance-status" :class="record.status">{{ record.status }}</span></td>
+                <td>{{ record.teacher_name || '-' }}</td>
+              </tr>
+              <tr v-if="!attendanceHistory.length">
+                <td colspan="4" class="empty-row">
+                  {{ loadingAttendance ? 'Loading attendance...' : 'No attendance records available.' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div v-if="activeInfoTab === 'report'" class="report-panel">
+        <div class="report-toolbar">
+          <label>
+            <span>Period</span>
+            <select v-model="reportPeriod" class="form-select">
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+              <option value="term">This term</option>
+            </select>
+          </label>
+          <div>
+            <span>Showing</span>
+            <strong>{{ reportRangeLabel }}</strong>
+          </div>
+        </div>
+
+        <div class="report-summary-grid">
+          <article>
+            <span>Present Rate</span>
+            <strong>{{ reportSummary.presentRate }}%</strong>
+          </article>
+          <article>
+            <span>Present</span>
+            <strong>{{ reportSummary.present }}</strong>
+          </article>
+          <article>
+            <span>Absent</span>
+            <strong>{{ reportSummary.absent }}</strong>
+          </article>
+          <article>
+            <span>Late / Excused</span>
+            <strong>{{ reportSummary.late + reportSummary.excused }}</strong>
+          </article>
+        </div>
+
+        <div class="module-report-list">
+          <div v-for="module in moduleReportRows" :key="module.name" class="module-report-row">
+            <div>
+              <strong>{{ module.name }}</strong>
+              <span>{{ module.present }}/{{ module.total }} attended</span>
+            </div>
+            <div class="module-bar-track">
+              <span :style="{ width: `${module.rate}%` }"></span>
+            </div>
+            <strong>{{ module.rate }}%</strong>
+          </div>
+          <p v-if="!moduleReportRows.length" class="empty-row">
+            {{ loadingAttendance ? 'Loading report...' : 'No report data available for this period.' }}
+          </p>
+        </div>
+      </div>
+    </section>
+
     <section class="timetable-section">
       <div class="section-header">
         <h2>My Timetable</h2>
@@ -106,8 +239,104 @@ const selectedAcademicYear = ref('')
 const selectedTerm = ref('')
 const academicYears = ref(['2024-2025', '2025-2026'])
 const showExportDropdown = ref(false)
+const activeInfoTab = ref('information')
+const attendanceHistory = ref([])
+const loadingAttendance = ref(false)
+const reportPeriod = ref('week')
 
 const days = FIXED_DAYS
+const infoTabs = [
+  { label: 'Information', value: 'information' },
+  { label: 'Attendance', value: 'attendance' },
+  { label: 'Report', value: 'report' }
+]
+
+const buildAttendanceCounts = (records) => {
+  return records.reduce((counts, record) => {
+    const status = record.status || 'present'
+    counts[status] = (counts[status] || 0) + 1
+    return counts
+  }, {
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0
+  })
+}
+
+const attendanceCounts = computed(() => buildAttendanceCounts(attendanceHistory.value))
+
+const getWeekRange = (date = new Date()) => {
+  const start = new Date(date)
+  start.setHours(0, 0, 0, 0)
+  const day = start.getDay() || 7
+  start.setDate(start.getDate() - day + 1)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
+}
+
+const getMonthRange = (date = new Date()) => {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1)
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999)
+  return { start, end }
+}
+
+const getTermRange = (date = new Date()) => {
+  const month = date.getMonth()
+  const termStartMonth = Math.floor(month / 3) * 3
+  const start = new Date(date.getFullYear(), termStartMonth, 1)
+  const end = new Date(date.getFullYear(), termStartMonth + 3, 0, 23, 59, 59, 999)
+  return { start, end }
+}
+
+const reportDateRange = computed(() => {
+  if (reportPeriod.value === 'month') return getMonthRange()
+  if (reportPeriod.value === 'term') return getTermRange()
+  return getWeekRange()
+})
+
+const reportRangeLabel = computed(() => {
+  const { start, end } = reportDateRange.value
+  return `${formatDate(start)} - ${formatDate(end)}`
+})
+
+const reportRecords = computed(() => {
+  const { start, end } = reportDateRange.value
+  return attendanceHistory.value.filter((record) => {
+    const date = new Date(record.attendance_date)
+    return date >= start && date <= end
+  })
+})
+
+const reportSummary = computed(() => {
+  const counts = buildAttendanceCounts(reportRecords.value)
+  const total = reportRecords.value.length
+  const attended = counts.present + counts.late + counts.excused
+  return {
+    ...counts,
+    total,
+    presentRate: total ? Math.round((attended / total) * 100) : 0
+  }
+})
+
+const moduleReportRows = computed(() => {
+  const modules = new Map()
+  reportRecords.value.forEach((record) => {
+    const name = record.module_name || record.period_label || 'Study period'
+    if (!modules.has(name)) modules.set(name, { name, total: 0, present: 0 })
+    const row = modules.get(name)
+    row.total += 1
+    if (['present', 'late', 'excused'].includes(record.status || 'present')) row.present += 1
+  })
+  return Array.from(modules.values())
+    .map((row) => ({
+      ...row,
+      rate: row.total ? Math.round((row.present / row.total) * 100) : 0
+    }))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+})
 
 const loadStudentInfo = async () => {
   try {
@@ -122,6 +351,7 @@ const loadStudentInfo = async () => {
     if (student.value?.academic_year) {
       selectedAcademicYear.value = student.value.academic_year
     }
+    await loadTimetable()
   } catch (error) {
     console.error('Error loading student info:', error)
   }
@@ -152,12 +382,43 @@ const formatTimeRange = (start, end) => {
   return `${s} - ${e}`
 }
 
+const formatRecordTimeRange = (record) => {
+  if (record.start_time && record.end_time) return formatTimeRange(record.start_time, record.end_time)
+  return record.period_label || '-'
+}
+
+const formatDate = (value) => {
+  if (!value) return '-'
+  return new Date(value).toLocaleDateString()
+}
+
 const buildTimetableGrid = () => {
   return buildFixedTimetableRows(timetable.value, days)
 }
 
 const toggleExportDropdown = () => {
   showExportDropdown.value = !showExportDropdown.value
+}
+
+const selectInfoTab = async (tab) => {
+  activeInfoTab.value = tab
+  if ((tab === 'attendance' || tab === 'report') && !attendanceHistory.value.length) {
+    await loadAttendanceHistory()
+  }
+}
+
+const loadAttendanceHistory = async () => {
+  if (!student.value?.student_id) return
+
+  loadingAttendance.value = true
+  try {
+    const response = await api.get(`/students/${student.value.student_id}/attendance-history`)
+    attendanceHistory.value = response.data.attendance || []
+  } catch (error) {
+    console.error('Error loading attendance history:', error)
+  } finally {
+    loadingAttendance.value = false
+  }
 }
 
 const handleExportPDF = () => {
@@ -225,6 +486,215 @@ onMounted(() => {
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 2rem;
+}
+
+.student-info-section {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+}
+
+.portal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.portal-action-button {
+  min-width: 120px;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.portal-action-button:hover {
+  background: #d8e0eb;
+  border-color: #b8c6d8;
+  transform: translateY(-1px);
+}
+
+.portal-action-button.active {
+  background: #0066cc;
+  border-color: #0066cc;
+  color: white;
+}
+
+.student-info-grid,
+.report-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0.75rem;
+}
+
+.student-info-grid article,
+.report-summary-grid article {
+  min-height: 82px;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.student-info-grid span,
+.report-summary-grid span,
+.report-toolbar span {
+  display: block;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.student-info-grid strong,
+.report-summary-grid strong,
+.report-toolbar strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.attendance-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.attendance-summary-row span {
+  min-width: 112px;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.attendance-summary-row strong {
+  color: #0f172a;
+}
+
+.attendance-table-wrap {
+  overflow-x: auto;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 0.875rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.attendance-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.attendance-table small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #64748b;
+}
+
+.attendance-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.attendance-status.present {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.attendance-status.absent {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.attendance-status.late {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.attendance-status.excused {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.report-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.module-report-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.module-report-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(120px, 2fr) 52px;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.module-report-row span {
+  display: block;
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.module-bar-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.module-bar-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #0066cc;
+}
+
+.empty-row {
+  color: #64748b;
+  text-align: center;
 }
 
 .section-header {
@@ -404,5 +874,37 @@ onMounted(() => {
 
 .empty-state p {
   margin: 0;
+}
+
+@media (max-width: 760px) {
+  .student-portal {
+    padding: 1rem;
+  }
+
+  .portal-header,
+  .section-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .portal-info,
+  .timetable-controls {
+    flex-wrap: wrap;
+  }
+
+  .portal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-action-button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .module-report-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

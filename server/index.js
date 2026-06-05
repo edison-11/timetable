@@ -98,7 +98,7 @@ app.use('/api/admin-messages', adminMessageRoutes);
 app.use('/api/absence', absenceRoutes);
 app.use('/api/substitution', substitutionRoutes);
 app.use('/api/teacher-attendance', teacherStudentRoutes);
-app.use('/api/students', adminAuth, requireSchoolAdmin, studentRoutes);
+app.use('/api/students', studentRoutes);
 app.use('/api/dashboard', adminAuth, requireSchoolAdmin, dashboardRoutes);
 
 // Health check endpoint

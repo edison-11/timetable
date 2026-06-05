@@ -19,12 +19,25 @@ const loadingStore = useLoadingStore()
 const isBootLoading = computed(() => loadingStore.bootLoading)
 const isRequestLoading = computed(() => loadingStore.pendingRequests > 0 || loadingStore.routeLoading)
 let languageObserver = null
+const minimumBootTime = 900
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+
+loadingStore.startBoot()
 
 onMounted(async () => {
   languageObserver = watchAppLanguage()
-  loadingStore.startBoot()
-  await authStore.checkAuth()
-  loadingStore.finishBoot()
+  const bootStartedAt = performance.now()
+
+  try {
+    await authStore.checkAuth()
+  } finally {
+    const elapsed = performance.now() - bootStartedAt
+    if (elapsed < minimumBootTime) {
+      await wait(minimumBootTime - elapsed)
+    }
+    loadingStore.finishBoot()
+  }
 })
 
 onUnmounted(() => {

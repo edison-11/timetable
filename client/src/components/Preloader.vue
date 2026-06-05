@@ -1,35 +1,21 @@
 <template>
   <Transition name="preloader-fade">
-    <div v-if="loading" class="preloader-container" role="status" aria-live="polite" aria-label="Loading system">
-      <div class="loader-background" aria-hidden="true">
-        <span class="grid-line line-a"></span>
-        <span class="grid-line line-b"></span>
-        <span class="grid-line line-c"></span>
-      </div>
-
+    <div v-if="loading" class="preloader-container" role="status" aria-live="polite" aria-label="Loading timetable">
       <div class="brand-loader">
-        <div class="brand-mark-wrap">
-          <span class="orbit orbit-a"></span>
-          <span class="orbit orbit-b"></span>
+        <div class="logo-stack">
           <img class="brand-logo" :src="logoUrl" alt="Timetable logo" />
+          <span class="loader-ring" aria-hidden="true"></span>
         </div>
 
         <div class="loader-copy">
-          <strong>Loading School Management System...</strong>
+          <strong>Timetable</strong>
           <span class="loader-detail">{{ loadingStep }}</span>
         </div>
+      </div>
 
-        <div class="counter-row">
-          <span class="counter-value">{{ progress }}%</span>
-        </div>
-
-        <div class="progress-track" role="progressbar" :aria-valuenow="progress" aria-valuemin="0" aria-valuemax="100">
-          <span class="progress-fill" :style="{ width: `${progress}%` }"></span>
-        </div>
-
-        <div class="module-dots" aria-hidden="true">
-          <span v-for="index in 5" :key="index" :style="{ '--dot-index': index }"></span>
-        </div>
+      <div class="loader-footer" aria-hidden="true">
+        <span>from</span>
+        <strong>School Management System</strong>
       </div>
     </div>
   </Transition>
@@ -46,9 +32,10 @@ const props = defineProps({
   }
 })
 
-const progress = ref(0)
-const loadingStep = ref('Verifying permissions...')
+const loadingStep = ref('Loading')
 let timer = null
+let stepIndex = 0
+const steps = ['Loading', 'Checking your session', 'Opening your workspace']
 
 const stopCounter = () => {
   if (timer) {
@@ -59,36 +46,24 @@ const stopCounter = () => {
 
 const startCounter = () => {
   stopCounter()
-  progress.value = 0
+  stepIndex = 0
+  loadingStep.value = steps[stepIndex]
 
   timer = setInterval(() => {
-    if (progress.value < 72) {
-      progress.value += 4
-    } else if (progress.value < 90) {
-      progress.value += 2
-    } else if (progress.value < 96) {
-      progress.value += 1
-    }
-
-    if (progress.value >= 55) {
-      loadingStep.value = 'Loading schools...'
-    } else if (progress.value >= 24) {
-      loadingStep.value = 'Verifying permissions...'
-    }
-  }, 95)
+    stepIndex = (stepIndex + 1) % steps.length
+    loadingStep.value = steps[stepIndex]
+  }, 820)
 }
 
 watch(() => props.loading, (isLoading) => {
   if (isLoading) {
-    loadingStep.value = 'Verifying permissions...'
     startCounter()
     return
   }
 
-  progress.value = 100
   setTimeout(() => {
     stopCounter()
-    progress.value = 0
+    loadingStep.value = steps[0]
   }, 260)
 }, { immediate: true })
 
@@ -104,10 +79,7 @@ onBeforeUnmount(() => {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(41, 171, 226, 0.28), transparent 32%),
-    radial-gradient(circle at 82% 22%, rgba(40, 184, 96, 0.22), transparent 30%),
-    linear-gradient(135deg, #082a4a 0%, #0e5a8a 46%, #0ea35d 100%);
+  background: #f0f2f5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,221 +87,110 @@ onBeforeUnmount(() => {
   isolation: isolate;
 }
 
-.loader-background {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 72px 72px;
-  mask-image: linear-gradient(180deg, transparent, #000 18%, #000 82%, transparent);
-}
-
-.grid-line {
-  position: absolute;
-  left: -20%;
-  width: 140%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.42), transparent);
-  transform: rotate(-12deg);
-  animation: scan-line 3.4s ease-in-out infinite;
-}
-
-.line-a {
-  top: 24%;
-}
-
-.line-b {
-  top: 52%;
-  animation-delay: 0.8s;
-  opacity: 0.72;
-}
-
-.line-c {
-  top: 78%;
-  animation-delay: 1.6s;
-  opacity: 0.52;
-}
-
 .brand-loader {
-  width: min(430px, calc(100vw - 2rem));
-  min-height: 360px;
-  padding: 38px 34px 32px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 30px 90px rgba(4, 22, 41, 0.4);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #0f2c46;
+  gap: 18px;
+  color: #1c1e21;
   text-align: center;
 }
 
-.brand-mark-wrap {
+.logo-stack {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 104px;
+  height: 104px;
   display: grid;
   place-items: center;
-  margin-bottom: 28px;
 }
 
 .brand-logo {
   position: relative;
   z-index: 2;
-  width: 92px;
-  height: 92px;
+  width: 76px;
+  height: 76px;
   object-fit: contain;
-  padding: 8px;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 16px 36px rgba(8, 42, 74, 0.18);
+  filter: drop-shadow(0 10px 18px rgba(24, 119, 242, 0.18));
 }
 
-.orbit {
+.loader-ring {
   position: absolute;
   inset: 0;
+  border: 3px solid #d8dadf;
+  border-top-color: #1877f2;
   border-radius: 50%;
-  border: 2px solid transparent;
-}
-
-.orbit-a {
-  border-top-color: #18a2df;
-  border-right-color: rgba(24, 162, 223, 0.28);
-  animation: loader-spin 1.18s linear infinite;
-}
-
-.orbit-b {
-  inset: 14px;
-  border-bottom-color: #21b15f;
-  border-left-color: rgba(33, 177, 95, 0.28);
-  animation: loader-spin 1.55s linear infinite reverse;
+  animation: loader-spin 0.95s linear infinite;
 }
 
 .loader-copy {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .loader-detail {
-  color: #15824b;
-  font-size: 0.88rem;
-  font-weight: 800;
+  min-width: 180px;
+  color: #65676b;
+  font-size: 0.95rem;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
 .loader-copy strong {
-  color: #0f2c46;
-  font-size: clamp(1.25rem, 4vw, 1.65rem);
-  font-weight: 900;
+  color: #1877f2;
+  font-size: clamp(1.55rem, 6vw, 2rem);
+  font-weight: 800;
   letter-spacing: 0;
 }
 
-.counter-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  margin-top: 22px;
-}
-
-.counter-value {
-  min-width: 72px;
-  color: #0d7ec0;
-  font-size: 2rem;
-  font-weight: 950;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.progress-track {
-  position: relative;
-  width: min(300px, 100%);
-  height: 8px;
-  margin-top: 14px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #d9e8ee;
-}
-
-.progress-fill {
+.loader-footer {
   position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #139bd7, #1fb35d);
-  box-shadow: 0 0 22px rgba(31, 179, 93, 0.45);
-  transition: width 0.18s ease;
+  left: 24px;
+  right: 24px;
+  bottom: 34px;
+  display: grid;
+  gap: 4px;
+  color: #8a8d91;
+  font-size: 0.78rem;
+  text-align: center;
 }
 
-.module-dots {
-  display: flex;
-  justify-content: center;
-  gap: 9px;
-  margin-top: 24px;
-}
-
-.module-dots span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #139bd7;
-  animation: dot-pulse 1s ease-in-out infinite;
-  animation-delay: calc(var(--dot-index) * 0.11s);
-}
-
-.module-dots span:nth-child(even) {
-  background: #1fb35d;
+.loader-footer strong {
+  color: #1877f2;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
 }
 
 :global(body.admin-dark-mode) .preloader-container,
 :global(body.teacher-dark-mode) .preloader-container,
 :global(.teacher-shell.dark-mode) .preloader-container {
-  background:
-    radial-gradient(circle at 18% 18%, rgba(37, 99, 235, 0.2), transparent 32%),
-    radial-gradient(circle at 82% 22%, rgba(20, 184, 166, 0.18), transparent 30%),
-    linear-gradient(135deg, #020617 0%, #0f172a 52%, #111827 100%);
-}
-
-:global(body.admin-dark-mode) .brand-loader,
-:global(body.teacher-dark-mode) .brand-loader,
-:global(.teacher-shell.dark-mode) .brand-loader {
-  border-color: rgba(148, 163, 184, 0.34);
-  background: rgba(15, 23, 42, 0.96);
-  color: #e5edf7;
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.54);
-}
-
-:global(body.admin-dark-mode) .brand-logo,
-:global(body.teacher-dark-mode) .brand-logo,
-:global(.teacher-shell.dark-mode) .brand-logo {
-  background: #f8fafc;
+  background: #18191a;
 }
 
 :global(body.admin-dark-mode) .loader-copy strong,
 :global(body.teacher-dark-mode) .loader-copy strong,
 :global(.teacher-shell.dark-mode) .loader-copy strong {
   color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
 :global(body.admin-dark-mode) .loader-detail,
 :global(body.teacher-dark-mode) .loader-detail,
 :global(.teacher-shell.dark-mode) .loader-detail {
-  color: #bfdbfe;
+  color: #b0b3b8;
 }
 
-:global(body.admin-dark-mode) .counter-value,
-:global(body.teacher-dark-mode) .counter-value,
-:global(.teacher-shell.dark-mode) .counter-value {
-  color: #67e8f9;
+:global(body.admin-dark-mode) .loader-ring,
+:global(body.teacher-dark-mode) .loader-ring,
+:global(.teacher-shell.dark-mode) .loader-ring {
+  border-color: #3a3b3c;
+  border-top-color: #2d88ff;
 }
 
-:global(body.admin-dark-mode) .progress-track,
-:global(body.teacher-dark-mode) .progress-track,
-:global(.teacher-shell.dark-mode) .progress-track {
-  background: #1f2937;
+:global(body.admin-dark-mode) .loader-footer,
+:global(body.teacher-dark-mode) .loader-footer,
+:global(.teacher-shell.dark-mode) .loader-footer {
+  color: #8a8d91;
 }
 
 .preloader-fade-enter-active,
@@ -342,30 +203,6 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 
-@keyframes scan-line {
-  0%,
-  100% {
-    transform: translateX(-10%) rotate(-12deg);
-    opacity: 0.16;
-  }
-  50% {
-    transform: translateX(10%) rotate(-12deg);
-    opacity: 0.58;
-  }
-}
-
-@keyframes dot-pulse {
-  0%,
-  100% {
-    transform: translateY(0) scale(0.78);
-    opacity: 0.48;
-  }
-  50% {
-    transform: translateY(-6px) scale(1);
-    opacity: 1;
-  }
-}
-
 @keyframes loader-spin {
   to {
     transform: rotate(360deg);
@@ -373,9 +210,7 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .orbit,
-  .module-dots span,
-  .grid-line {
+  .loader-ring {
     animation: none;
   }
 
@@ -386,19 +221,18 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 640px) {
-  .brand-loader {
-    min-height: 330px;
-    padding: 32px 22px 28px;
-  }
-
-  .brand-mark-wrap {
-    width: 116px;
-    height: 116px;
+  .logo-stack {
+    width: 94px;
+    height: 94px;
   }
 
   .brand-logo {
-    width: 82px;
-    height: 82px;
+    width: 68px;
+    height: 68px;
+  }
+
+  .loader-footer {
+    bottom: 24px;
   }
 }
 </style>
