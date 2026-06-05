@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 
 let nextId = 1
+const timers = new Map()
 
 export const useNotificationStore = defineStore('notifications', {
   state: () => ({
@@ -16,16 +17,39 @@ export const useNotificationStore = defineStore('notifications', {
         type: notification.type || 'info',
         title: notification.title || '',
         message: notification.message || '',
-        timeout
+        timeout,
+        progress: 1,
+        complete: false
       }
 
       this.items.push(item)
 
-      if (timeout > 0) {
-        window.setTimeout(() => {
-          this.remove(id)
-        }, timeout)
-      }
+      const progressTimer = window.setInterval(() => {
+        const current = this.items.find((entry) => entry.id === id)
+        if (!current) {
+          window.clearInterval(progressTimer)
+          timers.delete(id)
+          return
+        }
+
+        current.progress = Math.min(100, current.progress + 4)
+
+        if (current.progress >= 100) {
+          current.complete = true
+          window.clearInterval(progressTimer)
+
+          if (timeout > 0) {
+            const dismissTimer = window.setTimeout(() => {
+              this.remove(id)
+            }, timeout)
+            timers.set(id, dismissTimer)
+          } else {
+            timers.delete(id)
+          }
+        }
+      }, 32)
+
+      timers.set(id, progressTimer)
 
       return id
     },
@@ -47,6 +71,12 @@ export const useNotificationStore = defineStore('notifications', {
     },
 
     remove(id) {
+      const timer = timers.get(id)
+      if (timer) {
+        window.clearInterval(timer)
+        window.clearTimeout(timer)
+        timers.delete(id)
+      }
       this.items = this.items.filter((item) => item.id !== id)
     }
   }

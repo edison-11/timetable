@@ -33,7 +33,17 @@ router.post('/register', adminAuth, [
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('department').optional().trim().notEmpty().withMessage('Department cannot be empty'),
-  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending', 'rejected'])
+  body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending', 'rejected']),
+  body('date_joined').optional().isDate(),
+  body('employee_id').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('phone').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('module_name').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('qualification').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('years_experience').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 }),
+  body('available_days').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('available_from').optional({ nullable: true, checkFalsy: true }).matches(/^\d{2}:\d{2}(:\d{2})?$/),
+  body('available_to').optional({ nullable: true, checkFalsy: true }).matches(/^\d{2}:\d{2}(:\d{2})?$/),
+  body('notes').optional({ nullable: true, checkFalsy: true }).trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -41,7 +51,23 @@ router.post('/register', adminAuth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, department = 'SSOD', status = 'pending', date_joined } = req.body;
+    const {
+      name,
+      email,
+      password,
+      department = 'SSOD',
+      status = 'pending',
+      date_joined,
+      employee_id,
+      phone,
+      module_name,
+      qualification,
+      years_experience,
+      available_days,
+      available_from,
+      available_to,
+      notes
+    } = req.body;
     const schoolId = getRequestSchoolId(req);
 
     if (!schoolId) {
@@ -53,7 +79,24 @@ router.post('/register', adminAuth, [
       return res.status(400).json({ message: 'Teacher already exists' });
     }
 
-    const teacherId = await Teacher.create({ name, email, password, department, status, date_joined, school_id: schoolId });
+    const teacherId = await Teacher.create({
+      name,
+      email,
+      password,
+      department,
+      status,
+      date_joined,
+      school_id: schoolId,
+      employee_id,
+      phone,
+      module_name,
+      qualification,
+      years_experience,
+      available_days,
+      available_from,
+      available_to,
+      notes
+    });
     const teacher = await Teacher.findById(teacherId);
 
     await Notification.create({
@@ -243,7 +286,16 @@ router.put('/:id', auth, [
   body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('department').optional().trim().notEmpty(),
   body('status').optional().isIn(['active', 'inactive', 'on_leave', 'pending', 'rejected']),
-  body('date_joined').optional().isDate()
+  body('date_joined').optional().isDate(),
+  body('employee_id').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('phone').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('module_name').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('qualification').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('years_experience').optional({ nullable: true, checkFalsy: true }).isInt({ min: 0 }),
+  body('available_days').optional({ nullable: true, checkFalsy: true }).trim(),
+  body('available_from').optional({ nullable: true, checkFalsy: true }).matches(/^\d{2}:\d{2}(:\d{2})?$/),
+  body('available_to').optional({ nullable: true, checkFalsy: true }).matches(/^\d{2}:\d{2}(:\d{2})?$/),
+  body('notes').optional({ nullable: true, checkFalsy: true }).trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -251,7 +303,23 @@ router.put('/:id', auth, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password, department, status, date_joined } = req.body;
+    const {
+      name,
+      email,
+      password,
+      department,
+      status,
+      date_joined,
+      employee_id,
+      phone,
+      module_name,
+      qualification,
+      years_experience,
+      available_days,
+      available_from,
+      available_to,
+      notes
+    } = req.body;
     const updateData = {};
     
     if (name) updateData.name = name;
@@ -260,6 +328,15 @@ router.put('/:id', auth, [
     if (department) updateData.department = department;
     if (status) updateData.status = status;
     if (date_joined) updateData.date_joined = date_joined;
+    if (employee_id !== undefined) updateData.employee_id = employee_id;
+    if (phone !== undefined) updateData.phone = phone;
+    if (module_name !== undefined) updateData.module_name = module_name;
+    if (qualification !== undefined) updateData.qualification = qualification;
+    if (years_experience !== undefined) updateData.years_experience = years_experience;
+    if (available_days !== undefined) updateData.available_days = available_days;
+    if (available_from !== undefined) updateData.available_from = available_from;
+    if (available_to !== undefined) updateData.available_to = available_to;
+    if (notes !== undefined) updateData.notes = notes;
     const schoolId = getRequestSchoolId(req);
     if (schoolId) updateData.school_id = schoolId;
 
@@ -272,6 +349,13 @@ router.put('/:id', auth, [
     }
     if (req.user?.role === 'super_admin' && schoolId && Number(existingTeacher.school_id) !== Number(schoolId)) {
       return res.status(403).json({ message: 'Teacher belongs to another school' });
+    }
+
+    if (email) {
+      const duplicateTeacher = await Teacher.findByEmailExcludingId(email, req.params.id);
+      if (duplicateTeacher) {
+        return res.status(400).json({ message: 'Teacher email already exists' });
+      }
     }
 
     await Teacher.update(req.params.id, updateData);

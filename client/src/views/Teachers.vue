@@ -106,8 +106,7 @@
                 <th>Classes</th>
                 <th>Modules</th>
                 <th>Status</th>
-                <th>Classes</th>
-                <th>Modules</th>
+                <th>Load</th>
                 <th>Date Joined</th>
                 <th>Actions</th>
               </tr>
@@ -135,45 +134,50 @@
                   </span>
                 </td>
                 <td>
-                  <div class="compact-list-cell">
-                    <strong>{{ splitList(teacher.teaching_classes || teacher.head_teacher_classes).length }}</strong>
-                    <small>{{ shortList(teacher.teaching_classes || teacher.head_teacher_classes, 'No classes') }}</small>
-                  </div>
-                </td>
-                <td>
-                  <div class="compact-list-cell">
-                    <strong>{{ splitList(teacher.assigned_modules).length }}</strong>
-                    <small>{{ shortList(teacher.assigned_modules, 'No modules') }}</small>
+                  <div class="load-cell">
+                    <span>
+                      <strong>{{ splitList(teacher.teaching_classes || teacher.head_teacher_classes).length }}</strong>
+                      classes
+                    </span>
+                    <span>
+                      <strong>{{ splitList(teacher.assigned_modules).length }}</strong>
+                      modules
+                    </span>
                   </div>
                 </td>
                 <td>{{ formatDate(teacher.date_joined) }}</td>
                 <td>
                   <template v-if="teacher.status === 'pending'">
-                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
-                    <button
-                      class="btn-approve me-2"
-                      @click="approveTeacher(teacher)"
-                      :disabled="approvalLoadingId === teacher.teacher_id"
-                    >
-                      {{ approvalLoadingId === teacher.teacher_id ? 'Saving...' : 'Approve' }}
-                    </button>
-                    <button
-                      class="btn-delete"
-                      @click="rejectTeacher(teacher)"
-                      :disabled="approvalLoadingId === teacher.teacher_id"
-                    >
-                      Reject
-                    </button>
+                    <div class="action-buttons">
+                      <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
+                      <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
+                      <button
+                        class="btn-approve me-2"
+                        @click="approveTeacher(teacher)"
+                        :disabled="approvalLoadingId === teacher.teacher_id"
+                      >
+                        {{ approvalLoadingId === teacher.teacher_id ? 'Saving...' : 'Approve' }}
+                      </button>
+                      <button
+                        class="btn-delete"
+                        @click="rejectTeacher(teacher)"
+                        :disabled="approvalLoadingId === teacher.teacher_id"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </template>
                   <template v-else>
-                    <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
-                    <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
-                    <button class="btn-delete" @click="deleteTeacher(teacher)">Del</button>
+                    <div class="action-buttons">
+                      <button class="btn-details me-2" @click="openDetailsModal(teacher)">View</button>
+                      <button class="btn-edit me-2" @click="openEditModal(teacher)">Edit</button>
+                      <button class="btn-delete" @click="deleteTeacher(teacher)">Del</button>
+                    </div>
                   </template>
                 </td>
               </tr>
               <tr v-if="!filteredTeachers.length">
-                <td colspan="7" class="text-center py-4">No teachers found</td>
+                <td colspan="8" class="text-center py-4">No teachers found</td>
               </tr>
             </tbody>
           </table>
@@ -374,7 +378,109 @@
                       <option value="inactive">Inactive</option>
                       <option value="on_leave">On Leave</option>
                       <option value="pending">Pending</option>
+                      <option value="rejected">Rejected</option>
                     </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherDateJoined" class="form-label">Date Joined</label>
+                    <input
+                      type="date"
+                      class="form-control"
+                      id="editTeacherDateJoined"
+                      v-model="editingTeacher.date_joined"
+                    >
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherEmployeeId" class="form-label">Staff ID</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editTeacherEmployeeId"
+                      v-model="editingTeacher.employee_id"
+                      placeholder="Staff or national ID"
+                    >
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherPhone" class="form-label">Phone</label>
+                    <input
+                      type="tel"
+                      class="form-control"
+                      id="editTeacherPhone"
+                      v-model="editingTeacher.phone"
+                      placeholder="Phone number"
+                    >
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherModule" class="form-label">Main Module</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editTeacherModule"
+                      v-model="editingTeacher.module_name"
+                      placeholder="Main module or subject"
+                    >
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherQualification" class="form-label">Qualification</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editTeacherQualification"
+                      v-model="editingTeacher.qualification"
+                      placeholder="Highest qualification"
+                    >
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherExperience" class="form-label">Years Experience</label>
+                    <input
+                      type="number"
+                      min="0"
+                      class="form-control"
+                      id="editTeacherExperience"
+                      v-model="editingTeacher.years_experience"
+                      placeholder="0"
+                    >
+                    <div class="invalid-feedback" v-if="editErrors.years_experience">
+                      {{ editErrors.years_experience }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="editTeacherAvailableDays" class="form-label">Available Days</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editTeacherAvailableDays"
+                      v-model="editingTeacher.available_days"
+                      placeholder="Monday, Tuesday..."
+                    >
+                  </div>
+                  <div class="col-md-3">
+                    <label for="editTeacherAvailableFrom" class="form-label">Available From</label>
+                    <input
+                      type="time"
+                      class="form-control"
+                      id="editTeacherAvailableFrom"
+                      v-model="editingTeacher.available_from"
+                    >
+                  </div>
+                  <div class="col-md-3">
+                    <label for="editTeacherAvailableTo" class="form-label">Available To</label>
+                    <input
+                      type="time"
+                      class="form-control"
+                      id="editTeacherAvailableTo"
+                      v-model="editingTeacher.available_to"
+                    >
+                  </div>
+                  <div class="col-12">
+                    <label for="editTeacherNotes" class="form-label">Notes</label>
+                    <textarea
+                      class="form-control"
+                      id="editTeacherNotes"
+                      rows="3"
+                      v-model="editingTeacher.notes"
+                      placeholder="Internal notes"
+                    ></textarea>
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -407,10 +513,14 @@
                 <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || selectedTeacher.module_name || 'Not assigned' }}</strong></div>
                 <div><span>Qualification</span><strong>{{ selectedTeacher.qualification || 'Not set' }}</strong></div>
                 <div><span>National/Staff ID</span><strong>{{ selectedTeacher.national_id || selectedTeacher.employee_id || 'Not set' }}</strong></div>
+                <div><span>Experience</span><strong>{{ selectedTeacher.years_experience ?? 'Not set' }}</strong></div>
+                <div><span>Available Days</span><strong>{{ selectedTeacher.available_days || 'Not set' }}</strong></div>
+                <div><span>Available Time</span><strong>{{ selectedTeacher.available_from && selectedTeacher.available_to ? `${formatTimeInput(selectedTeacher.available_from)} - ${formatTimeInput(selectedTeacher.available_to)}` : 'Not set' }}</strong></div>
                 <div><span>Status</span><strong>{{ getStatusLabel(selectedTeacher.status) }}</strong></div>
                 <div><span>Date Joined</span><strong>{{ formatDate(selectedTeacher.date_joined) }}</strong></div>
                 <div><span>Classes</span><strong>{{ selectedTeacher.teaching_classes || selectedTeacher.head_teacher_classes || 'No classes assigned' }}</strong></div>
-                <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || 'No modules assigned' }}</strong></div>
+                <div><span>Modules</span><strong>{{ selectedTeacher.assigned_modules || selectedTeacher.module_name || 'No modules assigned' }}</strong></div>
+                <div class="details-wide"><span>Notes</span><strong>{{ selectedTeacher.notes || 'Not set' }}</strong></div>
               </div>
             </div>
           </div>
@@ -438,7 +548,7 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { Eye, EyeOff } from 'lucide-vue-next'
 import api from '@/stores/api'
-import { Modal, Toast } from 'bootstrap'
+import { Modal } from 'bootstrap'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
 
@@ -459,7 +569,16 @@ const editingTeacher = ref({
   department: '',
   password: '',
   status: 'active',
-  date_joined: ''
+  date_joined: '',
+  employee_id: '',
+  phone: '',
+  module_name: '',
+  qualification: '',
+  years_experience: '',
+  available_days: '',
+  available_from: '',
+  available_to: '',
+  notes: ''
 })
 const editLoading = ref(false)
 const editErrors = ref({})
@@ -471,7 +590,16 @@ const newTeacher = ref({
   department: '',
   password: '',
   status: 'active',
-  date_joined: new Date().toISOString().split('T')[0]
+  date_joined: new Date().toISOString().split('T')[0],
+  employee_id: '',
+  phone: '',
+  module_name: '',
+  qualification: '',
+  years_experience: '',
+  available_days: '',
+  available_from: '',
+  available_to: '',
+  notes: ''
 })
 
 const loading = ref(false)
@@ -587,6 +715,39 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const formatDateInput = (dateString) => {
+  if (!dateString) return ''
+  if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+    return dateString.slice(0, 10)
+  }
+  const date = new Date(dateString)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10)
+}
+
+const formatTimeInput = (timeString) => {
+  if (!timeString) return ''
+  return String(timeString).slice(0, 5)
+}
+
+const blankTeacherForm = () => ({
+  teacher_id: null,
+  name: '',
+  email: '',
+  department: '',
+  password: '',
+  status: 'active',
+  date_joined: '',
+  employee_id: '',
+  phone: '',
+  module_name: '',
+  qualification: '',
+  years_experience: '',
+  available_days: '',
+  available_from: '',
+  available_to: '',
+  notes: ''
+})
+
 const csvEscape = (value) => {
   const text = String(value ?? '')
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
@@ -667,7 +828,16 @@ const handleAddTeacher = async () => {
         department: '',
         password: '',
         status: 'active',
-        date_joined: new Date().toISOString().split('T')[0]
+        date_joined: new Date().toISOString().split('T')[0],
+        employee_id: '',
+        phone: '',
+        module_name: '',
+        qualification: '',
+        years_experience: '',
+        available_days: '',
+        available_from: '',
+        available_to: '',
+        notes: ''
       }
       const modal = document.getElementById('addTeacherModal')
       const bootstrapModal = Modal.getInstance(modal)
@@ -692,43 +862,9 @@ const openAddModal = () => {
   Modal.getOrCreateInstance(modal).show()
 }
 
-const showSuccessMessage = (message) => {
-  const toastHtml = `
-    <div class="toast align-items-center text-white bg-success border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  `
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = toastHtml
-  document.body.appendChild(toastContainer)
-  const toastElement = toastContainer.querySelector('.toast')
-  const toast = new Toast(toastElement)
-  toast.show()
-  setTimeout(() => document.body.removeChild(toastContainer), 5000)
-}
+const showSuccessMessage = () => {}
 
-const showErrorMessage = (message) => {
-  const toastHtml = `
-    <div class="toast align-items-center text-white bg-danger border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  `
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = toastHtml
-  document.body.appendChild(toastContainer)
-  const toastElement = toastContainer.querySelector('.toast')
-  const toast = new Toast(toastElement)
-  toast.show()
-  setTimeout(() => document.body.removeChild(toastContainer), 5000)
-}
+const showErrorMessage = () => {}
 
 const openEditModal = (teacher) => {
   editingTeacher.value = {
@@ -738,7 +874,16 @@ const openEditModal = (teacher) => {
     department: teacher.department || 'SSOD',
     password: '',
     status: teacher.status,
-    date_joined: teacher.date_joined
+    date_joined: formatDateInput(teacher.date_joined),
+    employee_id: teacher.employee_id || '',
+    phone: teacher.phone || '',
+    module_name: teacher.module_name || '',
+    qualification: teacher.qualification || '',
+    years_experience: teacher.years_experience ?? '',
+    available_days: teacher.available_days || '',
+    available_from: formatTimeInput(teacher.available_from),
+    available_to: formatTimeInput(teacher.available_to),
+    notes: teacher.notes || ''
   }
   editErrors.value = {}
   const modal = new Modal(document.getElementById('editTeacherModal'))
@@ -765,6 +910,10 @@ const validateEditForm = () => {
   if (editingTeacher.value.password && editingTeacher.value.password.length < 6) {
     editErrors.value.password = 'Password must be at least 6 characters'
   }
+
+  if (editingTeacher.value.years_experience !== '' && Number(editingTeacher.value.years_experience) < 0) {
+    editErrors.value.years_experience = 'Experience cannot be negative'
+  }
   
   return Object.keys(editErrors.value).length === 0
 }
@@ -784,7 +933,17 @@ const handleUpdateTeacher = async (event) => {
       name: editingTeacher.value.name,
       email: editingTeacher.value.email,
       department: editingTeacher.value.department.trim(),
-      status: editingTeacher.value.status
+      status: editingTeacher.value.status,
+      date_joined: editingTeacher.value.date_joined || undefined,
+      employee_id: editingTeacher.value.employee_id.trim(),
+      phone: editingTeacher.value.phone.trim(),
+      module_name: editingTeacher.value.module_name.trim(),
+      qualification: editingTeacher.value.qualification.trim(),
+      years_experience: editingTeacher.value.years_experience === '' ? '' : Number(editingTeacher.value.years_experience),
+      available_days: editingTeacher.value.available_days.trim(),
+      available_from: editingTeacher.value.available_from || '',
+      available_to: editingTeacher.value.available_to || '',
+      notes: editingTeacher.value.notes.trim()
     }
     
     if (editingTeacher.value.password) {
@@ -797,14 +956,7 @@ const handleUpdateTeacher = async (event) => {
       await loadTeachers()
       const modal = Modal.getInstance(document.getElementById('editTeacherModal'))
       modal.hide()
-      editingTeacher.value = {
-        teacher_id: null,
-        name: '',
-        email: '',
-        password: '',
-        status: 'active',
-        date_joined: ''
-      }
+      editingTeacher.value = blankTeacherForm()
       showSuccessMessage('Teacher updated successfully!')
     }
   } catch (error) {
@@ -1115,7 +1267,7 @@ onMounted(async () => {
 
 .table-custom {
   width: 100%;
-  min-width: 980px;
+  min-width: 1080px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -1136,27 +1288,27 @@ onMounted(async () => {
 
 .table-custom th:nth-child(1),
 .table-custom td:nth-child(1) {
-  width: 24%;
+  width: 20%;
 }
 
 .table-custom th:nth-child(2),
 .table-custom td:nth-child(2) {
-  width: 14%;
+  width: 13%;
 }
 
 .table-custom th:nth-child(3),
 .table-custom td:nth-child(3) {
-  width: 10%;
+  width: 13%;
 }
 
 .table-custom th:nth-child(4),
 .table-custom td:nth-child(4) {
-  width: 13%;
+  width: 16%;
 }
 
 .table-custom th:nth-child(5),
 .table-custom td:nth-child(5) {
-  width: 17%;
+  width: 10%;
 }
 
 .table-custom th:nth-child(6),
@@ -1166,7 +1318,13 @@ onMounted(async () => {
 
 .table-custom th:nth-child(7),
 .table-custom td:nth-child(7) {
-  width: 12%;
+  width: 9%;
+}
+
+.table-custom th:nth-child(8),
+.table-custom td:nth-child(8) {
+  width: 19%;
+  overflow: visible;
 }
 
 .teacher-cell {
@@ -1192,23 +1350,29 @@ onMounted(async () => {
   text-overflow: ellipsis;
 }
 
-.compact-list-cell {
+.load-cell {
   display: grid;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.compact-list-cell strong {
-  color: #0f172a;
-  font-size: 0.86rem;
-}
-
-.compact-list-cell small {
+  gap: 0.15rem;
   color: #64748b;
   font-size: 0.68rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700;
+}
+
+.load-cell span {
   white-space: nowrap;
+}
+
+.load-cell strong {
+  color: #0f172a;
+  font-size: 0.86rem;
+  margin-right: 0.18rem;
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
 }
 
 .badge {
@@ -1298,6 +1462,10 @@ onMounted(async () => {
   background: #f8fafc;
 }
 
+.details-grid .details-wide {
+  grid-column: 1 / -1;
+}
+
 .details-grid span,
 .details-grid strong {
   display: block;
@@ -1339,7 +1507,7 @@ onMounted(async () => {
 :global(body.admin-dark-mode) .teachers-container h2,
 :global(body.admin-dark-mode) .teachers-container h5,
 :global(body.admin-dark-mode) .teachers-container .teacher-cell strong,
-:global(body.admin-dark-mode) .teachers-container .compact-list-cell strong,
+:global(body.admin-dark-mode) .teachers-container .load-cell strong,
 :global(body.admin-dark-mode) .teachers-container .teacher-summary-grid strong,
 :global(body.admin-dark-mode) .teachers-container .details-grid strong,
 :global(body.admin-dark-mode) .teachers-container .table-custom th {
@@ -1348,7 +1516,7 @@ onMounted(async () => {
 
 :global(body.admin-dark-mode) .teachers-container .teacher-page-subtitle,
 :global(body.admin-dark-mode) .teachers-container .teacher-cell small,
-:global(body.admin-dark-mode) .teachers-container .compact-list-cell small,
+:global(body.admin-dark-mode) .teachers-container .load-cell,
 :global(body.admin-dark-mode) .teachers-container .teacher-summary-grid span,
 :global(body.admin-dark-mode) .teachers-container .teacher-summary-grid small,
 :global(body.admin-dark-mode) .teachers-container .details-grid span,
