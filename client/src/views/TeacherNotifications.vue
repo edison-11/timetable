@@ -641,6 +641,11 @@ onMounted(loadNotifications)
   color: #cbd5e1 !important;
 }
 
+:global(body.teacher-dark-mode) .teacher-notifications-page *,
+:global(.teacher-shell.dark-mode) .teacher-notifications-page * {
+  color: #e5edf7 !important;
+}
+
 :global(body.teacher-dark-mode) .notification-card.active,
 :global(.teacher-shell.dark-mode) .notification-card.active {
   border-color: #60a5fa !important;
