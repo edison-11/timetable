@@ -30,8 +30,16 @@
       <section v-if="pageMode !== 'students'" class="mode-panel">
         <div class="mode-filters">
           <label>
-            <span>Date</span>
+            <span>{{ pageMode === 'reports' ? 'Date in period' : 'Date' }}</span>
             <input v-model="attendanceFilters.date" type="date">
+          </label>
+          <label v-if="pageMode === 'reports'">
+            <span>Period</span>
+            <select v-model="attendanceReportPeriod">
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+              <option value="term">This term</option>
+            </select>
           </label>
           <label>
             <span>Class</span>
@@ -42,9 +50,6 @@
               </option>
             </select>
           </label>
-          <button type="button" class="secondary-btn" :disabled="loadingAttendanceRecords" @click="loadAttendanceRecords">
-            {{ loadingAttendanceRecords ? 'Loading...' : pageMode === 'reports' ? 'View Report' : 'View Attendance' }}
-          </button>
         </div>
 
         <div class="attendance-summary-row">
@@ -92,6 +97,21 @@
         </div>
 
         <div v-else class="report-section">
+          <div class="report-range-card">
+            <div>
+              <span>Showing module attendance</span>
+              <strong>{{ attendanceReportRangeLabel }}</strong>
+            </div>
+            <button
+              type="button"
+              class="secondary-btn"
+              :disabled="!attendanceRecords.length"
+              @click="showReportGraphic = !showReportGraphic"
+            >
+              {{ showReportGraphic ? 'Hide Graphic' : 'View Graphic Statistics' }}
+            </button>
+          </div>
+
           <div class="report-summary-grid">
             <article>
               <span>Present Rate</span>
@@ -111,19 +131,37 @@
             </article>
           </div>
 
+          <div v-if="showReportGraphic" class="chart-row report-graphic">
+            <div class="pie-chart" :style="attendanceReportPieStyle">
+              <span>{{ attendanceReportSummary.presentRate }}%</span>
+            </div>
+            <div class="chart-legend">
+              <span><i class="present-dot"></i> Present {{ attendanceReportSummary.present }}</span>
+              <span><i class="absent-dot"></i> Absent {{ attendanceReportSummary.absent }}</span>
+              <span><i class="late-dot"></i> Late {{ attendanceReportSummary.late }}</span>
+              <span><i class="excused-dot"></i> Excused {{ attendanceReportSummary.excused }}</span>
+            </div>
+          </div>
+
           <div class="module-chart">
             <div v-for="module in attendanceReportRows" :key="module.name" class="module-bar-row">
               <div class="module-bar-label">
                 <strong>{{ module.name }}</strong>
-                <span>{{ module.present }}/{{ module.total }} attended</span>
+                <span>{{ module.attended }}/{{ module.total }} attended</span>
               </div>
-              <div class="module-bar-track">
-                <span :style="{ width: `${module.rate}%` }"></span>
+              <div class="module-bar-track stacked">
+                <span class="present-segment" :style="{ width: `${module.widths.present}%` }"></span>
+                <span class="late-segment" :style="{ width: `${module.widths.late}%` }"></span>
+                <span class="excused-segment" :style="{ width: `${module.widths.excused}%` }"></span>
+                <span class="absent-segment" :style="{ width: `${module.widths.absent}%` }"></span>
               </div>
               <strong>{{ module.rate }}%</strong>
+              <small class="module-status-line">
+                Present {{ module.present }} · Late {{ module.late }} · Excused {{ module.excused }} · Absent {{ module.absent }}
+              </small>
             </div>
             <p v-if="!attendanceReportRows.length" class="empty-row">
-              {{ loadingAttendanceRecords ? 'Loading report...' : 'No report data for this date.' }}
+              {{ loadingAttendanceRecords ? 'Loading report...' : 'No report data for this period.' }}
             </p>
           </div>
         </div>
@@ -296,12 +334,18 @@
             <div v-for="module in moduleReportRows" :key="module.name" class="module-bar-row">
               <div class="module-bar-label">
                 <strong>{{ module.name }}</strong>
-                <span>{{ module.present }}/{{ module.total }} attended</span>
+                <span>{{ module.attended }}/{{ module.total }} attended</span>
               </div>
-              <div class="module-bar-track">
-                <span :style="{ width: `${module.rate}%` }"></span>
+              <div class="module-bar-track stacked">
+                <span class="present-segment" :style="{ width: `${module.widths.present}%` }"></span>
+                <span class="late-segment" :style="{ width: `${module.widths.late}%` }"></span>
+                <span class="excused-segment" :style="{ width: `${module.widths.excused}%` }"></span>
+                <span class="absent-segment" :style="{ width: `${module.widths.absent}%` }"></span>
               </div>
               <strong>{{ module.rate }}%</strong>
+              <small class="module-status-line">
+                Present {{ module.present }} · Late {{ module.late }} · Excused {{ module.excused }} · Absent {{ module.absent }}
+              </small>
             </div>
             <p v-if="!moduleReportRows.length" class="empty-row">
               {{ loadingSelectedAttendance ? 'Loading report...' : 'No module attendance for this period.' }}
@@ -337,8 +381,6 @@
               <td><span class="status-pill">{{ student.status }}</span></td>
               <td class="actions">
                 <button type="button" @click="openStudentDetail(student, 'info')">Information</button>
-                <button type="button" @click="openStudentDetail(student, 'attendance')">Attendance</button>
-                <button type="button" @click="openStudentDetail(student, 'report')">Report</button>
                 <button type="button" @click="openEdit(student)">Edit</button>
                 <button type="button" class="danger" @click="deleteStudent(student)">Delete</button>
               </td>
@@ -477,6 +519,8 @@ const loadingAttendanceRecords = ref(false)
 const attendanceFilters = ref({
   date: new Date().toISOString().slice(0, 10)
 })
+const attendanceReportPeriod = ref('week')
+const showReportGraphic = ref(false)
 
 const pageMode = computed(() => {
   const view = String(route.query.view || '')
@@ -597,6 +641,21 @@ const reportRangeLabel = computed(() => {
   return `${formatDate(start)} - ${formatDate(end)}`
 })
 
+const attendanceReportDateRange = computed(() => {
+  const baseDate = attendanceFilters.value.date
+    ? new Date(attendanceFilters.value.date)
+    : new Date()
+
+  if (attendanceReportPeriod.value === 'month') return getMonthRange(baseDate)
+  if (attendanceReportPeriod.value === 'term') return getTermRange(baseDate)
+  return getWeekRange(baseDate)
+})
+
+const attendanceReportRangeLabel = computed(() => {
+  const { start, end } = attendanceReportDateRange.value
+  return `${formatDate(start)} - ${formatDate(end)}`
+})
+
 const reportRecords = computed(() => {
   const { start, end } = reportDateRange.value
   return selectedAttendance.value.filter((record) => {
@@ -628,22 +687,48 @@ const reportPieStyle = computed(() => {
   }
 })
 
-const moduleReportRows = computed(() => {
+const buildModuleAttendanceRows = (records) => {
   const modules = new Map()
-  reportRecords.value.forEach((record) => {
+  records.forEach((record) => {
     const name = record.module_name || record.period_label || 'Study period'
-    if (!modules.has(name)) modules.set(name, { name, total: 0, present: 0 })
+    if (!modules.has(name)) {
+      modules.set(name, {
+        name,
+        total: 0,
+        present: 0,
+        absent: 0,
+        late: 0,
+        excused: 0
+      })
+    }
+
     const row = modules.get(name)
+    const status = record.status || 'present'
     row.total += 1
-    if (['present', 'late', 'excused'].includes(record.status || 'present')) row.present += 1
+    if (row[status] !== undefined) row[status] += 1
   })
+
   return Array.from(modules.values())
-    .map((row) => ({
-      ...row,
-      rate: row.total ? Math.round((row.present / row.total) * 100) : 0
-    }))
+    .map((row) => {
+      const attended = row.present + row.late + row.excused
+      const percent = (count) => row.total ? Math.round((count / row.total) * 100) : 0
+
+      return {
+        ...row,
+        attended,
+        rate: row.total ? Math.round((attended / row.total) * 100) : 0,
+        widths: {
+          present: percent(row.present),
+          late: percent(row.late),
+          excused: percent(row.excused),
+          absent: percent(row.absent)
+        }
+      }
+    })
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
-})
+}
+
+const moduleReportRows = computed(() => buildModuleAttendanceRows(reportRecords.value))
 
 const attendanceReportSummary = computed(() => {
   const counts = buildAttendanceCounts(attendanceRecords.value)
@@ -656,22 +741,20 @@ const attendanceReportSummary = computed(() => {
   }
 })
 
-const attendanceReportRows = computed(() => {
-  const modules = new Map()
-  attendanceRecords.value.forEach((record) => {
-    const name = record.module_name || record.period_label || 'Study period'
-    if (!modules.has(name)) modules.set(name, { name, total: 0, present: 0 })
-    const row = modules.get(name)
-    row.total += 1
-    if (['present', 'late', 'excused'].includes(record.status || 'present')) row.present += 1
-  })
-  return Array.from(modules.values())
-    .map((row) => ({
-      ...row,
-      rate: row.total ? Math.round((row.present / row.total) * 100) : 0
-    }))
-    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name))
+const attendanceReportPieStyle = computed(() => {
+  const total = attendanceReportSummary.value.total || 1
+  const present = Math.round((attendanceReportSummary.value.present / total) * 100)
+  const absent = Math.round((attendanceReportSummary.value.absent / total) * 100)
+  const late = Math.round((attendanceReportSummary.value.late / total) * 100)
+
+  return {
+    '--present': `${present}%`,
+    '--absent': `${present + absent}%`,
+    '--late': `${present + absent + late}%`
+  }
 })
+
+const attendanceReportRows = computed(() => buildModuleAttendanceRows(attendanceRecords.value))
 
 const csvEscape = (value) => {
   const text = String(value ?? '')
@@ -761,11 +844,20 @@ const loadAttendanceRecords = async () => {
 
   loadingAttendanceRecords.value = true
   try {
+    const params = {
+      class_id: classFilter.value || undefined
+    }
+
+    if (pageMode.value === 'reports') {
+      const { start, end } = attendanceReportDateRange.value
+      params.from_date = normalizeDate(start)
+      params.to_date = normalizeDate(end)
+    } else {
+      params.attendance_date = attendanceFilters.value.date
+    }
+
     const response = await api.get('/students/attendance/records', {
-      params: {
-        attendance_date: attendanceFilters.value.date,
-        class_id: classFilter.value || undefined
-      }
+      params
     })
     attendanceRecords.value = response.data.attendance || []
   } catch (error) {
@@ -892,7 +984,17 @@ const loadSelectedAttendance = async () => {
 
 const normalizeDate = (value) => {
   if (!value) return ''
-  return new Date(value).toISOString().slice(0, 10)
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    return value.slice(0, 10)
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 const formatDate = (value) => {
@@ -1098,6 +1200,35 @@ onMounted(async () => {
 .module-chart {
   display: grid;
   gap: 0.9rem;
+}
+
+.report-range-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.85rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.report-range-card span {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.report-range-card strong {
+  display: block;
+  color: #172033;
+}
+
+.report-graphic {
+  align-items: center;
 }
 
 .report-toolbar {
@@ -1505,6 +1636,7 @@ label span {
 :global(body:is(.admin-dark-mode, .dark)) .students-page .detail-tabs,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .student-info-grid article,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .report-summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .students-page .report-range-card,
 :global(body:is(.admin-dark-mode, .dark)) .students-page .chart-row {
   background: #0b1220 !important;
   border-color: #243244 !important;

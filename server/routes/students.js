@@ -164,12 +164,14 @@ router.get('/attendance', auth, requireTeacherOrSchoolAdmin, async (req, res) =>
 
 router.get('/attendance/records', auth, requireTeacherOrSchoolAdmin, async (req, res) => {
   try {
-    if (!req.query.attendance_date) {
-      return res.status(400).json({ message: 'Attendance date is required' });
+    if (!req.query.attendance_date && !req.query.from_date && !req.query.to_date) {
+      return res.status(400).json({ message: 'Attendance date or report date range is required' });
     }
 
     const attendance = await Student.getAttendanceRecords({
-      attendance_date: req.query.attendance_date,
+      attendance_date: req.query.attendance_date || null,
+      from_date: req.query.from_date || null,
+      to_date: req.query.to_date || null,
       class_id: req.query.class_id || null,
       school_id: getRequestSchoolId(req)
     });

@@ -168,7 +168,7 @@
 <script setup>
 import { computed, onActivated, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Modal, Toast } from 'bootstrap'
+import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
@@ -375,22 +375,7 @@ const confirmDeleteSection = async () => {
   }
 }
 
-const showToast = (message, type) => {
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = `
-    <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  `
-  document.body.appendChild(toastContainer)
-  const toast = new Toast(toastContainer.querySelector('.toast'))
-  toast.show()
-  setTimeout(() => document.body.removeChild(toastContainer), 5000)
-}
+const showToast = () => {}
 
 const loadData = async () => {
   try {

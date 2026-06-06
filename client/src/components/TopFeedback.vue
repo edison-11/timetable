@@ -7,7 +7,12 @@
         </div>
       </Transition>
 
-      <TransitionGroup name="notice" tag="div" class="notification-stack">
+      <TransitionGroup
+        name="notice"
+        tag="div"
+        class="notification-stack"
+        :style="notificationStackStyle"
+      >
         <article
           v-for="item in notifications.items"
           :key="item.id"
@@ -15,12 +20,15 @@
           :class="item.type"
         >
           <div>
-            <strong>{{ item.title }}</strong>
-            <p>{{ item.message }}</p>
+            <strong>{{ item.complete ? item.title : progressTitle(item) }}</strong>
+            <p>{{ item.complete ? item.message : `Progress ${item.progress}%` }}</p>
           </div>
           <button type="button" aria-label="Dismiss notification" @click="notifications.remove(item.id)">
             x
           </button>
+          <span class="notification-progress" aria-hidden="true">
+            <span :style="{ width: `${item.progress}%` }"></span>
+          </span>
         </article>
       </TransitionGroup>
     </div>
@@ -38,6 +46,21 @@ defineProps({
 })
 
 const notifications = useNotificationStore()
+
+const notificationStackStyle = {
+  position: 'fixed',
+  top: '5.25rem',
+  right: '1rem',
+  left: 'auto',
+  transform: 'none'
+}
+
+const progressTitle = (item) => {
+  if (item.type === 'error') return 'Checking failed action...'
+  if (item.type === 'success') return 'Saving changes...'
+  if (item.type === 'warning') return 'Checking action...'
+  return 'Processing...'
+}
 </script>
 
 <style scoped>
@@ -70,17 +93,20 @@ const notifications = useNotificationStore()
 }
 
 .notification-stack {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
+  top: 5.25rem;
+  right: 1rem;
+  left: auto;
+  transform: none;
   display: grid;
   gap: 0.65rem;
-  width: min(520px, calc(100vw - 2rem));
+  width: min(420px, calc(100vw - 2rem));
 }
 
 .notification {
   pointer-events: auto;
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.9rem;
@@ -90,7 +116,7 @@ const notifications = useNotificationStore()
   border-left-width: 5px;
   border-radius: 8px;
   background: #ffffff;
-  box-shadow: 0 22px 52px rgba(15, 23, 42, 0.22);
+  box-shadow: 0 18px 46px rgba(15, 23, 42, 0.18);
   color: #172033;
 }
 
@@ -119,19 +145,59 @@ const notifications = useNotificationStore()
 }
 
 .notification.success {
+  border-color: #bbf7d0;
   border-left-color: #16a34a;
+  background: #f0fdf4;
 }
 
 .notification.error {
+  border-color: #fecaca;
   border-left-color: #dc2626;
+  background: #fef2f2;
 }
 
 .notification.info {
+  border-color: #bfdbfe;
   border-left-color: #2563eb;
+  background: #eff6ff;
 }
 
 .notification.warning {
+  border-color: #fde68a;
   border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.notification-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.notification-progress span {
+  display: block;
+  width: 1%;
+  height: 100%;
+  transition: width 0.08s linear;
+}
+
+.notification.success .notification-progress span {
+  background: #16a34a;
+}
+
+.notification.error .notification-progress span {
+  background: #dc2626;
+}
+
+.notification.info .notification-progress span {
+  background: #2563eb;
+}
+
+.notification.warning .notification-progress span {
+  background: #f59e0b;
 }
 
 :global(body.admin-dark-mode) .notification {
@@ -179,7 +245,7 @@ const notifications = useNotificationStore()
 
 @media (max-width: 640px) {
   .notification-stack {
-    top: 10px;
+    top: 76px;
     right: 10px;
     left: 10px;
     transform: none;
