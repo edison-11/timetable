@@ -1287,6 +1287,108 @@ onBeforeUnmount(() => {
   animation: timer-ring 0.7s ease-in-out 3;
 }
 
+:global(body.teacher-dark-mode) .period-alert,
+:global(.teacher-shell.dark-mode) .period-alert {
+  border-color: #7f1d1d !important;
+  background: rgba(127, 29, 29, 0.28) !important;
+  color: #fecaca !important;
+}
+
+:global(body.teacher-dark-mode) .period-alert span,
+:global(body.teacher-dark-mode) .period-alert button,
+:global(.teacher-shell.dark-mode) .period-alert span,
+:global(.teacher-shell.dark-mode) .period-alert button {
+  color: #fecaca !important;
+}
+
+:global(body.teacher-dark-mode) .period-alert button,
+:global(.teacher-shell.dark-mode) .period-alert button {
+  background: rgba(15, 23, 42, 0.72) !important;
+}
+
+:global(body.teacher-dark-mode) .watch-face,
+:global(.teacher-shell.dark-mode) .watch-face {
+  border-color: #020617 !important;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.08), transparent 16%),
+    linear-gradient(160deg, #111827 0%, #020617 78%) !important;
+}
+
+:global(body.teacher-dark-mode) .screen,
+:global(.teacher-shell.dark-mode) .screen {
+  border-color: #020617 !important;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.12), transparent 24%),
+    #0f172a !important;
+  color: #e5edf7 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(148, 163, 184, 0.16),
+    inset 0 -7px 12px rgba(2, 6, 23, 0.58) !important;
+}
+
+:global(body.teacher-dark-mode) .screen-top,
+:global(body.teacher-dark-mode) .period-summary,
+:global(body.teacher-dark-mode) .timer-navigation,
+:global(.teacher-shell.dark-mode) .screen-top,
+:global(.teacher-shell.dark-mode) .period-summary,
+:global(.teacher-shell.dark-mode) .timer-navigation {
+  border-color: rgba(148, 163, 184, 0.26) !important;
+}
+
+:global(body.teacher-dark-mode) .screen-top strong,
+:global(body.teacher-dark-mode) .period-summary span,
+:global(body.teacher-dark-mode) .period-summary strong,
+:global(body.teacher-dark-mode) .gmt-chip,
+:global(body.teacher-dark-mode) .timer-zone,
+:global(body.teacher-dark-mode) .timer-local-time,
+:global(body.teacher-dark-mode) .timer-caption,
+:global(body.teacher-dark-mode) .watch-metrics span,
+:global(body.teacher-dark-mode) .watch-metrics strong,
+:global(.teacher-shell.dark-mode) .screen-top strong,
+:global(.teacher-shell.dark-mode) .period-summary span,
+:global(.teacher-shell.dark-mode) .period-summary strong,
+:global(.teacher-shell.dark-mode) .gmt-chip,
+:global(.teacher-shell.dark-mode) .timer-zone,
+:global(.teacher-shell.dark-mode) .timer-local-time,
+:global(.teacher-shell.dark-mode) .timer-caption,
+:global(.teacher-shell.dark-mode) .watch-metrics span,
+:global(.teacher-shell.dark-mode) .watch-metrics strong {
+  color: #f8fafc !important;
+}
+
+:global(body.teacher-dark-mode) .timer-caption,
+:global(.teacher-shell.dark-mode) .timer-caption {
+  border-color: #334155 !important;
+}
+
+:global(body.teacher-dark-mode) .alarm-toggle,
+:global(body.teacher-dark-mode) .timer-navigation button,
+:global(body.teacher-dark-mode) .tone-trigger,
+:global(body.teacher-dark-mode) .tone-menu,
+:global(body.teacher-dark-mode) .tone-menu button,
+:global(.teacher-shell.dark-mode) .alarm-toggle,
+:global(.teacher-shell.dark-mode) .timer-navigation button,
+:global(.teacher-shell.dark-mode) .tone-trigger,
+:global(.teacher-shell.dark-mode) .tone-menu,
+:global(.teacher-shell.dark-mode) .tone-menu button {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+}
+
+:global(body.teacher-dark-mode) .alarm-toggle.enabled,
+:global(body.teacher-dark-mode) .tone-menu button:hover,
+:global(body.teacher-dark-mode) .tone-menu button:focus-visible,
+:global(body.teacher-dark-mode) .tone-menu button.active,
+:global(.teacher-shell.dark-mode) .alarm-toggle.enabled,
+:global(.teacher-shell.dark-mode) .tone-menu button:hover,
+:global(.teacher-shell.dark-mode) .tone-menu button:focus-visible,
+:global(.teacher-shell.dark-mode) .tone-menu button.active {
+  border-color: #60a5fa !important;
+  background: #172554 !important;
+  color: #f8fafc !important;
+}
+
 @keyframes timer-ring {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-3px); }

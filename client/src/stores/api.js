@@ -8,8 +8,8 @@ const getApiBaseUrl = () => {
 
   if (configuredUrl) return configuredUrl
 
-  // In dev, always use the Vite proxy (`/api`) to avoid hard-coded ports
-  if (import.meta.env.DEV) return '/api'
+  // In dev, use the backend port directly to avoid proxy gateway failures.
+  if (import.meta.env.DEV) return 'http://localhost:5000/api'
 
   const { hostname, port, protocol } = window.location
 

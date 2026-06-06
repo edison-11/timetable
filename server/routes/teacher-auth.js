@@ -257,7 +257,9 @@ router.post('/login', [
     }
 
     // Compare passwords
-    const isMatch = await bcrypt.compare(password, teacher.password);
+    const isMatch = teacher.password && typeof teacher.password === 'string'
+      ? await bcrypt.compare(password, teacher.password)
+      : false;
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }

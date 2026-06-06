@@ -1,9 +1,13 @@
 <template>
-  <div v-if="isLoading" class="top-loading" aria-hidden="true">
-    <span class="track"></span>
-    <span class="beam beam-a"></span>
-    <span class="beam beam-b"></span>
-  </div>
+  <Teleport to="body">
+    <Transition name="top-loading">
+      <div v-if="isVisible" class="top-loading-bar" role="progressbar" aria-label="Loading">
+        <span class="top-loading-bar__track">
+          <span class="top-loading-bar__fill"></span>
+        </span>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -11,60 +15,60 @@ import { computed } from 'vue'
 import { useLoadingStore } from '@/stores/loading'
 
 const loadingStore = useLoadingStore()
-const isLoading = computed(() => loadingStore.pendingRequests > 0 || loadingStore.routeLoading || loadingStore.bootLoading)
+
+const isVisible = computed(() => loadingStore.visible)
 </script>
 
 <style scoped>
-.top-loading {
+.top-loading-bar {
   position: fixed;
-  inset: 0 0 auto;
-  width: 100%;
-  height: 5px;
-  z-index: 2147483001;
-  overflow: hidden;
-  background: rgba(8, 42, 74, 0.12);
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100001;
+  height: 3px;
   pointer-events: none;
 }
 
-.track,
-.beam {
-  position: absolute;
-  inset: 0;
+.top-loading-bar__track {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: rgba(37, 99, 235, 0.12);
 }
 
-.track {
-  background: linear-gradient(90deg, #159bd7, #1fb35d, #159bd7);
-  opacity: 0.34;
-}
-
-.beam {
-  width: 34%;
+.top-loading-bar__fill {
+  display: block;
+  width: 44%;
+  height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, #ffffff, #2bd371, transparent);
-  box-shadow: 0 0 18px rgba(43, 211, 113, 0.72);
-  animation: loading-beam 1.2s ease-in-out infinite;
+  background: linear-gradient(90deg, #2563eb, #14b8a6, #22c55e);
+  box-shadow: 0 0 18px rgba(20, 184, 166, 0.38);
+  animation: top-loading-slide 1.05s ease-in-out infinite;
 }
 
-.beam-b {
-  width: 22%;
-  background: linear-gradient(90deg, transparent, #ffffff, #34b7ff, transparent);
-  animation-duration: 1.8s;
-  animation-delay: 0.25s;
-  opacity: 0.72;
+.top-loading-enter-active,
+.top-loading-leave-active {
+  transition: opacity 0.18s ease;
 }
 
-@keyframes loading-beam {
+.top-loading-enter-from,
+.top-loading-leave-to {
+  opacity: 0;
+}
+
+@keyframes top-loading-slide {
   0% {
-    transform: translateX(-120%);
+    transform: translateX(-110%);
   }
-  100% {
-    transform: translateX(340%);
-  }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .beam {
-    animation: none;
+  50% {
+    transform: translateX(90%);
+  }
+
+  100% {
+    transform: translateX(230%);
   }
 }
 </style>

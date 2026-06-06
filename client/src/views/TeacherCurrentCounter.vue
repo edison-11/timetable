@@ -97,11 +97,27 @@ import TeacherPeriodTimer from '@/components/TeacherPeriodTimer.vue'
   color: #e5edf7 !important;
 }
 
-:global(body.teacher-dark-mode) .counter-hero h1 {
+:global(.teacher-shell.dark-mode) .current-counter-page {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%) !important;
+  color: #e5edf7 !important;
+}
+
+:global(.teacher-shell.dark-mode) .counter-hero,
+:global(.teacher-shell.dark-mode) .counter-stage {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+}
+
+:global(body.teacher-dark-mode) .counter-hero h1,
+:global(.teacher-shell.dark-mode) .counter-hero h1 {
   color: #f8fafc !important;
 }
 
-:global(body.teacher-dark-mode) .counter-hero p {
+:global(body.teacher-dark-mode) .counter-hero p,
+:global(.teacher-shell.dark-mode) .counter-hero p {
   color: #cbd5e1 !important;
 }
 </style>

@@ -579,13 +579,27 @@ onMounted(loadNotifications)
   color: #e5edf7 !important;
 }
 
+:global(.teacher-shell.dark-mode) .teacher-notifications-page {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 30rem),
+    linear-gradient(135deg, #020617 0%, #0b1120 48%, #0f172a 100%) !important;
+  color: #e5edf7 !important;
+}
+
 :global(body.teacher-dark-mode) .notifications-hero,
 :global(body.teacher-dark-mode) .summary-grid article,
 :global(body.teacher-dark-mode) .notifications-list-panel,
 :global(body.teacher-dark-mode) .notification-detail-panel,
 :global(body.teacher-dark-mode) .notification-card,
 :global(body.teacher-dark-mode) .detail-card p,
-:global(body.teacher-dark-mode) .empty-panel {
+:global(body.teacher-dark-mode) .empty-panel,
+:global(.teacher-shell.dark-mode) .notifications-hero,
+:global(.teacher-shell.dark-mode) .summary-grid article,
+:global(.teacher-shell.dark-mode) .notifications-list-panel,
+:global(.teacher-shell.dark-mode) .notification-detail-panel,
+:global(.teacher-shell.dark-mode) .notification-card,
+:global(.teacher-shell.dark-mode) .detail-card p,
+:global(.teacher-shell.dark-mode) .empty-panel {
   border-color: #243244 !important;
   background: rgba(15, 23, 42, 0.96) !important;
   color: #e5edf7 !important;
@@ -596,7 +610,13 @@ onMounted(loadNotifications)
 :global(body.teacher-dark-mode) .detail-head h2,
 :global(body.teacher-dark-mode) .summary-grid strong,
 :global(body.teacher-dark-mode) .notification-card strong,
-:global(body.teacher-dark-mode) .empty-panel strong {
+:global(body.teacher-dark-mode) .empty-panel strong,
+:global(.teacher-shell.dark-mode) .notifications-hero h1,
+:global(.teacher-shell.dark-mode) .panel-header h2,
+:global(.teacher-shell.dark-mode) .detail-head h2,
+:global(.teacher-shell.dark-mode) .summary-grid strong,
+:global(.teacher-shell.dark-mode) .notification-card strong,
+:global(.teacher-shell.dark-mode) .empty-panel strong {
   color: #f8fafc !important;
 }
 
@@ -608,12 +628,37 @@ onMounted(loadNotifications)
 :global(body.teacher-dark-mode) .notification-card span,
 :global(body.teacher-dark-mode) .notification-card small,
 :global(body.teacher-dark-mode) .detail-card p,
-:global(body.teacher-dark-mode) .empty-panel span {
+:global(body.teacher-dark-mode) .empty-panel span,
+:global(.teacher-shell.dark-mode) .notifications-hero p,
+:global(.teacher-shell.dark-mode) .summary-grid span,
+:global(.teacher-shell.dark-mode) .panel-header span,
+:global(.teacher-shell.dark-mode) .detail-head span,
+:global(.teacher-shell.dark-mode) .detail-head small,
+:global(.teacher-shell.dark-mode) .notification-card span,
+:global(.teacher-shell.dark-mode) .notification-card small,
+:global(.teacher-shell.dark-mode) .detail-card p,
+:global(.teacher-shell.dark-mode) .empty-panel span {
   color: #cbd5e1 !important;
 }
 
-:global(body.teacher-dark-mode) .notification-card.active {
+:global(body.teacher-dark-mode) .notification-card.active,
+:global(.teacher-shell.dark-mode) .notification-card.active {
   border-color: #60a5fa !important;
   background: rgba(37, 99, 235, 0.18) !important;
+}
+
+:global(body.teacher-dark-mode) .secondary-action,
+:global(body.teacher-dark-mode) .detail-icon,
+:global(.teacher-shell.dark-mode) .secondary-action,
+:global(.teacher-shell.dark-mode) .detail-icon {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
+}
+
+:global(body.teacher-dark-mode) .loading-list span,
+:global(.teacher-shell.dark-mode) .loading-list span {
+  background: linear-gradient(90deg, #111827 25%, #1e293b 45%, #111827 65%) !important;
+  background-size: 220% 100% !important;
 }
 </style>

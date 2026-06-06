@@ -322,7 +322,6 @@ const formatTime = (timestamp) => {
 
 const applyTheme = () => {
   document.body.classList.toggle('teacher-dark-mode', isDarkMode.value)
-  document.documentElement.classList.toggle('teacher-dark-mode', isDarkMode.value)
   localStorage.setItem('teacherDarkMode', JSON.stringify(isDarkMode.value))
 }
 
@@ -377,7 +376,6 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', closeMenusOnOutsideClick)
   document.body.classList.remove('teacher-sidebar-open')
   document.body.classList.remove('teacher-dark-mode')
-  document.documentElement.classList.remove('teacher-dark-mode')
 })
 </script>
 
@@ -389,6 +387,11 @@ onBeforeUnmount(() => {
   font-family: var(--app-font);
   font-size: 0.92rem;
   line-height: 1.5;
+}
+
+.teacher-shell,
+.teacher-shell.dark-mode {
+  font-size: 0.92rem;
 }
 
 .teacher-sidebar {
@@ -511,7 +514,7 @@ onBeforeUnmount(() => {
   border-radius: 10px;
   color: #475569;
   text-decoration: none;
-  transition: border-color 0.2s ease, background-color 0.2s ease;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   font-size: 0.76rem;
   font-weight: 750;
   border: 1px solid transparent;
@@ -532,17 +535,17 @@ onBeforeUnmount(() => {
 }
 
 .nav-item:hover {
-  background: transparent;
-  color: #172033;
+  background: #f8fafc;
+  color: #0f172a;
   border-color: transparent;
-  transform: none;
+  transform: translateX(3px);
 }
 
 .nav-item.active {
   background: transparent;
   color: #0f172a;
-  border-color: #2563eb;
-  box-shadow: inset 0 -2px 0 #2563eb;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .nav-item.active::before {
@@ -589,8 +592,12 @@ onBeforeUnmount(() => {
 
 .nav-item:hover .nav-icon,
 .nav-item.active .nav-icon {
-  background: #eef5ff;
   color: inherit;
+}
+
+.nav-item.active .nav-icon {
+  background: transparent;
+  transform: scale(1.08);
 }
 
 .nav-label {
@@ -1111,7 +1118,7 @@ onBeforeUnmount(() => {
 <style>
 body.teacher-sidebar-collapsed .teacher-sidebar {
   width: 64px;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .teacher-content {
@@ -1195,34 +1202,39 @@ body.teacher-sidebar-collapsed .teacher-sidebar .nav-item::after {
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover,
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible {
-  background: transparent;
-  color: inherit;
+  background: #f1f5ff;
+  color: #0f172a;
+  transform: none;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item.active {
   background: transparent;
-  border-color: #cbd5e1;
+  color: #0f172a;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item.active .nav-icon,
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover .nav-icon,
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible .nav-icon {
-  color: inherit;
   background: transparent;
-  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.22);
+  box-shadow: none;
+  transform: scale(1.04);
 }
 
 body.teacher-dark-mode.teacher-sidebar-collapsed .teacher-sidebar .nav-item.active,
 body.teacher-dark-mode.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover,
 body.teacher-dark-mode.teacher-sidebar-collapsed .teacher-sidebar .nav-item:focus-visible {
   background: transparent;
-  border-color: #60a5fa;
+  color: #bfdbfe;
+  border-color: transparent;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 body.teacher-sidebar-collapsed .teacher-sidebar .nav-item:hover::after,
@@ -1653,7 +1665,7 @@ body.teacher-dark-mode .teacher-sidebar .nav-icon {
 
 body.teacher-dark-mode .teacher-sidebar .nav-item:hover .nav-icon,
 body.teacher-dark-mode .teacher-sidebar .nav-item.active .nav-icon {
-  background: #172554;
+  background: transparent;
   color: inherit;
 }
 
@@ -1846,10 +1858,10 @@ body.teacher-dark-mode .tab-btn.active,
 body.teacher-dark-mode .class-strip button.active,
 body.teacher-dark-mode .nav-tabs .nav-link.active,
 body.teacher-dark-mode .sidebar-nav .nav-item.active {
-  border-color: #60a5fa !important;
+  border-color: transparent !important;
   background: transparent !important;
   color: #f8fafc !important;
-  box-shadow: inset 0 -2px 0 #60a5fa !important;
+  box-shadow: none !important;
 }
 
 body.teacher-dark-mode table,
@@ -2018,6 +2030,11 @@ body .teacher-shell {
   font-size: 0.92rem;
 }
 
+body .teacher-shell.dark-mode,
+body.teacher-dark-mode .teacher-shell {
+  font-size: 0.92rem !important;
+}
+
 body .teacher-shell .teacher-main,
 body .teacher-shell .teacher-content {
   background: #f5f8fc;
@@ -2043,21 +2060,26 @@ body .teacher-shell .nav-item {
 }
 
 body .teacher-shell .nav-item:hover {
-  background: transparent;
-  color: #334155;
+  background: #f8fafc;
+  color: #0f172a;
   border-color: transparent;
+  transform: translateX(3px);
 }
 
 body .teacher-shell .nav-item.active {
   background: transparent;
   color: #0f172a;
-  border-color: #2563eb;
-  box-shadow: inset 0 -2px 0 #2563eb;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 body .teacher-shell .nav-item:hover .nav-icon,
 body .teacher-shell .nav-item.active .nav-icon {
-  background: #eef5ff;
+  background: transparent;
+}
+
+body .teacher-shell .nav-item.active .nav-icon {
+  transform: scale(1.08);
 }
 
 body .teacher-shell .page-title {
@@ -2088,20 +2110,21 @@ body.teacher-dark-mode .teacher-shell .teacher-sidebar {
 }
 
 body.teacher-dark-mode .teacher-shell .nav-item:hover {
-  background: transparent !important;
-  color: #e5edf7 !important;
+  background: #1f2937 !important;
+  border-color: #334155 !important;
+  color: #f8fafc !important;
 }
 
 body.teacher-dark-mode .teacher-shell .nav-item.active {
   background: transparent !important;
   color: #f8fafc !important;
-  border-color: #60a5fa !important;
-  box-shadow: inset 0 -2px 0 #60a5fa !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
 body.teacher-dark-mode .teacher-shell .nav-item:hover .nav-icon,
 body.teacher-dark-mode .teacher-shell .nav-item.active .nav-icon {
-  background: #172554 !important;
+  background: transparent !important;
 }
 
 /* Match teacher header notifications to the DOS/superadmin header design. */
@@ -2367,5 +2390,73 @@ body.teacher-dark-mode .teacher-shell .notification-item em,
 body.teacher-dark-mode .teacher-shell .notification-item small,
 body.teacher-dark-mode .teacher-shell .notification-empty small {
   color: #cbd5e1 !important;
+}
+
+/* Shell-class dark mode fallback for routed pages when the body class is not yet synced. */
+body .teacher-shell.dark-mode,
+body .teacher-shell.dark-mode .teacher-main,
+body .teacher-shell.dark-mode .teacher-content,
+body .teacher-shell.dark-mode .current-counter-page,
+body .teacher-shell.dark-mode .teacher-notifications-page {
+  background: #0f172a !important;
+  color: #e5edf7 !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.current-counter-page, .counter-hero, .counter-stage, .teacher-notifications-page, .notifications-hero, .notifications-list-panel, .notification-detail-panel, .notification-card, .summary-grid article, .detail-card p, .empty-panel) {
+  border-color: #243244 !important;
+  background: rgba(15, 23, 42, 0.96) !important;
+  color: #e5edf7 !important;
+  box-shadow: none !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.counter-hero h1, .notifications-hero h1, .panel-header h2, .detail-head h2, .notification-card strong, .summary-grid strong, .empty-panel strong) {
+  color: #f8fafc !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.counter-hero p, .notifications-hero p, .panel-header span, .detail-head span, .detail-head small, .notification-card span, .notification-card small, .detail-card p, .summary-grid span, .empty-panel span) {
+  color: #cbd5e1 !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.current-counter-page h1, .current-counter-page h2, .current-counter-page h3, .current-counter-page strong, .current-counter-page b, .current-counter-page label, .current-counter-page .timer-local-time, .current-counter-page .timer-zone, .current-counter-page .screen-top strong, .current-counter-page .period-summary strong, .current-counter-page .watch-metrics strong) {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.current-counter-page p, .current-counter-page span, .current-counter-page small, .current-counter-page em, .current-counter-page .eyebrow, .current-counter-page .timer-caption, .current-counter-page .period-summary span, .current-counter-page .watch-metrics span, .current-counter-page .gmt-chip) {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.current-counter-page .eyebrow) {
+  color: #93c5fd !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.period-timer .watch-face) {
+  border-color: #020617 !important;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.08), transparent 16%),
+    linear-gradient(160deg, #111827 0%, #020617 78%) !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.period-timer .screen) {
+  border-color: #020617 !important;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.12), transparent 24%),
+    #0f172a !important;
+  color: #e5edf7 !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.period-timer .screen-top, .period-timer .period-summary, .period-timer .timer-navigation) {
+  border-color: rgba(148, 163, 184, 0.26) !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.period-timer .screen-top strong, .period-timer .period-summary span, .period-timer .period-summary strong, .period-timer .gmt-chip, .period-timer .timer-zone, .period-timer .timer-local-time, .period-timer .timer-caption, .period-timer .watch-metrics span, .period-timer .watch-metrics strong) {
+  color: #f8fafc !important;
+}
+
+body .teacher-shell.dark-mode .teacher-content :where(.period-timer .alarm-toggle, .period-timer .timer-navigation button, .period-timer .tone-trigger, .period-timer .tone-menu, .period-timer .tone-menu button, .secondary-action, .detail-icon) {
+  border-color: #334155 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
 }
 </style>

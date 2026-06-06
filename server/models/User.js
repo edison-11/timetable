@@ -292,6 +292,10 @@ class User {
     plainPassword,
     hashedPassword
   ) {
+    if (!plainPassword || !hashedPassword || typeof hashedPassword !== 'string') {
+      return false;
+    }
+
     return await bcrypt.compare(
       plainPassword,
       hashedPassword

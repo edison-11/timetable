@@ -832,8 +832,30 @@ button:disabled {
   color: #e2e8f0;
 }
 
+:global(body.dark) .page-header,
+:global(body.dark) .notifications-panel,
+:global(body.dark) .messages-panel,
+:global(body.dark) .summary-grid article,
+:global(body.dark) .notification-card,
+:global(body.dark) .thread-list button,
+:global(body.dark) .thread-detail,
+:global(body.dark) .message-bubble,
+:global(body.dark) .ghost-btn,
+:global(body.dark) .message-form input,
+:global(body.dark) .message-form textarea,
+:global(body.dark) .reply-form textarea,
+:global(body.dark) .icon-btn,
+:global(body.dark) .search-box input,
+:global(body.dark) .panel-toolbar select {
+  background: #111827;
+  border-color: #263247;
+  color: #e2e8f0;
+}
+
 :global(body.admin-dark-mode) .thread-list button.active,
-:global(body.admin-dark-mode) .message-bubble.mine {
+:global(body.admin-dark-mode) .message-bubble.mine,
+:global(body.dark) .thread-list button.active,
+:global(body.dark) .message-bubble.mine {
   background: #172554;
   border-color: #1d4ed8;
 }
@@ -844,8 +866,48 @@ button:disabled {
 :global(body.admin-dark-mode) .message-form label,
 :global(body.admin-dark-mode) .summary-grid strong,
 :global(body.admin-dark-mode) .notification-copy strong,
-:global(body.admin-dark-mode) .empty-state strong {
+:global(body.admin-dark-mode) .empty-state strong,
+:global(body.dark) .page-header h1,
+:global(body.dark) .panel-head h2,
+:global(body.dark) .thread-detail h3,
+:global(body.dark) .message-form label,
+:global(body.dark) .summary-grid strong,
+:global(body.dark) .notification-copy strong,
+:global(body.dark) .empty-state strong {
   color: #f8fafc;
+}
+
+:global(body.admin-dark-mode) .page-header p,
+:global(body.admin-dark-mode) .panel-head small,
+:global(body.admin-dark-mode) .thread-detail small,
+:global(body.admin-dark-mode) .thread-list span,
+:global(body.admin-dark-mode) .thread-list small,
+:global(body.admin-dark-mode) .message-bubble small,
+:global(body.admin-dark-mode) .message-bubble p,
+:global(body.admin-dark-mode) .summary-grid span,
+:global(body.admin-dark-mode) .notification-copy p,
+:global(body.admin-dark-mode) .notification-copy small,
+:global(body.admin-dark-mode) .empty-state,
+:global(body.admin-dark-mode) .search-box svg,
+:global(body.dark) .page-header p,
+:global(body.dark) .panel-head small,
+:global(body.dark) .thread-detail small,
+:global(body.dark) .thread-list span,
+:global(body.dark) .thread-list small,
+:global(body.dark) .message-bubble small,
+:global(body.dark) .message-bubble p,
+:global(body.dark) .summary-grid span,
+:global(body.dark) .notification-copy p,
+:global(body.dark) .notification-copy small,
+:global(body.dark) .empty-state,
+:global(body.dark) .search-box svg {
+  color: #cbd5e1;
+}
+
+:global(body.admin-dark-mode) .loading-list span,
+:global(body.dark) .loading-list span {
+  background: linear-gradient(90deg, #111827, #1e293b, #111827);
+  background-size: 200% 100%;
 }
 
 @media (max-width: 760px) {

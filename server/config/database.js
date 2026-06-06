@@ -18,7 +18,7 @@ require('dotenv').config({
 });
 
 const dbConfig = {
-  host: cleanEnv(process.env.DB_HOST, 'localhost'),
+  host: cleanEnv(process.env.DB_HOST, '127.0.0.1'),
   user: cleanEnv(process.env.DB_USER, 'root'),
   password: cleanEnv(process.env.DB_PASSWORD, ''),
   database: cleanEnv(process.env.DB_NAME, 'timetable_system'),
