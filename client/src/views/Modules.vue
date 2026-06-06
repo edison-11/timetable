@@ -298,7 +298,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { Modal, Toast } from 'bootstrap'
+import { Modal } from 'bootstrap'
 import api from '@/stores/api'
 import AppLayout from '@/components/AppLayout.vue'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
@@ -557,53 +557,9 @@ const confirmDeleteModule = async () => {
   }
 }
 
-const showSuccessMessage = (message) => {
-  const toastHtml = `
-    <div class="toast align-items-center text-white bg-success border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  `
-  
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = toastHtml
-  document.body.appendChild(toastContainer)
-  
-  const toastElement = toastContainer.querySelector('.toast')
-  const toast = new Toast(toastElement)
-  toast.show()
-  
-  setTimeout(() => {
-    document.body.removeChild(toastContainer)
-  }, 5000)
-}
+const showSuccessMessage = () => {}
 
-const showErrorMessage = (message) => {
-  const toastHtml = `
-    <div class="toast align-items-center text-white bg-danger border-0" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">${message}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>
-  `
-  
-  const toastContainer = document.createElement('div')
-  toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3'
-  toastContainer.innerHTML = toastHtml
-  document.body.appendChild(toastContainer)
-  
-  const toastElement = toastContainer.querySelector('.toast')
-  const toast = new Toast(toastElement)
-  toast.show()
-  
-  setTimeout(() => {
-    document.body.removeChild(toastContainer)
-  }, 5000)
-}
+const showErrorMessage = () => {}
 
 const loadModules = async () => {
   try {

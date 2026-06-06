@@ -244,9 +244,6 @@
     @confirm="confirmRejectPendingItem"
   />
 
-  <div v-if="navbarToast" class="navbar-toast" role="status">
-    {{ navbarToast }}
-  </div>
 </template>
 
 <script setup>
@@ -279,6 +276,7 @@ import {
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
 import ConfirmModal from '@/components/ui/ConfirmModal.vue'
+import { notifyError } from '@/utils/notify'
 
 const router = useRouter()
 const route = useRoute()
@@ -299,7 +297,6 @@ const accountMenu = ref(null)
 const createMenu = ref(null)
 const notifications = ref([])
 const notificationsLoading = ref(false)
-const navbarToast = ref('')
 const rejectDialog = ref({ open: false, notification: null, loading: false })
 const readNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('readNotificationIds') || '[]').map(String)))
 const archivedNotificationIds = ref(new Set(JSON.parse(localStorage.getItem('archivedNotificationIds') || '[]').map(String)))
@@ -611,10 +608,7 @@ const confirmRejectPendingItem = async () => {
 }
 
 const showNavbarToast = (message) => {
-  navbarToast.value = message
-  window.setTimeout(() => {
-    if (navbarToast.value === message) navbarToast.value = ''
-  }, 3200)
+  notifyError(message)
 }
 
 const goToDashboardNotifications = () => {
@@ -1135,21 +1129,6 @@ const logout = () => {
   background: #2563eb;
   color: #fff;
   border-color: #2563eb;
-}
-
-.navbar-toast {
-  position: fixed;
-  top: 5rem;
-  right: 1rem;
-  z-index: 1400;
-  max-width: min(360px, calc(100vw - 2rem));
-  border: 1px solid #fecaca;
-  border-radius: 14px;
-  background: #fef2f2;
-  color: #991b1b;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
-  font-weight: 850;
-  padding: 0.85rem 1rem;
 }
 
 .notification-dot {

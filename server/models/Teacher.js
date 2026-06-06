@@ -146,6 +146,10 @@ class Teacher {
         t.module_name,
         t.qualification,
         t.years_experience,
+        t.available_days,
+        t.available_from,
+        t.available_to,
+        t.notes,
         t.created_at,
         GROUP_CONCAT(DISTINCT head_class.class_name ORDER BY head_class.class_name SEPARATOR ', ') AS head_teacher_classes,
         GROUP_CONCAT(DISTINCT taught_class.class_name ORDER BY taught_class.class_name SEPARATOR ', ') AS teaching_classes,
@@ -170,6 +174,10 @@ class Teacher {
         t.module_name,
         t.qualification,
         t.years_experience,
+        t.available_days,
+        t.available_from,
+        t.available_to,
+        t.notes,
         t.created_at
       ORDER BY t.created_at DESC
     `, values);

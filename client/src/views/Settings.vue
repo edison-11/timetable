@@ -8,11 +8,6 @@
         </div>
       </header>
 
-      <div v-if="toast.message" class="toast-banner" :class="toast.type">
-        <i :class="toast.type === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
-        {{ toast.message }}
-      </div>
-
       <section class="settings-shell">
         <aside class="settings-nav" :class="{ open: navOpen }">
           <button class="mobile-nav-toggle" type="button" @click="navOpen = !navOpen">
@@ -325,6 +320,7 @@ import { Bell, Eye, EyeOff, Monitor, Palette, ShieldCheck, SlidersHorizontal, Us
 import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/stores/api'
+import { notifyError, notifySuccess, notifyWarning } from '@/utils/notify'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -341,7 +337,6 @@ const avatarUploading = ref(false)
 const savingSettings = ref(false)
 const showSecurityPassword = ref(false)
 const showSecurityConfirmPassword = ref(false)
-const toast = reactive({ message: '', type: 'success' })
 const settingsStorageKeys = {
   notifications: 'adminNotifications',
   preferences: 'adminPreferences',
@@ -572,11 +567,15 @@ const resetSuperAdminForm = () => {
 }
 
 const notify = (message, type = 'success') => {
-  toast.message = message
-  toast.type = type
-  setTimeout(() => {
-    if (toast.message === message) toast.message = ''
-  }, 2800)
+  if (type === 'danger' || type === 'error') {
+    notifyError(message)
+    return
+  }
+  if (type === 'warning') {
+    notifyWarning(message)
+    return
+  }
+  notifySuccess(message)
 }
 
 const captureBaseline = () => {
@@ -1502,41 +1501,6 @@ onBeforeUnmount(() => {
 
 .danger-zone {
   border-color: #fecaca;
-}
-
-.toast-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
-  padding: 0.85rem 1rem;
-  border-radius: 14px;
-  font-weight: 900;
-}
-
-.toast-banner.success {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.toast-banner.danger {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
-.toast-banner.warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.toast-banner.warning.success {
-  background: #dcfce7;
-  color: #166534;
-}
-
-.toast-banner.warning.danger {
-  background: #fee2e2;
-  color: #991b1b;
 }
 
 .sticky-save-bar {
