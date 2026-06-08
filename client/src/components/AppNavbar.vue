@@ -1414,9 +1414,10 @@ body.admin-dark-mode .app-navbar {
 body.admin-dark-mode .menu-toggle,
 body.admin-dark-mode .notifications-btn,
 body.admin-dark-mode .theme-toggle,
-body.admin-dark-mode .create-button {
+body.admin-dark-mode .create-button,
+body.admin-dark-mode .search-submit {
   background: #222222;
-  border-color: transparent;
+  border-color: #3d3d3d;
   color: #f1f1f1;
 }
 
@@ -1428,7 +1429,9 @@ body.admin-dark-mode .notifications-btn:focus-visible,
 body.admin-dark-mode .theme-toggle:hover,
 body.admin-dark-mode .theme-toggle:focus-visible,
 body.admin-dark-mode .create-button:hover,
-body.admin-dark-mode .create-button:focus-visible {
+body.admin-dark-mode .create-button:focus-visible,
+body.admin-dark-mode .search-submit:hover,
+body.admin-dark-mode .search-submit:focus-visible {
   background: #303030;
   color: #ffffff;
 }
@@ -1456,6 +1459,18 @@ body.admin-dark-mode .create-dropdown strong {
 
 body.admin-dark-mode .create-dropdown button {
   color: #f8fafc;
+}
+
+body.admin-dark-mode .create-button svg,
+body.admin-dark-mode .create-button span,
+body.admin-dark-mode .create-dropdown button svg,
+body.admin-dark-mode .create-dropdown button span,
+body.admin-dark-mode .account-link svg,
+body.admin-dark-mode .account-link span,
+body.admin-dark-mode .theme-toggle svg,
+body.admin-dark-mode .notifications-btn svg,
+body.admin-dark-mode .search-submit svg {
+  color: currentColor !important;
 }
 
 body.admin-dark-mode .create-dropdown button:hover,

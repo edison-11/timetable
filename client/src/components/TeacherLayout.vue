@@ -1118,7 +1118,8 @@ onBeforeUnmount(() => {
 <style>
 body.teacher-sidebar-collapsed .teacher-sidebar {
   width: 64px;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: visible;
 }
 
 .teacher-content {
@@ -1379,6 +1380,30 @@ body:not(.teacher-dark-mode) .notifications-dropdown {
   background: #ffffff !important;
   border-color: #dbe5f3 !important;
   color: #172033 !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .brand-text strong,
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-label {
+  color: #172033 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .brand-text span {
+  color: #64748b !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-item {
+  color: #475569 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-item:hover,
+body:not(.teacher-dark-mode) .teacher-sidebar .nav-item.active {
+  color: #0f172a !important;
 }
 
 body:not(.teacher-dark-mode) .teacher-content :where(.dashboard-hero, .studio-header, .settings-intro, .profile-header, .attendance-header) {

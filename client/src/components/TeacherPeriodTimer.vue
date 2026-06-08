@@ -1353,12 +1353,15 @@ onBeforeUnmount(() => {
 :global(.teacher-shell.dark-mode) .timer-caption,
 :global(.teacher-shell.dark-mode) .watch-metrics span,
 :global(.teacher-shell.dark-mode) .watch-metrics strong {
-  color: #f8fafc !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 
 :global(body.teacher-dark-mode) .timer-caption,
 :global(.teacher-shell.dark-mode) .timer-caption {
   border-color: #334155 !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
 }
 
 :global(body.teacher-dark-mode) .alarm-toggle,

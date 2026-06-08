@@ -625,11 +625,15 @@ onMounted(async () => {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 0.9rem;
+  padding: 0;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 .panel-header span {
   display: block;
-  color: #64748b;
+  color: #475569 !important;
   font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.05em;
@@ -638,20 +642,20 @@ onMounted(async () => {
 
 .panel-header h2 {
   margin: 0.15rem 0 0;
-  color: #0f172a;
+  color: #0f172a !important;
   font-size: 1.05rem;
   font-weight: 850;
 }
 
 .panel-header a {
-  color: #2563eb;
+  color: #2563eb !important;
   font-size: 0.82rem;
   font-weight: 850;
   text-decoration: none;
 }
 
 .panel-header svg {
-  color: #2563eb;
+  color: #2563eb !important;
 }
 
 .next-lesson {
@@ -981,7 +985,9 @@ onMounted(async () => {
 }
 
 :global(body.teacher-dark-mode) .panel-header {
+  background: transparent !important;
   border-color: #243244 !important;
+  box-shadow: none !important;
 }
 
 :global(body.teacher-dark-mode) .panel-header a {

@@ -4,9 +4,46 @@ const Student = require('../models/Student');
 const Teacher = require('../models/Teacher');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
+const { requireSchoolAdmin } = require('../middleware/rbac');
 const { getRequestSchoolId, enforceSameSchool } = require('../utils/tenant');
 
 const router = express.Router();
+
+const isStudentUser = (req) => req.user?.role === 'student' || req.user?.type === 'student';
+const isTeacherUser = (req) => req.user?.role === 'teacher' || req.user?.type === 'teacher';
+const canManageStudents = (req) => ['dos', 'admin'].includes(req.user?.role);
+
+const requireOwnStudentAccess = async (req, res, next) => {
+  try {
+    if (!isStudentUser(req)) return next();
+
+    const studentId = req.params.id;
+    if (!studentId) {
+      return res.status(403).json({ message: 'Student record access required' });
+    }
+
+    const ownStudent = await Student.findByUserId(req.user.id);
+    if (!ownStudent || Number(ownStudent.student_id) !== Number(studentId)) {
+      return res.status(403).json({ message: 'You can only view your own student information' });
+    }
+
+    req.studentRecord = ownStudent;
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const requireStudentOrSchoolAdmin = async (req, res, next) => {
+  if (isStudentUser(req)) return requireOwnStudentAccess(req, res, next);
+  if (canManageStudents(req)) return next();
+  return res.status(403).json({ message: 'Insufficient permissions' });
+};
+
+const requireTeacherOrSchoolAdmin = (req, res, next) => {
+  if (isTeacherUser(req) || canManageStudents(req)) return next();
+  return res.status(403).json({ message: 'Insufficient permissions' });
+};
 
 const getTeacherIdFromRequest = async (req) => {
   const directId = req.user?.teacherId || req.user?.teacher_id;
@@ -19,7 +56,7 @@ const getTeacherIdFromRequest = async (req) => {
 };
 
 // Create student
-router.post('/', auth, [
+router.post('/', auth, requireSchoolAdmin, [
   body('student_number').trim().notEmpty().withMessage('Student number is required'),
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('sex').optional({ nullable: true, checkFalsy: true }).trim(),
@@ -47,7 +84,7 @@ router.post('/', auth, [
 });
 
 // Get all students
-router.get('/', auth, async (req, res) => {
+router.get('/', auth, requireSchoolAdmin, async (req, res) => {
   try {
     const filters = {};
     
@@ -99,7 +136,7 @@ router.get('/teacher/classes/:classId/students', auth, async (req, res) => {
   }
 });
 
-router.get('/attendance', auth, async (req, res) => {
+router.get('/attendance', auth, requireTeacherOrSchoolAdmin, async (req, res) => {
   try {
     const teacherId = await getTeacherIdFromRequest(req);
     const school_id = getRequestSchoolId(req);
@@ -125,14 +162,16 @@ router.get('/attendance', auth, async (req, res) => {
   }
 });
 
-router.get('/attendance/records', auth, async (req, res) => {
+router.get('/attendance/records', auth, requireTeacherOrSchoolAdmin, async (req, res) => {
   try {
-    if (!req.query.attendance_date) {
-      return res.status(400).json({ message: 'Attendance date is required' });
+    if (!req.query.attendance_date && !req.query.from_date && !req.query.to_date) {
+      return res.status(400).json({ message: 'Attendance date or report date range is required' });
     }
 
     const attendance = await Student.getAttendanceRecords({
-      attendance_date: req.query.attendance_date,
+      attendance_date: req.query.attendance_date || null,
+      from_date: req.query.from_date || null,
+      to_date: req.query.to_date || null,
       class_id: req.query.class_id || null,
       school_id: getRequestSchoolId(req)
     });
@@ -144,7 +183,7 @@ router.get('/attendance/records', auth, async (req, res) => {
   }
 });
 
-router.post('/attendance', auth, [
+router.post('/attendance', auth, requireTeacherOrSchoolAdmin, [
   body('class_id').isInt().withMessage('Class is required'),
   body('attendance_date').isISO8601().withMessage('Attendance date is required'),
   body('timetable_id').optional({ nullable: true, checkFalsy: true }).isInt(),
@@ -223,6 +262,10 @@ router.post('/attendance', auth, [
 // Get student by user ID (for student portal)
 router.get('/user/:userId', auth, async (req, res) => {
   try {
+    if (isStudentUser(req) && Number(req.params.userId) !== Number(req.user.id)) {
+      return res.status(403).json({ message: 'You can only view your own student information' });
+    }
+
     const student = await Student.findByUserId(req.params.userId);
     
     if (!student) {
@@ -237,7 +280,7 @@ router.get('/user/:userId', auth, async (req, res) => {
   }
 });
 
-router.get('/:id/attendance-history', auth, async (req, res) => {
+router.get('/:id/attendance-history', auth, requireStudentOrSchoolAdmin, async (req, res) => {
   try {
     const attendance = await Student.getAttendanceHistory(req.params.id, {
       status: req.query.status || undefined,
@@ -254,13 +297,14 @@ router.get('/:id/attendance-history', auth, async (req, res) => {
 });
 
 // Get student by ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', auth, requireStudentOrSchoolAdmin, async (req, res) => {
   try {
     const student = await Student.findById(req.params.id);
     
     if (!student) {
       return res.status(404).json({ message: 'Student not found' });
     }
+    if (!enforceSameSchool(req, student)) return res.status(403).json({ message: 'Student belongs to another school' });
 
     res.json(student);
   } catch (error) {
@@ -270,8 +314,12 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Get student timetable
-router.get('/:id/timetable', auth, async (req, res) => {
+router.get('/:id/timetable', auth, requireStudentOrSchoolAdmin, async (req, res) => {
   try {
+    const student = req.studentRecord || await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+    if (!enforceSameSchool(req, student)) return res.status(403).json({ message: 'Student belongs to another school' });
+
     const { academic_year, term } = req.query;
     const timetable = await Student.getTimetable(req.params.id, academic_year, term);
     res.json(timetable);
@@ -282,7 +330,7 @@ router.get('/:id/timetable', auth, async (req, res) => {
 });
 
 // Update student
-router.put('/:id', auth, [
+router.put('/:id', auth, requireSchoolAdmin, [
   body('name').optional().trim().notEmpty(),
   body('sex').optional({ nullable: true, checkFalsy: true }).trim(),
   body('email').optional({ nullable: true, checkFalsy: true }).isEmail(),
@@ -313,7 +361,7 @@ router.put('/:id', auth, [
 });
 
 // Delete student
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', auth, requireSchoolAdmin, async (req, res) => {
   try {
     const existingStudent = await Student.findById(req.params.id);
     if (!existingStudent) return res.status(404).json({ message: 'Student not found' });

@@ -409,25 +409,66 @@ textarea {
   to { background-position: -200% 0; }
 }
 
-:global(body.admin-dark-mode) .page-header,
-:global(body.admin-dark-mode) .summary-grid article,
-:global(body.admin-dark-mode) .composer-panel,
-:global(body.admin-dark-mode) .announcements-panel,
-:global(body.admin-dark-mode) .announcement-card,
-:global(body.admin-dark-mode) .ghost-btn,
-:global(body.admin-dark-mode) input,
-:global(body.admin-dark-mode) select,
-:global(body.admin-dark-mode) textarea {
+:global(body:is(.admin-dark-mode, .dark)) .page-header,
+:global(body:is(.admin-dark-mode, .dark)) .summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .composer-panel,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-panel,
+:global(body:is(.admin-dark-mode, .dark)) .announcement-card,
+:global(body:is(.admin-dark-mode, .dark)) .ghost-btn,
+:global(body:is(.admin-dark-mode, .dark)) input,
+:global(body:is(.admin-dark-mode, .dark)) select,
+:global(body:is(.admin-dark-mode, .dark)) textarea {
   background: #111827;
   border-color: #263247;
   color: #e2e8f0;
 }
 
-:global(body.admin-dark-mode) h1,
-:global(body.admin-dark-mode) h2,
-:global(body.admin-dark-mode) label,
-:global(body.admin-dark-mode) .summary-grid strong {
+:global(body:is(.admin-dark-mode, .dark)) h1,
+:global(body:is(.admin-dark-mode, .dark)) h2,
+:global(body:is(.admin-dark-mode, .dark)) label,
+:global(body:is(.admin-dark-mode, .dark)) .summary-grid strong {
   color: #f8fafc;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page .page-header,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page .summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page .composer-panel,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page .announcements-panel,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page .announcement-card {
+  background: #111827 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page h1,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page h2,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page strong,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page label {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page p,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page span:not(.priority),
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page small {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page input,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page select,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page textarea {
+  background: #0b1220 !important;
+  border-color: #334155 !important;
+  color: #e5edf7 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page input::placeholder,
+:global(body:is(.admin-dark-mode, .dark)) .announcements-page textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 @media (max-width: 760px) {

@@ -23,10 +23,20 @@ const getApiBaseUrl = () => {
   return '/api'
 }
 
+const getApiTimeout = () => {
+  const configuredTimeout = Number(import.meta.env.VITE_API_TIMEOUT)
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return configuredTimeout
+  }
+
+  // Default to 30 seconds to avoid aborting longer backend requests.
+  return 30000
+}
+
 // Create axios instance
 const api = axios.create({
   baseURL: getApiBaseUrl(),
-  timeout: 10000
+  timeout: getApiTimeout()
 })
 
 // Normalize backend validation errors

@@ -306,10 +306,26 @@ class Student {
     return rows;
   }
 
-  static async getAttendanceRecords({ attendance_date, class_id = null, school_id = null }) {
+  static async getAttendanceRecords({ attendance_date = null, from_date = null, to_date = null, class_id = null, school_id = null }) {
     await this.ensureSchema();
-    const params = [attendance_date];
-    let filter = 'sa.attendance_date = ?';
+    const params = [];
+    const filters = [];
+
+    if (attendance_date) {
+      filters.push('sa.attendance_date = ?');
+      params.push(attendance_date);
+    } else {
+      if (from_date) {
+        filters.push('sa.attendance_date >= ?');
+        params.push(from_date);
+      }
+      if (to_date) {
+        filters.push('sa.attendance_date <= ?');
+        params.push(to_date);
+      }
+    }
+
+    let filter = filters.length ? filters.join(' AND ') : '1=1';
 
     if (class_id) {
       filter += ' AND sa.class_id = ?';
@@ -317,8 +333,8 @@ class Student {
     }
 
     if (school_id) {
-      filter += ' AND sa.school_id = ?';
-      params.push(school_id);
+      filter += ' AND (sa.school_id = ? OR (sa.school_id IS NULL AND s.school_id = ?))';
+      params.push(school_id, school_id);
     }
 
     const [rows] = await db.query(`
@@ -383,8 +399,8 @@ class Student {
     }
 
     if (filters.school_id) {
-      query += ' AND sa.school_id = ?';
-      params.push(filters.school_id);
+      query += ' AND (sa.school_id = ? OR (sa.school_id IS NULL AND s.school_id = ?))';
+      params.push(filters.school_id, filters.school_id);
     }
 
     query += ' ORDER BY sa.attendance_date DESC, t.start_time ASC, sa.period_label ASC';
@@ -441,6 +457,7 @@ class Student {
               period_label = ?,
               status = ?,
               notes = ?,
+              school_id = ?,
               updated_at = CURRENT_TIMESTAMP
           WHERE attendance_id = ?
         `, [
@@ -450,6 +467,7 @@ class Student {
           period_label || null,
           record.status || 'present',
           record.notes || null,
+          record.school_id || null,
           existingRows[0].attendance_id
         ]);
         saved.push({ ...record, attendance_id: existingRows[0].attendance_id });

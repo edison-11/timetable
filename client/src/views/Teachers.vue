@@ -1492,68 +1492,94 @@ onMounted(async () => {
   padding-bottom: 1rem;
 }
 
-:global(body.admin-dark-mode) .teachers-container {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container {
   color: #e5edf7;
 }
 
-:global(body.admin-dark-mode) .teachers-container .card-custom,
-:global(body.admin-dark-mode) .teachers-container .modal-content {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .card-custom,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .modal-content {
   border-color: #243244 !important;
   background: #111827 !important;
   color: #e5edf7 !important;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28) !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container h2,
-:global(body.admin-dark-mode) .teachers-container h5,
-:global(body.admin-dark-mode) .teachers-container .teacher-cell strong,
-:global(body.admin-dark-mode) .teachers-container .load-cell strong,
-:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid strong,
-:global(body.admin-dark-mode) .teachers-container .details-grid strong,
-:global(body.admin-dark-mode) .teachers-container .table-custom th {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container h2,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container h5,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-cell strong,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .compact-list-cell strong,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .load-cell strong,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid strong,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .details-grid strong,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .table-custom th {
   color: #f8fafc !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container .teacher-page-subtitle,
-:global(body.admin-dark-mode) .teachers-container .teacher-cell small,
-:global(body.admin-dark-mode) .teachers-container .load-cell,
-:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid span,
-:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid small,
-:global(body.admin-dark-mode) .teachers-container .details-grid span,
-:global(body.admin-dark-mode) .teachers-container .table-custom td {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-page-subtitle,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-cell small,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .compact-list-cell small,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .load-cell,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid span,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid small,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .details-grid span,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .table-custom td {
   color: #cbd5e1 !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container .table-custom th,
-:global(body.admin-dark-mode) .teachers-container .teacher-summary-grid article,
-:global(body.admin-dark-mode) .teachers-container .details-grid div {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .table-custom th,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .details-grid div {
   border-color: #243244 !important;
   background: #0b1220 !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container .quick-filter-row button {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .quick-filter-row button {
   border-color: #334155 !important;
   background: #111827 !important;
   color: #dbeafe !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container .quick-filter-row button.active {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .quick-filter-row button.active {
   border-color: #60a5fa !important;
   background: #172554 !important;
   color: #bfdbfe !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container .table-custom td,
-:global(body.admin-dark-mode) .teachers-container .modal-header,
-:global(body.admin-dark-mode) .teachers-container .modal-footer {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .table-custom td,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .modal-header,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .modal-footer {
   border-color: #243244 !important;
 }
 
-:global(body.admin-dark-mode) .teachers-container .form-control,
-:global(body.admin-dark-mode) .teachers-container .form-select {
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .form-control,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .form-select {
   border-color: #334155 !important;
   background: #0b1220 !important;
   color: #e5edf7 !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid article,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .quick-filter-row button,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .details-grid div {
+  background: #0b1220 !important;
+  border-color: #243244 !important;
+  color: #e5edf7 !important;
+  box-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid span,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid small,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-page-subtitle,
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .muted-list {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:global(body:is(.admin-dark-mode, .dark)) .teachers-container .teacher-summary-grid strong {
+  color: #f8fafc !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
 }
 
 @media (max-width: 900px) {

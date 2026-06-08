@@ -93,20 +93,22 @@
           {{ success }}
         </div>
 
-        <div class="login-divider"><span>Register</span></div>
+        <div class="login-divider"><span>Sign in with</span></div>
 
-        <div class="register-choice-row">
-          <router-link to="/teacher/register" class="register-choice">
-            <GraduationCap :size="20" :stroke-width="2.2" aria-hidden="true" />
-            <strong>Teacher</strong>
-            <span>Create teacher account</span>
-          </router-link>
-          <router-link to="/dos/register" class="register-choice">
-            <School :size="20" :stroke-width="2.2" aria-hidden="true" />
-            <strong>DOS</strong>
-            <span>Register school</span>
-          </router-link>
+        <div class="external-auth-row">
+          <a :href="externalAuthUrl('google')" class="external-auth-button google-auth">
+            <Icon icon="simple-icons:google" class="provider-mark google-mark" aria-hidden="true" width="20" height="20" />
+            <span>Google</span>
+          </a>
+          <a :href="externalAuthUrl('microsoft')" class="external-auth-button microsoft-auth">
+            <Icon icon="simple-icons:microsoft" class="provider-mark microsoft-mark" aria-hidden="true" width="20" height="20" />
+            <span>Microsoft</span>
+          </a>
         </div>
+
+        <router-link to="/register" class="create-account-button">
+          Create account
+        </router-link>
       </form>
     </div>
   </div>
@@ -114,11 +116,14 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { Eye, EyeOff, GraduationCap, LockKeyhole, School, UserRound } from 'lucide-vue-next'
+import { useRoute, useRouter } from 'vue-router'
+import { Eye, EyeOff, LockKeyhole, UserRound } from 'lucide-vue-next'
+import { Icon } from '@iconify/vue'
 import { useAuthStore } from '@/stores/auth'
+import api from '@/stores/api'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const logoUrl = `${import.meta.env.BASE_URL}title-logo.png`
 
@@ -131,8 +136,13 @@ const form = ref({
 
 const showPassword = ref(false)
 const loading = ref(false)
-const error = ref('')
+const error = ref(route.query.auth_error ? String(route.query.auth_error) : '')
 const success = ref('')
+
+const externalAuthUrl = (provider) => {
+  const baseUrl = String(api.defaults.baseURL || '/api').replace(/\/$/, '')
+  return `${baseUrl}/auth/external/${provider}`
+}
 
 const emailError = computed(() => {
   const value = form.value.email.trim()
@@ -362,8 +372,7 @@ const handleLogin = async () => {
   border-radius: 4px !important;
 }
 
-.forgot-link,
-.register-choice {
+.forgot-link {
   color: #1f72c9;
   font-weight: 800;
   text-decoration: underline;
@@ -407,14 +416,14 @@ const handleLogin = async () => {
   background: #c3cbd5;
 }
 
-.register-choice-row {
+.external-auth-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
-.register-choice {
+.external-auth-button {
   min-height: 48px;
   margin: 0;
   border: 1px solid #bdc6d1;
@@ -422,30 +431,88 @@ const handleLogin = async () => {
   background: rgba(255, 255, 255, 0.82);
   color: #263244;
   font-weight: 800;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
   padding: 0.55rem 0.7rem;
   text-align: center;
   text-decoration: none;
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.09);
 }
 
-.register-choice:hover {
+.external-auth-button:hover {
   border-color: #2f7cd8;
   background: #eff6ff;
   color: #0759b2;
 }
 
-.register-choice strong,
-.register-choice span {
-  display: block;
+.provider-mark {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
 }
 
-.register-choice span {
-  color: #64748b;
-  font-size: 0.72rem;
+.google-mark {
+  border-radius: 50%;
+  color: #2563eb;
+  font-size: 1.05rem;
+  font-weight: 900;
+  font-family: Arial, sans-serif;
+}
+
+.microsoft-mark {
+  grid-template-columns: repeat(2, 9px);
+  grid-template-rows: repeat(2, 9px);
+  gap: 2px;
+}
+
+.microsoft-mark i {
+  display: block;
+  width: 9px;
+  height: 9px;
+}
+
+.microsoft-mark i:nth-child(1) {
+  background: #f25022;
+}
+
+.microsoft-mark i:nth-child(2) {
+  background: #7fba00;
+}
+
+.microsoft-mark i:nth-child(3) {
+  background: #00a4ef;
+}
+
+.microsoft-mark i:nth-child(4) {
+  background: #ffb900;
+}
+
+.create-account-button {
+  min-height: 44px;
+  border: 1px solid #0f172a;
+  border-radius: 5px;
+  background: #263244;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 850;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 8px 14px rgba(15, 23, 42, 0.16);
+  transition: transform .08s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.create-account-button:hover {
+  transform: translateY(-1px);
+  background: #1f2937;
+  color: #fff;
+  box-shadow: 0 12px 18px rgba(15, 23, 42, 0.2);
 }
 
 .login-card.is-loading {
@@ -473,7 +540,7 @@ const handleLogin = async () => {
     flex-direction: column;
   }
 
-  .register-choice-row {
+  .external-auth-row {
     grid-template-columns: 1fr;
   }
 }
