@@ -1794,8 +1794,13 @@ body.teacher-dark-mode .period-timer .watch-face {
 
 body.teacher-dark-mode .period-timer .screen {
   border-color: #020617 !important;
-  background: linear-gradient(180deg, #dcebcf 0%, #adc69a 100%) !important;
-  color: #111827 !important;
+  background:
+    linear-gradient(180deg, rgba(148, 163, 184, 0.12), transparent 24%),
+    #0f172a !important;
+  color: #e5edf7 !important;
+  box-shadow:
+    inset 0 1px 0 rgba(148, 163, 184, 0.16),
+    inset 0 -7px 12px rgba(2, 6, 23, 0.58) !important;
 }
 
 body.teacher-dark-mode .period-timer .screen span,
@@ -1808,18 +1813,19 @@ body.teacher-dark-mode .period-timer .timer-local-time,
 body.teacher-dark-mode .period-timer .timer-caption,
 body.teacher-dark-mode .period-timer .watch-metrics span,
 body.teacher-dark-mode .period-timer .watch-metrics strong {
-  color: #111827 !important;
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
 }
 
 body.teacher-dark-mode .period-timer .alarm-toggle {
   border-color: rgba(17, 24, 39, 0.55) !important;
-  background: #f8fafc !important;
-  color: #111827 !important;
+  background: #111827 !important;
+  color: #e5edf7 !important;
 }
 
 body.teacher-dark-mode .period-timer .alarm-toggle.enabled {
-  background: #dcfce7 !important;
-  color: #14532d !important;
+  background: #172554 !important;
+  color: #f8fafc !important;
 }
 
 body.teacher-dark-mode .period-timer .tone-menu {

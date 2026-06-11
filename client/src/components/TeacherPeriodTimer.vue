@@ -1364,6 +1364,13 @@ onBeforeUnmount(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
 }
 
+:global(body.teacher-dark-mode) .screen span,
+:global(body.teacher-dark-mode) .screen strong,
+:global(.teacher-shell.dark-mode) .screen span,
+:global(.teacher-shell.dark-mode) .screen strong {
+  color: #ffffff !important;
+}
+
 :global(body.teacher-dark-mode) .alarm-toggle,
 :global(body.teacher-dark-mode) .timer-navigation button,
 :global(body.teacher-dark-mode) .tone-trigger,
